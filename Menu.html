@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback - GlobalChat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #f5f5f5;
+            display: flex;
+            overflow-x: hidden;
+        }
+
+        .feedback-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .feedback-background {
+            position: fixed;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(135deg, #000 0%, #333 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            padding: 40px;
+            display: none;
+        }
+
+        .feedback-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: white;
+            position: relative;
+            transition: transform 0.5s ease;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 40px;
+            color: black;
+        }
+
+        .form-container {
+            width: 100%;
+            max-width: 600px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .feedback-form {
+            animation: fadeIn 0.5s ease;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background: #f8f8f8;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: black;
+            background: white;
+            outline: none;
+        }
+
+        .rating-group {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .rating-button {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .rating-button.selected {
+            background: black;
+            color: white;
+            border-color: black;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background-color: black;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            background-color: #333;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .button-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .skip-button {
+            background: transparent;
+            color: #666;
+            border: 2px solid #eee;
+            margin-top: 10px;
+        }
+
+        .skip-button:hover {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        @keyframes spin {
+            to { transform: translateY(-50%) rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (min-width: 768px) {
+            .feedback-background {
+                display: flex;
+            }
+            
+            .feedback-content {
+                width: 50%;
+                margin-left: 50%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="feedback-container">
+        <div class="feedback-background">
+            <div class="brand-content">
+                <h1>We Value Your Feedback</h1>
+                <p>Help us improve GlobalChat with your thoughts</p>
+            </div>
+        </div>
+
+        <div class="feedback-content">
+            <div class="logo">GlobalChat Feedback</div>
+            
+            <div class="form-container">
+                <form class="feedback-form" id="feedback-form">
+                    <div class="input-group">
+                        <label>How satisfied are you with GlobalChat?</label>
+                        <div class="rating-group">
+                            <button type="button" class="rating-button" data-rating="1">1</button>
+                            <button type="button" class="rating-button" data-rating="2">2</button>
+                            <button type="button" class="rating-button" data-rating="3">3</button>
+                            <button type="button" class="rating-button" data-rating="4">4</button>
+                            <button type="button" class="rating-button" data-rating="5">5</button>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="feedback-type">What type of feedback do you have?</label>
+                        <select id="feedback-type" required>
+                            <option value="">Select feedback type</option>
+                            <option value="bug">Bug Report</option>
+                            <option value="feature">Feature Request</option>
+                            <option value="improvement">Improvement Suggestion</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="feedback-text">Your Feedback</label>
+                        <textarea id="feedback-text" placeholder="Please share your thoughts..." required></textarea>
+                        <div class="error-message" id="feedback-text-error"></div>
+                    </div>
+
+                    <button type="submit">
+                        Submit Feedback
+                        <div class="button-spinner"></div>
+                    </button>
+                    
+                    <button type="button" class="skip-button" onclick="skipFeedback()">
+                        Skip Feedback
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, addDoc, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+            authDomain: "globalchat-2d669.firebaseapp.com",
+            projectId: "globalchat-2d669",
+            storageBucket: "globalchat-2d669.firebasestorage.app",
+            messagingSenderId: "178714711978",
+            appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
+            measurementId: "G-LYZP41ZJ46"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let selectedRating = 0;
+
+        // Check authentication
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = 'login.html';
+            }
+        });
+
+        // Rating buttons functionality
+        document.querySelectorAll('.rating-button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.rating-button').forEach(btn => {
+                    btn.classList.remove('selected');
+                });
+                button.classList.add('selected');
+                selectedRating = parseInt(button.dataset.rating);
+            });
+        });
+
+        // Form submission
+        document.getElementById('feedback-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const feedbackText = document.getElementById('feedback-text').value.trim();
+            const feedbackType = document.getElementById('feedback-type').value;
+            const button = e.target.querySelector('button[type="submit"]');
+            const spinner = button.querySelector('.button-spinner');
+
+            if (!feedbackText) {
+                document.getElementById('feedback-text-error').textContent = 'Please provide your feedback';
+                document.getElementById('feedback-text-error').style.display = 'block';
+                return;
+            }
+
+            button.disabled = true;
+            spinner.style.display = 'block';
+
+            try {
+                const user = auth.currentUser;
+                await addDoc(collection(db, 'feedback'), {
+                    userId: user.uid,
+                    rating: selectedRating,
+                    type: feedbackType,
+                    feedback: feedbackText,
+                    timestamp: new Date().toISOString()
+                });
+
+                // Redirect after successful submission
+                window.location.href = 'half.html';
+            } catch (error) {
+                console.error('Error submitting feedback:', error);
+                button.disabled = false;
+                spinner.style.display = 'none';
+            }
+        });
+
+        // Skip feedback function
+        window.skipFeedback = function() {
+            window.location.href = 'half.html';
+        };
+
+        // Clear error on input
+        document.getElementById('feedback-text').addEventListener('input', () => {
+            document.getElementById('feedback-text-error').style.display = 'none';
+        });
+    </script>
+</body>
+</html>

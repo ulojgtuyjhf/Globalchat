@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="chat.css">
+  
+  
+  <title>Global Chat</title>
+</head>
+<body>
+  <div class="chat-container" id="chatContainer">
+    <div class="loading-dots" id="loadingIndicator" style="display: none;">
+      <div class="loading-dot"></div>
+      <div class="loading-dot"></div>
+      <div class="loading-dot"></div>
+    </div>
+  </div>
+  <div class="input-container">
+    <textarea id="messageInput" placeholder="Type your message..."></textarea>
+    <button onclick="sendMessage()">
+      <img src="https://cdn-icons-png.flaticon.com/512/786/786205.png" alt="Send">
+    </button>
+
+  </div>
+<script type="module" src="chat.js"></script>
+<script src="reply.js"></script>
+<script src="replyhighl.js"></script>
+<script src="link.js"></script>
+<script src="check.js"></script>
+<script src="loadfollow.js"></script>
+<script src="viewprof.js"></script>
+<script src="ad.js"></script>
+<script src="mark.js"></script>
+<script src="sound.js"></script>
+<script src="like.js"></script>
+<script src="skelechat.js"></script>
+<script src="language.js"></script>
+<script src="little.js"></script>
+<script src="autoscroll.js"></script>
+<script src="remove.js"></script>
+<script src="highflk.js"></script>
+<script src="vtot.js"></script>
+<script src="copy.js"></script>
+<script src="backprof.js"></script>
+<script src="secchat.js"></script>
+
+<script>
+(() => {
+  const profileModal = document.querySelector('.profile-modal');
+  const content = profileModal.querySelector('.profile-content');
+  const profileName = profileModal.querySelector('.profile-name');
+  const profileFlag = profileModal.querySelector('.profile-flag');
+  const profileImage = profileModal.querySelector('.profile-image');
+
+  // Add full-screen image modal
+  const fullScreenImageModal = document.createElement('div');
+  fullScreenImageModal.className = 'fullscreen-image-modal';
+  fullScreenImageModal.innerHTML = `
+    <div class="fullscreen-image-container">
+      <img class="fullscreen-image">
+    </div>
+  `;
+  document.body.appendChild(fullScreenImageModal);
+
+  // Enhanced styles for multi-directional dragging
+  const imageModalStyles = document.createElement('style');
+  imageModalStyles.textContent = `
+    .fullscreen-image-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.95);
+      z-index: 2000;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .fullscreen-image-modal.active {
+      display: flex;
+      opacity: 1;
+    }
+    
+    .fullscreen-image-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 600px;
+      transition: all 0.3s ease;
+      cursor: grab;
+    }
+    
+    .fullscreen-image-container.dragging {
+      cursor: grabbing;
+      transition: none;
+    }
+    
+    .fullscreen-image {
+      width: 100%;
+      height: auto;
+      border-radius: 20px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      pointer-events: none;
+    }
+    
+    .country-tooltip {
+      position: absolute;
+      background: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transform: translateY(-100%);
+      opacity: 0;
+      transition: all 0.3s ease;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 1001;
+    }
+  `;
+  document.head.appendChild(imageModalStyles);
+
+  // Country codes to full names mapping
+  const countryNames = {
+    'af': 'Afghanistan',
+    'al': 'Albania',
+    'dz': 'Algeria',
+    'ad': 'Andorra',
+    'ao': 'Angola',
+    'ar': 'Argentina',
+    'am': 'Armenia',
+    'au': 'Australia',
+    'at': 'Austria',
+    'az': 'Azerbaijan',
+    'bs': 'Bahamas',
+    'bh': 'Bahrain',
+    'bd': 'Bangladesh',
+    'bb': 'Barbados',
+    'by': 'Belarus',
+    'be': 'Belgium',
+    'bz': 'Belize',
+    'bj': 'Benin',
+    'bt': 'Bhutan',
+    'bo': 'Bolivia',
+    'br': 'Brazil',
+    'bn': 'Brunei',
+    'bg': 'Bulgaria',
+    'ca': 'Canada',
+    'cn': 'China',
+    'co': 'Colombia',
+    'dk': 'Denmark',
+    'eg': 'Egypt',
+    'fr': 'France',
+    'de': 'Germany',
+    'gr': 'Greece',
+    'in': 'India',
+    'id': 'Indonesia',
+    'ir': 'Iran',
+    'iq': 'Iraq',
+    'ie': 'Ireland',
+    'il': 'Israel',
+    'it': 'Italy',
+    'jp': 'Japan',
+    'ke': 'Kenya',
+    'kr': 'South Korea',
+    'kw': 'Kuwait',
+    'my': 'Malaysia',
+    'mx': 'Mexico',
+    'ma': 'Morocco',
+    'np': 'Nepal',
+    'nl': 'Netherlands',
+    'nz': 'New Zealand',
+    'ng': 'Nigeria',
+    'no': 'Norway',
+    'pk': 'Pakistan',
+    'ph': 'Philippines',
+    'pl': 'Poland',
+    'pt': 'Portugal',
+    'qa': 'Qatar',
+    'ru': 'Russia',
+    'sa': 'Saudi Arabia',
+    'sg': 'Singapore',
+    'za': 'South Africa',
+    'es': 'Spain',
+    'lk': 'Sri Lanka',
+    'se': 'Sweden',
+    'ch': 'Switzerland',
+    'tw': 'Taiwan',
+    'th': 'Thailand',
+    'tr': 'Turkey',
+    'ae': 'United Arab Emirates',
+    'gb': 'United Kingdom',
+    'us': 'United States of America',
+    'vn': 'Vietnam',
+    'ye': 'Yemen',
+    'zm': 'Zambia',
+    'zw': 'Zimbabwe'
+  };
+
+  // Get full country name from flag src
+  const getCountryName = (src) => {
+    const code = src.split('/').pop().split('.')[0].toLowerCase();
+    return countryNames[code] || code.charAt(0).toUpperCase() + code.slice(1);
+  };
+
+  // Enhanced drag handling
+  let startX = 0;
+  let startY = 0;
+  let currentX = 0;
+  let currentY = 0;
+  let isDragging = false;
+  let initialTransform = { x: 0, y: 0 };
+  const imageContainer = fullScreenImageModal.querySelector('.fullscreen-image-container');
+
+  const handleDragStart = (e) => {
+    const touch = e.touches ? e.touches[0] : e;
+    startX = touch.clientX;
+    startY = touch.clientY;
+    isDragging = true;
+    imageContainer.classList.add('dragging');
+    
+    // Store initial transform values
+    const transform = window.getComputedStyle(imageContainer).transform;
+    const matrix = new DOMMatrix(transform);
+    initialTransform = {
+      x: matrix.m41,
+      y: matrix.m42
+    };
+  };
+
+  const handleDragMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    
+    const touch = e.touches ? e.touches[0] : e;
+    currentX = touch.clientX;
+    currentY = touch.clientY;
+    
+    const deltaX = currentX - startX;
+    const deltaY = currentY - startY;
+    
+    // Calculate distance from center for scaling
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    const scale = Math.max(0.7, 1 - (distance / window.innerHeight) * 0.3);
+    
+    // Calculate opacity based on distance
+    const opacity = Math.max(0.2, 1 - (distance / window.innerHeight) * 0.8);
+    
+    imageContainer.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px)) scale(${scale})`;
+    fullScreenImageModal.style.background = `rgba(0,0,0,${opacity * 0.95})`;
+  };
+
+  const handleDragEnd = () => {
+    if (!isDragging) return;
+    isDragging = false;
+    imageContainer.classList.remove('dragging');
+    
+    const deltaX = currentX - startX;
+    const deltaY = currentY - startY;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    
+    imageContainer.style.transition = 'all 0.3s ease';
+    
+    // Close if dragged far enough
+    if (distance > 100) {
+      const angle = Math.atan2(deltaY, deltaX);
+      const exitX = Math.cos(angle) * window.innerWidth;
+      const exitY = Math.sin(angle) * window.innerHeight;
+      
+      imageContainer.style.transform = `translate(calc(-50% + ${exitX}px), calc(-50% + ${exitY}px)) scale(0.7)`;
+      fullScreenImageModal.style.opacity = '0';
+      
+      setTimeout(() => {
+        fullScreenImageModal.classList.remove('active');
+        imageContainer.style.transform = 'translate(-50%, -50%) scale(1)';
+        fullScreenImageModal.style.opacity = '1';
+        fullScreenImageModal.style.background = 'rgba(0,0,0,0.95)';
+      }, 300);
+    } else {
+      // Spring back to center
+      imageContainer.style.transform = 'translate(-50%, -50%) scale(1)';
+      fullScreenImageModal.style.background = 'rgba(0,0,0,0.95)';
+    }
+  };
+
+  // Add touch and mouse event listeners
+  if ('ontouchstart' in window) {
+    imageContainer.addEventListener('touchstart', handleDragStart);
+    imageContainer.addEventListener('touchmove', handleDragMove);
+    imageContainer.addEventListener('touchend', handleDragEnd);
+  } else {
+    imageContainer.addEventListener('mousedown', handleDragStart);
+    window.addEventListener('mousemove', handleDragMove);
+    window.addEventListener('mouseup', handleDragEnd);
+  }
+
+  // Flag tooltip handling
+  const showFlagTooltip = (flag) => {
+    if (!flag.nextElementSibling?.classList.contains('country-tooltip')) {
+      const tooltip = document.createElement('div');
+      tooltip.className = 'country-tooltip';
+      tooltip.textContent = getCountryName(flag.src);
+      
+      flag.parentElement.style.position = 'relative';
+      flag.parentElement.insertBefore(tooltip, flag.nextSibling);
+      
+      requestAnimationFrame(() => {
+        tooltip.style.opacity = '1';
+        tooltip.style.transform = 'translateY(-120%)';
+      });
+    }
+  };
+
+  const hideFlagTooltip = (flag) => {
+    const tooltip = flag.nextElementSibling;
+    if (tooltip?.classList.contains('country-tooltip')) {
+      tooltip.style.opacity = '0';
+      tooltip.style.transform = 'translateY(-100%)';
+      setTimeout(() => tooltip.remove(), 300);
+    }
+  };
+
+  // Flag interaction events
+  if ('ontouchstart' in window) {
+    profileFlag.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      showFlagTooltip(e.target);
+    });
+    
+    document.addEventListener('touchstart', (e) => {
+      if (!e.target.classList.contains('profile-flag')) {
+        hideFlagTooltip(profileFlag);
+      }
+    });
+  } else {
+    profileFlag.addEventListener('mouseenter', (e) => showFlagTooltip(e.target));
+    profileFlag.addEventListener('mouseleave', (e) => hideFlagTooltip(e.target));
+  }
+
+  // Profile image click handler
+  profileImage.addEventListener('click', () => {
+    const fullscreenImg = fullScreenImageModal.querySelector('.fullscreen-image');
+    fullscreenImg.src = profileImage.style.backgroundImage.replace(/url\(['"](.+)['"]\)/, '$1');
+    fullScreenImageModal.classList.add('active');
+  });
+
+  // Tap to close
+  fullScreenImageModal.addEventListener('click', (e) => {
+    if (e.target === fullScreenImageModal) {
+      fullScreenImageModal.classList.remove('active');
+    }
+  });
+
+  // Center the profile modal content
+  content.style.height = '70vh';
+  content.style.maxWidth = '600px';
+  content.style.margin = '0 auto';
+})();
+</script>

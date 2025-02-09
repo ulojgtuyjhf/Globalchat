@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Profile Settings</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="profile.css">
+    
+</head>
+<body>
+    <div class="container">
+  <div class="profile-header">
+    <div class="profile-image-container">
+      <img id="profileImage" src="" alt="Profile" class="profile-image" />
+      <div class="profile-camera-icon" id="changeProfilePicture">
+        <i class="fas fa-camera"></i>
+        <input type="file" id="profilePictureInput" style="display:none" accept="image/*">
+      </div>
+    </div>
+    <div class="profile-name-container">
+      <span id="profileName" class="profile-name"></span>
+      <i class="fas fa-edit edit-name-icon" id="editNameIcon"></i>
+    </div>
+    <p id="profileEmail" class="profile-email"></p>
+
+    <!-- Followers and Following Section -->
+    <div class="profile-stats">
+      <div class="profile-stat" id="followersBtn">
+        <span id="followersCount" class="profile-stat-number">0</span>
+        <span class="profile-stat-label">Followers</span>
+      </div>
+      <div class="profile-stat" id="followingBtn">
+        <span id="followingCount" class="profile-stat-number">0</span>
+        <span class="profile-stat-label">Following</span>
+      </div>
+    </div>
+
+    <!-- Bio Section -->
+    <div class="profile-bio">
+      <span id="profileBio">Add a bio to tell people about yourself</span>
+      <i class="fas fa-edit edit-bio-icon" id="editBioIcon"></i>
+    </div>
+  </div>
+
+  <!-- General Settings Section -->
+  <div class="section">
+    <div class="section-title">General Settings</div>
+    <div class="section-item" id="modeToggle">
+      <i class="fas fa-adjust"></i>
+      <span>Dark Mode</span>
+      <div class="toggle-switch" id="darkModeSwitch"></div>
+    </div>
+    <div class="section-item" id="changePasswordBtn">
+      <i class="fas fa-key"></i>
+      <span>Change Password</span>
+      <i class="fas fa-chevron-right"></i>
+    </div>
+    <div class="section-item" id="notificationsToggle">
+      <i class="fas fa-bell"></i>
+      <span>Notifications</span>
+      <div class="toggle-switch" id="notificationsSwitch"></div>
+    </div>
+  </div>
+
+  <!-- Account Section -->
+  <div class="section">
+    <div class="section-title">Account</div>
+    <div class="section-item" id="privacyBtn">
+      <i class="fas fa-lock"></i>
+      <span>Privacy Settings</span>
+      <i class="fas fa-chevron-right"></i>
+    </div>
+    <div class="section-item" id="securityBtn">
+      <i class="fas fa-shield-alt"></i>
+      <span>Security</span>
+      <i class="fas fa-chevron-right"></i>
+    </div>
+  </div>
+
+  <!-- Help & Support Section -->
+  <div class="section">
+    <div class="section-title">Help & Support</div>
+    <div class="section-item" id="helpBtn">
+      <i class="fas fa-question-circle"></i>
+      <span>Help Center</span>
+      <i class="fas fa-chevron-right"></i>
+    </div>
+    <div class="section-item" id="contactBtn">
+      <i class="fas fa-envelope"></i>
+      <span>Contact Support</span>
+      <i class="fas fa-chevron-right"></i>
+    </div>
+  </div>
+
+  <!-- About Section -->
+  <div class="section">
+    <div class="section-title">About</div>
+    <div class="section-item" id="termsBtn">
+      <i class="fas fa-file-alt"></i>
+      <span>Terms of Service</span>
+      <i class="fas fa-chevron-right"></i>
+    </div>
+    <div class="section-item" id="privacyPolicyBtn">
+      <i class="fas fa-shield-alt"></i>
+      <span>Privacy Policy</span>
+      <i class="fas fa-chevron-right"></i>
+    </div>
+    <div class="section-item" id="logoutBtn">
+      <i class="fas fa-sign-out-alt"></i>
+      <span>Logout</span>
+      <i class="fas fa-chevron-right"></i>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div id="editNameModal" class="modal">
+    <div class="modal-content">
+      <h2>Edit Name</h2>
+      <input type="text" id="editNameInput" class="modal-input" placeholder="Enter new name">
+      <div class="modal-buttons">
+        <button id="saveNameBtn" class="modal-btn">Save</button>
+        <button id="cancelNameBtn" class="modal-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="editBioModal" class="modal">
+    <div class="modal-content">
+      <h2>Edit Bio</h2>
+      <textarea id="editBioInput" class="modal-input" placeholder="Write something about yourself" rows="4"></textarea>
+      <div class="modal-buttons">
+        <button id="saveBioBtn" class="modal-btn">Save</button>
+        <button id="cancelBioBtn" class="modal-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="followersModal" class="followers-modal">
+    <div class="followers-modal-content">
+      <div class="modal-header">
+        <h2 id="followersModalTitle">Followers</h2>
+      </div>
+      <div id="followersList" class="followers-list">
+        <!-- Followers will be dynamically populated here -->
+      </div>
+    </div>
+  </div>
+</div>
+<script type="module" src="profile.js"></script>
+<script type="module" src="loadingbio.js"></script>
+<script src="skeleprof.js"></script>
+<script src="security.js"></script>
+<script src="about.js"></script>
+<script src="help.js"></script>
+<script src="secsave.js"></script>
+<script src="secback.js"></script>
+<script src="helpback.js"></script>
+<script src="notspin.js"></script>
+<script src="loadfollow.js"></script>
+<script>
+// Modal Navigation Handler
+const modalNavigationHandler = {
+  isModalOpen: false,
+  modalStateKey: 'modalState',
+
+  initialize() {
+    // Initialize modal state in history
+    const initialState = { modalOpen: false };
+    history.replaceState(initialState, '', window.location.href);
+
+    // Listen for history changes (back/forward navigation)
+    window.addEventListener('popstate', (event) => {
+      const state = event.state || { modalOpen: false };
+      this.handleNavigationChange(state);
+    });
+
+    // Add listeners to modal triggers
+    this.setupModalListeners();
+  },
+
+  setupModalListeners() {
+    // When opening modal
+    document.addEventListener('click', (e) => {
+      const profile = e.target.closest('.profile');
+      if (!profile) return;
+
+      this.openModal();
+    });
+
+    // When closing modal via close button
+    const closeButton = document.querySelector('.profile-close');
+    if (closeButton) {
+      closeButton.addEventListener('click', () => {
+        this.closeModal();
+      });
+    }
+
+    // When closing modal via backdrop click
+    const modal = document.querySelector('.profile-modal');
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          this.closeModal();
+        }
+      });
+    }
+  },
+
+  openModal() {
+    const modal = document.querySelector('.profile-modal');
+    if (!modal || this.isModalOpen) return;
+
+    // Add state to history
+    const newState = { modalOpen: true };
+    history.pushState(newState, '', window.location.href);
+    
+    // Open modal
+    modal.classList.add('active');
+    this.isModalOpen = true;
+  },
+
+  closeModal() {
+    const modal = document.querySelector('.profile-modal');
+    if (!modal || !this.isModalOpen) return;
+
+    // If modal was opened via history push, go back
+    if (history.state?.modalOpen) {
+      history.back();
+    } else {
+      // Otherwise just close the modal
+      this.handleModalClose();
+    }
+  },
+
+  handleNavigationChange(state) {
+    const modal = document.querySelector('.profile-modal');
+    if (!modal) return;
+
+    if (state.modalOpen) {
+      // Open modal without pushing state
+      modal.classList.add('active');
+      this.isModalOpen = true;
+    } else {
+      // Close modal without history manipulation
+      this.handleModalClose();
+    }
+  },
+
+  handleModalClose() {
+    const modal = document.querySelector('.profile-modal');
+    if (!modal) return;
+
+    modal.classList.remove('active');
+    this.isModalOpen = false;
+  }
+};
+
+// Initialize the navigation handler when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  modalNavigationHandler.initialize();
+});
+</script>
+<script>
+// About Modal Navigation Handler
+const aboutModalNavigationHandler = {
+  activeModal: null,
+  modalTypes: {
+    terms: 'termsModal',
+    privacy: 'privacyPolicyModal'
+  },
+
+  initialize() {
+    // Initialize history state
+    const initialState = { 
+      modalType: null,
+      isModalOpen: false 
+    };
+    history.replaceState(initialState, '', window.location.href);
+
+    // Set up navigation event listener
+    window.addEventListener('popstate', (event) => {
+      const state = event.state || { modalType: null, isModalOpen: false };
+      this.handleNavigationChange(state);
+    });
+
+    // Set up modal triggers
+    this.setupModalTriggers();
+  },
+
+  setupModalTriggers() {
+    // Terms button click handler
+    const termsBtn = document.getElementById('termsBtn');
+    if (termsBtn) {
+      termsBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.openModal('terms');
+      });
+    }
+
+    // Privacy policy button click handler
+    const privacyBtn = document.getElementById('privacyPolicyBtn');
+    if (privacyBtn) {
+      privacyBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.openModal('privacy');
+      });
+    }
+
+    // Back button click handlers
+    const backButtons = document.querySelectorAll('.about-modal-back');
+    backButtons.forEach(button => {
+      button.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.closeModal();
+      });
+    });
+
+    // Overlay click handler (if exists)
+    const modalOverlay = document.querySelector('.modal-overlay');
+    if (modalOverlay) {
+      modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+          this.closeModal();
+        }
+      });
+    }
+  },
+
+  openModal(modalType) {
+    const modalId = this.modalTypes[modalType];
+    const modalElement = document.getElementById(modalId);
+    
+    if (!modalElement || this.activeModal === modalId) return;
+
+    // Update history state
+    const newState = { 
+      modalType: modalType,
+      isModalOpen: true 
+    };
+    history.pushState(newState, '', `#${modalType}`);
+
+    // Open the modal
+    this.closeAllModals(); // Ensure all other modals are closed
+    modalElement.classList.add('active');
+    this.activeModal = modalId;
+
+    // Show overlay and disable body scroll
+    const modalOverlay = document.querySelector('.modal-overlay');
+    if (modalOverlay) modalOverlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  },
+
+  closeModal() {
+    if (!this.activeModal) return;
+
+    // If modal was opened via history push, go back
+    if (history.state?.isModalOpen) {
+      history.back();
+    } else {
+      // Otherwise just close the modal
+      this.handleModalClose();
+    }
+  },
+
+  handleNavigationChange(state) {
+    if (state.isModalOpen && state.modalType) {
+      // Open the appropriate modal without pushing state
+      const modalId = this.modalTypes[state.modalType];
+      const modalElement = document.getElementById(modalId);
+      
+      if (modalElement) {
+        this.closeAllModals();
+        modalElement.classList.add('active');
+        this.activeModal = modalId;
+        
+        // Show overlay and disable body scroll
+        const modalOverlay = document.querySelector('.modal-overlay');
+        if (modalOverlay) modalOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+    } else {
+      // Close all modals without pushing state
+      this.handleModalClose();
+    }
+  },
+
+  handleModalClose() {
+    // Close all modals
+    this.closeAllModals();
+    
+    // Hide overlay and restore body scroll
+    const modalOverlay = document.querySelector('.modal-overlay');
+    if (modalOverlay) modalOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+    
+    this.activeModal = null;
+  },
+
+  closeAllModals() {
+    const modals = document.querySelectorAll('.about-modal');
+    modals.forEach(modal => modal.classList.remove('active'));
+  }
+};
+
+// Initialize the navigation handler when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  aboutModalNavigationHandler.initialize();
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    let themeToggle = document.getElementById("darkModeSwitch");
+
+    if (themeToggle) {
+        themeToggle.style.pointerEvents = "none"; // Disable clicking
+        themeToggle.style.opacity = "0.5"; // Make it look disabled
+        themeToggle.style.cursor = "not-allowed"; // Change cursor to indicate it's disabled
+    }
+});
+</script>
+

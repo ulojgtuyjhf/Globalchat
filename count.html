@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Global Chat - Users</title>
+    <link href="https://cdn.jsdelivr.net/npm/flagpack@3.0.0/dist/flagpack.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="count.css">
+</head>
+<body>
+    <div class="neuromorphic-container">
+        <div class="search-wrapper">
+            <div class="neuromorphic-search">
+                <input 
+                    type="text" 
+                    id="userSearchInput" 
+                    placeholder="Search users..."
+                >
+                <span id="userCount" class="user-count">Available Users: 0</span>
+            </div>
+        </div>
+        
+        <div id="userList" class="user-list">
+            <!-- Users will be dynamically populated here -->
+        </div>
+    </div>
+    <script type="module" src="count.js"></script>
+<script src="reply.js"></script>
+<script src="replyhighl.js"></script>
+<script>
+  // Add enhanced styles with modern animations
+  document.head.insertAdjacentHTML('beforeend', `
+    <style>
+        /* Enhanced Modern skeleton animation with stronger shimmer */
+        .skeleton {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(
+                90deg,
+                #f0f0f0 0%,
+                #f8f8f8 50%,
+                #f0f0f0 100%
+            );
+            background-size: 200% 100%;
+            animation: gradientShimmer 2s infinite linear;
+        }
+
+        .skeleton::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -150%;
+            width: 250%;
+            height: 100%;
+            background: linear-gradient(
+                90deg, 
+                transparent 0%,
+                rgba(255, 255, 255, 0.9) 50%,
+                transparent 100%
+            );
+            animation: shimmerWave 2.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes gradientShimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        @keyframes shimmerWave {
+            0% { transform: translateX(-100%) skewX(-15deg); }
+            100% { transform: translateX(100%) skewX(-15deg); }
+        }
+
+        /* Enhanced Modern loaded card effects */
+        .user-card {
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .user-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.8),
+                transparent
+            );
+            transform: skewX(-15deg);
+            animation: enhancedCardShine 8s infinite cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes enhancedCardShine {
+            0% { left: -100%; opacity: 0; }
+            10% { opacity: 1; }
+            40% { left: 200%; opacity: 1; }
+            41% { opacity: 0; }
+            100% { left: 200%; opacity: 0; }
+        }
+
+        /* Enhanced Skeleton card styles with morphing */
+        .skeleton-user-card {
+            background: #ffffff;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            min-height: 90px;
+            border-bottom: 1px solid #e0e0e0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: subtleMorph 4s infinite alternate ease-in-out;
+        }
+
+        @keyframes subtleMorph {
+            0% { transform: translateX(0) scaleX(1); }
+            50% { transform: translateX(2px) scaleX(0.995); }
+            100% { transform: translateX(0) scaleX(1); }
+        }
+
+        .skeleton-user-card:hover {
+            transform: translateX(4px);
+            box-shadow: -2px 0 0 #000;
+        }
+
+        .skeleton-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 4px;
+            margin-right: 20px;
+            animation: morphAvatar 3s infinite alternate ease-in-out;
+        }
+
+        @keyframes morphAvatar {
+            0% { border-radius: 4px; }
+            50% { border-radius: 8px; }
+            100% { border-radius: 4px; }
+        }
+
+        .skeleton-details {
+            flex-grow: 1;
+            padding: 4px 0;
+        }
+
+        .skeleton-name {
+            height: 24px;
+            width: 60%;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            animation: morphWidth 4s infinite alternate ease-in-out;
+        }
+
+        @keyframes morphWidth {
+            0% { width: 60%; }
+            100% { width: 65%; }
+        }
+
+        .skeleton-youtube {
+            height: 16px;
+            width: 40%;
+            border-radius: 4px;
+            animation: morphWidth2 5s infinite alternate ease-in-out;
+        }
+
+        @keyframes morphWidth2 {
+            0% { width: 40%; }
+            100% { width: 45%; }
+        }
+
+        .skeleton-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-left: 16px;
+        }
+
+        .skeleton-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: morphDot 2s infinite alternate ease-in-out;
+        }
+
+        @keyframes morphDot {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.2); }
+        }
+
+        .skeleton-flag {
+            width: 24px;
+            height: 16px;
+            border-radius: 2px;
+            animation: morphFlag 3s infinite alternate ease-in-out;
+        }
+
+        @keyframes morphFlag {
+            0% { transform: scaleX(1); }
+            100% { transform: scaleX(1.1); }
+        }
+
+        /* Enhanced Pulse animation for status dot */
+        .status-dot {
+            position: relative;
+        }
+
+        .status-dot::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 50%;
+            background: currentColor;
+            opacity: 0.4;
+            animation: enhancedPulse 3s infinite cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes enhancedPulse {
+            0% { transform: scale(1); opacity: 0.4; }
+            50% { transform: scale(1.8); opacity: 0; }
+            51% { transform: scale(1); opacity: 0; }
+            100% { transform: scale(1); opacity: 0.4; }
+        }
+
+        @media (max-width: 768px) {
+            .skeleton-avatar {
+                width: 48px;
+                height: 48px;
+            }
+        }
+    </style>
+`);
+
+  // Function to create skeleton loading cards
+  function showSkeletons() {
+    const userList = document.getElementById('userList');
+    let skeletonHTML = '';
+
+    for (let i = 0; i < 10; i++) {
+      skeletonHTML += `
+            <div class="skeleton-user-card">
+                <div class="skeleton-avatar skeleton"></div>
+                <div class="skeleton-details">
+                    <div class="skeleton-name skeleton"></div>
+                    <div class="skeleton-youtube skeleton"></div>
+                </div>
+                <div class="skeleton-status">
+                    <div class="skeleton-dot skeleton"></div>
+                    <div class="skeleton-flag skeleton"></div>
+                </div>
+            </div>
+        `;
+    }
+    userList.innerHTML = skeletonHTML;
+  }
+
+  // Add shine effect to loaded cards
+  function addShineToLoadedCards() {
+    const cards = document.querySelectorAll('.user-card');
+    cards.forEach(card => {
+      if (!card.classList.contains('shine-added')) {
+        card.classList.add('shine-added');
+        card.style.position = 'relative';
+        card.style.overflow = 'hidden';
+      }
+    });
+  }
+
+  // Override the existing fetch function
+  window.addEventListener('DOMContentLoaded', () => {
+    const originalFetchAvailableUsers = window.fetchAvailableUsers;
+
+    window.fetchAvailableUsers = async function() {
+      showSkeletons();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      try {
+        await originalFetchAvailableUsers();
+        // Add shine effect to loaded cards
+        setTimeout(addShineToLoadedCards, 100);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        document.getElementById('userList').innerHTML =
+          '<div style="padding: 20px; text-align: center;">Error loading users</div>';
+      }
+    };
+
+    // Show skeletons when searching
+    const searchInput = document.getElementById('userSearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        showSkeletons();
+        setTimeout(() => fetchAvailableUsers(), 300);
+      });
+    }
+
+    // Initial load with skeleton
+    showSkeletons();
+  });
+
+  // Ensure skeleton shows immediately
+  showSkeletons();
+</script>
