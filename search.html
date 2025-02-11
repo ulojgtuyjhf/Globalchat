@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Chat Gallery</title>
+    <link rel="stylesheet" href="vid.css">
+    
+    
+</head>
+<body>
+    <div class="chat-container" id="chat-container"></div>
+    <div class="header-space"></div>
+
+    <!-- Your existing JavaScript code remains the same -->
+    <script type="module" src="vid.js"></script>
+<script src="vitpre.js"></script>
+
+
+
+<script>
+class NavigationHandler {
+    constructor(mediaViewerElement, options = {}) {
+        this.mediaViewer = mediaViewerElement;
+        this.options = {
+            animationDuration: 300,
+            exitAnimation: 'fade', // 'fade' | 'slide'
+            onBeforeExit: null,
+            onAfterExit: null,
+            ...options
+        };
+        
+        this.isOpen = true;
+        this.initialScrollPosition = window.scrollY;
+        
+        this.init();
+    }
+
+    init() {
+        // Store the initial state in history
+        const state = { action: 'opened_viewer' };
+        history.pushState(state, '', window.location.href);
+
+        // Handle back button and history changes
+        window.addEventListener('popstate', (event) => {
+            if (this.isOpen) {
+                this.handleExit();
+            }
+        });
+
+        // Handle touch gestures
+        this.setupTouchHandling();
+        
+        // Handle hardware back button (Android)
+        if (window.navigator.userAgent.includes('Android')) {
+            document.addEventListener('backbutton', (e) => {
+                if (this.isOpen) {
+                    e.preventDefault();
+                    this.handleExit();
+                }
+            });
+        }
+    }
+
+    setupTouchHandling() {
+        let startY = 0;
+        let currentY = 0;
+        let isDragging = false;
+
+        this.mediaViewer.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+            isDragging = true;
+        });
+
+        this.mediaViewer.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            
+            currentY = e.touches[0].clientY;
+            const deltaY = currentY - startY;
+
+            // Only allow dragging down
+            if (deltaY > 0) {
+                this.mediaViewer.style.transform = `translateY(${deltaY}px)`;
+                this.mediaViewer.style.opacity = 1 - (deltaY / window.innerHeight);
+            }
+        });
+
+        this.mediaViewer.addEventListener('touchend', () => {
+            if (!isDragging) return;
+            
+            const deltaY = currentY - startY;
+            isDragging = false;
+
+            // If dragged more than 30% of screen height, close the viewer
+            if (deltaY > window.innerHeight * 0.3) {
+                this.handleExit();
+            } else {
+                // Reset position with animation
+                this.mediaViewer.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
+                this.mediaViewer.style.transform = 'translateY(0)';
+                this.mediaViewer.style.opacity = '1';
+                
+                setTimeout(() => {
+                    this.mediaViewer.style.transition = '';
+                }, 300);
+            }
+        });
+    }
+
+    async handleExit() {
+        if (typeof this.options.onBeforeExit === 'function') {
+            await this.options.onBeforeExit();
+        }
+
+        this.isOpen = false;
+
+        // Apply exit animation
+        switch (this.options.exitAnimation) {
+            case 'slide':
+                this.mediaViewer.style.transition = `transform ${this.options.animationDuration}ms ease-out, opacity ${this.options.animationDuration}ms ease-out`;
+                this.mediaViewer.style.transform = 'translateY(100%)';
+                this.mediaViewer.style.opacity = '0';
+                break;
+            case 'fade':
+            default:
+                this.mediaViewer.style.transition = `opacity ${this.options.animationDuration}ms ease-out`;
+                this.mediaViewer.style.opacity = '0';
+                break;
+        }
+
+        // Wait for animation to complete
+        await new Promise(resolve => setTimeout(resolve, this.options.animationDuration));
+
+        // Restore scroll position
+        window.scrollTo(0, this.initialScrollPosition);
+
+        // Clean up
+        if (typeof this.options.onAfterExit === 'function') {
+            await this.options.onAfterExit();
+        }
+
+        // Remove the viewer from DOM
+        this.mediaViewer.remove();
+    }
+
+    // Public method to programmatically close the viewer
+    close() {
+        if (this.isOpen) {
+            history.back();
+        }
+    }
+}
+
+// Example usage:
+document.addEventListener('DOMContentLoaded', () => {
+    const mediaViewers = document.querySelectorAll('.custom-media-viewer');
+    mediaViewers.forEach(viewer => {
+        new NavigationHandler(viewer, {
+            animationDuration: 300,
+            exitAnimation: 'slide',
+            onBeforeExit: async () => {
+                // Custom logic before exit
+                console.log('Preparing to exit...');
+            },
+            onAfterExit: async () => {
+                // Custom cleanup after exit
+                console.log('Viewer closed successfully');
+            }
+        });
+    });
+});
+</script>
+<script>
+class EnhancedNavigationHandler {
+    constructor(options = {}) {
+        this.options = {
+            scrollContainer: '.chat-container',
+            messageSelector: '.message',
+            confirmExitMessage: 'Press back again to exit',
+            confirmationDuration: 2000,
+            scrollDuration: 500,
+            ...options
+        };
+
+        this.container = document.querySelector(this.options.scrollContainer);
+        this.backPressCount = 0;
+        this.lastBackPress = 0;
+        this.isFullscreenMedia = false;
+        this.confirmToast = null;
+        
+        this.init();
+    }
+
+    init() {
+        // Handle hardware back button (Android)
+        if (window.navigator.userAgent.includes('Android')) {
+            document.addEventListener('backbutton', (e) => {
+                e.preventDefault();
+                this.handleBackPress();
+            });
+        }
+
+        // Handle browser back button
+        window.addEventListener('popstate', (e) => {
+            e.preventDefault();
+            this.handleBackPress();
+            // Push a new state to maintain control
+            history.pushState({ page: 'chat' }, '', window.location.href);
+        });
+
+        // Initialize history state
+        history.pushState({ page: 'chat' }, '', window.location.href);
+
+        // Reset back press count on scroll
+        this.container.addEventListener('scroll', () => {
+            if (this.backPressCount === 1 && 
+                this.container.scrollTop > 0) {
+                this.backPressCount = 0;
+            }
+        });
+    }
+
+    createToast(message) {
+        if (this.confirmToast) {
+            this.confirmToast.remove();
+        }
+
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            z-index: 1000;
+            animation: fadeInUp 0.3s ease;
+        `;
+
+        toast.innerHTML = message;
+        document.body.appendChild(toast);
+        this.confirmToast = toast;
+
+        setTimeout(() => {
+            toast.style.animation = 'fadeOut 0.3s ease forwards';
+            setTimeout(() => toast.remove(), 300);
+            this.confirmToast = null;
+        }, this.options.confirmationDuration);
+    }
+
+    smoothScroll(element, target, duration) {
+        const start = element.scrollTop;
+        const distance = target - start;
+        const startTime = performance.now();
+
+        const easeInOutQuad = (t) => {
+            return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+        };
+
+        const animate = (currentTime) => {
+            const timeElapsed = currentTime - startTime;
+            const progress = Math.min(timeElapsed / duration, 1);
+            const eased = easeInOutQuad(progress);
+            
+            element.scrollTop = start + (distance * eased);
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            }
+        };
+
+        requestAnimationFrame(animate);
+    }
+
+    async handleBackPress() {
+        const now = Date.now();
+
+        // Reset count if too much time has passed
+        if (now - this.lastBackPress > this.options.confirmationDuration) {
+            this.backPressCount = 0;
+        }
+        this.lastBackPress = now;
+
+        // If in fullscreen media view, close it first
+        if (this.isFullscreenMedia) {
+            this.closeFullscreenMedia();
+            this.backPressCount = 0;
+            return;
+        }
+
+        // Handle back press based on count
+        switch (this.backPressCount) {
+            case 0:
+                // First back: Scroll to top with animation
+                if (this.container.scrollTop > 0) {
+                    this.smoothScroll(this.container, 0, this.options.scrollDuration);
+                    this.backPressCount++;
+                } else {
+                    // Already at top, increment count
+                    this.backPressCount++;
+                    this.handleBackPress();
+                }
+                break;
+
+            case 1:
+                // Second back: Show confirmation
+                this.createToast(this.options.confirmExitMessage);
+                this.backPressCount++;
+                break;
+
+            case 2:
+                // Third back: Exit
+                this.exitApp();
+                break;
+        }
+    }
+
+    closeFullscreenMedia() {
+        // Add your existing media close animation logic here
+        this.isFullscreenMedia = false;
+        // Trigger any necessary cleanup or animations
+    }
+
+    exitApp() {
+        // Animate out
+        document.body.style.animation = 'fadeOut 0.3s ease forwards';
+        
+        // Clean up and exit
+        setTimeout(() => {
+            // Remove all event listeners
+            this.cleanup();
+            
+            // If in a standalone web app or PWA
+            if (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches) {
+                window.close();
+            } else {
+                // For browser environment
+                history.go(-history.length);
+                window.location.href = 'login.html';
+            }
+        }, 300);
+    }
+
+    cleanup() {
+        // Remove event listeners and clean up resources
+        if (this.confirmToast) {
+            this.confirmToast.remove();
+        }
+    }
+
+    // Public method to set fullscreen media state
+    setFullscreenMedia(isFullscreen) {
+        this.isFullscreenMedia = isFullscreen;
+    }
+}
+
+// Add necessary CSS
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translate(-50%, 20px);
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+    }
+
+    @keyframes fadeOut {
+        to {
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
+
+// Initialize the handler
+const navigationHandler = new EnhancedNavigationHandler({
+    scrollContainer: '.chat-container',
+    confirmExitMessage: 'Press back again to exit the app',
+    confirmationDuration: 2000,
+    scrollDuration: 500
+});
+
+// Export for use in other scripts
+window.navigationHandler = navigationHandler;
+</script>
+
+</body>
+</html>

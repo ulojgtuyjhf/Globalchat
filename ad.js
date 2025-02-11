@@ -52,7 +52,7 @@ const AD_KEYWORDS = {
         <div class="ad-label">
           <span class="sponsored-tag">
             <span class="sponsored-pulse"></span>
-            Premium Sponsor
+            featured
           </span>
           <span class="ad-timer">${adData.duration}s</span>
         </div>
@@ -74,12 +74,12 @@ const AD_KEYWORDS = {
             <svg viewBox="0 0 24 24" width="16" height="16">
               <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor"/>
             </svg>
-            <span>Premium Offer</span>
+            <span>Amazon</span>
           </div>
-          <h3 class="ad-title">Discover Premium Deals</h3>
-          <p class="ad-description">Exclusive offers waiting for you. Limited time only.</p>
+          <h3 class="ad-title">available in South Africa </h3>
+          <p class="ad-description">shop now with Amazon and enjoy next day delivery.</p>
           <button class="ad-cta">
-            <span>Explore Now</span>
+            <span>shop now!</span>
             <svg viewBox="0 0 24 24" width="16" height="16">
               <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
             </svg>
@@ -129,7 +129,7 @@ const AD_KEYWORDS = {
 
     setTimeout(() => {
       skeleton.replaceWith(createAdElement(adData));
-    }, 2000);
+    }, 10000);
   }
 
   const observer = new MutationObserver(mutations => {
@@ -519,4 +519,4 @@ const adStyles = `
 
 const styleSheet = document.createElement('style');
 styleSheet.textContent = adStyles;
-document.head.appendChild(styleSheet);
+document.head.appendChild(styleSheet); 
