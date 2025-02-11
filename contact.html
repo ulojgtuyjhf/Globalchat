@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Form</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .contact-container {
+            width: 100%;
+            min-height: 100vh;
+            background: white;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+
+        .form-wrapper {
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .form-header h1 {
+            font-size: 32px;
+            color: #000;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .form-header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input:not([type="tel"]),
+        select,
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background: #f8f8f8;
+        }
+
+        textarea {
+            height: 120px;
+            resize: vertical;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: black;
+            background: white;
+            outline: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background-color: black;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            background-color: #333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .button-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        /* Success Message Styles */
+        .success-message {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #28a745;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            transform: translateY(-100%);
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .success-message.show {
+            transform: translateY(0);
+        }
+
+        /* IntlTelInput Custom Styles */
+        .iti {
+            width: 100%;
+        }
+
+        .iti__flag {
+            background-image: url("https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/img/flags.png");
+        }
+
+        .iti__selected-flag {
+            border-radius: 12px 0 0 12px;
+        }
+
+        input[type="tel"] {
+            padding-left: 90px !important;
+            border-radius: 12px !important;
+            border: 2px solid #eee !important;
+            background: #f8f8f8 !important;
+            transition: all 0.3s !important;
+        }
+
+        input[type="tel"]:focus {
+            border-color: black !important;
+            background: white !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+        }
+
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .iti__flag {
+                background-image: url("https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/img/flags@2x.png");
+            }
+        }
+
+        @keyframes spin {
+            to { transform: translateY(-50%) rotate(360deg); }
+        }
+
+        @keyframes slideDown {
+            from { 
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .contact-container {
+                padding: 20px;
+            }
+
+            .form-header h1 {
+                font-size: 28px;
+            }
+
+            input:not([type="tel"]),
+            select,
+            textarea,
+            button {
+                padding: 12px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .contact-container {
+                padding: 60px 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Success Message -->
+    <div class="success-message" id="successMessage">
+        Message sent successfully! We'll get back to you soon.
+    </div>
+
+    <div class="contact-container">
+        <div class="form-wrapper">
+            <div class="form-header">
+                <h1>Contact Us</h1>
+                <p>We'll get back to you as soon as possible</p>
+            </div>
+
+            <form id="contactForm">
+                <div class="input-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" required>
+                    <div class="error-message" id="name-error"></div>
+                </div>
+
+                <div class="input-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" required>
+                    <div class="error-message" id="email-error"></div>
+                </div>
+
+                <div class="input-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" required>
+                    <div class="error-message" id="phone-error"></div>
+                </div>
+
+                <div class="input-group">
+                    <label for="category">Category</label>
+                    <select id="category" required>
+                        <option value="">Select a category</option>
+                        <option value="advertising">Advertising</option>
+                        <option value="support">Technical Support</option>
+                        <option value="partnership">Partnership</option>
+                        <option value="general">General Inquiry</option>
+                    </select>
+                    <div class="error-message" id="category-error"></div>
+                </div>
+
+                <div class="input-group">
+                    <label for="message">Message</label>
+                    <textarea id="message" required></textarea>
+                    <div class="error-message" id="message-error"></div>
+                </div>
+
+                <button type="submit">
+                    Send Message
+                    <div class="button-spinner"></div>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+   <script type="module">
+    // Firebase imports
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+        authDomain: "globalchat-2d669.firebaseapp.com",
+        projectId: "globalchat-2d669",
+        storageBucket: "globalchat-2d669.firebasestorage.app",
+        messagingSenderId: "178714711978",
+        appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
+        measurementId: "G-LYZP41ZJ46"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Check authentication state
+    onAuthStateChanged(auth, (user) => {
+        if (!user) {
+            window.location.href = 'login.html';
+        }
+    });
+
+    // Initialize phone input with strict validation
+    const phoneInput = window.intlTelInput(document.querySelector("#phone"), {
+        utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+        preferredCountries: ["us", "gb", "ca"],
+        separateDialCode: true,
+        formatOnDisplay: true,
+        nationalMode: true,
+        utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js"
+    });
+
+    // Phone number validation helper
+    function validatePhoneNumber(phoneInput) {
+        if (!phoneInput.isValidNumber()) {
+            const errorCode = phoneInput.getValidationError();
+            switch(errorCode) {
+                case intlTelInputUtils.validationError.INVALID_COUNTRY_CODE:
+                    return "Invalid country code";
+                case intlTelInputUtils.validationError.TOO_SHORT:
+                    return "Phone number is too short for this country";
+                case intlTelInputUtils.validationError.TOO_LONG:
+                    return "Phone number is too long for this country";
+                case intlTelInputUtils.validationError.NOT_A_NUMBER:
+                    return "Invalid phone number format";
+                default:
+                    return "Please enter a valid phone number";
+            }
+        }
+        return null;
+    }
+
+    // Enhanced input validation
+    function validateInput(input) {
+        const value = input.value.trim();
+        
+        if (!value && input.required) {
+            return 'This field is required';
+        }
+
+        switch (input.id) {
+            case 'email':
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(value)) {
+                    return 'Please enter a valid email address';
+                }
+                break;
+            case 'phone':
+                return validatePhoneNumber(phoneInput);
+            case 'name':
+                if (value.length < 2) {
+                    return 'Name must be at least 2 characters long';
+                }
+                const nameRegex = /^[a-zA-Z\s'-]+$/;
+                if (!nameRegex.test(value)) {
+                    return 'Name can only contain letters, spaces, hyphens, and apostrophes';
+                }
+                break;
+            case 'message':
+                if (value.length < 10) {
+                    return 'Message must be at least 10 characters long';
+                }
+                if (value.length > 1000) {
+                    return 'Message cannot exceed 1000 characters';
+                }
+                break;
+            case 'category':
+                if (!value) {
+                    return 'Please select a category';
+                }
+                break;
+        }
+        return null;
+    }
+
+    function showError(elementId, message) {
+        const errorElement = document.getElementById(elementId);
+        if (errorElement) {
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            // Add shake animation
+            errorElement.style.animation = 'none';
+            errorElement.offsetHeight; // Trigger reflow
+            errorElement.style.animation = 'slideDown 0.3s ease';
+        }
+    }
+
+    function clearErrors() {
+        document.querySelectorAll('.error-message').forEach(error => {
+            error.textContent = '';
+            error.style.display = 'none';
+        });
+        document.querySelectorAll('input, select, textarea').forEach(input => {
+            input.classList.remove('error');
+        });
+    }
+
+    // Show success message with animation
+    function showSuccessMessage() {
+        const successMessage = document.getElementById('successMessage');
+        successMessage.classList.add('show');
+        setTimeout(() => {
+            successMessage.classList.remove('show');
+        }, 3000);
+    }
+
+    // Real-time validation
+    document.querySelectorAll('input, select, textarea').forEach(input => {
+        let debounceTimer;
+        
+        input.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                const error = validateInput(input);
+                const errorElement = document.getElementById(`${input.id}-error`);
+                if (errorElement) {
+                    if (error) {
+                        errorElement.textContent = error;
+                        errorElement.style.display = 'block';
+                        input.classList.add('error');
+                    } else {
+                        errorElement.style.display = 'none';
+                        input.classList.remove('error');
+                    }
+                }
+            }, 300); // Debounce delay
+        });
+    });
+
+    // Form submission
+    document.getElementById('contactForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearErrors();
+
+        const button = e.target.querySelector('button');
+        const spinner = button.querySelector('.button-spinner');
+        
+        // Validate all inputs
+        const inputs = e.target.querySelectorAll('input, select, textarea');
+        let isValid = true;
+
+        inputs.forEach(input => {
+            const error = validateInput(input);
+            if (error) {
+                showError(`${input.id}-error`, error);
+                input.classList.add('error');
+                isValid = false;
+            }
+        });
+
+        if (!isValid) {
+            // Scroll to first error
+            const firstError = document.querySelector('.error-message[style="display: block"]');
+            if (firstError) {
+                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
+
+        button.disabled = true;
+        spinner.style.display = 'block';
+
+        try {
+            const user = auth.currentUser;
+            if (!user) throw new Error('User not authenticated');
+
+            // Create contact submission in Firestore
+            const contactData = {
+                userId: user.uid,
+                name: document.getElementById('name').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                phone: phoneInput.getNumber(),
+                phoneCountry: phoneInput.getSelectedCountryData().iso2,
+                category: document.getElementById('category').value,
+                message: document.getElementById('message').value.trim(),
+                timestamp: serverTimestamp(),
+                status: 'pending',
+                userAgent: navigator.userAgent,
+                source: window.location.hostname
+            };
+
+            // Add document to 'contacts' collection
+            await addDoc(collection(db, 'contacts'), contactData);
+            
+            // Show success message
+            showSuccessMessage();
+            
+            // Clear form
+            e.target.reset();
+            
+            // Reset phone input
+            phoneInput.setCountry('us');
+            
+        } catch (error) {
+            console.error('Submission error:', error);
+            showError('message-error', 'An error occurred. Please try again.');
+        } finally {
+            button.disabled = false;
+            spinner.style.display = 'none';
+        }
+    });
+
+    // Phone input formatting
+    document.getElementById('phone').addEventListener('countrychange', function() {
+        const error = validatePhoneNumber(phoneInput);
+        const errorElement = document.getElementById('phone-error');
+        if (errorElement) {
+            if (error) {
+                errorElement.textContent = error;
+                errorElement.style.display = 'block';
+                this.classList.add('error');
+            } else {
+                errorElement.style.display = 'none';
+                this.classList.remove('error');
+            }
+        }
+    });
+</script>
