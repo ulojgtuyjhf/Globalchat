@@ -81,7 +81,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) {
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
         return;
       }
 
@@ -222,6 +222,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
       fetchAvailableUsers();
     } else {
       // Redirect to login if not authenticated
-      window.location.href = 'login.html';
+      window.location.href = 'index.html';
     }
   });

@@ -1,1 +1,361 @@
-function _0x3264(_0x3e62c8,_0x25714b){const _0x3aca7a=_0x3aca();return _0x3264=function(_0x32643a,_0x2b878b){_0x32643a=_0x32643a-0x1ad;let _0x197a80=_0x3aca7a[_0x32643a];return _0x197a80;},_0x3264(_0x3e62c8,_0x25714b);}const _0x18a49a=_0x3264;(function(_0x374bb8,_0x2909e4){const _0xe8cef6=_0x3264,_0x10fc1c=_0x374bb8();while(!![]){try{const _0x4a3a26=-parseInt(_0xe8cef6(0x1ea))/0x1*(parseInt(_0xe8cef6(0x204))/0x2)+parseInt(_0xe8cef6(0x1db))/0x3+parseInt(_0xe8cef6(0x1e8))/0x4*(-parseInt(_0xe8cef6(0x214))/0x5)+parseInt(_0xe8cef6(0x203))/0x6*(-parseInt(_0xe8cef6(0x20e))/0x7)+parseInt(_0xe8cef6(0x1f3))/0x8*(parseInt(_0xe8cef6(0x20a))/0x9)+-parseInt(_0xe8cef6(0x1ae))/0xa*(parseInt(_0xe8cef6(0x1df))/0xb)+parseInt(_0xe8cef6(0x1f0))/0xc*(parseInt(_0xe8cef6(0x1fe))/0xd);if(_0x4a3a26===_0x2909e4)break;else _0x10fc1c['push'](_0x10fc1c['shift']());}catch(_0x44028d){_0x10fc1c['push'](_0x10fc1c['shift']());}}}(_0x3aca,0xd6183));import{initializeApp}from'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';import{getAuth,onAuthStateChanged,updateProfile,signOut}from'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';import{getFirestore,doc,getDoc,updateDoc,collection,query,where,getDocs,addDoc,deleteDoc}from'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';import{getStorage,ref,uploadBytes,getDownloadURL}from'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';const firebaseConfig={'apiKey':_0x18a49a(0x1d9),'authDomain':_0x18a49a(0x1b9),'projectId':_0x18a49a(0x1cd),'storageBucket':_0x18a49a(0x1d4),'messagingSenderId':_0x18a49a(0x1e4),'appId':_0x18a49a(0x1bf)},app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),storage=getStorage(app),profileImage=document[_0x18a49a(0x1b1)](_0x18a49a(0x1eb)),changeProfilePicture=document['getElementById'](_0x18a49a(0x206)),profilePictureInput=document[_0x18a49a(0x1b1)]('profilePictureInput'),profileName=document[_0x18a49a(0x1b1)]('profileName'),profileEmail=document[_0x18a49a(0x1b1)]('profileEmail'),editNameIcon=document[_0x18a49a(0x1b1)]('editNameIcon'),editNameModal=document[_0x18a49a(0x1b1)](_0x18a49a(0x209)),editNameInput=document['getElementById'](_0x18a49a(0x1d1)),saveNameBtn=document[_0x18a49a(0x1b1)](_0x18a49a(0x1f5)),cancelNameBtn=document[_0x18a49a(0x1b1)]('cancelNameBtn'),profileBio=document[_0x18a49a(0x1b1)](_0x18a49a(0x1b6)),editBioIcon=document[_0x18a49a(0x1b1)]('editBioIcon'),editBioModal=document[_0x18a49a(0x1b1)]('editBioModal'),editBioInput=document[_0x18a49a(0x1b1)](_0x18a49a(0x212)),saveBioBtn=document[_0x18a49a(0x1b1)](_0x18a49a(0x1f6)),cancelBioBtn=document[_0x18a49a(0x1b1)](_0x18a49a(0x1c9)),followersCount=document[_0x18a49a(0x1b1)]('followersCount'),followingCount=document[_0x18a49a(0x1b1)](_0x18a49a(0x1f7)),followersBtn=document[_0x18a49a(0x1b1)]('followersBtn'),followingBtn=document[_0x18a49a(0x1b1)](_0x18a49a(0x1d6)),followersModal=document['getElementById'](_0x18a49a(0x1f8)),followersList=document[_0x18a49a(0x1b1)](_0x18a49a(0x20b)),followersModalTitle=document[_0x18a49a(0x1b1)](_0x18a49a(0x1d0)),darkModeSwitch=document[_0x18a49a(0x1b1)](_0x18a49a(0x213)),body=document[_0x18a49a(0x1ef)],notificationsSwitch=document[_0x18a49a(0x1b1)]('notificationsSwitch'),changePasswordBtn=document[_0x18a49a(0x1b1)](_0x18a49a(0x1f4)),privacyBtn=document[_0x18a49a(0x1b1)](_0x18a49a(0x1af)),securityBtn=document[_0x18a49a(0x1b1)]('securityBtn'),helpBtn=document['getElementById'](_0x18a49a(0x1da)),contactBtn=document['getElementById'](_0x18a49a(0x215)),termsBtn=document[_0x18a49a(0x1b1)](_0x18a49a(0x1cf)),privacyPolicyBtn=document[_0x18a49a(0x1b1)](_0x18a49a(0x1b5)),logoutBtn=document[_0x18a49a(0x1b1)](_0x18a49a(0x1bc));function initializeDarkMode(){const _0xcca8ef=_0x18a49a;localStorage[_0xcca8ef(0x1c5)](_0xcca8ef(0x1cb))==='enabled'&&(body['classList']['add'](_0xcca8ef(0x1c2)),darkModeSwitch[_0xcca8ef(0x1c8)][_0xcca8ef(0x200)]('active')),darkModeSwitch[_0xcca8ef(0x1b0)](_0xcca8ef(0x1f1),function(){const _0x51e426=_0xcca8ef;this['classList'][_0x51e426(0x1ce)](_0x51e426(0x1e2)),body[_0x51e426(0x1c8)][_0x51e426(0x1ce)](_0x51e426(0x1c2)),body[_0x51e426(0x1c8)][_0x51e426(0x1ed)](_0x51e426(0x1c2))?localStorage[_0x51e426(0x205)]('darkMode','enabled'):localStorage[_0x51e426(0x208)](_0x51e426(0x1cb));});}function initializeNameEditing(_0xdddfcd){const _0xf1d490=_0x18a49a;editNameIcon[_0xf1d490(0x1b0)](_0xf1d490(0x1f1),()=>{const _0xb82577=_0xf1d490;editNameModal[_0xb82577(0x1ad)][_0xb82577(0x201)]=_0xb82577(0x1fd),editNameInput[_0xb82577(0x1f9)]=_0xdddfcd['displayName']||'';}),saveNameBtn[_0xf1d490(0x1b0)](_0xf1d490(0x1f1),async()=>{const _0x4ac4b7=_0xf1d490,_0x5b94fb=editNameInput[_0x4ac4b7(0x1f9)][_0x4ac4b7(0x1c4)]();if(_0x5b94fb)try{await updateProfile(_0xdddfcd,{'displayName':_0x5b94fb}),await updateDoc(doc(db,_0x4ac4b7(0x211),_0xdddfcd[_0x4ac4b7(0x1c1)]),{'displayName':_0x5b94fb}),profileName[_0x4ac4b7(0x1e9)]=_0x5b94fb,editNameModal['style'][_0x4ac4b7(0x201)]='none';}catch(_0x2d306d){console[_0x4ac4b7(0x1b8)](_0x4ac4b7(0x1dd),_0x2d306d),alert(_0x4ac4b7(0x1fc));}}),cancelNameBtn[_0xf1d490(0x1b0)](_0xf1d490(0x1f1),()=>{const _0x3f6a47=_0xf1d490;editNameModal[_0x3f6a47(0x1ad)]['display']=_0x3f6a47(0x1b2);});}function initializeBioEditing(_0x2552c8){const _0x4df659=_0x18a49a;editBioIcon[_0x4df659(0x1b0)]('click',()=>{const _0x254a45=_0x4df659;editBioModal[_0x254a45(0x1ad)][_0x254a45(0x201)]=_0x254a45(0x1fd),editBioInput[_0x254a45(0x1f9)]=profileBio[_0x254a45(0x1e9)]||'';}),saveBioBtn[_0x4df659(0x1b0)](_0x4df659(0x1f1),async()=>{const _0x5d1f9d=_0x4df659,_0x3fba72=editBioInput[_0x5d1f9d(0x1f9)][_0x5d1f9d(0x1c4)]();try{await updateDoc(doc(db,'users',_0x2552c8[_0x5d1f9d(0x1c1)]),{'bio':_0x3fba72}),profileBio[_0x5d1f9d(0x1e9)]=_0x3fba72||'Add\x20a\x20bio\x20to\x20tell\x20people\x20about\x20yourself',editBioModal[_0x5d1f9d(0x1ad)][_0x5d1f9d(0x201)]=_0x5d1f9d(0x1b2);}catch(_0x3b43f5){console[_0x5d1f9d(0x1b8)](_0x5d1f9d(0x1be),_0x3b43f5),alert('Failed\x20to\x20update\x20bio.\x20Please\x20try\x20again.');}}),cancelBioBtn['addEventListener'](_0x4df659(0x1f1),()=>{const _0x3b843e=_0x4df659;editBioModal[_0x3b843e(0x1ad)][_0x3b843e(0x201)]='none';});}function initializeProfilePictureChange(_0x58e36d){const _0x40cc48=_0x18a49a;changeProfilePicture[_0x40cc48(0x1b0)](_0x40cc48(0x1f1),()=>{const _0x4ccf19=_0x40cc48;profilePictureInput[_0x4ccf19(0x1f1)]();}),profilePictureInput['addEventListener'](_0x40cc48(0x20c),async _0x3749c9=>{const _0x4794ae=_0x40cc48,_0x2d7ffa=_0x3749c9[_0x4794ae(0x1fb)]['files'][0x0];if(_0x2d7ffa)try{const _0x459b34=ref(storage,_0x4794ae(0x1d2)+_0x58e36d[_0x4794ae(0x1c1)]),_0x38eabe=await uploadBytes(_0x459b34,_0x2d7ffa),_0x184f98=await getDownloadURL(_0x38eabe['ref']);await updateProfile(_0x58e36d,{'photoURL':_0x184f98}),await updateDoc(doc(db,_0x4794ae(0x211),_0x58e36d[_0x4794ae(0x1c1)]),{'photoURL':_0x184f98}),profileImage[_0x4794ae(0x1f2)]=_0x184f98;}catch(_0x29753b){console[_0x4794ae(0x1b8)]('Error\x20updating\x20profile\x20picture:',_0x29753b),alert(_0x4794ae(0x1d3));}});}async function fetchFollowData(_0x4e736e){const _0x56692b=_0x18a49a;try{const _0x26b6de=query(collection(db,'follows'),where(_0x56692b(0x1e5),'==',_0x4e736e[_0x56692b(0x1c1)])),_0x485f57=await getDocs(_0x26b6de);followersCount['textContent']=_0x485f57[_0x56692b(0x1b4)];const _0x5c5d32=query(collection(db,_0x56692b(0x1b3)),where(_0x56692b(0x1bb),'==',_0x4e736e[_0x56692b(0x1c1)])),_0x343016=await getDocs(_0x5c5d32);followingCount[_0x56692b(0x1e9)]=_0x343016[_0x56692b(0x1b4)];}catch(_0x3a1cab){console[_0x56692b(0x1b8)]('Error\x20fetching\x20follow\x20data:',_0x3a1cab);}}function initializeFollowModal(_0x2fe055){const _0x17987f=_0x18a49a;followersBtn[_0x17987f(0x1b0)]('click',async()=>{const _0x4cac54=_0x17987f;followersModalTitle[_0x4cac54(0x1e9)]=_0x4cac54(0x1e1),followersList[_0x4cac54(0x1ec)]='';try{const _0x7b053a=query(collection(db,_0x4cac54(0x1b3)),where('followedUserId','==',_0x2fe055[_0x4cac54(0x1c1)])),_0x49e771=await getDocs(_0x7b053a);for(const _0x107fc1 of _0x49e771[_0x4cac54(0x1c7)]){const _0x33f8ce=_0x107fc1[_0x4cac54(0x1c3)](),_0x1ae65b=await getDoc(doc(db,_0x4cac54(0x211),_0x33f8ce[_0x4cac54(0x1bb)]));if(_0x1ae65b[_0x4cac54(0x1ee)]()){const _0x523b53=_0x1ae65b[_0x4cac54(0x1c3)](),_0xad6af=document[_0x4cac54(0x1e0)](_0x4cac54(0x1bd));_0xad6af['classList']['add'](_0x4cac54(0x1d7)),_0xad6af['innerHTML']=_0x4cac54(0x207)+(_0x523b53['photoURL']||'default-profile.png')+'\x22\x20alt=\x22Profile\x22>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22followers-list-item-info\x22>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22followers-list-item-name\x22>'+_0x523b53['displayName']+_0x4cac54(0x20f),followersList[_0x4cac54(0x1ff)](_0xad6af);}}followersModal[_0x4cac54(0x1ad)][_0x4cac54(0x201)]=_0x4cac54(0x1fd);}catch(_0x3de59e){console['error']('Error\x20fetching\x20followers:',_0x3de59e);}}),followingBtn[_0x17987f(0x1b0)](_0x17987f(0x1f1),async()=>{const _0x25be76=_0x17987f;followersModalTitle[_0x25be76(0x1e9)]=_0x25be76(0x20d),followersList[_0x25be76(0x1ec)]='';try{const _0x2aeb46=query(collection(db,'follows'),where(_0x25be76(0x1bb),'==',_0x2fe055[_0x25be76(0x1c1)])),_0x2c6387=await getDocs(_0x2aeb46);for(const _0x228b12 of _0x2c6387['docs']){const _0x2c5e7f=_0x228b12['data'](),_0x380a=await getDoc(doc(db,_0x25be76(0x211),_0x2c5e7f['followedUserId']));if(_0x380a[_0x25be76(0x1ee)]()){const _0x5522ed=_0x380a[_0x25be76(0x1c3)](),_0x1dc991=document[_0x25be76(0x1e0)](_0x25be76(0x1bd));_0x1dc991['classList']['add'](_0x25be76(0x1d7)),_0x1dc991[_0x25be76(0x1ec)]='\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<img\x20src=\x22'+(_0x5522ed[_0x25be76(0x1e3)]||_0x25be76(0x202))+_0x25be76(0x1dc)+_0x5522ed[_0x25be76(0x210)]+'</div>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20',followersList[_0x25be76(0x1ff)](_0x1dc991);}}followersModal[_0x25be76(0x1ad)][_0x25be76(0x201)]=_0x25be76(0x1fd);}catch(_0xf175c0){console['error'](_0x25be76(0x1d8),_0xf175c0);}}),followersModal[_0x17987f(0x1b0)](_0x17987f(0x1f1),_0x2585b5=>{const _0x4b3b31=_0x17987f;_0x2585b5['target']===followersModal&&(followersModal['style'][_0x4b3b31(0x201)]=_0x4b3b31(0x1b2));});}function initializeNotificationsToggle(){const _0x596282=_0x18a49a;notificationsSwitch[_0x596282(0x1b0)]('click',function(){const _0xa8824b=_0x596282;this['classList']['toggle'](_0xa8824b(0x1e2)),console['log'](_0xa8824b(0x1cc));});}function _0x3aca(){const _0x247fb=['textContent','17nOAWdP','profileImage','innerHTML','contains','exists','body','276PYpHiU','click','src','8YmCxzD','changePasswordBtn','saveNameBtn','saveBioBtn','followingCount','followersModal','value','bio','target','Failed\x20to\x20update\x20name.\x20Please\x20try\x20again.','flex','574964reARCd','appendChild','add','display','default-profile.png','11574vVjoEj','173202NsAeQU','setItem','changeProfilePicture','\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<img\x20src=\x22','removeItem','editNameModal','9559251pRmsXQ','followersList','change','Following','1463onfvzW','</div>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20','displayName','users','editBioInput','darkModeSwitch','5975gTaDba','contactBtn','style','795580LeQIEF','privacyBtn','addEventListener','getElementById','none','follows','size','privacyPolicyBtn','profileBio','Logout\x20error:','error','globalchat-2d669.firebaseapp.com','login.html','followerUserId','logoutBtn','div','Error\x20updating\x20bio:','1:178714711978:web:fb831188be23e62a4bbdd3','User','uid','dark-mode','data','trim','getItem','Failed\x20to\x20log\x20out.\x20Please\x20try\x20again.','docs','classList','cancelBioBtn','Change\x20Password\x20feature\x20coming\x20soon','darkMode','Notifications\x20toggled','globalchat-2d669','toggle','termsBtn','followersModalTitle','editNameInput','profilePictures/','Failed\x20to\x20update\x20profile\x20picture.\x20Please\x20try\x20again.','globalchat-2d669.appspot.com','Add\x20a\x20bio\x20to\x20tell\x20people\x20about\x20yourself','followingBtn','followers-list-item','Error\x20fetching\x20following:','AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ','helpBtn','5211057dFTvHh','\x22\x20alt=\x22Profile\x22>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22followers-list-item-info\x22>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22followers-list-item-name\x22>','Error\x20updating\x20name:','href','66fwmrQt','createElement','Followers','active','photoURL','178714711978','followedUserId','Error\x20fetching\x20user\x20data:','location','1964qQRqPT'];_0x3aca=function(){return _0x247fb;};return _0x3aca();}function initializeButtonListeners(){const _0x2095c4=_0x18a49a;changePasswordBtn[_0x2095c4(0x1b0)]('click',()=>{const _0x44e73f=_0x2095c4;alert(_0x44e73f(0x1ca));}),privacyBtn[_0x2095c4(0x1b0)](_0x2095c4(0x1f1),()=>{}),securityBtn['addEventListener']('click',()=>{}),helpBtn[_0x2095c4(0x1b0)](_0x2095c4(0x1f1),()=>{}),contactBtn['addEventListener'](_0x2095c4(0x1f1),()=>{}),termsBtn[_0x2095c4(0x1b0)](_0x2095c4(0x1f1),()=>{}),privacyPolicyBtn['addEventListener']('click',()=>{}),logoutBtn[_0x2095c4(0x1b0)](_0x2095c4(0x1f1),async()=>{const _0x58031c=_0x2095c4;try{await signOut(auth),window[_0x58031c(0x1e7)][_0x58031c(0x1de)]=_0x58031c(0x1ba);}catch(_0x41024d){console[_0x58031c(0x1b8)](_0x58031c(0x1b7),_0x41024d),alert(_0x58031c(0x1c6));}});}onAuthStateChanged(auth,async _0x48211f=>{const _0x2cdc9d=_0x18a49a;if(_0x48211f)try{const _0x5b6822=await getDoc(doc(db,'users',_0x48211f[_0x2cdc9d(0x1c1)])),_0x1e2245=_0x5b6822[_0x2cdc9d(0x1c3)]();profileName[_0x2cdc9d(0x1e9)]=_0x48211f[_0x2cdc9d(0x210)]||_0x1e2245[_0x2cdc9d(0x210)]||_0x2cdc9d(0x1c0),profileEmail[_0x2cdc9d(0x1e9)]=_0x48211f['email'],profileImage[_0x2cdc9d(0x1f2)]=_0x48211f['photoURL']||_0x1e2245[_0x2cdc9d(0x1e3)]||_0x2cdc9d(0x202),profileBio['textContent']=_0x1e2245[_0x2cdc9d(0x1fa)]||_0x2cdc9d(0x1d5),initializeDarkMode(),initializeNameEditing(_0x48211f),initializeProfilePictureChange(_0x48211f),initializeBioEditing(_0x48211f),initializeFollowModal(_0x48211f),fetchFollowData(_0x48211f),initializeNotificationsToggle(),initializeButtonListeners();}catch(_0x58446a){console[_0x2cdc9d(0x1b8)](_0x2cdc9d(0x1e6),_0x58446a);}else window[_0x2cdc9d(0x1e7)]['href']=_0x2cdc9d(0x1ba);});
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+    // Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+        authDomain: "globalchat-2d669.firebaseapp.com",
+        projectId: "globalchat-2d669",
+        storageBucket: "globalchat-2d669.appspot.com",
+        messagingSenderId: "178714711978",
+        appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    // DOM Elements
+    const profileImage = document.getElementById('profileImage');
+    const changeProfilePicture = document.getElementById('changeProfilePicture');
+    const profilePictureInput = document.getElementById('profilePictureInput');
+    const profileName = document.getElementById('profileName');
+    const profileEmail = document.getElementById('profileEmail');
+    const editNameIcon = document.getElementById('editNameIcon');
+    const editNameModal = document.getElementById('editNameModal');
+    const editNameInput = document.getElementById('editNameInput');
+    const saveNameBtn = document.getElementById('saveNameBtn');
+    const cancelNameBtn = document.getElementById('cancelNameBtn');
+
+    // Bio Elements
+    const profileBio = document.getElementById('profileBio');
+    const editBioIcon = document.getElementById('editBioIcon');
+    const editBioModal = document.getElementById('editBioModal');
+    const editBioInput = document.getElementById('editBioInput');
+    const saveBioBtn = document.getElementById('saveBioBtn');
+    const cancelBioBtn = document.getElementById('cancelBioBtn');
+
+    // Followers Elements
+    const followersCount = document.getElementById('followersCount');
+    const followingCount = document.getElementById('followingCount');
+    const followersBtn = document.getElementById('followersBtn');
+    const followingBtn = document.getElementById('followingBtn');
+    const followersModal = document.getElementById('followersModal');
+    const followersList = document.getElementById('followersList');
+    const followersModalTitle = document.getElementById('followersModalTitle');
+
+    // Dark Mode Toggle
+    const darkModeSwitch = document.getElementById('darkModeSwitch');
+    const body = document.body;
+
+    // Notifications Toggle
+    const notificationsSwitch = document.getElementById('notificationsSwitch');
+
+    // Other Buttons
+    const changePasswordBtn = document.getElementById('changePasswordBtn');
+    const privacyBtn = document.getElementById('privacyBtn');
+    const securityBtn = document.getElementById('securityBtn');
+    const helpBtn = document.getElementById('helpBtn');
+    const contactBtn = document.getElementById('contactBtn');
+    const termsBtn = document.getElementById('termsBtn');
+    const privacyPolicyBtn = document.getElementById('privacyPolicyBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Dark Mode Functionality
+    function initializeDarkMode() {
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            body.classList.add('dark-mode');
+            darkModeSwitch.classList.add('active');
+        }
+
+        darkModeSwitch.addEventListener('click', function() {
+            this.classList.toggle('active');
+            body.classList.toggle('dark-mode');
+            
+            if (body.classList.contains('dark-mode')) {
+                localStorage.setItem('darkMode', 'enabled');
+            } else {
+                localStorage.removeItem('darkMode');
+            }
+        });
+    }
+
+    // Name Editing Functionality
+    function initializeNameEditing(user) {
+        editNameIcon.addEventListener('click', () => {
+            editNameModal.style.display = 'flex';
+            editNameInput.value = user.displayName || '';
+        });
+
+        saveNameBtn.addEventListener('click', async () => {
+            const newName = editNameInput.value.trim();
+            if (newName) {
+                try {
+                    await updateProfile(user, { displayName: newName });
+                    await updateDoc(doc(db, 'users', user.uid), {
+                        displayName: newName
+                    });
+                    profileName.textContent = newName;
+                    editNameModal.style.display = 'none';
+                } catch (error) {
+                    console.error('Error updating name:', error);
+                    alert('Failed to update name. Please try again.');
+                }
+            }
+        });
+
+        cancelNameBtn.addEventListener('click', () => {
+            editNameModal.style.display = 'none';
+        });
+    }
+
+    // Bio Editing Functionality
+    function initializeBioEditing(user) {
+        editBioIcon.addEventListener('click', () => {
+            editBioModal.style.display = 'flex';
+            editBioInput.value = profileBio.textContent || '';
+        });
+
+        saveBioBtn.addEventListener('click', async () => {
+            const newBio = editBioInput.value.trim();
+            try {
+                await updateDoc(doc(db, 'users', user.uid), {
+                    bio: newBio
+                });
+                profileBio.textContent = newBio || 'Add a bio to tell people about yourself';
+                editBioModal.style.display = 'none';
+            } catch (error) {
+                console.error('Error updating bio:', error);
+                alert('Failed to update bio. Please try again.');
+            }
+        });
+
+        cancelBioBtn.addEventListener('click', () => {
+            editBioModal.style.display = 'none';
+        });
+    }
+
+    // Profile Picture Change Functionality
+    function initializeProfilePictureChange(user) {
+        changeProfilePicture.addEventListener('click', () => {
+            profilePictureInput.click();
+        });
+
+        profilePictureInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                try {
+                    const storageRef = ref(storage, `profilePictures/${user.uid}`);
+                    const snapshot = await uploadBytes(storageRef, file);
+                    const newPhotoURL = await getDownloadURL(snapshot.ref);
+
+                    await updateProfile(user, { photoURL: newPhotoURL });
+                    await updateDoc(doc(db, 'users', user.uid), {
+                        photoURL: newPhotoURL
+                    });
+
+                    profileImage.src = newPhotoURL;
+                } catch (error) {
+                    console.error('Error updating profile picture:', error);
+                    alert('Failed to update profile picture. Please try again.');
+                }
+            }
+        });
+    }
+
+    // Followers/Following Functionality
+    async function fetchFollowData(user) {
+        try {
+            // Fetch followers count
+            const followersQuery = query(collection(db, 'follows'), 
+                where('followedUserId', '==', user.uid)
+            );
+            const followersSnapshot = await getDocs(followersQuery);
+            followersCount.textContent = followersSnapshot.size;
+
+            // Fetch following count
+            const followingQuery = query(collection(db, 'follows'), 
+                where('followerUserId', '==', user.uid)
+            );
+            const followingSnapshot = await getDocs(followingQuery);
+            followingCount.textContent = followingSnapshot.size;
+        } catch (error) {
+            console.error('Error fetching follow data:', error);
+        }
+    }
+
+    function initializeFollowModal(user) {
+        // Followers Modal
+        followersBtn.addEventListener('click', async () => {
+            followersModalTitle.textContent = 'Followers';
+            followersList.innerHTML = ''; // Clear previous list
+            
+            try {
+                const followersQuery = query(collection(db, 'follows'), 
+                    where('followedUserId', '==', user.uid)
+                );
+                const followersSnapshot = await getDocs(followersQuery);
+                
+                for (const followDoc of followersSnapshot.docs) {
+                    const followerData = followDoc.data();
+                    const followerUserDoc = await getDoc(doc(db, 'users', followerData.followerUserId));
+                    
+                    if (followerUserDoc.exists()) {
+                        const userData = followerUserDoc.data();
+                        const listItem = document.createElement('div');
+                        listItem.classList.add('followers-list-item');
+                        listItem.innerHTML = `
+                            <img src="${userData.photoURL || 'default-profile.png'}" alt="Profile">
+                            <div class="followers-list-item-info">
+                                <div class="followers-list-item-name">${userData.displayName}</div>
+                            </div>
+                        `;
+                        followersList.appendChild(listItem);
+                    }
+                }
+                
+                followersModal.style.display = 'flex';
+            } catch (error) {
+                console.error('Error fetching followers:', error);
+            }
+        });
+
+        // Following Modal
+        followingBtn.addEventListener('click', async () => {
+            followersModalTitle.textContent = 'Following';
+            followersList.innerHTML = ''; // Clear previous list
+            
+            try {
+                const followingQuery = query(collection(db, 'follows'), 
+                    where('followerUserId', '==', user.uid)
+                );
+                const followingSnapshot = await getDocs(followingQuery);
+                
+                for (const followDoc of followingSnapshot.docs) {
+                    const followingData = followDoc.data();
+                    const followedUserDoc = await getDoc(doc(db, 'users', followingData.followedUserId));
+                    
+                    if (followedUserDoc.exists()) {
+                        const userData = followedUserDoc.data();
+                        const listItem = document.createElement('div');
+                        listItem.classList.add('followers-list-item');
+                        listItem.innerHTML = `
+                            <img src="${userData.photoURL || 'default-profile.png'}" alt="Profile">
+                            <div class="followers-list-item-info">
+                                <div class="followers-list-item-name">${userData.displayName}</div>
+                            </div>
+                        `;
+                        followersList.appendChild(listItem);
+                    }
+                }
+                
+                followersModal.style.display = 'flex';
+            } catch (error) {
+                console.error('Error fetching following:', error);
+            }
+        });
+
+        // Close modal when clicking outside
+        followersModal.addEventListener('click', (e) => {
+            if (e.target === followersModal) {
+                followersModal.style.display = 'none';
+            }
+        });
+    }
+
+    // Notifications Toggle Functionality
+    function initializeNotificationsToggle() {
+        notificationsSwitch.addEventListener('click', function() {
+            this.classList.toggle('active');
+            // TODO: Implement actual notification settings logic
+            console.log('Notifications toggled');
+        });
+    }
+
+    // Button Listeners
+    function initializeButtonListeners() {
+        changePasswordBtn.addEventListener('click', () => {
+            // TODO: Implement change password functionality
+            alert('Change Password feature coming soon');
+        });
+
+        privacyBtn.addEventListener('click', () => {
+            // TODO: Implement privacy settings navigation
+            
+        });
+
+        securityBtn.addEventListener('click', () => {
+            // TODO: Implement security settings navigation
+            
+        });
+
+        helpBtn.addEventListener('click', () => {
+            // TODO: Implement help center navigation
+            
+        });
+
+        contactBtn.addEventListener('click', () => {
+            // TODO: Implement support contact navigation
+            
+        });
+
+        termsBtn.addEventListener('click', () => {
+            // TODO: Implement terms of service navigation
+            
+        });
+
+        privacyPolicyBtn.addEventListener('click', () => {
+            // TODO: Implement privacy policy navigation
+            
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                window.location.href = 'index.html'; // Redirect to login page
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('Failed to log out. Please try again.');
+            }
+        });
+    }
+
+    // Authentication State Observer
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            try {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                const userData = userDoc.data();
+
+                // Set profile information
+                profileName.textContent = user.displayName || userData.displayName || 'User';
+                profileEmail.textContent = user.email;
+                profileImage.src = user.photoURL || userData.photoURL || 'default-profile.png';
+                
+                // Set bio
+                profileBio.textContent = userData.bio || 'Add a bio to tell people about yourself';
+
+                // Initialize functionalities
+                initializeDarkMode();
+                initializeNameEditing(user);
+                initializeProfilePictureChange(user);
+                initializeBioEditing(user);
+                initializeFollowModal(user);
+                fetchFollowData(user);
+                
+                // Other initializations
+                initializeNotificationsToggle();
+                initializeButtonListeners();
+
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+            }
+        } else {
+            // Redirect to login if not authenticated
+            window.location.href = 'index.html';
+        }
+    });
