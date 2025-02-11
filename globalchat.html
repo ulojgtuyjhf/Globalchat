@@ -361,6 +361,7 @@
   content.style.margin = '0 auto';
 })();
 </script>
+
 <script>
   document.addEventListener("DOMContentLoaded", function() {
     // Create toggle switch container
@@ -411,9 +412,6 @@
     toggleContainer.appendChild(toggleSwitch);
     document.body.appendChild(toggleContainer);
 
-    // Save the original content of the body
-    const originalContent = document.body.cloneNode(true);
-
     // Create iframe once
     const iframe = document.createElement("iframe");
     iframe.src = "search.html";
@@ -427,26 +425,31 @@
     iframe.style.display = "none"; // Initially hidden
     document.body.appendChild(iframe);
 
+    // Save the original content of the body (excluding the toggle and iframe)
+    const originalContent = Array.from(document.body.children).filter(
+      (child) => child !== toggleContainer && child !== iframe
+    );
+
     let isChatVisible = true;
 
     toggleSwitch.addEventListener("click", function() {
       if (isChatVisible) {
-        // Hide chat content and show iframe
-        document.body.innerHTML = "";
-        document.body.appendChild(toggleContainer);
-        document.body.appendChild(iframe);
+        // Hide original content
+        originalContent.forEach((child) => {
+          child.style.display = "none";
+        });
 
-        // Update toggle switch appearance
+        // Show iframe
         iframe.style.display = "block";
         toggleSwitch.style.background = "black";
         toggleKnob.style.left = "26px";
         toggleKnob.style.background = "#fff";
         toggleLabel.innerText = "Media";
       } else {
-        // Restore original chat content
-        document.body.innerHTML = "";
-        document.body.appendChild(originalContent);
-        document.body.appendChild(toggleContainer);
+        // Show original content
+        originalContent.forEach((child) => {
+          child.style.display = "";
+        });
 
         // Hide iframe
         iframe.style.display = "none";
