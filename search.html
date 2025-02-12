@@ -392,7 +392,7 @@ window.navigationHandler = navigationHandler;
 </script>
 
 <style>
-.floating-action-button {
+  .floating-action-button {
     position: fixed;
     bottom: 24px;
     right: 24px;
@@ -405,47 +405,47 @@ window.navigationHandler = navigationHandler;
     justify-content: center;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 
-        6px 6px 12px #b8bec4,
-        -6px -6px 12px #ffffff;
+    box-shadow:
+      6px 6px 12px #b8bec4,
+      -6px -6px 12px #ffffff;
     z-index: 1000;
     transform: translateY(0);
     opacity: 1;
-}
+  }
 
-.floating-action-button:hover {
+  .floating-action-button:hover {
     transform: translateY(-2px);
-    box-shadow: 
-        8px 8px 16px #b8bec4,
-        -8px -8px 16px #ffffff;
-}
+    box-shadow:
+      8px 8px 16px #b8bec4,
+      -8px -8px 16px #ffffff;
+  }
 
-.floating-action-button.hidden {
+  .floating-action-button.hidden {
     transform: translateY(100px);
     opacity: 0;
-}
+  }
 
-.floating-action-button::before,
-.floating-action-button::after {
+  .floating-action-button::before,
+  .floating-action-button::after {
     content: '';
     position: absolute;
     background: #2d3436;
     border-radius: 2px;
     transition: all 0.3s ease;
-}
+  }
 
-.floating-action-button::before {
+  .floating-action-button::before {
     width: 20px;
     height: 2px;
-}
+  }
 
-.floating-action-button::after {
+  .floating-action-button::after {
     width: 2px;
     height: 20px;
-}
+  }
 
-/* Modal styles */
-.modal-overlay {
+  /* Modal styles */
+  .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -459,108 +459,112 @@ window.navigationHandler = navigationHandler;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
-}
+  }
 
-.modal-overlay.active {
+  .modal-overlay.active {
     opacity: 1;
     visibility: visible;
-}
+  }
 
-.modal-content {
+  .modal-content {
     background: white;
     padding: 20px;
     border-radius: 8px;
-    max-width: 90%;
-    max-height: 90%;
-    overflow-y: auto;
+    width: 80%;
+    height: 80%;
+    max-width: 800px;
+    max-height: 600px;
+    overflow: hidden;
     transform: scale(0.8);
     opacity: 0;
     transition: transform 0.3s ease, opacity 0.3s ease;
-}
+  }
 
-.modal-overlay.active .modal-content {
+  .modal-overlay.active .modal-content {
     transform: scale(1);
     opacity: 1;
-}
+  }
+
+  /* Iframe styles */
+  .modal-content iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 8px;
+  }
 </style>
 
 <script>
-// Create and append the floating action button
-const fab = document.createElement('div');
-fab.className = 'floating-action-button';
-document.body.appendChild(fab);
+  // Create and append the floating action button
+  const fab = document.createElement('div');
+  fab.className = 'floating-action-button';
+  document.body.appendChild(fab);
 
-// Create modal overlay and content
-const modalOverlay = document.createElement('div');
-modalOverlay.className = 'modal-overlay';
+  // Create modal overlay and content
+  const modalOverlay = document.createElement('div');
+  modalOverlay.className = 'modal-overlay';
 
-const modalContent = document.createElement('div');
-modalContent.className = 'modal-content';
-modalOverlay.appendChild(modalContent);
+  const modalContent = document.createElement('div');
+  modalContent.className = 'modal-content';
 
-// Load upload.html content into the modal
-fetch('upload.html')
-    .then(response => response.text())
-    .then(data => {
-        modalContent.innerHTML = data;
-    })
-    .catch(error => console.error('Error loading upload.html:', error));
+  // Create iframe to load upload.html
+  const iframe = document.createElement('iframe');
+  iframe.src = ''; // Initially empty
+  modalContent.appendChild(iframe);
 
-document.body.appendChild(modalOverlay);
+  modalOverlay.appendChild(modalContent);
+  document.body.appendChild(modalOverlay);
 
-// Variables for scroll handling
-let lastScrollPosition = window.pageYOffset;
-let ticking = false;
+  // Variables for scroll handling
+  let lastScrollPosition = window.pageYOffset;
+  let ticking = false;
 
-// Handle scroll events
-function handleScroll() {
+  // Handle scroll events
+  function handleScroll() {
     const currentScrollPosition = window.pageYOffset;
-    
+
     if (!ticking) {
-        window.requestAnimationFrame(() => {
-            // Show/hide based on scroll direction
-            if (currentScrollPosition > lastScrollPosition) {
-                // Scrolling down - hide
-                fab.classList.add('hidden');
-            } else {
-                // Scrolling up - show
-                fab.classList.remove('hidden');
-            }
-            
-            lastScrollPosition = currentScrollPosition;
-            ticking = false;
-        });
-        
-        ticking = true;
-    }
-}
+      window.requestAnimationFrame(() => {
+        // Show/hide based on scroll direction
+        if (currentScrollPosition > lastScrollPosition) {
+          // Scrolling down - hide
+          fab.classList.add('hidden');
+        } else {
+          // Scrolling up - show
+          fab.classList.remove('hidden');
+        }
 
-// Handle button click to open modal
-fab.addEventListener('click', () => {
+        lastScrollPosition = currentScrollPosition;
+        ticking = false;
+      });
+
+      ticking = true;
+    }
+  }
+
+  // Handle button click to open modal
+  fab.addEventListener('click', () => {
+    // Set iframe source to upload.html when opening the modal
+    iframe.src = 'upload.html';
     modalOverlay.classList.add('active');
-    window.history.pushState({ modal: 'open' }, '', '#upload');
-});
+  });
 
-// Handle closing the modal
-modalOverlay.addEventListener('click', (e) => {
+  // Handle closing the modal
+  function closeModal() {
+    // Unload the iframe content by setting src to an empty string
+    iframe.src = '';
+    modalOverlay.classList.remove('active');
+  }
+
+  // Close modal when clicking outside the modal content
+  modalOverlay.addEventListener('click', (e) => {
     if (e.target === modalOverlay) {
-        modalOverlay.classList.remove('active');
-        window.history.back();
+      closeModal();
     }
-});
+  });
 
-// Handle back navigation (browser back button or mobile hardware back button)
-window.addEventListener('popstate', () => {
-    if (!window.location.hash.includes('upload')) {
-        modalOverlay.classList.remove('active');
-    }
-});
-
-// Add scroll event listener
-window.addEventListener('scroll', handleScroll, { passive: true });
-
-// Initial push state
-window.history.pushState({ page: 'chat' }, '', window.location.href);
+  // Add scroll event listener
+  window.addEventListener('scroll', handleScroll, { passive: true });
 </script>
 </body>
 </html>
