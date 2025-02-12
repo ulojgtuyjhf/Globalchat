@@ -495,76 +495,79 @@ window.navigationHandler = navigationHandler;
 </style>
 
 <script>
-  // Create and append the floating action button
-  const fab = document.createElement('div');
-  fab.className = 'floating-action-button';
-  document.body.appendChild(fab);
+  // Wrap everything in a self-executing function to avoid global scope pollution
+  (function() {
+    // Create and append the floating action button
+    const fab = document.createElement('div');
+    fab.className = 'floating-action-button';
+    document.body.appendChild(fab);
 
-  // Create modal overlay and content
-  const modalOverlay = document.createElement('div');
-  modalOverlay.className = 'modal-overlay';
+    // Create modal overlay and content
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'modal-overlay';
 
-  const modalContent = document.createElement('div');
-  modalContent.className = 'modal-content';
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content';
 
-  // Create iframe to load upload.html
-  const iframe = document.createElement('iframe');
-  iframe.src = ''; // Initially empty
-  modalContent.appendChild(iframe);
+    // Create iframe to load upload.html
+    const iframe = document.createElement('iframe');
+    iframe.src = ''; // Initially empty
+    modalContent.appendChild(iframe);
 
-  modalOverlay.appendChild(modalContent);
-  document.body.appendChild(modalOverlay);
+    modalOverlay.appendChild(modalContent);
+    document.body.appendChild(modalOverlay);
 
-  // Variables for scroll handling
-  let lastScrollPosition = window.pageYOffset;
-  let ticking = false;
+    // Variables for scroll handling
+    let lastScrollPosition = window.pageYOffset;
+    let ticking = false;
 
-  // Handle scroll events
-  function handleScroll() {
-    const currentScrollPosition = window.pageYOffset;
+    // Handle scroll events
+    function handleScroll() {
+      const currentScrollPosition = window.pageYOffset;
 
-    if (!ticking) {
-      window.requestAnimationFrame(() => {
-        // Show/hide based on scroll direction
-        if (currentScrollPosition > lastScrollPosition) {
-          // Scrolling down - hide
-          fab.classList.add('hidden');
-        } else {
-          // Scrolling up - show
-          fab.classList.remove('hidden');
-        }
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          // Show/hide based on scroll direction
+          if (currentScrollPosition > lastScrollPosition) {
+            // Scrolling down - hide
+            fab.classList.add('hidden');
+          } else {
+            // Scrolling up - show
+            fab.classList.remove('hidden');
+          }
 
-        lastScrollPosition = currentScrollPosition;
-        ticking = false;
-      });
+          lastScrollPosition = currentScrollPosition;
+          ticking = false;
+        });
 
-      ticking = true;
+        ticking = true;
+      }
     }
-  }
 
-  // Handle button click to open modal
-  fab.addEventListener('click', () => {
-    // Set iframe source to upload.html when opening the modal
-    iframe.src = 'upload.html';
-    modalOverlay.classList.add('active');
-  });
+    // Handle button click to open modal
+    fab.addEventListener('click', () => {
+      // Set iframe source to upload.html when opening the modal
+      iframe.src = 'upload.html';
+      modalOverlay.classList.add('active');
+    });
 
-  // Handle closing the modal
-  function closeModal() {
-    // Unload the iframe content by setting src to an empty string
-    iframe.src = '';
-    modalOverlay.classList.remove('active');
-  }
-
-  // Close modal when clicking outside the modal content
-  modalOverlay.addEventListener('click', (e) => {
-    if (e.target === modalOverlay) {
-      closeModal();
+    // Handle closing the modal
+    function closeModal() {
+      // Unload the iframe content by setting src to an empty string
+      iframe.src = '';
+      modalOverlay.classList.remove('active');
     }
-  });
 
-  // Add scroll event listener
-  window.addEventListener('scroll', handleScroll, { passive: true });
+    // Close modal when clicking outside the modal content
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        closeModal();
+      }
+    });
+
+    // Add scroll event listener
+    window.addEventListener('scroll', handleScroll, { passive: true });
+  })();
 </script>
 </body>
 </html>
