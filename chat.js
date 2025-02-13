@@ -1,82 +1,452 @@
-const _0xeef119=_0x3bba;(function(_0x3c7c76,_0x3810a3){const _0x176dcf=_0x3bba,_0xfbcc7d=_0x3c7c76();while(!![]){try{const _0x241713=parseInt(_0x176dcf(0xe1))/0x1*(-parseInt(_0x176dcf(0x95))/0x2)+-parseInt(_0x176dcf(0xe7))/0x3*(-parseInt(_0x176dcf(0xbe))/0x4)+parseInt(_0x176dcf(0xa6))/0x5+parseInt(_0x176dcf(0x99))/0x6*(parseInt(_0x176dcf(0xca))/0x7)+parseInt(_0x176dcf(0x87))/0x8+parseInt(_0x176dcf(0xd8))/0x9+-parseInt(_0x176dcf(0xb8))/0xa*(parseInt(_0x176dcf(0xaf))/0xb);if(_0x241713===_0x3810a3)break;else _0xfbcc7d['push'](_0xfbcc7d['shift']());}catch(_0x3d6b0a){_0xfbcc7d['push'](_0xfbcc7d['shift']());}}}(_0x2c60,0x367b5));import{initializeApp}from'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';function _0x2c60(){const _0x225a9e=['\x22\x20is\x20blocked:\x20','add','div','unknown','addEventListener','messageInput','\x22\x20onclick=\x22toggleFollow(\x27','80377JGUjzz','Please\x20log\x20in\x20first!','log','test','https://ipapi.co/json/','\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20','AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ','photoURL','val','1510rkWSHG','message','I\x20hate\x20you\x20so\x20much.','some','Unfollow','userId','4ggVFEg','Failed\x20to\x20fetch\x20country:','\x27,\x20\x27','Follow/Unfollow\x20error:','https://flagcdn.com/w320/','Error\x20sending\x20message:','forEach','<span\x20class=\x22creator-tag\x22>Creator</span>','178714711978','parentMessageId','getElementById','empty','343jsPAJv','json','\x27)\x22>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<img\x20src=\x22https://cdn-icons-png.flaticon.com/512/2462/2462719.png\x22\x20alt=\x22Reply\x22>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20Reply\x20(','displayName','\x0a\x0a\x20\x20\x20\x20\x20\x20<div\x20class=\x22message-header\x22>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22profile-section\x22>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22profile\x22\x20style=\x22background-image:\x20url(','now','Follow','delete','country_code','uid','textContent','sendMessage','display','none','2652678SvWyAH','replyCount','followedUserId','Check\x20out\x20www.example.net','toggle','createElement','Please\x20wait\x20at\x20least\x203\x20seconds\x20before\x20sending\x20your\x20next\x20message.','follows','flex','101196Zzjflu','catch',')\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x0a\x20\x20\x20\x20\x20\x20</div>\x0a\x0a\x20\x20\x20\x20','globalchat-2d669','appendChild','name','1287849yDzisR','country','messages','You\x20must\x20log\x20in\x20to\x20continue.\x20Please\x20log\x20in\x20to\x20access\x20this\x20feature.','default-profile.png','click','key','clear','then','style','.follow-btn','timestamp','globalchat-2d669.firebaseapp.com','3043248Xghswi','Let\x27s\x20kill\x20yourself\x20now.','value','\x27)\x22>Follow</button>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</h4>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20<span\x20class=\x22message-time\x22>','error','docs','from','followed','What\x20the\x20fuck\x20are\x20you\x20doing?','.png','getAttribute','has','users','innerHTML','8QNTjhq','Your\x20message\x20contains\x20prohibited\x20content.\x20Please\x20revise\x20and\x20adhere\x20to\x20the\x20content\x20guidelines.','setAttribute','Error\x20fetching\x20user\x20data:','26706IghOan','data-user-id','head','data','scrollTop','toISOString','loading-dot','You\x20are\x20such\x20a\x20damn\x20fool!','classList','\x0a\x0a\x20\x20.follow-btn\x20{\x0a\x0a\x20\x20\x20\x20background-color:\x20black;\x20/*\x20Purple\x20for\x20Follow\x20*/\x0a\x0a\x20\x20\x20\x20color:\x20#fff;\x0a\x0a\x20\x20\x20\x20border:\x20none;\x0a\x0a\x20\x20\x20\x20padding:\x204px\x208px;\x20/*\x20Smaller\x20size\x20*/\x0a\x0a\x20\x20\x20\x20text-align:\x20center;\x0a\x0a\x20\x20\x20\x20text-decoration:\x20none;\x0a\x0a\x20\x20\x20\x20display:\x20inline-block;\x0a\x0a\x20\x20\x20\x20font-size:\x2010px;\x20/*\x20Very\x20small\x20text\x20*/\x0a\x0a\x20\x20\x20\x20margin:\x204px\x202px;\x0a\x0a\x20\x20\x20\x20cursor:\x20pointer;\x0a\x0a\x20\x20\x20\x20border-radius:\x208px;\x20/*\x20Rounded\x20corners\x20*/\x0a\x0a\x20\x20\x20\x20box-shadow:\x202px\x202px\x204px\x20#b0b0b0,\x20-2px\x20-2px\x204px\x20#ffffff;\x0a\x0a\x20\x20\x20\x20transition:\x20background-color\x200.3s,\x20box-shadow\x200.3s;\x0a\x0a\x20\x20}\x0a\x0a\x20\x20.follow-btn:active\x20{\x0a\x0a\x20\x20\x20\x20box-shadow:\x20inset\x202px\x202px\x204px\x20#b0b0b0,\x20inset\x20-2px\x20-2px\x204px\x20#ffffff;\x0a\x0a\x20\x20}\x0a\x0a\x20\x20.follow-btn.followed\x20{\x0a\x0a\x20\x20\x20\x20background-color:\x20silver;\x20/*\x20Red\x20for\x20Unfollow\x20*/\x0a\x0a\x20\x20\x20\x20color:\x20#fff;\x0a\x0a\x20\x20}\x0a\x0a','followerUserId','messages/','\x22\x20class=\x22message-flag\x22\x20alt=\x22Flag\x22\x20onerror=\x22this.src=\x27default-flag.png\x27\x22>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<button\x20class=\x22follow-btn\x22\x20data-user-id=\x22','2043840SlBKmg','1:178714711978:web:fb831188be23e62a4bbdd3'];_0x2c60=function(){return _0x225a9e;};return _0x2c60();}import{getAuth,onAuthStateChanged}from'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';import{getFirestore,doc,getDoc,collection,query,where,getDocs,addDoc,deleteDoc}from'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';import{getDatabase,ref,push,set,onChildAdded,update}from'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';import{getStorage,ref as _0x2ccdc6,uploadBytes,getDownloadURL}from'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';const BLOCKED_PATTERNS = [
-  /fuck(ed|ing|s|er)?\b/i,
-  /sh(it|itty|itting|its)?\b/i,
-  /damn(ed|ing)?\b/i,
-  /ass(hole|es|hat|clown|wipe|licker)?\b/i,
-  /bitch(es|y|ing)?\b/i,
-  /cunt(s|ing|y)?\b/i,
-  /dick(s|head|face|weed|hole)?\b/i,
-  /pussy(cat|s|licker|boy)?\b/i,
-  /nigg(er|a|as|uh)?\b/i,
-  /fag(got|s|gy)?\b/i,
-  /\bsex(ual|y|ing|ed|ist|ism|uality)?\b/i,
-  /\bpenis(es)?\b/i,
-  /\bvagina(s)?\b/i,
-  /boob(s|ies|job)?\b/i,
-  /\bfuck[\s\-]you\b/i,
-  /suck[\s\-]my[\s\-](dick|cock|balls|tit|ass)\b/i,
-  /\bkill[\s\-]yourself\b/i,
-  /\bi[\s\-]?hate[\s\-]?you\b/i,
-  /\brape(d|s|ist|ing)?\b/i,
-  /\bslut(s|ty|bag)?\b/i,
-  /\bwhore(s|ish|ing)?\b/i,
-  /\bhoe(s|bag)?\b/i,
-  /\bclit(or|oris)?\b/i,
-  /\bcum(ming|shot|dump)?\b/i,
-  /\bjizz(ed|ing)?\b/i,
-  /\bdildo(s)?\b/i,
-  /\bbutt(plug|sex|hole|fuck)?\b/i,
-  /\banal(ly|sex)?\b/i,
-  /\bdeep[\s\-]?throat\b/i,
-  /\bblow[\s\-]?job\b/i,
-  /\bhand[\s\-]?job\b/i,
-  /\bgang[\s\-]?bang\b/i,
-  /\bporn(ography|hub|star|o)?\b/i,
-  /\bstrip(per|club)?\b/i,
-  /\borgasm(s|ic)?\b/i,
-  /\berotic(a|ally)?\b/i,
-  /\bmolest(er|ing|ed)?\b/i,
-  /\bpedophil(e|ia|ic)?\b/i,
-  /\bincest(uous)?\b/i,
-  /\bbestiality\b/i,
-  /\bfetish(es)?\b/i,
-  /\bdominatrix\b/i,
-  /\bsadomasochism\b/i,
-  /\bmasturbat(e|ing|ion|or)?\b/i,
-  /\bfingering\b/i,
-  /\bscat(ology|play)?\b/i,
-  /\burinate\b/i,
-  /\bpiss(ed|ing)?\b/i,
-  /\bshart(ed|ing)?\b/i,
-  /\bfart(ed|ing|s)?\b/i,
-  /\bsmegma\b/i,
-  /\bnecrophil(e|ia|ic)?\b/i,
-  /\bsnuff[\s\-]?film\b/i,
-  /\bsuicide\b/i,
-  /\bself[\s\-]?harm\b/i,
-  /\bcut(ter|ting)?\b/i,
-  /\bhomicide\b/i,
-  /\bmurder(er|ing)?\b/i,
-  /\bblood(y|shed)?\b/i,
-  /\bgore(y)?\b/i,
-  /\btorture(d|s|ing)?\b/i,
-  /\bterrorist(s|ic|m)?\b/i,
-  /\bgenocide\b/i,
-  /\bwar[\s\-]?crime\b/i,
-  /\blynch(ing|ed|er)?\b/i,
-  /\bhitler\b/i,
-  /\bnazi(s|sm)?\b/i,
-  /\bracist(ic|s|m)?\b/i,
-  /\bwhite[\s\-]?supremacy\b/i,
-  /\bhate[\s\-]?speech\b/i,
-  /\banti[\s\-]?semitic\b/i,
-  /\bhomophob(ic|ia)?\b/i,
-  /\btransphob(ic|ia)?\b/i,
-  /\bmisogyn(y|ist|istic)?\b/i,
-  /\bbigot(ry|s)?\b/i,
-  /\bdegenerate\b/i,
-  /\bconcentration[\s\-]?camp\b/i,
-  /\bslave(ry|s|owner)?\b/i,
-  /\bchoke[\s\-]?yourself\b/i,
-  /\bdie[\s\-]?already\b/i
-];function containsBlockedContent(_0x32ee4f){const _0x8bc0fe=_0x3bba;return BLOCKED_PATTERNS[_0x8bc0fe(0xbb)](_0x580a68=>_0x580a68[_0x8bc0fe(0xb2)](_0x32ee4f));}const testInputs=['Visit\x20http://example.com\x20for\x20more\x20info.',_0xeef119(0xa0),_0xeef119(0x8f),_0xeef119(0xba),_0xeef119(0x88),_0xeef119(0xdb)];testInputs[_0xeef119(0xc4)](_0x4251f8=>{const _0x6a75b3=_0xeef119;console[_0x6a75b3(0xb1)]('\x22'+_0x4251f8+_0x6a75b3(0xa8)+containsBlockedContent(_0x4251f8));});const firebaseConfig={'apiKey':_0xeef119(0xb5),'authDomain':_0xeef119(0x86),'projectId':_0xeef119(0xe4),'storageBucket':'globalchat-2d669.appspot.com','messagingSenderId':_0xeef119(0xc6),'appId':_0xeef119(0xa7),'databaseURL':'https://globalchat-2d669-default-rtdb.firebaseio.com/'},app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),database=getDatabase(app),chatRef=ref(database,_0xeef119(0xe9)),storage=getStorage(app),chatContainer=document[_0xeef119(0xc8)]('chatContainer'),messageInput=document['getElementById'](_0xeef119(0xad)),loadingIndicator=document[_0xeef119(0xc8)]('loadingIndicator');let currentUser=null;const activeReplies=new Set();let lastMessageTime=0x0;const followedUsers=new Set(),styleTag=document[_0xeef119(0xdd)](_0xeef119(0x83));styleTag[_0xeef119(0xd4)]=_0xeef119(0xa2),document[_0xeef119(0x9b)][_0xeef119(0xe5)](styleTag),document['querySelectorAll'](_0xeef119(0x84))[_0xeef119(0xc4)](_0x338f12=>{const _0x24ff60=_0xeef119;_0x338f12[_0x24ff60(0xac)](_0x24ff60(0xec),function(){const _0x292be8=_0x24ff60;this[_0x292be8(0xa1)][_0x292be8(0xdc)](_0x292be8(0x8e)),this[_0x292be8(0xd4)]=this[_0x292be8(0xa1)]['contains']('followed')?_0x292be8(0xbc):_0x292be8(0xd0);});}),document[_0xeef119(0x9b)][_0xeef119(0xe5)](styleTag);async function toggleFollow(_0x2c3199,_0x1165cd){const _0x238b12=_0xeef119;if(!currentUser){alert(_0x238b12(0xb0));return;}try{const _0x54bb70=query(collection(db,'follows'),where(_0x238b12(0xa3),'==',currentUser[_0x238b12(0xd3)]),where('followedUserId','==',_0x2c3199)),_0x2af836=await getDocs(_0x54bb70);_0x2af836[_0x238b12(0xc9)]?(await addDoc(collection(db,_0x238b12(0xdf)),{'followerUserId':currentUser[_0x238b12(0xd3)],'followedUserId':_0x2c3199,'followedUserName':_0x1165cd,'timestamp':new Date()[_0x238b12(0x9e)]()}),followedUsers[_0x238b12(0xa9)](_0x2c3199)):(_0x2af836[_0x238b12(0x8c)][_0x238b12(0xc4)](async _0x135b70=>{const _0x24e9f1=_0x238b12;await deleteDoc(doc(db,_0x24e9f1(0xdf),_0x135b70['id']));}),followedUsers[_0x238b12(0xd1)](_0x2c3199)),updateFollowButtons();}catch(_0xc23c9c){console[_0x238b12(0x8b)](_0x238b12(0xc1),_0xc23c9c);}}function _0x3bba(_0x88546e,_0x536f28){const _0x2c60e4=_0x2c60();return _0x3bba=function(_0x3bbac2,_0x11f175){_0x3bbac2=_0x3bbac2-0x81;let _0x4dd018=_0x2c60e4[_0x3bbac2];return _0x4dd018;},_0x3bba(_0x88546e,_0x536f28);}function updateFollowButtons(){const _0x4cd961=_0xeef119,_0x59bf83=document['querySelectorAll'](_0x4cd961(0x84));_0x59bf83[_0x4cd961(0xc4)](_0x498a84=>{const _0x44658c=_0x4cd961,_0x5d9eb7=_0x498a84[_0x44658c(0x91)](_0x44658c(0x9a));_0x498a84[_0x44658c(0xd4)]=followedUsers[_0x44658c(0x92)](_0x5d9eb7)?_0x44658c(0xbc):_0x44658c(0xd0),_0x498a84['classList']['toggle'](_0x44658c(0x8e),followedUsers[_0x44658c(0x92)](_0x5d9eb7));});}async function fetchFollowedUsers(){const _0x130d29=_0xeef119;if(!currentUser)return;try{const _0x217f96=query(collection(db,_0x130d29(0xdf)),where(_0x130d29(0xa3),'==',currentUser[_0x130d29(0xd3)])),_0x350b92=await getDocs(_0x217f96);followedUsers[_0x130d29(0x81)](),_0x350b92[_0x130d29(0x8c)][_0x130d29(0xc4)](_0x2a3879=>{const _0x4025cb=_0x130d29,_0x3d53c6=_0x2a3879[_0x4025cb(0x9c)]()[_0x4025cb(0xda)];followedUsers[_0x4025cb(0xa9)](_0x3d53c6);}),updateFollowButtons();}catch(_0x107f8a){console[_0x130d29(0x8b)]('Error\x20fetching\x20followed\x20users:',_0x107f8a);}}function moderateContent(_0x13eaa6){const _0x37fcf6=_0xeef119,_0x27be1c=BLOCKED_PATTERNS[_0x37fcf6(0xbb)](_0x44d610=>_0x44d610[_0x37fcf6(0xb2)](_0x13eaa6));if(_0x27be1c)return alert(_0x37fcf6(0x96)),![];return!![];}function createLoadingAnimation(){const _0x48e7b1=_0xeef119,_0x9d5e=0x3,_0x584491=Array[_0x48e7b1(0x8d)]({'length':_0x9d5e},()=>{const _0x3dcc32=_0x48e7b1,_0x16b640=document[_0x3dcc32(0xdd)](_0x3dcc32(0xaa));return _0x16b640[_0x3dcc32(0xa1)]['add'](_0x3dcc32(0x9f)),_0x16b640;});loadingIndicator[_0x48e7b1(0x94)]='',_0x584491[_0x48e7b1(0xc4)](_0x45c8c4=>loadingIndicator[_0x48e7b1(0xe5)](_0x45c8c4));}async function getCountryFromIP(){const _0x3325be=_0xeef119;try{const _0x441936=await fetch(_0x3325be(0xb3)),_0x213b6e=await _0x441936[_0x3325be(0xcb)]();return _0x213b6e[_0x3325be(0xd2)]['toLowerCase']();}catch(_0x212edc){return console[_0x3325be(0x8b)](_0x3325be(0xbf),_0x212edc),_0x3325be(0xab);}}onAuthStateChanged(auth,async _0x46f216=>{const _0x4e1aee=_0xeef119;if(_0x46f216)try{const _0x1a6e43=await getDoc(doc(db,_0x4e1aee(0x93),_0x46f216[_0x4e1aee(0xd3)])),_0x3dca04=_0x1a6e43[_0x4e1aee(0x9c)](),_0x2e020c=await getCountryFromIP();currentUser={'uid':_0x46f216[_0x4e1aee(0xd3)],'displayName':_0x46f216[_0x4e1aee(0xcd)]||_0x3dca04?.[_0x4e1aee(0xcd)]||'Anonymous','photoURL':_0x46f216[_0x4e1aee(0xb6)]||_0x3dca04?.[_0x4e1aee(0xb6)]||_0x4e1aee(0xeb),'country':_0x2e020c},await fetchFollowedUsers();}catch(_0x54a2b6){console[_0x4e1aee(0x8b)](_0x4e1aee(0x98),_0x54a2b6);}else currentUser=null,followedUsers[_0x4e1aee(0x81)]();}),window[_0xeef119(0xd5)]=(_0x20ffef=null)=>{const _0x157bc7=_0xeef119;if(!currentUser){alert(_0x157bc7(0xea));return;}const _0x2206f1=messageInput['value']['trim'](),_0x47b04c=Date[_0x157bc7(0xcf)]();if(_0x47b04c-lastMessageTime<0xbb8){alert(_0x157bc7(0xde));return;}if(!moderateContent(_0x2206f1))return;if(_0x2206f1==='')return;createLoadingAnimation(),loadingIndicator['style'][_0x157bc7(0xd6)]=_0x157bc7(0xe0);const _0x4dd825=push(chatRef),_0x55efbb={'userId':currentUser['uid'],'name':currentUser[_0x157bc7(0xcd)],'photoURL':currentUser[_0x157bc7(0xb6)],'text':_0x2206f1,'timestamp':new Date()['toISOString'](),'country':currentUser[_0x157bc7(0xe8)],'parentMessageId':_0x20ffef,'replyCount':0x0,'isCreator':_0x20ffef!==null};set(_0x4dd825,_0x55efbb)[_0x157bc7(0x82)](()=>{const _0x22a250=_0x157bc7;messageInput[_0x22a250(0x89)]='',loadingIndicator[_0x22a250(0x83)][_0x22a250(0xd6)]='none',lastMessageTime=_0x47b04c;if(_0x20ffef){const _0x802a4d=ref(database,_0x22a250(0xa4)+_0x20ffef);update(_0x802a4d,{'replyCount':(snapshot[_0x22a250(0xb7)]()[_0x22a250(0xd9)]||0x0)+0x1});}})[_0x157bc7(0xe2)](_0x290e61=>{const _0x2a93ea=_0x157bc7;console[_0x2a93ea(0x8b)](_0x2a93ea(0xc3),_0x290e61),loadingIndicator[_0x2a93ea(0x83)][_0x2a93ea(0xd6)]=_0x2a93ea(0xd7);});},onChildAdded(chatRef,_0x854484=>{const _0x601647=_0xeef119,_0x119092=_0x854484['val'](),_0x4d2daa=_0x854484[_0x601647(0xed)],_0x31c462=_0x119092[_0x601647(0xc7)]!==null,_0x19f4cb=document[_0x601647(0xdd)]('div');_0x19f4cb[_0x601647(0xa1)][_0x601647(0xa9)](_0x601647(0xb9)),_0x19f4cb[_0x601647(0x97)]('data-message-id',_0x4d2daa);const _0x4463de=_0x601647(0xc2)+_0x119092[_0x601647(0xe8)]+_0x601647(0x90),_0x1d054b=new Date(_0x119092[_0x601647(0x85)])['toLocaleTimeString'](),_0x50f5ee=_0x119092['isCreator']?_0x601647(0xc5):'';_0x19f4cb[_0x601647(0x94)]=_0x601647(0xce)+_0x119092[_0x601647(0xb6)]+')\x22></div>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<h4>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20'+_0x119092[_0x601647(0xe6)]+_0x601647(0xb4)+_0x50f5ee+'\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<img\x20src=\x22'+_0x4463de+_0x601647(0xa5)+_0x119092[_0x601647(0xbd)]+_0x601647(0xae)+_0x119092[_0x601647(0xbd)]+_0x601647(0xc0)+_0x119092[_0x601647(0xe6)]+_0x601647(0x8a)+_0x1d054b+'</span>\x0a\x0a\x20\x20\x20\x20\x20\x20</div>\x0a\x0a\x20\x20\x20\x20\x20\x20<div\x20class=\x22message-content\x22>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20<p>'+_0x119092['text']+'</p>\x0a\x0a\x20\x20\x20\x20\x20\x20</div>\x0a\x0a\x20\x20\x20\x20\x20\x20<div\x20class=\x22reply-section\x22>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22reply-count\x22\x20onclick=\x22toggleReplyInput(\x27'+_0x4d2daa+_0x601647(0xcc)+(_0x119092[_0x601647(0xd9)]||0x0)+_0x601647(0xe3),chatContainer['appendChild'](_0x19f4cb),chatContainer[_0x601647(0x9d)]=chatContainer['scrollHeight'];}),window['toggleFollow']=toggleFollow;
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, collection, query, where, getDocs, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getDatabase, ref, push, set, onChildAdded, update, query as dbQuery, limitToLast, startAfter, get, orderByChild } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+// Strong Content Moderation Configuration
+const BLOCKED_PATTERNS = [
+  /http(s)?:\/\/[^\s]+/i, // Block URLs
+  /\bwww\.[^\s]+/i, // Block URLs starting with "www"
+  /\.com\b/i, // Block .com domains
+  /\.net\b/i, // Block .net domains
+  /\.org\b/i, // Block .org domains
+  /rape(s|d|ing)?\b/i, // Block explicit content and variations
+  /fuck(ed|ing|s)?\b/i, // Block profanity and variations
+  /sh(it|itty)?\b/i, // Block profanity and variations
+  /damn(ed)?\b/i, // Block mild profanity and variations
+  /ass(hole|es)?\b/i, // Block offensive language
+  /bitch(es|y)?\b/i, // Block offensive language
+  /cunt(s)?\b/i, // Block offensive language
+  /dick(s|head)?\b/i, // Block offensive language
+  /pussy\b/i, // Block offensive language
+  /nigg(er|a|s)?\b/i, // Block racial slurs
+  /fag(got|s)?\b/i, // Block offensive slurs
+  /\bsex(ual|y|ing|ed)?\b/i, // Block explicit sexual references
+  /\bpenis\b/i, // Block explicit content
+  /\bvagina\b/i, // Block explicit content
+  /boob(s|ies)?\b/i, // Block explicit content
+  /\bfuck[\s\-]you\b/i, // Block "fuck you" variations
+  /suck[\s\-]my[\s\-](dick|cock)\b/i, // Block explicit phrases
+  /\bkill[\s\-]yourself\b/i, // Block harmful phrases
+  /\bi[\s\-]?hate[\s\-]?you\b/i, // Block hate speech
+];
+
+function containsBlockedContent(input) {
+  return BLOCKED_PATTERNS.some(pattern => pattern.test(input));
+}
+
+// Firebase Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+  authDomain: "globalchat-2d669.firebaseapp.com",
+  projectId: "globalchat-2d669",
+  storageBucket: "globalchat-2d669.appspot.com",
+  messagingSenderId: "178714711978",
+  appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
+  databaseURL: "https://globalchat-2d669-default-rtdb.firebaseio.com/"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const database = getDatabase(app);
+const chatRef = ref(database, 'messages');
+
+const chatContainer = document.getElementById('chatContainer');
+const messageInput = document.getElementById('messageInput');
+const loadingIndicator = document.getElementById('loadingIndicator');
+
+let currentUser = null;
+const activeReplies = new Set();
+const followedUsers = new Set();
+let lastMessageKey = null;
+const MESSAGE_LIMIT = 10;
+let isLoading = false;
+let lastVisibleTimestamp = Date.now();
+
+// Global cooldown variable
+let globalLastMessageTime = 0;
+const globalTimeRef = ref(database, 'lastMessageTime');
+
+// Styling for Follow Button
+const styleTag = document.createElement('style');
+styleTag.textContent = `
+  .follow-btn {
+    background-color: black; /* Purple for Follow */
+    color: #fff;
+    border: none;
+    padding: 4px 8px; /* Smaller size */
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 10px; /* Very small text */
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 2px 2px 4px #b0b0b0, -2px -2px 4px #ffffff;
+    transition: background-color 0.3s, box-shadow 0.3s;
+  }
+  .follow-btn:active {
+    box-shadow: inset 2px 2px 4px #b0b0b0, inset -2px -2px 4px #ffffff;
+  }
+  .follow-btn.followed {
+    background-color: gray; /* Red for Unfollow */
+    color: white;
+  }
+`;
+document.head.appendChild(styleTag);
+
+document.querySelectorAll('.follow-btn').forEach(button => {
+  button.addEventListener('click', function() {
+    this.classList.toggle('followed');
+    this.textContent = this.classList.contains('followed') ? 'Unfollow' : 'Follow';
+  });
+});
+document.head.appendChild(styleTag);
+
+// Follow/Unfollow User
+async function toggleFollow(userId, userName) {
+  if (!currentUser) {
+    alert('Please log in first!');
+    return;
+  }
+
+  try {
+    const followQuery = query(
+      collection(db, 'follows'),
+      where('followerUserId', '==', currentUser.uid),
+      where('followedUserId', '==', userId)
+    );
+
+    const followSnapshot = await getDocs(followQuery);
+
+    if (followSnapshot.empty) {
+      // Follow the user
+      await addDoc(collection(db, 'follows'), {
+        followerUserId: currentUser.uid,
+        followedUserId: userId,
+        followedUserName: userName,
+        timestamp: new Date().toISOString()
+      });
+      followedUsers.add(userId);
+      
+    } else {
+      // Unfollow the user
+      followSnapshot.docs.forEach(async (followDoc) => {
+        await deleteDoc(doc(db, 'follows', followDoc.id));
+      });
+      followedUsers.delete(userId);
+      
+    }
+
+    updateFollowButtons();
+  } catch (error) {
+    console.error('Follow/Unfollow error:', error);
+  }
+}
+
+// Update Follow Buttons
+function updateFollowButtons() {
+  const followButtons = document.querySelectorAll('.follow-btn');
+  followButtons.forEach(btn => {
+    const userId = btn.getAttribute('data-user-id');
+    btn.textContent = followedUsers.has(userId) ? 'Unfollow' : 'Follow';
+    btn.classList.toggle('followed', followedUsers.has(userId));
+  });
+}
+
+// Fetch Followed Users
+async function fetchFollowedUsers() {
+  if (!currentUser) return;
+
+  try {
+    const followQuery = query(
+      collection(db, 'follows'),
+      where('followerUserId', '==', currentUser.uid)
+    );
+
+    const followSnapshot = await getDocs(followQuery);
+    followedUsers.clear();
+    followSnapshot.docs.forEach(doc => {
+      const followedUserId = doc.data().followedUserId;
+      followedUsers.add(followedUserId);
+    });
+
+    updateFollowButtons();
+  } catch (error) {
+    console.error('Error fetching followed users:', error);
+  }
+}
+
+// Strong Content Moderation Function
+function moderateContent(text) {
+  const hasBlockedContent = BLOCKED_PATTERNS.some(pattern => pattern.test(text));
+  if (hasBlockedContent) {
+    alert('Your message contains prohibited content. Please revise and adhere to the content guidelines.');
+    return false;
+  }
+  return true;
+}
+
+// Create Loading Animation
+function createLoadingAnimation() {
+  const dotCount = 3;
+  const loadingDots = Array.from({ length: dotCount }, () => {
+    const dot = document.createElement('div');
+    dot.classList.add('loading-dot');
+    return dot;
+  });
+
+  loadingIndicator.innerHTML = '';
+  loadingDots.forEach(dot => loadingIndicator.appendChild(dot));
+}
+
+// Geolocation and Flag Service
+async function getCountryFromIP() {
+  try {
+    const response = await fetch('https://ipapi.co/json/');
+    const data = await response.json();
+    return data.country_code.toLowerCase();
+  } catch (error) {
+    console.error('Failed to fetch country:', error);
+    return 'unknown';
+  }
+}
+
+// Authentication State Observer
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userData = userDoc.data();
+      const countryCode = await getCountryFromIP();
+
+      currentUser = {
+        uid: user.uid,
+        displayName: user.displayName || userData?.displayName || "Anonymous",
+        photoURL: user.photoURL || userData?.photoURL || "default-profile.png",
+        country: countryCode
+      };
+
+      await fetchFollowedUsers();
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  } else {
+    currentUser = null;
+    followedUsers.clear();
+  }
+});
+
+// Send Message Function with Global Cooldown
+window.sendMessage = async (parentMessageId = null) => {
+  if (!currentUser) {
+    alert('You must log in to continue. Please log in to access this feature.');
+    return;
+  }
+
+  const messageText = messageInput.value.trim();
+  const currentTime = Date.now();
+
+  // Check global cooldown
+  if (currentTime - globalLastMessageTime < 4000) {
+    alert('Please wait while others are sending messages.');
+    return;
+  }
+
+  if (!moderateContent(messageText) || messageText === '') return;
+
+  createLoadingAnimation();
+  loadingIndicator.style.display = 'flex';
+
+  try {
+    // Update global last message time
+    await set(globalTimeRef, currentTime);
+    globalLastMessageTime = currentTime;
+
+    const newMessageRef = push(chatRef);
+    const messageData = {
+      userId: currentUser.uid,
+      name: currentUser.displayName,
+      photoURL: currentUser.photoURL,
+      text: messageText,
+      timestamp: new Date().toISOString(),
+      country: currentUser.country,
+      parentMessageId: parentMessageId,
+      replyCount: 0,
+      isCreator: parentMessageId !== null
+    };
+
+    await set(newMessageRef, messageData);
+    messageInput.value = '';
+
+    if (parentMessageId) {
+      const parentRef = ref(database, `messages/${parentMessageId}`);
+      const snapshot = await get(parentRef);
+      if (snapshot.exists()) {
+        await update(parentRef, {
+          replyCount: (snapshot.val().replyCount || 0) + 1
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error sending message:', error);
+  } finally {
+    loadingIndicator.style.display = 'none';
+  }
+};
+
+// Function to load messages with improved pagination
+async function loadMessages() {
+  if (isLoading) return;
+  isLoading = true;
+  loadingIndicator.style.display = 'flex';
+
+  try {
+    const messagesQuery = dbQuery(
+      chatRef,
+      orderByChild('timestamp'),
+      limitToLast(MESSAGE_LIMIT)
+    );
+
+    const snapshot = await get(messagesQuery);
+    if (snapshot.exists()) {
+      const messages = [];
+      snapshot.forEach(childSnapshot => {
+        const message = childSnapshot.val();
+        if (new Date(message.timestamp).getTime() < lastVisibleTimestamp) {
+          messages.push({
+            ...message,
+            id: childSnapshot.key
+          });
+        }
+      });
+
+      messages.reverse().forEach(message => {
+        appendMessage(message, message.id);
+      });
+
+      if (messages.length > 0) {
+        lastVisibleTimestamp = new Date(messages[messages.length - 1].timestamp).getTime();
+      }
+    }
+  } catch (error) {
+    console.error('Error loading messages:', error);
+  } finally {
+    isLoading = false;
+    loadingIndicator.style.display = 'none';
+  }
+}
+
+// Function to append a message to the chat container
+function appendMessage(message, messageId) {
+  const messageElement = document.createElement('div');
+  messageElement.classList.add('message');
+  messageElement.setAttribute('data-message-id', messageId);
+
+  const flagUrl = `https://flagcdn.com/w320/${message.country}.png`;
+  const messageTime = new Date(message.timestamp).toLocaleTimeString();
+
+  const isCreator = message.isCreator ?
+    '<span class="creator-tag">Creator</span>' : '';
+
+  messageElement.innerHTML = `
+    <div class="message-header">
+      <div class="profile-section">
+        <div class="profile" style="background-image: url(${message.photoURL})"></div>
+        <h4>
+          ${message.name}
+          ${isCreator}
+          <img src="${flagUrl}" class="message-flag" alt="Flag" onerror="this.src='default-flag.png'">
+          <button class="follow-btn" data-user-id="${message.userId}" onclick="toggleFollow('${message.userId}', '${message.name}')">Follow</button>
+        </h4>
+      </div>
+      <span class="message-time">${messageTime}</span>
+    </div>
+    <div class="message-content">
+      <p>${message.text}</p>
+    </div>
+    <div class="reply-section">
+      <div class="reply-count" onclick="toggleReplyInput('${messageId}')">
+        <img src="https://cdn-icons-png.flaticon.com/512/2462/2462719.png" alt="Reply">
+        Reply (${message.replyCount || 0})
+      </div>
+    </div>
+  `;
+
+  chatContainer.appendChild(messageElement);
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+// Listen for New Messages
+onChildAdded(chatRef, (snapshot) => {
+  const message = snapshot.val();
+  const messageId = snapshot.key;
+  appendMessage(message, messageId);
+});
+
+// Listen for Global Last Message Time Updates
+onChildAdded(globalTimeRef, (snapshot) => {
+  globalLastMessageTime = snapshot.val();
+});
+
+// Toggle Reply Input
+window.toggleReplyInput = (messageId) => {
+  const parentMessage = document.querySelector(`[data-message-id="${messageId}"]`);
+  const existingReplyInput = parentMessage.querySelector('.reply-input');
+
+  if (existingReplyInput) {
+  existingReplyInput.remove();
+  activeReplies.delete(messageId);
+} else {
+  const replyInput = document.createElement('div');
+  replyInput.classList.add('reply-input');
+  replyInput.innerHTML = `
+      <textarea placeholder="Type your reply..." class="reply-textarea"></textarea>
+      <button onclick="sendReply('${messageId}')">Send Reply</button>
+    `;
+  parentMessage.appendChild(replyInput);
+  activeReplies.add(messageId);
+}
+};
+
+// Send Reply Function
+window.sendReply = (parentMessageId) => {
+  const replyTextarea = document.querySelector(`[data-message-id="${parentMessageId}"] .reply-textarea`);
+  const replyText = replyTextarea.value.trim();
+  
+  if (replyText === '') return;
+  
+  const reply = {
+    text: replyText,
+    timestamp: Date.now(),
+    userId: currentUser.uid,
+    name: currentUser.displayName,
+    photoURL: currentUser.photoURL,
+    country: currentUser.country,
+    parentMessageId: parentMessageId
+  };
+  
+  // Push the reply to the database
+  const newReplyRef = push(ref(database, `messages/${parentMessageId}/replies`));
+  set(newReplyRef, reply)
+    .then(() => {
+      replyTextarea.value = '';
+      toggleReplyInput(parentMessageId);
+    })
+    .catch(error => console.error('Error sending reply:', error));
+};
+
+// Expose toggleFollow globally
+window.toggleFollow = toggleFollow;
+
+// Scroll Event Listener for Loading More Messages
+chatContainer.addEventListener('scroll', () => {
+  if (chatContainer.scrollTop === 0 && !isLoading) {
+    loadMessages();
+  }
+});
+
+// Initial Load of Messages
+loadMessages();
