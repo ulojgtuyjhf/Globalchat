@@ -1,15 +1,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, collection, query, where, getDocs, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getDatabase, ref, push, set, onChildAdded, update, query as dbQuery, limitToLast, startAfter, get, orderByChild } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, push, set, onChildAdded, update, query as dbQuery, limitToLast, startAfter, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 // Strong Content Moderation Configuration
 const BLOCKED_PATTERNS = [
-  /http(s)?:\/\/[^\s]+/i, // Block URLs
-  /\bwww\.[^\s]+/i, // Block URLs starting with "www"
-  /\.com\b/i, // Block .com domains
-  /\.net\b/i, // Block .net domains
-  /\.org\b/i, // Block .org domains
+  
   /rape(s|d|ing)?\b/i, // Block explicit content and variations
   /fuck(ed|ing|s)?\b/i, // Block profanity and variations
   /sh(it|itty)?\b/i, // Block profanity and variations
@@ -59,15 +55,10 @@ const loadingIndicator = document.getElementById('loadingIndicator');
 
 let currentUser = null;
 const activeReplies = new Set();
+let lastMessageTime = 0;
 const followedUsers = new Set();
 let lastMessageKey = null;
 const MESSAGE_LIMIT = 10;
-let isLoading = false;
-let lastVisibleTimestamp = Date.now();
-
-// Global cooldown variable
-let globalLastMessageTime = 0;
-const globalTimeRef = ref(database, 'lastMessageTime');
 
 // Styling for Follow Button
 const styleTag = document.createElement('style');
@@ -92,7 +83,7 @@ styleTag.textContent = `
   }
   .follow-btn.followed {
     background-color: gray; /* Red for Unfollow */
-    color: white;
+    color: #fff;
   }
 `;
 document.head.appendChild(styleTag);
@@ -167,7 +158,7 @@ async function fetchFollowedUsers() {
     );
 
     const followSnapshot = await getDocs(followQuery);
-    followedUsers.clear();
+    followedUsers.clear(); // Clear existing followed users
     followSnapshot.docs.forEach(doc => {
       const followedUserId = doc.data().followedUserId;
       followedUsers.add(followedUserId);
@@ -229,6 +220,7 @@ onAuthStateChanged(auth, async (user) => {
         country: countryCode
       };
 
+      // Fetch followed users
       await fetchFollowedUsers();
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -239,8 +231,8 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// Send Message Function with Global Cooldown
-window.sendMessage = async (parentMessageId = null) => {
+// Send Message Function
+window.sendMessage = (parentMessageId = null) => {
   if (!currentUser) {
     alert('You must log in to continue. Please log in to access this feature.');
     return;
@@ -249,93 +241,66 @@ window.sendMessage = async (parentMessageId = null) => {
   const messageText = messageInput.value.trim();
   const currentTime = Date.now();
 
-  // Check global cooldown
-  if (currentTime - globalLastMessageTime < 4000) {
-    alert('Please wait while others are sending messages.');
+  if (currentTime - lastMessageTime < 3000) {
+    alert('Please wait at least 3 seconds before sending your next message.');
     return;
   }
 
-  if (!moderateContent(messageText) || messageText === '') return;
+  if (!moderateContent(messageText)) return;
+  if (messageText === '') return;
 
   createLoadingAnimation();
   loadingIndicator.style.display = 'flex';
 
-  try {
-    // Update global last message time
-    await set(globalTimeRef, currentTime);
-    globalLastMessageTime = currentTime;
+  const newMessageRef = push(chatRef);
+  const messageData = {
+    userId: currentUser.uid,
+    name: currentUser.displayName,
+    photoURL: currentUser.photoURL,
+    text: messageText,
+    timestamp: new Date().toISOString(),
+    country: currentUser.country,
+    parentMessageId: parentMessageId,
+    replyCount: 0,
+    isCreator: parentMessageId !== null
+  };
 
-    const newMessageRef = push(chatRef);
-    const messageData = {
-      userId: currentUser.uid,
-      name: currentUser.displayName,
-      photoURL: currentUser.photoURL,
-      text: messageText,
-      timestamp: new Date().toISOString(),
-      country: currentUser.country,
-      parentMessageId: parentMessageId,
-      replyCount: 0,
-      isCreator: parentMessageId !== null
-    };
+  set(newMessageRef, messageData)
+    .then(() => {
+      messageInput.value = '';
+      loadingIndicator.style.display = 'none';
+      lastMessageTime = currentTime;
 
-    await set(newMessageRef, messageData);
-    messageInput.value = '';
-
-    if (parentMessageId) {
-      const parentRef = ref(database, `messages/${parentMessageId}`);
-      const snapshot = await get(parentRef);
-      if (snapshot.exists()) {
-        await update(parentRef, {
+      if (parentMessageId) {
+        const parentRef = ref(database, `messages/${parentMessageId}`);
+        update(parentRef, {
           replyCount: (snapshot.val().replyCount || 0) + 1
         });
       }
-    }
-  } catch (error) {
-    console.error('Error sending message:', error);
-  } finally {
-    loadingIndicator.style.display = 'none';
-  }
+    })
+    .catch((error) => {
+      console.error('Error sending message:', error);
+      loadingIndicator.style.display = 'none';
+    });
 };
 
-// Function to load messages with improved pagination
-async function loadMessages() {
-  if (isLoading) return;
-  isLoading = true;
-  loadingIndicator.style.display = 'flex';
+// Function to load more messages
+async function loadMoreMessages() {
+  if (!lastMessageKey) return;
 
-  try {
-    const messagesQuery = dbQuery(
-      chatRef,
-      orderByChild('timestamp'),
-      limitToLast(MESSAGE_LIMIT)
-    );
+  const messagesQuery = dbQuery(chatRef, limitToLast(MESSAGE_LIMIT), startAfter(lastMessageKey));
+  const snapshot = await get(messagesQuery);
 
-    const snapshot = await get(messagesQuery);
-    if (snapshot.exists()) {
-      const messages = [];
-      snapshot.forEach(childSnapshot => {
-        const message = childSnapshot.val();
-        if (new Date(message.timestamp).getTime() < lastVisibleTimestamp) {
-          messages.push({
-            ...message,
-            id: childSnapshot.key
-          });
-        }
-      });
+  if (snapshot.exists()) {
+    const messages = [];
+    snapshot.forEach(childSnapshot => {
+      messages.push(childSnapshot.val());
+      lastMessageKey = childSnapshot.key;
+    });
 
-      messages.reverse().forEach(message => {
-        appendMessage(message, message.id);
-      });
-
-      if (messages.length > 0) {
-        lastVisibleTimestamp = new Date(messages[messages.length - 1].timestamp).getTime();
-      }
-    }
-  } catch (error) {
-    console.error('Error loading messages:', error);
-  } finally {
-    isLoading = false;
-    loadingIndicator.style.display = 'none';
+    messages.reverse().forEach(message => {
+      appendMessage(message, childSnapshot.key);
+    });
   }
 }
 
@@ -383,12 +348,8 @@ function appendMessage(message, messageId) {
 onChildAdded(chatRef, (snapshot) => {
   const message = snapshot.val();
   const messageId = snapshot.key;
+  lastMessageKey = messageId;
   appendMessage(message, messageId);
-});
-
-// Listen for Global Last Message Time Updates
-onChildAdded(globalTimeRef, (snapshot) => {
-  globalLastMessageTime = snapshot.val();
 });
 
 // Toggle Reply Input
@@ -397,27 +358,27 @@ window.toggleReplyInput = (messageId) => {
   const existingReplyInput = parentMessage.querySelector('.reply-input');
 
   if (existingReplyInput) {
-  existingReplyInput.remove();
-  activeReplies.delete(messageId);
-} else {
-  const replyInput = document.createElement('div');
-  replyInput.classList.add('reply-input');
-  replyInput.innerHTML = `
+    existingReplyInput.remove();
+    activeReplies.delete(messageId);
+  } else {
+    const replyInput = document.createElement('div');
+    replyInput.classList.add('reply-input');
+    replyInput.innerHTML = `
       <textarea placeholder="Type your reply..." class="reply-textarea"></textarea>
       <button onclick="sendReply('${messageId}')">Send Reply</button>
     `;
-  parentMessage.appendChild(replyInput);
-  activeReplies.add(messageId);
-}
+    parentMessage.appendChild(replyInput);
+    activeReplies.add(messageId);
+  }
 };
 
 // Send Reply Function
 window.sendReply = (parentMessageId) => {
   const replyTextarea = document.querySelector(`[data-message-id="${parentMessageId}"] .reply-textarea`);
   const replyText = replyTextarea.value.trim();
-  
+
   if (replyText === '') return;
-  
+
   const reply = {
     text: replyText,
     timestamp: Date.now(),
@@ -427,7 +388,7 @@ window.sendReply = (parentMessageId) => {
     country: currentUser.country,
     parentMessageId: parentMessageId
   };
-  
+
   // Push the reply to the database
   const newReplyRef = push(ref(database, `messages/${parentMessageId}/replies`));
   set(newReplyRef, reply)
@@ -441,12 +402,12 @@ window.sendReply = (parentMessageId) => {
 // Expose toggleFollow globally
 window.toggleFollow = toggleFollow;
 
-// Scroll Event Listener for Loading More Messages
+// Implement Lazy Loading
 chatContainer.addEventListener('scroll', () => {
-  if (chatContainer.scrollTop === 0 && !isLoading) {
-    loadMessages();
+  if (chatContainer.scrollTop === 0) {
+    loadMoreMessages();
   }
 });
 
 // Initial Load of Messages
-loadMessages();
+loadMoreMessages();
