@@ -95,10 +95,15 @@
 <script src="reply.js"></script>
 
 <script>
-// Prevent any content from showing before splash screen
-document.documentElement.style.visibility = 'hidden';
-
-document.addEventListener('DOMContentLoaded', () => {
+  // Prevent any content from showing before splash screen
+  document.documentElement.style.visibility = 'hidden';
+  
+  // Preload the logo image to ensure it loads instantly
+  const logoUrl = 'https://firebasestorage.googleapis.com/v0/b/chatnot-e5b4e.firebasestorage.app/o/Black%20and%20Blue%20Initials%20Creative%20Logo_20250213_205546_0000.png?alt=media&token=d98fabb1-c399-4229-9d54-00338d934c31';
+  const logoImage = new Image();
+  logoImage.src = logoUrl;
+  
+  document.addEventListener('DOMContentLoaded', () => {
     // Ensure everything is hidden until splash screen is ready
     document.documentElement.style.visibility = 'visible';
     
@@ -108,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     authContainer.style.pointerEvents = 'none';
     authContainer.style.position = 'fixed';
     authContainer.style.top = '-100%';
-
+    
     // Create splash screen container
     const splashScreen = document.createElement('div');
     splashScreen.style.cssText = `
@@ -126,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         opacity: 1;
         transition: opacity 0.5s ease-in-out;
     `;
-
+    
     // Create content wrapper
     const contentWrapper = document.createElement('div');
     contentWrapper.style.cssText = `
@@ -135,8 +140,8 @@ document.addEventListener('DOMContentLoaded', () => {
         flex-direction: column;
         align-items: center;
     `;
-
-    // Create logo container (easy to replace)
+    
+    // Create logo container
     const logoContainer = document.createElement('div');
     logoContainer.style.cssText = `
         width: 150px;
@@ -146,31 +151,16 @@ document.addEventListener('DOMContentLoaded', () => {
         justify-content: center;
         align-items: center;
     `;
-
-    // Placeholder logo (can be easily replaced)
-    const logoPlaceholder = document.createElement('div');
-    logoPlaceholder.id = 'splash-screen-logo';
-    logoPlaceholder.style.cssText = `
-        width: 120px;
-        height: 120px;
-        background: black;
-        border-radius: 20px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    
+    // Add the preloaded logo image and rotate it by -90 degrees (counterclockwise)
+    logoImage.style.cssText = `
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        transform: rotate(-80deg);
     `;
-
-    const logoText = document.createElement('span');
-    logoText.textContent = 'p';
-    logoText.style.cssText = `
-        font-size: 48px;
-        font-weight: bold;
-        color: white;
-    `;
-    logoPlaceholder.appendChild(logoText);
-    logoContainer.appendChild(logoPlaceholder);
-
+    logoContainer.appendChild(logoImage);
+    
     // Create company name
     const companyName = document.createElement('h1');
     companyName.textContent = 'premiumfari'; // Your company name here
@@ -181,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
         margin-bottom: 20px;
         letter-spacing: 1px;
     `;
-
+    
     // Create three-dot loading animation
     const loadingDots = document.createElement('div');
     loadingDots.style.cssText = `
@@ -189,11 +179,11 @@ document.addEventListener('DOMContentLoaded', () => {
         justify-content: center;
         align-items: center;
     `;
-
+    
     // Create three individual dots
     const dots = [1, 2, 3].map(() => {
-        const dot = document.createElement('div');
-        dot.style.cssText = `
+      const dot = document.createElement('div');
+      dot.style.cssText = `
             width: 10px;
             height: 10px;
             background: black;
@@ -202,24 +192,24 @@ document.addEventListener('DOMContentLoaded', () => {
             opacity: 0.3;
             animation: dotPulse 1.5s infinite ease-in-out;
         `;
-        return dot;
+      return dot;
     });
-
+    
     // Stagger the animation of dots
     dots.forEach((dot, index) => {
-        dot.style.animationDelay = `${index * 0.5}s`;
-        loadingDots.appendChild(dot);
+      dot.style.animationDelay = `${index * 0.5}s`;
+      loadingDots.appendChild(dot);
     });
-
+    
     // Append elements
     contentWrapper.appendChild(logoContainer);
     contentWrapper.appendChild(companyName);
     contentWrapper.appendChild(loadingDots);
     splashScreen.appendChild(contentWrapper);
-
+    
     // Add to body immediately
     document.body.insertBefore(splashScreen, document.body.firstChild);
-
+    
     // Add styles
     const styles = document.createElement('style');
     styles.textContent = `
@@ -229,45 +219,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     `;
     document.head.appendChild(styles);
-
+    
     // Remove splash screen and show form
     const removeSplashScreen = () => {
-        splashScreen.style.opacity = '0';
+      splashScreen.style.opacity = '0';
+      
+      setTimeout(() => {
+        document.body.removeChild(splashScreen);
         
-        setTimeout(() => {
-            document.body.removeChild(splashScreen);
-            
-            // Restore the auth container
-            authContainer.style.position = 'static';
-            authContainer.style.top = '0';
-            authContainer.style.opacity = '1';
-            authContainer.style.pointerEvents = 'auto';
-        }, 500);
+        // Restore the auth container
+        authContainer.style.position = 'static';
+        authContainer.style.top = '0';
+        authContainer.style.opacity = '1';
+        authContainer.style.pointerEvents = 'auto';
+      }, 500);
     };
-
-    // Remove after 6 seconds
-    setTimeout(removeSplashScreen, 10000);
-
-    // Expose a method to easily replace the logo
-    window.replaceSplashScreenLogo = (logoUrl) => {
-        const logoContainer = document.getElementById('splash-screen-logo');
-        if (logoContainer) {
-            // Clear existing content
-            logoContainer.innerHTML = '';
-            
-            // Create and append new logo image
-            const logoImage = document.createElement('img');
-            logoImage.src = logoUrl;
-            logoImage.style.cssText = `
-                max-width: 100%;
-                max-height: 100%;
-                object-fit: contain;
-            `;
-            
-            logoContainer.appendChild(logoImage);
-        }
-    };
-});
+    
+    // Remove after 11.5 seconds (11-12 seconds duration)
+    setTimeout(removeSplashScreen, 11500);
+  });
 </script>
 <script>
 // Create and append styles
