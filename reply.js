@@ -1,1 +1,115 @@
-const _0x34c03d=_0x4954;(function(_0xcc7b4a,_0x58ce4e){const _0x53e569=_0x4954,_0x2045bc=_0xcc7b4a();while(!![]){try{const _0x327c60=parseInt(_0x53e569(0x1cb))/0x1*(-parseInt(_0x53e569(0x1ec))/0x2)+-parseInt(_0x53e569(0x1d6))/0x3*(-parseInt(_0x53e569(0x1d3))/0x4)+parseInt(_0x53e569(0x1e8))/0x5*(parseInt(_0x53e569(0x1d9))/0x6)+-parseInt(_0x53e569(0x1d1))/0x7*(-parseInt(_0x53e569(0x1ee))/0x8)+-parseInt(_0x53e569(0x1e1))/0x9+-parseInt(_0x53e569(0x1c7))/0xa*(-parseInt(_0x53e569(0x1c6))/0xb)+-parseInt(_0x53e569(0x1eb))/0xc;if(_0x327c60===_0x58ce4e)break;else _0x2045bc['push'](_0x2045bc['shift']());}catch(_0xfc5333){_0x2045bc['push'](_0x2045bc['shift']());}}}(_0x53bf,0x4009b),document[_0x34c03d(0x1e6)](_0x34c03d(0x1c8),()=>{const _0x53f199=_0x34c03d,_0x33a527=document['createElement'](_0x53f199(0x1de));_0x33a527[_0x53f199(0x1da)]=_0x53f199(0x1d5),document[_0x53f199(0x1d7)][_0x53f199(0x1e2)](_0x33a527);const _0x301cbf='\x0a\x0a\x20\x20\x20\x20<svg\x20width=\x2216\x22\x20height=\x2216\x22\x20viewBox=\x220\x200\x2024\x2024\x22\x20fill=\x22none\x22\x20stroke=\x22currentColor\x22\x20stroke-width=\x222\x22>\x0a\x0a\x20\x20\x20\x20\x20\x20<path\x20d=\x22M3\x2010h10a5\x205\x200\x200\x201\x205\x205v4\x22\x20/>\x0a\x0a\x20\x20\x20\x20\x20\x20<path\x20d=\x22M3\x2010l5-5\x22\x20/>\x0a\x0a\x20\x20\x20\x20\x20\x20<path\x20d=\x22M3\x2010l5\x205\x22\x20/>\x0a\x0a\x20\x20\x20\x20</svg>\x0a\x0a\x20\x20';function _0x5165f0(){const _0x3ac0f2=_0x53f199;document[_0x3ac0f2(0x1dc)](_0x3ac0f2(0x1d4))[_0x3ac0f2(0x1d2)](_0x1e77cf=>{const _0x3d3729=_0x3ac0f2,_0xd8409f=_0x1e77cf[_0x3d3729(0x1e5)](_0x3d3729(0x1c3))['getAttribute'](_0x3d3729(0x1d8)),_0x42f86c=_0x1e77cf['closest']('.message')[_0x3d3729(0x1c4)]('h4')['childNodes'][0x0][_0x3d3729(0x1da)][_0x3d3729(0x1ea)]();_0x1e77cf[_0x3d3729(0x1cf)]=_0x3d3729(0x1cc)+_0x42f86c+_0x3d3729(0x1e4)+_0xd8409f+_0x3d3729(0x1ca)+_0x301cbf+'\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<span\x20class=\x22reply-count\x22\x20id=\x22count-'+_0xd8409f+_0x3d3729(0x1e3);});}window[_0x53f199(0x1c9)]=(_0x484cfb,_0x2f7cde)=>{const _0x145c29=_0x53f199,_0x149436=document['getElementById'](_0x145c29(0x1df));_0x149436[_0x145c29(0x1e0)]='@'+_0x484cfb+';\x20'+_0x149436[_0x145c29(0x1e0)],_0x149436[_0x145c29(0x1e7)]();const _0x47c6ff=document[_0x145c29(0x1e9)](_0x145c29(0x1dd)+_0x2f7cde),_0x3d3bbf=parseInt(_0x47c6ff['textContent']||'0');_0x47c6ff[_0x145c29(0x1da)]=_0x3d3bbf+0x1;const _0x389fd8=firebase['database'](),_0x2f9807=_0x389fd8[_0x145c29(0x1ce)]('messages/'+_0x2f7cde);_0x2f9807['transaction'](_0x2c09aa=>{const _0x25ec10=_0x145c29;return _0x2c09aa&&(_0x2c09aa[_0x25ec10(0x1ed)]=(_0x2c09aa[_0x25ec10(0x1ed)]||0x0)+0x1),_0x2c09aa;});},_0x5165f0();const _0x3108ba=document[_0x53f199(0x1e9)](_0x53f199(0x1db)),_0x2f5bdb=new MutationObserver(_0x574648=>{_0x574648['forEach'](_0x4586d2=>{const _0x1cdf72=_0x4954;_0x4586d2['addedNodes'][_0x1cdf72(0x1d2)](_0x56621f=>{const _0x437001=_0x1cdf72;if(_0x56621f[_0x437001(0x1cd)]?.[_0x437001(0x1c5)](_0x437001(0x1ef))){const _0x25df6a=_0x56621f[_0x437001(0x1c4)](_0x437001(0x1d4));_0x25df6a&&_0x5165f0();}});});});_0x2f5bdb[_0x53f199(0x1d0)](_0x3108ba,{'childList':!![]});}));function _0x4954(_0x23ad19,_0x44e8d8){const _0x53bf6f=_0x53bf();return _0x4954=function(_0x4954a7,_0x126e32){_0x4954a7=_0x4954a7-0x1c3;let _0x849e55=_0x53bf6f[_0x4954a7];return _0x849e55;},_0x4954(_0x23ad19,_0x44e8d8);}function _0x53bf(){const _0x3b7af8=['replyCount','8OgFHTp','message','.message','querySelector','contains','6006RdkEmT','30klkyfb','DOMContentLoaded','handleReply','\x27)\x22>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20','592UNrFMe','\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20<button\x20class=\x22reply-icon\x22\x20onclick=\x22handleReply(\x27','classList','ref','innerHTML','observe','2834965NrnTva','forEach','4ADRfjh','.reply-section','\x0a\x0a\x20\x20\x20\x20.reply-section\x20{\x0a\x0a\x20\x20\x20\x20\x20\x20display:\x20flex;\x0a\x0a\x20\x20\x20\x20\x20\x20align-items:\x20center;\x0a\x0a\x20\x20\x20\x20\x20\x20gap:\x208px;\x0a\x0a\x20\x20\x20\x20\x20\x20margin:\x204px\x200;\x0a\x0a\x20\x20\x20\x20\x20\x20padding:\x202px;\x0a\x0a\x20\x20\x20\x20}\x0a\x0a\x20\x20\x20\x20.reply-icon\x20{\x0a\x0a\x20\x20\x20\x20\x20\x20cursor:\x20pointer;\x0a\x0a\x20\x20\x20\x20\x20\x20padding:\x204px;\x0a\x0a\x20\x20\x20\x20\x20\x20border-radius:\x2050%;\x0a\x0a\x20\x20\x20\x20\x20\x20display:\x20flex;\x0a\x0a\x20\x20\x20\x20\x20\x20align-items:\x20center;\x0a\x0a\x20\x20\x20\x20\x20\x20background:\x20none;\x0a\x0a\x20\x20\x20\x20\x20\x20border:\x20none;\x0a\x0a\x20\x20\x20\x20\x20\x20opacity:\x200.6;\x0a\x0a\x20\x20\x20\x20\x20\x20transition:\x20all\x200.2s\x20ease;\x0a\x0a\x20\x20\x20\x20}\x0a\x0a\x20\x20\x20\x20.reply-icon:hover\x20{\x0a\x0a\x20\x20\x20\x20\x20\x20opacity:\x201;\x0a\x0a\x20\x20\x20\x20\x20\x20transform:\x20scale(1.1);\x0a\x0a\x20\x20\x20\x20\x20\x20background:\x20rgba(0,\x200,\x200,\x200.05);\x0a\x0a\x20\x20\x20\x20}\x0a\x0a\x20\x20\x20\x20.reply-count\x20{\x0a\x0a\x20\x20\x20\x20\x20\x20font-size:\x2012px;\x0a\x0a\x20\x20\x20\x20\x20\x20color:\x20#333;\x0a\x0a\x20\x20\x20\x20\x20\x20margin-left:\x202px;\x0a\x0a\x20\x20\x20\x20}\x0a\x0a\x20\x20','1372218sfhBRo','head','data-message-id','72vGxvrq','textContent','chatContainer','querySelectorAll','count-','style','messageInput','value','328059lDQFyo','appendChild','\x22>0</span>\x0a\x0a\x20\x20\x20\x20\x20\x20\x20\x20</button>\x0a\x0a\x20\x20\x20\x20\x20\x20','\x27,\x20\x27','closest','addEventListener','focus','105360gevczR','getElementById','trim','8730924XMzXcB','306zjkJYk'];_0x53bf=function(){return _0x3b7af8;};return _0x53bf();}
+document.addEventListener('DOMContentLoaded', () => {
+  // Keep existing styles but remove reply form related ones since we're changing the approach
+  const style = document.createElement('style');
+  style.textContent = `
+    .reply-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 4px 0;
+      padding: 2px;
+    }
+
+    .reply-icon {
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      background: none;
+      border: none;
+      opacity: 0.6;
+      transition: all 0.2s ease;
+    }
+
+    .reply-icon:hover {
+      opacity: 1;
+      transform: scale(1.1);
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    .reply-count {
+      font-size: 12px;
+      color: #333;
+      margin-left: 2px;
+    }
+
+    .double-arrow {
+      display: flex;
+      align-items: center;
+    }
+  `;
+  document.head.appendChild(style);
+  
+  const replyIcon = `
+    <div class="double-arrow">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 10h10a5 5 0 0 1 5 5v4" />
+        <path d="M3 10l5-5" />
+        <path d="M3 10l5 5" />
+      </svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 10h10a5 5 0 0 1 5 5v4" />
+        <path d="M3 10l5-5" />
+        <path d="M3 10l5 5" />
+      </svg>
+    </div>
+  `;
+  
+  // Initialize reply sections
+  function initializeReplySections() {
+    document.querySelectorAll('.reply-section').forEach(section => {
+      const messageId = section.closest('.message').getAttribute('data-message-id');
+      const username = section.closest('.message').querySelector('h4').childNodes[0].textContent.trim();
+      
+      section.innerHTML = `
+        <button class="reply-icon" onclick="handleReply('${username}', '${messageId}')">
+          ${replyIcon}
+          <span class="reply-count" id="count-${messageId}">0</span>
+        </button>
+      `;
+    });
+  }
+  
+  // Global function to handle reply
+  window.handleReply = (username, messageId) => {
+    const mainInput = document.getElementById('messageInput');
+    mainInput.value = `@${username}; ${mainInput.value}`;
+    mainInput.focus();
+    
+    // Update reply count in real-time
+    const countElement = document.getElementById(`count-${messageId}`);
+    const currentCount = parseInt(countElement.textContent || '0');
+    countElement.textContent = currentCount + 1;
+    
+    // Update Firebase counter
+    const database = firebase.database();
+    const messageRef = database.ref(`messages/${messageId}`);
+    messageRef.transaction((message) => {
+      if (message) {
+        message.replyCount = (message.replyCount || 0) + 1;
+      }
+      return message;
+    });
+  };
+  
+  // Initialize on load
+  initializeReplySections();
+  
+  // Watch for new messages and initialize their reply sections
+  const chatContainer = document.getElementById('chatContainer');
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node.classList?.contains('message')) {
+          const replySection = node.querySelector('.reply-section');
+          if (replySection) {
+            initializeReplySections();
+          }
+        }
+      });
+    });
+  });
+  
+  observer.observe(chatContainer, { childList: true });
+});
