@@ -586,3 +586,122 @@ async function moderateAndSendMessage() {
 // Attach function to send button
 document.querySelector("button").addEventListener("click", moderateAndSendMessage);
 </script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Create emoji container
+    const emojiContainer = document.createElement("div");
+    emojiContainer.style.position = "absolute";
+    emojiContainer.style.bottom = "70px"; // Adjusted to fit above input
+    emojiContainer.style.left = "50%";
+    emojiContainer.style.transform = "translateX(-50%)";
+    emojiContainer.style.display = "flex";
+    emojiContainer.style.overflowX = "auto"; // Enables horizontal scrolling
+    emojiContainer.style.whiteSpace = "nowrap";
+    emojiContainer.style.padding = "10px 5px";
+    emojiContainer.style.borderRadius = "10px";
+    emojiContainer.style.maxWidth = "90%";
+    emojiContainer.style.background = "transparent"; // Removes visible background
+    emojiContainer.style.boxShadow = "none";
+    emojiContainer.style.zIndex = "9999";
+    emojiContainer.style.scrollBehavior = "smooth";
+    emojiContainer.style.transition = "opacity 0.3s ease-in-out";
+    emojiContainer.style.opacity = "0"; // Hidden by default
+    
+    // Emojis array
+    const emojis = ["😀", "😂", "😍", "🔥", "🚀", "💡", "🎉", "👍", "❤️", "🌍"];
+    
+    // Append emojis to container with typing animation
+    emojis.forEach((emoji, index) => {
+      const emojiSpan = document.createElement("span");
+      emojiSpan.innerText = emoji;
+      emojiSpan.style.fontSize = "22px";
+      emojiSpan.style.margin = "0 8px";
+      emojiSpan.style.cursor = "pointer";
+      emojiSpan.style.transition = "transform 0.2s ease, opacity 0.4s ease-in-out";
+      emojiSpan.style.opacity = "0"; // Hidden before animation
+      emojiSpan.style.textShadow = "2px 2px 5px rgba(0, 0, 0, 0.3), 0 0 10px rgba(255, 255, 255, 0.8)"; // 3D shiny effect
+      emojiSpan.style.transform = "translateY(10px) scale(0.8)";
+      emojiSpan.style.filter = "drop-shadow(0 0 5px rgba(255, 255, 255, 0.7))"; // Adds a glowing effect
+      
+      // Delayed typing animation per emoji
+      setTimeout(() => {
+        emojiSpan.style.opacity = "1";
+        emojiSpan.style.transform = "translateY(0) scale(1)";
+      }, index * 100);
+      
+      // Insert emoji into input field on click
+      emojiSpan.addEventListener("click", function() {
+        const inputField = document.getElementById("messageInput");
+        inputField.value += emoji;
+        inputField.focus();
+      });
+      
+      emojiContainer.appendChild(emojiSpan);
+    });
+    
+    // Append emoji container to body
+    document.body.appendChild(emojiContainer);
+    
+    // Show emojis only when the input is focused
+    const inputField = document.getElementById("messageInput");
+    inputField.addEventListener("focus", () => {
+      emojiContainer.style.opacity = "1";
+    });
+    
+    inputField.addEventListener("blur", () => {
+      setTimeout(() => {
+        emojiContainer.style.opacity = "0"; // Hide after input is blurred
+      }, 300);
+    });
+    
+    // Make emojis fully responsive
+    emojiContainer.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      emojiContainer.scrollLeft += event.deltaY; // Horizontal scroll on wheel
+    });
+    
+    // Mobile touch scrolling
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+    
+    emojiContainer.addEventListener("mousedown", (e) => {
+      isDown = true;
+      startX = e.pageX - emojiContainer.offsetLeft;
+      scrollLeft = emojiContainer.scrollLeft;
+    });
+    
+    emojiContainer.addEventListener("mouseleave", () => {
+      isDown = false;
+    });
+    
+    emojiContainer.addEventListener("mouseup", () => {
+      isDown = false;
+    });
+    
+    emojiContainer.addEventListener("mousemove", (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - emojiContainer.offsetLeft;
+      const walk = (x - startX) * 2; // Adjust scroll speed
+      emojiContainer.scrollLeft = scrollLeft - walk;
+    });
+    
+    emojiContainer.addEventListener("touchstart", (e) => {
+      isDown = true;
+      startX = e.touches[0].pageX - emojiContainer.offsetLeft;
+      scrollLeft = emojiContainer.scrollLeft;
+    });
+    
+    emojiContainer.addEventListener("touchend", () => {
+      isDown = false;
+    });
+    
+    emojiContainer.addEventListener("touchmove", (e) => {
+      if (!isDown) return;
+      const x = e.touches[0].pageX - emojiContainer.offsetLeft;
+      const walk = (x - startX) * 2;
+      emojiContainer.scrollLeft = scrollLeft - walk;
+    });
+  });
+</script>

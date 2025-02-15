@@ -37,7 +37,7 @@
 
           .${this.uniqueId}-btn {
             position: fixed;
-            bottom: 80px;
+            bottom: 100px; /* Updated: Moved the button a little bit higher */
             right: 20px;
             width: 45px;
             height: 45px;
