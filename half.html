@@ -500,16 +500,10 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <script>
   function createDownloadNotification() {
-    // Check if running as installed app
-    const isInstalledApp = window.matchMedia('(display-mode: standalone)').matches ||
-      window.matchMedia('(display-mode: fullscreen)').matches ||
-      window.navigator.standalone;
-    
-    // Check if notification was previously shown
-    const hasShownNotification = localStorage.getItem('downloadNotificationShown');
-    
-    // Only show if in browser and hasn't been shown before
-    if (isInstalledApp || hasShownNotification) {
+    // Check if the user is accessing the site from a browser (not a standalone app)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (isStandalone) {
+      // If the app is installed (standalone mode), do not show the notification
       return;
     }
     
@@ -609,6 +603,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle button clicks
     installButton.onclick = () => {
       if (isAndroid) {
+        // Direct download for Android
         const link = document.createElement('a');
         link.href = 'https://median.co/share/zjajxa#apk';
         link.download = 'app.apk';
@@ -616,16 +611,13 @@ document.addEventListener('DOMContentLoaded', () => {
         link.click();
         document.body.removeChild(link);
       } else {
+        // Open in new tab for other platforms
         window.open('https://median.co/share/zjajxa#apk', '_blank');
       }
-      localStorage.setItem('downloadNotificationShown', 'true');
       hideNotification();
     };
     
-    cancelButton.onclick = () => {
-      localStorage.setItem('downloadNotificationShown', 'true');
-      hideNotification();
-    };
+    cancelButton.onclick = hideNotification;
     
     // Assemble notification
     buttons.appendChild(installButton);
