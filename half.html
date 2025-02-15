@@ -500,14 +500,42 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <script>
   function createDownloadNotification() {
-    // Check if the user is accessing the site from a browser (not a standalone app)
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    if (isStandalone) {
-      // If the app is installed (standalone mode), do not show the notification
+    // Check if running as PWA or standalone app
+    if (window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone ||
+      document.referrer.includes('android-app://')) {
+      return; // Don't show notification if it's installed as PWA
+    }
+    
+    // More thorough browser detection
+    const isBrowser = () => {
+      const ua = navigator.userAgent.toLowerCase();
+      
+      // Check if it's a WebView
+      const isWebView = /(webview|wv)/.test(ua) ||
+        /windows.*phone/.test(ua) ||
+        /android.*mobile/.test(ua) && /wv/.test(ua);
+      
+      // Check if it's a known mobile browser
+      const isMobileBrowser = /chrome|safari|firefox|opera|edge|ie/i.test(ua) &&
+        !isWebView &&
+        !ua.includes('samsung') &&
+        !ua.includes('miui') &&
+        !ua.includes('huawei');
+      
+      // Check if it's a desktop browser
+      const isDesktopBrowser = /chrome|firefox|safari|opera|edge|ie/i.test(ua) &&
+        !/(android|iphone|ipad|ipod|windows phone)/i.test(ua);
+      
+      return isMobileBrowser || isDesktopBrowser;
+    };
+    
+    // Only proceed if it's a regular browser
+    if (!isBrowser()) {
       return;
     }
     
-    // Detect OS
+    // Detect OS for customizing the message
     const userAgent = navigator.userAgent.toLowerCase();
     const isAndroid = /android/.test(userAgent);
     const isIOS = /iphone|ipad|ipod/.test(userAgent);
@@ -603,7 +631,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle button clicks
     installButton.onclick = () => {
       if (isAndroid) {
-        // Direct download for Android
         const link = document.createElement('a');
         link.href = 'https://median.co/share/zjajxa#apk';
         link.download = 'app.apk';
@@ -611,7 +638,6 @@ document.addEventListener('DOMContentLoaded', () => {
         link.click();
         document.body.removeChild(link);
       } else {
-        // Open in new tab for other platforms
         window.open('https://median.co/share/zjajxa#apk', '_blank');
       }
       hideNotification();
