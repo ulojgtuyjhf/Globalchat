@@ -5,7 +5,11 @@ import { getDatabase, ref, push, set, onChildAdded, update, query as dbQuery, li
 
 // Strong Content Moderation Configuration
 const BLOCKED_PATTERNS = [
-  
+  /http(s)?:\/\/[^\s]+/i, // Block URLs
+  /\bwww\.[^\s]+/i, // Block URLs starting with "www"
+  /\.com\b/i, // Block .com domains
+  /\.net\b/i, // Block .net domains
+  /\.org\b/i, // Block .org domains
   /rape(s|d|ing)?\b/i, // Block explicit content and variations
   /fuck(ed|ing|s)?\b/i, // Block profanity and variations
   /sh(it|itty)?\b/i, // Block profanity and variations
@@ -58,23 +62,25 @@ const activeReplies = new Set();
 let lastMessageTime = 0;
 const followedUsers = new Set();
 let lastMessageKey = null;
-const MESSAGE_LIMIT = 10;
+const MESSAGE_LIMIT = 20;
+const MESSAGE_BATCH_SIZE = 10;
+const messageCache = new Map();
 
 // Styling for Follow Button
 const styleTag = document.createElement('style');
 styleTag.textContent = `
   .follow-btn {
-    background-color: black; /* Purple for Follow */
+    background-color: black;
     color: #fff;
     border: none;
-    padding: 4px 8px; /* Smaller size */
+    padding: 4px 8px;
     text-align: center;
     text-decoration: none;
     display: inline-block;
-    font-size: 10px; /* Very small text */
+    font-size: 10px;
     margin: 4px 2px;
     cursor: pointer;
-    border-radius: 8px; /* Rounded corners */
+    border-radius: 8px;
     box-shadow: 2px 2px 4px #b0b0b0, -2px -2px 4px #ffffff;
     transition: background-color 0.3s, box-shadow 0.3s;
   }
@@ -82,7 +88,7 @@ styleTag.textContent = `
     box-shadow: inset 2px 2px 4px #b0b0b0, inset -2px -2px 4px #ffffff;
   }
   .follow-btn.followed {
-    background-color: gray; /* Red for Unfollow */
+    background-color: gray;
     color: #fff;
   }
 `;
@@ -94,7 +100,6 @@ document.querySelectorAll('.follow-btn').forEach(button => {
     this.textContent = this.classList.contains('followed') ? 'Unfollow' : 'Follow';
   });
 });
-document.head.appendChild(styleTag);
 
 // Follow/Unfollow User
 async function toggleFollow(userId, userName) {
@@ -102,18 +107,17 @@ async function toggleFollow(userId, userName) {
     alert('Please log in first!');
     return;
   }
-
+  
   try {
     const followQuery = query(
       collection(db, 'follows'),
       where('followerUserId', '==', currentUser.uid),
       where('followedUserId', '==', userId)
     );
-
+    
     const followSnapshot = await getDocs(followQuery);
-
+    
     if (followSnapshot.empty) {
-      // Follow the user
       await addDoc(collection(db, 'follows'), {
         followerUserId: currentUser.uid,
         followedUserId: userId,
@@ -121,16 +125,15 @@ async function toggleFollow(userId, userName) {
         timestamp: new Date().toISOString()
       });
       followedUsers.add(userId);
-      
+      alert(`You are now following ${userName}`);
     } else {
-      // Unfollow the user
       followSnapshot.docs.forEach(async (followDoc) => {
         await deleteDoc(doc(db, 'follows', followDoc.id));
       });
       followedUsers.delete(userId);
-      
+      alert(`You have unfollowed ${userName}`);
     }
-
+    
     updateFollowButtons();
   } catch (error) {
     console.error('Follow/Unfollow error:', error);
@@ -150,27 +153,26 @@ function updateFollowButtons() {
 // Fetch Followed Users
 async function fetchFollowedUsers() {
   if (!currentUser) return;
-
+  
   try {
     const followQuery = query(
       collection(db, 'follows'),
       where('followerUserId', '==', currentUser.uid)
     );
-
+    
     const followSnapshot = await getDocs(followQuery);
-    followedUsers.clear(); // Clear existing followed users
+    followedUsers.clear();
     followSnapshot.docs.forEach(doc => {
       const followedUserId = doc.data().followedUserId;
       followedUsers.add(followedUserId);
     });
-
+    
     updateFollowButtons();
   } catch (error) {
     console.error('Error fetching followed users:', error);
   }
 }
 
-// Strong Content Moderation Function
 function moderateContent(text) {
   const hasBlockedContent = BLOCKED_PATTERNS.some(pattern => pattern.test(text));
   if (hasBlockedContent) {
@@ -180,7 +182,6 @@ function moderateContent(text) {
   return true;
 }
 
-// Create Loading Animation
 function createLoadingAnimation() {
   const dotCount = 3;
   const loadingDots = Array.from({ length: dotCount }, () => {
@@ -188,12 +189,11 @@ function createLoadingAnimation() {
     dot.classList.add('loading-dot');
     return dot;
   });
-
+  
   loadingIndicator.innerHTML = '';
   loadingDots.forEach(dot => loadingIndicator.appendChild(dot));
 }
 
-// Geolocation and Flag Service
 async function getCountryFromIP() {
   try {
     const response = await fetch('https://ipapi.co/json/');
@@ -205,22 +205,20 @@ async function getCountryFromIP() {
   }
 }
 
-// Authentication State Observer
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     try {
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       const userData = userDoc.data();
       const countryCode = await getCountryFromIP();
-
+      
       currentUser = {
         uid: user.uid,
         displayName: user.displayName || userData?.displayName || "Anonymous",
         photoURL: user.photoURL || userData?.photoURL || "default-profile.png",
         country: countryCode
       };
-
-      // Fetch followed users
+      
       await fetchFollowedUsers();
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -231,81 +229,158 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// Send Message Function
-window.sendMessage = (parentMessageId = null) => {
+// Global Rate Limit Configuration
+const GLOBAL_RATE_LIMIT_MS = 3000; // 2 seconds
+const lastMessageTimeRef = ref(database, 'lastMessageTime'); // Shared reference for last message time
+
+// Function to check and update global rate limit
+async function checkAndUpdateGlobalRateLimit() {
+  try {
+    const snapshot = await get(lastMessageTimeRef);
+    const lastMessageTime = snapshot.exists() ? snapshot.val() : 0;
+    const currentTime = Date.now();
+
+    if (currentTime - lastMessageTime < GLOBAL_RATE_LIMIT_MS) {
+      alert('Please wait 2 seconds before sending your next message. This is a global rate limit.');
+      return false;
+    }
+
+    // Update the last message time in the database
+    await set(lastMessageTimeRef, currentTime);
+    return true;
+  } catch (error) {
+    console.error('Error checking global rate limit:', error);
+    return false;
+  }
+}
+
+// Updated Send Message Function with Global Rate Limit
+window.sendMessage = async (parentMessageId = null) => {
   if (!currentUser) {
-    alert('You must log in to continue. Please log in to access this feature.');
+    alert('You must log in to continue.');
     return;
   }
 
   const messageText = messageInput.value.trim();
-  const currentTime = Date.now();
-
-  if (currentTime - lastMessageTime < 3000) {
-    alert('Please wait at least 3 seconds before sending your next message.');
-    return;
-  }
 
   if (!moderateContent(messageText)) return;
   if (messageText === '') return;
 
+  // Check and update global rate limit
+  const isAllowed = await checkAndUpdateGlobalRateLimit();
+  if (!isAllowed) return;
+
   createLoadingAnimation();
   loadingIndicator.style.display = 'flex';
 
-  const newMessageRef = push(chatRef);
-  const messageData = {
-    userId: currentUser.uid,
-    name: currentUser.displayName,
-    photoURL: currentUser.photoURL,
-    text: messageText,
-    timestamp: new Date().toISOString(),
-    country: currentUser.country,
-    parentMessageId: parentMessageId,
-    replyCount: 0,
-    isCreator: parentMessageId !== null
-  };
+  try {
+    const newMessageRef = push(chatRef);
+    const messageData = {
+      userId: currentUser.uid,
+      name: currentUser.displayName,
+      photoURL: currentUser.photoURL,
+      text: messageText,
+      timestamp: new Date().toISOString(),
+      country: currentUser.country,
+      parentMessageId: parentMessageId,
+      replyCount: 0,
+      isCreator: parentMessageId !== null
+    };
 
-  set(newMessageRef, messageData)
-    .then(() => {
-      messageInput.value = '';
-      loadingIndicator.style.display = 'none';
-      lastMessageTime = currentTime;
-
-      if (parentMessageId) {
-        const parentRef = ref(database, `messages/${parentMessageId}`);
-        update(parentRef, {
-          replyCount: (snapshot.val().replyCount || 0) + 1
-        });
-      }
-    })
-    .catch((error) => {
-      console.error('Error sending message:', error);
-      loadingIndicator.style.display = 'none';
-    });
+    await set(newMessageRef, messageData);
+    messageInput.value = '';
+  } catch (error) {
+    console.error('Error sending message:', error);
+  } finally {
+    loadingIndicator.style.display = 'none';
+  }
 };
 
-// Function to load more messages
+// Updated Send Reply Function with Global Rate Limit
+window.sendReply = async (parentMessageId) => {
+  const replyTextarea = document.querySelector(`[data-message-id="${parentMessageId}"] .reply-textarea`);
+  const replyText = replyTextarea.value.trim();
+
+  if (replyText === '') return;
+
+  // Check and update global rate limit
+  const isAllowed = await checkAndUpdateGlobalRateLimit();
+  if (!isAllowed) return;
+
+  try {
+    const reply = {
+      text: replyText,
+      timestamp: new Date().toISOString(),
+      userId: currentUser.uid,
+      name: currentUser.displayName,
+      photoURL: currentUser.photoURL,
+      country: currentUser.country,
+      parentMessageId: parentMessageId,
+      isCreator: true
+    };
+
+    // Push the reply to the database
+    const newReplyRef = push(chatRef);
+    await set(newReplyRef, reply);
+    replyTextarea.value = '';
+    toggleReplyInput(parentMessageId);
+
+    // Update reply count on parent message
+    const parentRef = ref(database, `messages/${parentMessageId}`);
+    const snapshot = await get(parentRef);
+    if (snapshot.exists()) {
+      await update(parentRef, {
+        replyCount: (snapshot.val().replyCount || 0) + 1
+      });
+    }
+  } catch (error) {
+    console.error('Error sending reply:', error);
+  }
+};
+
+// Optimized message loading
 async function loadMoreMessages() {
   if (!lastMessageKey) return;
 
-  const messagesQuery = dbQuery(chatRef, limitToLast(MESSAGE_LIMIT), startAfter(lastMessageKey));
-  const snapshot = await get(messagesQuery);
+  const messagesQuery = dbQuery(
+    chatRef,
+    limitToLast(MESSAGE_BATCH_SIZE),
+    startAfter(lastMessageKey)
+  );
 
-  if (snapshot.exists()) {
-    const messages = [];
-    snapshot.forEach(childSnapshot => {
-      messages.push(childSnapshot.val());
-      lastMessageKey = childSnapshot.key;
-    });
+  try {
+    const snapshot = await get(messagesQuery);
 
-    messages.reverse().forEach(message => {
-      appendMessage(message, childSnapshot.key);
-    });
+    if (snapshot.exists()) {
+      const messages = [];
+      snapshot.forEach(childSnapshot => {
+        const messageData = childSnapshot.val();
+        if (!messageCache.has(childSnapshot.key)) {
+          messages.push({
+            key: childSnapshot.key,
+            data: messageData
+          });
+          messageCache.set(childSnapshot.key, messageData);
+        }
+      });
+
+      messages.reverse().forEach(({ key, data }) => {
+        appendMessage(data, key);
+      });
+
+      if (messages.length > 0) {
+        lastMessageKey = messages[0].key;
+      }
+    }
+  } catch (error) {
+    console.error('Error loading more messages:', error);
   }
 }
 
-// Function to append a message to the chat container
+// Append Message Function
 function appendMessage(message, messageId) {
+  if (document.querySelector(`[data-message-id="${messageId}"]`)) return;
+
   const messageElement = document.createElement('div');
   messageElement.classList.add('message');
   messageElement.setAttribute('data-message-id', messageId);
@@ -324,7 +399,9 @@ function appendMessage(message, messageId) {
           ${message.name}
           ${isCreator}
           <img src="${flagUrl}" class="message-flag" alt="Flag" onerror="this.src='default-flag.png'">
-          <button class="follow-btn" data-user-id="${message.userId}" onclick="toggleFollow('${message.userId}', '${message.name}')">Follow</button>
+          <button class="follow-btn" data-user-id="${message.userId}" onclick="toggleFollow('${message.userId}', '${message.name}')">
+            ${followedUsers.has(message.userId) ? 'Unfollow' : 'Follow'}
+          </button>
         </h4>
       </div>
       <span class="message-time">${messageTime}</span>
@@ -344,15 +421,20 @@ function appendMessage(message, messageId) {
   chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// Listen for New Messages
-onChildAdded(chatRef, (snapshot) => {
+// Optimized real-time listener
+const recentMessagesQuery = dbQuery(chatRef, limitToLast(MESSAGE_LIMIT));
+onChildAdded(recentMessagesQuery, (snapshot) => {
   const message = snapshot.val();
   const messageId = snapshot.key;
-  lastMessageKey = messageId;
-  appendMessage(message, messageId);
+
+  if (!messageCache.has(messageId)) {
+    appendMessage(message, messageId);
+    messageCache.set(messageId, message);
+    lastMessageKey = messageId;
+  }
 });
 
-// Toggle Reply Input
+// Toggle Reply Input Function
 window.toggleReplyInput = (messageId) => {
   const parentMessage = document.querySelector(`[data-message-id="${messageId}"]`);
   const existingReplyInput = parentMessage.querySelector('.reply-input');
@@ -372,42 +454,20 @@ window.toggleReplyInput = (messageId) => {
   }
 };
 
-// Send Reply Function
-window.sendReply = (parentMessageId) => {
-  const replyTextarea = document.querySelector(`[data-message-id="${parentMessageId}"] .reply-textarea`);
-  const replyText = replyTextarea.value.trim();
-
-  if (replyText === '') return;
-
-  const reply = {
-    text: replyText,
-    timestamp: Date.now(),
-    userId: currentUser.uid,
-    name: currentUser.displayName,
-    photoURL: currentUser.photoURL,
-    country: currentUser.country,
-    parentMessageId: parentMessageId
-  };
-
-  // Push the reply to the database
-  const newReplyRef = push(ref(database, `messages/${parentMessageId}/replies`));
-  set(newReplyRef, reply)
-    .then(() => {
-      replyTextarea.value = '';
-      toggleReplyInput(parentMessageId);
-    })
-    .catch(error => console.error('Error sending reply:', error));
-};
-
 // Expose toggleFollow globally
 window.toggleFollow = toggleFollow;
 
-// Implement Lazy Loading
+// Implement scroll handler for loading more messages
+let scrollTimeout;
 chatContainer.addEventListener('scroll', () => {
-  if (chatContainer.scrollTop === 0) {
-    loadMoreMessages();
-  }
+  if (scrollTimeout) clearTimeout(scrollTimeout);
+
+  scrollTimeout = setTimeout(() => {
+    if (chatContainer.scrollTop === 0) {
+      loadMoreMessages();
+    }
+  }, 150);
 });
 
-// Initial Load of Messages
+// Initial load of messages
 loadMoreMessages();
