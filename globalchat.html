@@ -833,3 +833,49 @@ document.querySelector("button").addEventListener("click", moderateAndSendMessag
     ChatFilter.startMonitoring();
   });
 </script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const chatContainer = document.getElementById("chatContainer");
+    
+    function addSeparators() {
+      const messages = document.querySelectorAll(".message");
+      
+      messages.forEach((message) => {
+        // Ensure we don't add duplicate separators
+        if (!message.previousElementSibling || !message.previousElementSibling.classList.contains("message-separator")) {
+          const separatorBefore = document.createElement("div");
+          separatorBefore.classList.add("message-separator");
+          message.parentNode.insertBefore(separatorBefore, message);
+        }
+        
+        if (!message.nextElementSibling || !message.nextElementSibling.classList.contains("message-separator")) {
+          const separatorAfter = document.createElement("div");
+          separatorAfter.classList.add("message-separator");
+          message.parentNode.insertBefore(separatorAfter, message.nextSibling);
+        }
+      });
+    }
+    
+    // Initial setup
+    addSeparators();
+    
+    // Monitor new messages added dynamically
+    const observer = new MutationObserver(() => {
+      addSeparators();
+    });
+    
+    observer.observe(chatContainer, { childList: true, subtree: true });
+    
+    // CSS for the separator
+    const style = document.createElement("style");
+    style.innerHTML = `
+        .message-separator {
+            height: 1px;
+            background: rgba(0, 0, 0, 0.3);
+            width: 100%;
+            margin: 3px 0; /* Reduced spacing */
+        }
+    `;
+    document.head.appendChild(style);
+  });
+</script>
