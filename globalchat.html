@@ -705,3 +705,131 @@ document.querySelector("button").addEventListener("click", moderateAndSendMessag
     });
   });
 </script>
+<script>
+  // Chat content filter with simple 'A' indicator
+  const ChatFilter = {
+    // Dictionary of words and patterns to filter
+   filterPatterns: [
+    // Original patterns
+    /\b(f+u+c+k+|f+v+c+k+|f+u+k+)\w*/gi,
+    /\b(s+h+i+t+)\w*/gi,
+    /\b(b+i+t+c+h+)\w*/gi,
+    /\b(a+s+s+h+o+l+e+)\w*/gi,
+    /\b(d+i+c+k+)\w*/gi,
+    /\b(p+u+s+s+y+)\w*/gi,
+    /\b(c+u+n+t+)\w*/gi,
+    /\b(w+h+o+r+e+)\w*/gi,
+    /\b(n+i+g+g+[ea]+r*)\w*/gi,
+    /\b(f+a+g+)\w*/gi,
+    /\b(r+e+t+a+r+d+)\w*/gi,
+    /\b(s+l+u+t+)\w*/gi,
+    /\b(k+y+s+)\b/gi,
+    /\b(k+i+l+l+\s*y+o+u+r+s+e+l+f+)\b/gi,
+    
+    // New patterns
+    /\b(f[@4]c+k+)\w*/gi, // Leet speak for "fuck"
+    /\b(5+h+i+t+)\w*/gi, // Leet speak for "shit"
+    /\b(b+i+t+c+h+|b+i+t+c+h+)\w*/gi, // Variants of "bitch"
+    /\b(a+s+s+)\w*/gi, // Shortened version of "asshole"
+    /\b(d+i+c+k+|d+i+k+)\w*/gi, // Variants of "dick"
+    /\b(p+u+s+y+|p+u+z+y+)\w*/gi, // Variants of "pussy"
+    /\b(c+u+n+t+|c+u+n+t+)\w*/gi, // Variants of "cunt"
+    /\b(w+h+o+r+e+|w+h+o+r+)\w*/gi, // Variants of "whore"
+    /\b(n+i+g+[ea]+r+|n+i+g+[ea]+)\w*/gi, // Variants of racial slurs
+    /\b(f+a+g+|f+a+g+)\w*/gi, // Variants of "fag"
+    /\b(r+e+t+a+r+d+|r+e+t+a+r+d+)\w*/gi, // Variants of "retard"
+    /\b(s+l+u+t+|s+l+u+t+)\w*/gi, // Variants of "slut"
+    /\b(k+y+s+|k+y+s+)\b/gi, // Variants of "kys"
+    /\b(k+i+l+l+\s*y+o+u+r+s+e+l+f+|k+y+s+)\b/gi, // Variants of "kill yourself"
+    /\b(f+u+c+k+e+r+|f+u+c+k+e+r+)\w*/gi, // Variants of "fucker"
+    /\b(s+h+i+t+h+e+a+d+|s+h+i+t+h+e+a+d+)\w*/gi, // Variants of "shithead"
+    /\b(m+o+t+h+e+r+f+u+c+k+e+r+|m+o+t+h+e+r+f+u+c+k+e+r+)\w*/gi, // Variants of "motherfucker"
+    /\b(c+o+c+k+|c+o+c+k+)\w*/gi, // Variants of "cock"
+    /\b(p+i+s+s+|p+i+s+s+)\w*/gi, // Variants of "piss"
+    /\b(b+a+s+t+a+r+d+|b+a+s+t+a+r+d+)\w*/gi, // Variants of "bastard"
+    /\b(d+a+m+n+|d+a+m+n+)\w*/gi, // Variants of "damn"
+    /\b(h+e+l+l+|h+e+l+l+)\w*/gi, // Variants of "hell"
+    /\b(s+c+r+e+w+|s+c+r+e+w+)\w*/gi, // Variants of "screw"
+    /\b(f+u+c+k+i+n+g+|f+u+c+k+i+n+g+)\w*/gi, // Variants of "fucking"
+    /\b(s+h+i+t+t+y+|s+h+i+t+t+y+)\w*/gi, // Variants of "shitty"
+    /\b(a+s+s+w+i+p+e+|a+s+s+w+i+p+e+)\w*/gi, // Variants of "asswipe"
+    /\b(b+u+l+l+s+h+i+t+|b+u+l+l+s+h+i+t+)\w*/gi, // Variants of "bullshit"
+    /\b(c+r+a+p+|c+r+a+p+)\w*/gi, // Variants of "crap"
+    /\b(d+a+m+m+i+t+|d+a+m+m+i+t+)\w*/gi, // Variants of "dammit"
+    /\b(f+u+c+k+o+f+f+|f+u+c+k+o+f+f+)\w*/gi, // Variants of "fuckoff"
+    /\b(g+o+d+d+a+m+n+|g+o+d+d+a+m+n+)\w*/gi, // Variants of "goddamn"
+    /\b(h+o+l+y+s+h+i+t+|h+o+l+y+s+h+i+t+)\w*/gi, // Variants of "holyshit"
+    /\b(j+e+r+k+o+f+f+|j+e+r+k+o+f+f+)\w*/gi, // Variants of "jerkoff"
+    /\b(p+r+i+c+k+|p+r+i+c+k+)\w*/gi, // Variants of "prick"
+    /\b(s+c+r+e+w+y+o+u+|s+c+r+e+w+y+o+u+)\w*/gi, // Variants of "screwyou"
+    /\b(s+h+i+t+b+a+g+|s+h+i+t+b+a+g+)\w*/gi, // Variants of "shitbag"
+    /\b(s+h+i+t+f+a+c+e+|s+h+i+t+f+a+c+e+)\w*/gi, // Variants of "shitface"
+    /\b(s+h+i+t+h+e+a+d+|s+h+i+t+h+e+a+d+)\w*/gi, // Variants of "shithead"
+    /\b(s+h+i+t+l+o+a+d+|s+h+i+t+l+o+a+d+)\w*/gi, // Variants of "shitload"
+    /\b(s+h+i+t+s+t+a+i+n+|s+h+i+t+s+t+a+i+n+)\w*/gi, // Variants of "shitstain"
+    /\b(s+h+i+t+t+y+|s+h+i+t+t+y+)\w*/gi, // Variants of "shitty"
+    /\b(s+h+i+t+z+u+|s+h+i+t+z+u+)\w*/gi, // Variants of "shitzu"
+],
+    
+    // Convert text to stars with simple 'A' indicator
+    convertToStars(match) {
+      return '✱'.repeat(match.length) + '❗';
+    },
+    
+    // Process a single text node
+    processTextNode(textNode) {
+      let text = textNode.nodeValue;
+      let wasFiltered = false;
+      
+      this.filterPatterns.forEach(pattern => {
+        if (pattern.test(text)) {
+          text = text.replace(pattern, this.convertToStars);
+          wasFiltered = true;
+        }
+      });
+      
+      if (wasFiltered) {
+        textNode.nodeValue = text;
+      }
+    },
+    
+    // Recursively process all text nodes in the chat
+    processNode(node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        this.processTextNode(node);
+      } else {
+        Array.from(node.childNodes).forEach(child => this.processNode(child));
+      }
+    },
+    
+    // Start monitoring the chat container
+    startMonitoring() {
+      const chatContainer = document.getElementById('chatContainer');
+      
+      // Process existing content
+      this.processNode(chatContainer);
+      
+      // Create observer to monitor chat changes
+      const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+          if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach(node => {
+              this.processNode(node);
+            });
+          }
+        });
+      });
+      
+      // Start observing chat container
+      observer.observe(chatContainer, {
+        childList: true,
+        subtree: true
+      });
+    }
+  };
+  
+  // Start the filter when the page loads
+  document.addEventListener('DOMContentLoaded', () => {
+    ChatFilter.startMonitoring();
+  });
+</script>

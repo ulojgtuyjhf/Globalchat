@@ -5,30 +5,7 @@ import { getDatabase, ref, push, set, onChildAdded, update, query as dbQuery, li
 
 // Strong Content Moderation Configuration
 const BLOCKED_PATTERNS = [
-  /http(s)?:\/\/[^\s]+/i, // Block URLs
-  /\bwww\.[^\s]+/i, // Block URLs starting with "www"
-  /\.com\b/i, // Block .com domains
-  /\.net\b/i, // Block .net domains
-  /\.org\b/i, // Block .org domains
-  /rape(s|d|ing)?\b/i, // Block explicit content and variations
-  /fuck(ed|ing|s)?\b/i, // Block profanity and variations
-  /sh(it|itty)?\b/i, // Block profanity and variations
-  /damn(ed)?\b/i, // Block mild profanity and variations
-  /ass(hole|es)?\b/i, // Block offensive language
-  /bitch(es|y)?\b/i, // Block offensive language
-  /cunt(s)?\b/i, // Block offensive language
-  /dick(s|head)?\b/i, // Block offensive language
-  /pussy\b/i, // Block offensive language
-  /nigg(er|a|s)?\b/i, // Block racial slurs
-  /fag(got|s)?\b/i, // Block offensive slurs
-  /\bsex(ual|y|ing|ed)?\b/i, // Block explicit sexual references
-  /\bpenis\b/i, // Block explicit content
-  /\bvagina\b/i, // Block explicit content
-  /boob(s|ies)?\b/i, // Block explicit content
-  /\bfuck[\s\-]you\b/i, // Block "fuck you" variations
-  /suck[\s\-]my[\s\-](dick|cock)\b/i, // Block explicit phrases
-  /\bkill[\s\-]yourself\b/i, // Block harmful phrases
-  /\bi[\s\-]?hate[\s\-]?you\b/i, // Block hate speech
+  
 ];
 
 function containsBlockedContent(input) {
