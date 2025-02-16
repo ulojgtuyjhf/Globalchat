@@ -125,7 +125,7 @@ async function toggleFollow(userId, userName) {
         timestamp: new Date().toISOString()
       });
       followedUsers.add(userId);
-      alert(`You are now following ${userName}`);
+     
     } else {
       followSnapshot.docs.forEach(async (followDoc) => {
         await deleteDoc(doc(db, 'follows', followDoc.id));
