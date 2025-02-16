@@ -39,7 +39,7 @@ const activeReplies = new Set();
 let lastMessageTime = 0;
 const followedUsers = new Set();
 let lastMessageKey = null;
-const MESSAGE_LIMIT = 20;
+const MESSAGE_LIMIT = 300;
 const MESSAGE_BATCH_SIZE = 10;
 const messageCache = new Map();
 
