@@ -207,7 +207,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // Global Rate Limit Configuration
-const GLOBAL_RATE_LIMIT_MS = 3000; // 2 seconds
+const GLOBAL_RATE_LIMIT_MS = 2000; // 2 seconds
 const lastMessageTimeRef = ref(database, 'lastMessageTime'); // Shared reference for last message time
 
 // Function to check and update global rate limit
