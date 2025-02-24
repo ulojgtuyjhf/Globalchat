@@ -2,40 +2,59 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Responsive Embedded Content</title>
   <style>
-  
-    /* Basic reset */
-    body, html {
-      
+    /* Complete reset to ensure consistent behavior */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    /* Apply full dimensions to html and body */
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+    
+    /* Full-size container */
+    .iframe-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
       height: 100%;
       overflow: hidden;
     }
-
-    /* Container for iframe */
-    .iframe-container {
-      width: 100%;
-      height: 100vh;
-      border: none;
-    }
-
-    /* Hide iframes by default */
+    
+    /* Base styles for all iframes */
     iframe {
       display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       border: none;
+      margin: 0;
+      padding: 0;
     }
-
-    /* Show the correct iframe based on screen size */
-    @media (max-width: 767px) {
+    
+    /* Media queries to show appropriate iframe */
+    @media screen and (max-width: 767px) {
       #mobile-iframe {
         display: block;
       }
     }
-
-    @media (min-width: 768px) {
+    
+    @media screen and (min-width: 768px) {
       #desktop-iframe {
         display: block;
       }
@@ -43,26 +62,20 @@
   </style>
 </head>
 <body>
-  <!-- Desktop iframe -->
-  <iframe id="desktop-iframe" class="iframe-container" src="relhalf.html"></iframe>
-
-  <!-- Mobile iframe -->
-  <iframe id="mobile-iframe" class="iframe-container" src="mobile.html"></iframe>
+  <div class="iframe-container">
+    <!-- Desktop iframe -->
+    <iframe id="desktop-iframe" src="relhalf.html" allowfullscreen></iframe>
+    
+    <!-- Mobile iframe -->
+    <iframe id="mobile-iframe" src="mobile.html" allowfullscreen></iframe>
+  </div>
 
   <script>
-    // Optional: Dynamically adjust iframe height on window resize
-    window.addEventListener('resize', () => {
-      const iframes = document.querySelectorAll('.iframe-container');
-      iframes.forEach(iframe => {
-        iframe.style.height = `${window.innerHeight}px`;
-      });
-    });
-
-    // Ensure the correct iframe is loaded on initial page load
-    window.addEventListener('load', () => {
+    // Function to ensure correct iframe is displayed
+    function updateIframeVisibility() {
       const desktopIframe = document.getElementById('desktop-iframe');
       const mobileIframe = document.getElementById('mobile-iframe');
-
+      
       if (window.innerWidth <= 767) {
         mobileIframe.style.display = 'block';
         desktopIframe.style.display = 'none';
@@ -70,8 +83,32 @@
         desktopIframe.style.display = 'block';
         mobileIframe.style.display = 'none';
       }
-    });
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', updateIframeVisibility);
+    
+    // Update on resize
+    window.addEventListener('resize', updateIframeVisibility);
+    
+    // Force update on orientation change (especially important for mobile)
+    window.addEventListener('orientationchange', updateIframeVisibility);
+    
+    // Fallback check in case the iframe content changes the layout
+    setInterval(function() {
+      const activeIframe = window.innerWidth <= 767 ? 
+        document.getElementById('mobile-iframe') : 
+        document.getElementById('desktop-iframe');
+        
+      if (activeIframe && (activeIframe.offsetWidth < window.innerWidth || 
+          activeIframe.offsetHeight < window.innerHeight)) {
+        activeIframe.style.width = '100%';
+        activeIframe.style.height = '100%';
+      }
+    }, 1000);
   </script>
+</body>
+</html>
   <script>
   function createDownloadNotification() {
     // Check if running as PWA or standalone app
