@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TikTok-like Feed</title>
+    <title>Video Feed</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
@@ -97,7 +97,7 @@
             max-width: 80%;
         }
 
-        .video-actions {
+        .emoji-reactions {
             position: absolute;
             right: 20px;
             bottom: 80px;
@@ -107,20 +107,65 @@
             gap: 20px;
         }
 
-        .action-button {
+        .emoji-button {
             display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            color: white;
+            width: 50px;
+            height: 50px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
         }
 
-        .action-icon {
-            font-size: 28px;
-            margin-bottom: 5px;
+        .emoji-button:hover {
+            transform: scale(1.1);
+            background-color: rgba(255, 255, 255, 0.3);
         }
 
-        .action-count {
-            font-size: 12px;
+        .emoji-button:active {
+            transform: scale(0.95);
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+            }
+        }
+
+        .emoji-reaction {
+            position: absolute;
+            animation: floatUp 1.5s forwards ease-out;
+            opacity: 0;
+            font-size: 30px;
+            user-select: none;
+            z-index: 100;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) scale(0.5);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            80% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) scale(1.5);
+                opacity: 0;
+            }
         }
 
         .loading-container {
@@ -150,50 +195,39 @@
             100% { transform: rotate(360deg); }
         }
 
-        .header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 50px;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-        }
-
-        .nav-button {
-            padding: 0 15px;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #aaa;
-            text-decoration: none;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-
-        .nav-button.active {
-            color: #fff;
-        }
-
         .plus-button {
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background-color: #fe2c55;
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
             color: white;
-            width: 50px;
-            height: 50px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 24px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            font-size: 30px;
+            box-shadow: 0 4px 15px rgba(255, 75, 43, 0.5);
             z-index: 100;
+            animation: pulse-red 2s infinite;
+            transition: all 0.3s ease;
+        }
+
+        .plus-button:hover {
+            transform: scale(1.1);
+        }
+
+        @keyframes pulse-red {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 75, 43, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(255, 75, 43, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 75, 43, 0);
+            }
         }
 
         .empty-state {
@@ -205,18 +239,34 @@
             width: 100%;
             text-align: center;
             padding: 20px;
+            background: linear-gradient(135deg, #121212 0%, #000000 100%);
         }
 
         .empty-icon {
-            font-size: 50px;
-            margin-bottom: 20px;
-            color: #aaa;
+            font-size: 80px;
+            margin-bottom: 30px;
+            color: #ff4b2b;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
         }
 
         .empty-text {
-            font-size: 18px;
-            color: #aaa;
+            font-size: 22px;
+            color: #fff;
             max-width: 300px;
+            line-height: 1.4;
+            margin-bottom: 20px;
+        }
+
+        .empty-subtext {
+            font-size: 16px;
+            color: #aaa;
+            max-width: 280px;
         }
 
         .image-post {
@@ -226,19 +276,87 @@
             background-color: #000;
         }
 
-        /* Handle image posts differently */
         .image-container {
             display: flex;
             justify-content: center;
             align-items: center;
             width: 100%;
             height: 100%;
+            background-color: #000;
+        }
+
+        .play-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0,0,0,0.4);
+            z-index: 15;
+            cursor: pointer;
+        }
+
+        .play-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            color: white;
+        }
+
+        /* Emoji Animation Container */
+        .emoji-animation-container {
+            position: absolute;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 12;
+        }
+
+        /* Watermark */
+        .app-watermark {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.7);
+            z-index: 90;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Video Progress Bar */
+        .video-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: rgba(255, 255, 255, 0.2);
+            z-index: 11;
+        }
+
+        .progress-filled {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #ff416c, #ff4b2b);
+            border-radius: 0 2px 2px 0;
+            transition: width 0.1s linear;
         }
     </style>
 </head>
 <body>
     <div id="app-container">
-        
+        <div class="app-watermark">nmedea</div>
         <div id="video-feed"></div>
 
         
@@ -272,6 +390,11 @@
         const loadingElement = document.getElementById('loading');
         let currentlyPlaying = null;
         let userProfiles = {}; // Cache for user profiles
+        
+        // Emoji options for reactions
+        const emojis = [
+            "❤️", "😂", "🔥", "👏", "✨"
+        ];
 
         // Check if user is authenticated
         onAuthStateChanged(auth, async (user) => {
@@ -290,7 +413,7 @@
                 const postsQuery = query(
                     collection(db, 'posts'),
                     orderBy('createdAt', 'desc'),
-                    limit(20)
+                    limit(30)
                 );
                 
                 const postsSnapshot = await getDocs(postsQuery);
@@ -367,7 +490,21 @@
                 videoPlayer.loop = true;
                 videoPlayer.preload = 'auto';
                 
+                // Add video progress bar
+                const progressBar = document.createElement('div');
+                progressBar.className = 'video-progress';
+                const progressFilled = document.createElement('div');
+                progressFilled.className = 'progress-filled';
+                progressBar.appendChild(progressFilled);
+                
+                // Update progress bar as video plays
+                videoPlayer.addEventListener('timeupdate', () => {
+                    const percent = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+                    progressFilled.style.width = `${percent}%`;
+                });
+                
                 container.appendChild(videoPlayer);
+                container.appendChild(progressBar);
             } else if (isImage && postData.mediaUrl) {
                 // Create image container
                 const imageContainer = document.createElement('div');
@@ -424,59 +561,56 @@
             overlay.appendChild(userInfo);
             overlay.appendChild(description);
             
-            // Action buttons
-            const actions = document.createElement('div');
-            actions.className = 'video-actions';
+            // Emoji reaction buttons
+            const emojiReactions = document.createElement('div');
+            emojiReactions.className = 'emoji-reactions';
             
-            // Like button
-            const likeButton = createActionButton('heart', Math.floor(Math.random() * 1000));
-            // Share button
-            const shareButton = createActionButton('share', Math.floor(Math.random() * 100));
-            // Comment button
-            const commentButton = createActionButton('comment', Math.floor(Math.random() * 500));
+            // Create a main emoji button that will show reaction options on click/tap
+            const mainEmojiButton = document.createElement('div');
+            mainEmojiButton.className = 'emoji-button';
+            mainEmojiButton.innerHTML = '😍';
+            emojiReactions.appendChild(mainEmojiButton);
             
-            actions.appendChild(likeButton);
-            actions.appendChild(commentButton);
-            actions.appendChild(shareButton);
+            // Create emoji animation container
+            const emojiAnimationContainer = document.createElement('div');
+            emojiAnimationContainer.className = 'emoji-animation-container';
+            container.appendChild(emojiAnimationContainer);
+            
+            // Add event listener to main emoji button
+            mainEmojiButton.addEventListener('click', (e) => {
+                // Show random emoji animation
+                const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+                createEmojiAnimation(randomEmoji, e.clientX, e.clientY, emojiAnimationContainer);
+            });
             
             container.appendChild(overlay);
-            container.appendChild(actions);
+            container.appendChild(emojiReactions);
             
             videoFeed.appendChild(container);
         }
 
-        function createActionButton(iconName, count) {
-            const button = document.createElement('div');
-            button.className = 'action-button';
+        function createEmojiAnimation(emoji, x, y, container) {
+            const emojiElement = document.createElement('div');
+            emojiElement.className = 'emoji-reaction';
+            emojiElement.textContent = emoji;
             
-            const icon = document.createElement('div');
-            icon.className = 'action-icon';
-            icon.innerHTML = `<i class="fas fa-${iconName}"></i>`;
+            // Position the emoji near where it was clicked
+            emojiElement.style.left = `${x - 15}px`;
+            emojiElement.style.top = `${y - 15}px`;
             
-            const countElement = document.createElement('div');
-            countElement.className = 'action-count';
-            countElement.textContent = formatCount(count);
+            container.appendChild(emojiElement);
             
-            button.appendChild(icon);
-            button.appendChild(countElement);
-            
-            return button;
-        }
-
-        function formatCount(count) {
-            if (count >= 1000000) {
-                return (count / 1000000).toFixed(1) + 'M';
-            } else if (count >= 1000) {
-                return (count / 1000).toFixed(1) + 'K';
-            }
-            return count.toString();
+            // Remove emoji element after animation completes
+            setTimeout(() => {
+                emojiElement.remove();
+            }, 1500);
         }
 
         function setupIntersectionObserver() {
             const options = {
                 root: videoFeed,
                 rootMargin: '0px',
-                threshold: 0.8
+                threshold: 0.7
             };
             
             const observer = new IntersectionObserver((entries) => {
@@ -549,22 +683,10 @@
         function createPlayOverlay(container, videoElement) {
             const playOverlay = document.createElement('div');
             playOverlay.className = 'play-overlay';
-            playOverlay.style.position = 'absolute';
-            playOverlay.style.top = '0';
-            playOverlay.style.left = '0';
-            playOverlay.style.width = '100%';
-            playOverlay.style.height = '100%';
-            playOverlay.style.display = 'flex';
-            playOverlay.style.justifyContent = 'center';
-            playOverlay.style.alignItems = 'center';
-            playOverlay.style.backgroundColor = 'rgba(0,0,0,0.3)';
-            playOverlay.style.zIndex = '5';
-            playOverlay.style.cursor = 'pointer';
             
-            const playIcon = document.createElement('i');
-            playIcon.className = 'fas fa-play';
-            playIcon.style.fontSize = '48px';
-            playIcon.style.color = 'white';
+            const playIcon = document.createElement('div');
+            playIcon.className = 'play-icon';
+            playIcon.innerHTML = '<i class="fas fa-play"></i>';
             
             playOverlay.appendChild(playIcon);
             container.appendChild(playOverlay);
@@ -581,10 +703,13 @@
             videoFeed.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon">
-                        <i class="fas fa-video-slash"></i>
+                        <i class="fas fa-video"></i>
                     </div>
                     <div class="empty-text">
-                        No videos yet. Be the first to upload!
+                        Be the first to share a moment!
+                    </div>
+                    <div class="empty-subtext">
+                        Create and upload your first video to get started.
                     </div>
                 </div>
             `;
@@ -594,14 +719,26 @@
             videoFeed.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon">
-                        <i class="fas fa-exclamation-triangle"></i>
+                        <i class="fas fa-exclamation-circle"></i>
                     </div>
                     <div class="empty-text">
-                        Something went wrong while loading videos. Please try again later.
+                        Oops! Something went wrong.
+                    </div>
+                    <div class="empty-subtext">
+                        We're having trouble loading content right now. Please try again later.
                     </div>
                 </div>
             `;
         }
+
+        // Double tap to like
+        document.addEventListener('dblclick', (e) => {
+            const videoContainer = e.target.closest('.video-container');
+            if (videoContainer) {
+                const emojiAnimationContainer = videoContainer.querySelector('.emoji-animation-container');
+                createEmojiAnimation('❤️', e.clientX, e.clientY, emojiAnimationContainer);
+            }
+        });
     </script>
 </body>
 </html>
