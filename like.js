@@ -1,3 +1,4 @@
+
 // Initialize dynamic counters object
 const messageLikes = new Map();
 const likeAnimations = new Map();
@@ -8,22 +9,31 @@ function addInteractionButtons() {
 
   messages.forEach(message => {
     const messageId = message.getAttribute('data-message-id');
-    const replySection = message.querySelector('.reply-section');
-
+    const actionButtons = message.querySelector('.action-buttons');
+    
     // Only add buttons if they don't already exist
-    if (!message.querySelector('.interaction-buttons')) {
-      const interactionButtons = document.createElement('div');
-      interactionButtons.className = 'interaction-buttons';
-      interactionButtons.style.display = 'flex';
-      interactionButtons.style.alignItems = 'center';
-      interactionButtons.style.gap = '15px';
-      interactionButtons.style.marginLeft = 'auto';
-
-      // Like Button with Heart Icon
-      const likeButton = document.createElement('div');
-      likeButton.className = 'like-button';
+    if (actionButtons && !actionButtons.querySelector('.like-button')) {
+      // Modify action buttons container to have proper spacing
+      actionButtons.style.display = 'flex';
+      actionButtons.style.justifyContent = 'space-between';
+      actionButtons.style.width = '100%';
+      actionButtons.style.marginTop = '10px';
+      
+      // Get the existing reply button
+      const replyButton = actionButtons.querySelector('button');
+      
+      // Create container for the right side buttons
+      const rightButtons = document.createElement('div');
+      rightButtons.className = 'right-action-buttons';
+      rightButtons.style.display = 'flex';
+      rightButtons.style.gap = '24px'; // Increased spacing between buttons
+      rightButtons.style.marginLeft = 'auto'; // Push to right side
+      
+      // Like Button with Heart Icon - BIGGER size
+      const likeButton = document.createElement('button');
+      likeButton.className = 'action-button like-button';
       likeButton.innerHTML = `
-        <svg class="heart-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="heart-icon" viewBox="0 0 24 24" width="22" height="22">
           <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
         </svg>
         <span class="like-count">0</span>
@@ -34,19 +44,11 @@ function addInteractionButtons() {
         messageLikes.set(messageId, 0);
       }
 
-      // Style the like button
-      likeButton.style.display = 'flex';
-      likeButton.style.alignItems = 'center';
-      likeButton.style.gap = '5px';
-      likeButton.style.cursor = 'pointer';
-      likeButton.querySelector('.heart-icon').style.transition = 'all 0.3s ease';
-      likeButton.querySelector('.like-count').style.transition = 'all 0.3s ease';
-
-      // Share Button with Share Icon
-      const shareButton = document.createElement('div');
-      shareButton.className = 'share-button';
+      // Share Button with Share Icon - BIGGER size
+      const shareButton = document.createElement('button');
+      shareButton.className = 'action-button share-button';
       shareButton.innerHTML = `
-        <svg class="share-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="share-icon" viewBox="0 0 24 24" width="22" height="22">
           <circle cx="18" cy="5" r="3"/>
           <circle cx="6" cy="12" r="3"/>
           <circle cx="18" cy="19" r="3"/>
@@ -54,10 +56,6 @@ function addInteractionButtons() {
           <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
         </svg>
       `;
-
-      // Style the share button
-      shareButton.style.cursor = 'pointer';
-      shareButton.querySelector('.share-icon').style.transition = 'all 0.3s ease';
 
       // Add click event for like button
       likeButton.addEventListener('click', function(e) {
@@ -71,10 +69,14 @@ function addInteractionButtons() {
         handleShare(messageId);
       });
 
-      // Add buttons to interaction container
-      interactionButtons.appendChild(likeButton);
-      interactionButtons.appendChild(shareButton);
-      replySection.appendChild(interactionButtons);
+      // Add buttons to right side container
+      rightButtons.appendChild(likeButton);
+      rightButtons.appendChild(shareButton);
+      
+      // Clear existing buttons and re-add in correct order
+      actionButtons.innerHTML = '';
+      actionButtons.appendChild(replyButton);
+      actionButtons.appendChild(rightButtons);
     }
   });
 }
@@ -92,8 +94,8 @@ function handleLike(messageId, likeButton) {
     // Like animation
     currentLikes++;
     likeButton.classList.add('liked');
-    heartIcon.style.fill = 'black';
-    heartIcon.style.stroke = 'black';
+    heartIcon.style.fill = '#e0245e';
+    heartIcon.style.stroke = '#e0245e';
 
     // Bounce animation
     heartIcon.style.transform = 'scale(1.3)';
@@ -113,28 +115,43 @@ function handleLike(messageId, likeButton) {
 
   // Update count
   messageLikes.set(messageId, currentLikes);
-  likeCount.textContent = currentLikes;
+  likeCount.textContent = currentLikes > 0 ? currentLikes : '';
 
-  // Save to Firebase
-  updateLikeCount(messageId, currentLikes);
+  // Try to update to Firebase if it exists in the context
+  try {
+    const database = firebase.database();
+    if (database) {
+      const messageRef = database.ref(`messages/${messageId}/likes`);
+      messageRef.set(currentLikes);
+    }
+  } catch (e) {
+    console.log('Firebase not available or not initialized');
+  }
 }
 
 // Create floating hearts animation
 function createFloatingHearts(likeButton) {
   for (let i = 0; i < 5; i++) {
     const heart = document.createElement('div');
-    heart.innerHTML = '🖤';
+    heart.innerHTML = '❤️';
     heart.className = 'floating-heart';
     heart.style.position = 'absolute';
     heart.style.fontSize = '16px';
     heart.style.pointerEvents = 'none';
-    heart.style.animation = `float-up 1s ease-out forwards`;
+    heart.style.zIndex = '100';
+    heart.style.top = '0';
     heart.style.left = `${Math.random() * 20}px`;
-
+    heart.style.animation = `float-up-${i} 1s ease-out forwards`;
+    
+    likeButton.style.position = 'relative';
     likeButton.appendChild(heart);
 
     // Remove heart after animation
-    setTimeout(() => heart.remove(), 1000);
+    setTimeout(() => {
+      if (heart.parentNode === likeButton) {
+        likeButton.removeChild(heart);
+      }
+    }, 1000);
   }
 }
 
@@ -145,14 +162,19 @@ function handleShare(messageId) {
 
   // Rotate animation
   shareIcon.style.transform = 'rotate(360deg)';
+  shareIcon.style.transition = 'transform 0.5s ease';
   setTimeout(() => {
     shareIcon.style.transform = 'rotate(0)';
   }, 500);
 
   // Share functionality
+  const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+  const messageText = messageElement.querySelector('.message-text').textContent;
+  const userName = messageElement.querySelector('.user-name').textContent;
+  
   const shareData = {
-    title: 'Shared Message',
-    text: document.querySelector(`[data-message-id="${messageId}"] .message-content p`).textContent,
+    title: `${userName} on GlobalChat`,
+    text: messageText,
     url: window.location.href
   };
 
@@ -161,58 +183,129 @@ function handleShare(messageId) {
       .catch((error) => console.log('Error sharing:', error));
   } else {
     // Fallback copy to clipboard
-    navigator.clipboard.writeText(shareData.text)
-      .then(() => {
-        showToast('Message copied to clipboard!');
-      })
-      .catch(err => {
-        console.log('Error copying text:', err);
-      });
+    navigator.clipboard.writeText(`${userName}: "${messageText}"`).then(() => {
+      showToast('Tweet copied to clipboard!');
+    }).catch(err => {
+      console.log('Error copying text:', err);
+    });
   }
 }
 
 // Show toast notification
 function showToast(message) {
+  // Remove existing toast if present
+  const existingToast = document.querySelector('.toast-notification');
+  if (existingToast) {
+    existingToast.remove();
+  }
+  
   const toast = document.createElement('div');
   toast.className = 'toast-notification';
   toast.textContent = message;
 
-  // Style the toast
+  // Style the toast to match Twitter style
   Object.assign(toast.style, {
     position: 'fixed',
     bottom: '20px',
     left: '50%',
     transform: 'translateX(-50%)',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: '#1da1f2',
     color: 'white',
     padding: '12px 24px',
-    borderRadius: '20px',
+    borderRadius: '30px',
     zIndex: '1000',
-    animation: 'fadeInOut 2s ease-in-out'
+    animation: 'fadeInOut 2s ease-in-out',
+    fontWeight: 'bold',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
   });
 
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 2000);
 }
 
-// Update like count in Firebase
-function updateLikeCount(messageId, count) {
-  const messageRef = firebase.database().ref(`messages/${messageId}/likes`);
-  messageRef.set(count);
-}
-
 // Add necessary styles
 const style = document.createElement('style');
 style.textContent = `
-  @keyframes float-up {
-    0% {
-      transform: translateY(0) scale(1);
-      opacity: 1;
-    }
-    100% {
-      transform: translateY(-50px) scale(0);
-      opacity: 0;
-    }
+  .heart-icon, .share-icon {
+    fill: none;
+    stroke: #8899a6;
+    stroke-width: 2;
+    transition: all 0.3s ease;
+  }
+  
+  .liked .heart-icon {
+    fill: #e0245e !important;
+    stroke: #e0245e !important;
+  }
+  
+  .like-button, .share-button {
+    transition: all 0.2s ease;
+    color: #8899a6;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .like-button:hover {
+    color: #e0245e !important;
+  }
+  
+  .like-button:hover .heart-icon {
+    stroke: #e0245e;
+  }
+  
+  .share-button:hover {
+    color: #1da1f2 !important;
+  }
+  
+  .share-button:hover .share-icon {
+    stroke: #1da1f2;
+  }
+  
+  .like-count {
+    font-size: 14px;
+  }
+  
+  /* Make the buttons larger */
+  .action-buttons svg {
+    width: 22px !important;
+    height: 22px !important;
+  }
+  
+  /* Force right-alignment */
+  .right-action-buttons {
+    margin-left: auto !important;
+    margin-right: 0 !important;
+  }
+  
+  /* Increase button size */
+  .action-button {
+    transform: scale(1.15);
+  }
+  
+  @keyframes float-up-0 {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(-40px) scale(0); opacity: 0; }
+  }
+  
+  @keyframes float-up-1 {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(-60px) scale(0); opacity: 0; }
+  }
+  
+  @keyframes float-up-2 {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(-50px) scale(0); opacity: 0; }
+  }
+  
+  @keyframes float-up-3 {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(-70px) scale(0); opacity: 0; }
+  }
+  
+  @keyframes float-up-4 {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(-45px) scale(0); opacity: 0; }
   }
   
   @keyframes fadeInOut {
@@ -222,32 +315,71 @@ style.textContent = `
     100% { opacity: 0; transform: translate(-50%, -20px); }
   }
   
-  .like-button:hover .heart-icon,
-  .share-button:hover .share-icon {
-    transform: scale(1.1);
-  }
-  
   .floating-heart {
     pointer-events: none;
     user-select: none;
   }
+  
+  .toast-notification {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  
+  /* Fix reply input */
+  .reply-input {
+    margin-top: 5px !important;
+  }
 `;
 document.head.appendChild(style);
 
-// Initialize interaction buttons when new messages are added
-const observer = new MutationObserver((mutations) => {
-  mutations.forEach((mutation) => {
-    if (mutation.addedNodes.length) {
-      addInteractionButtons();
-    }
-  });
-});
-
-// Start observing the chat container for new messages
-observer.observe(document.querySelector('.chat-container'), {
-  childList: true,
-  subtree: true
-});
+// Add a reply toggle functionality that works with your HTML structure
+window.toggleReplyInput = function(messageId) {
+  const parentMessage = document.querySelector(`[data-message-id="${messageId}"]`);
+  let replyInput = parentMessage.querySelector('.reply-input');
+  
+  if (replyInput) {
+    replyInput.remove();
+  } else {
+    replyInput = document.createElement('div');
+    replyInput.className = 'reply-input';
+    replyInput.innerHTML = `
+      <div class="reply-wrapper">
+        <textarea class="reply-textarea" placeholder="Tweet your reply..."></textarea>
+        <button class="reply-send" onclick="sendReply('${messageId}')">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="white">
+            <path d="M2.252 6.456l19.476 5.825c.53.159.53.928 0 1.088L2.252 19.194c-.43.129-.81-.303-.53-.604l4.309-4.672c.45-.487.45-1.256 0-1.742L1.722 7.06c-.28-.302.1-.733.53-.604z"></path>
+          </svg>
+        </button>
+      </div>
+    `;
+    
+    parentMessage.appendChild(replyInput);
+    
+    // Focus the textarea
+    setTimeout(() => {
+      parentMessage.querySelector('.reply-textarea').focus();
+    }, 100);
+  }
+};
 
 // Initial setup for existing messages
-document.addEventListener('DOMContentLoaded', addInteractionButtons);
+document.addEventListener('DOMContentLoaded', function() {
+  addInteractionButtons();
+  
+  // Start observing the chat container for new messages
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.addedNodes.length) {
+        setTimeout(addInteractionButtons, 100);
+      }
+    });
+  });
+
+  // Start observing
+  const chatContainer = document.getElementById('chatContainer');
+  if (chatContainer) {
+    observer.observe(chatContainer, {
+      childList: true,
+      subtree: true
+    });
+  }
+});
