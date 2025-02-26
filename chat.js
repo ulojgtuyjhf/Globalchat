@@ -1,819 +1,775 @@
-
-// Firebase Configuration
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, collection, query as firestoreQuery, where, getDocs, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getDatabase, ref, push, set, onChildAdded, update, query as dbQuery, limitToLast, startAfter, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+  import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getDatabase, ref, push, set, onChildAdded, onValue, update, get, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+  import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-// Strong Content Moderation Configuration
-const BLOCKED_PATTERNS = [
-  /http(s)?:\/\/[^\s]+/i, // Block URLs
-  /\bwww\.[^\s]+/i, // Block URLs starting with "www"
-  /\.com\b/i, // Block .com domains
-  /\.net\b/i, // Block .net domains
-  /\.org\b/i, // Block .org domains
-  /rape(s|d|ing)?\b/i, // Block explicit content and variations
-  /fuck(ed|ing|s)?\b/i, // Block profanity and variations
-  /sh(it|itty)?\b/i, // Block profanity and variations
-  /damn(ed)?\b/i, // Block mild profanity and variations
-  /ass(hole|es)?\b/i, // Block offensive language
-  /bitch(es|y)?\b/i, // Block offensive language
-  /cunt(s)?\b/i, // Block offensive language
-  /dick(s|head)?\b/i, // Block offensive language
-  /pussy\b/i, // Block offensive language
-  /nigg(er|a|s)?\b/i, // Block racial slurs
-  /fag(got|s)?\b/i, // Block offensive slurs
-  /\bsex(ual|y|ing|ed)?\b/i, // Block explicit sexual references
-  /\bpenis\b/i, // Block explicit content
-  /\bvagina\b/i, // Block explicit content
-  /boob(s|ies)?\b/i, // Block explicit content
-  /\bfuck[\s\-]you\b/i, // Block "fuck you" variations
-  /suck[\s\-]my[\s\-](dick|cock)\b/i, // Block explicit phrases
-  /\bkill[\s\-]yourself\b/i, // Block harmful phrases
-  /\bi[\s\-]?hate[\s\-]?you\b/i, // Block hate speech
-];
+  // Firebase Configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+    authDomain: "globalchat-2d669.firebaseapp.com",
+    projectId: "globalchat-2d669",
+    storageBucket: "globalchat-2d669.appspot.com",
+    messagingSenderId: "178714711978",
+    appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
+    databaseURL: "https://globalchat-2d669-default-rtdb.firebaseio.com/",
+    storageBucket: "globalchat-2d669.appspot.com"
+  };
 
-function containsBlockedContent(input) {
-  return BLOCKED_PATTERNS.some(pattern => pattern.test(input));
-}
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const database = getDatabase(app);
+  const storage = getStorage(app);
+  const chatRef = ref(database, 'messages');
+  const typingRef = ref(database, 'typing');
+  const rateLimitRef = ref(database, 'rateLimit');
 
-// Firebase Configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
-  authDomain: "globalchat-2d669.firebaseapp.com",
-  projectId: "globalchat-2d669",
-  storageBucket: "globalchat-2d669.appspot.com",
-  messagingSenderId: "178714711978",
-  appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
-  databaseURL: "https://globalchat-2d669-default-rtdb.firebaseio.com/"
-};
+  const chatContainer = document.getElementById('chatContainer');
+  const messageInput = document.getElementById('messageInput');
+  const imageInput = document.getElementById('imageInput');
+  const videoInput = document.getElementById('videoInput');
+  const imageButton = document.getElementById('imageButton');
+  const videoButton = document.getElementById('videoButton');
+  const mediaPreview = document.getElementById('mediaPreview');
+  const sendButton = document.getElementById('sendButton');
+  const loadingIndicator = document.getElementById('loadingIndicator');
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const database = getDatabase(app);
-const storage = getStorage(app);
-const chatRef = ref(database, 'messages');
+  let currentUser = null;
+  const activeReplies = new Set();
+  let selectedMedia = [];
+  let lastMessageTime = 0;
+  const followedUsers = new Set();
+  let typingTimeout = null;
+  const typingUsers = new Map();
+  let globalRateLimit = Date.now(); // Global rate limit timestamp
 
-const chatContainer = document.getElementById('chatContainer');
-const messageInput = document.getElementById('messageInput');
-const loadingIndicator = document.getElementById('loadingIndicator');
-
-let currentUser = null;
-const activeReplies = new Set();
-let lastMessageTime = 0;
-const followedUsers = new Set();
-let lastMessageKey = null;
-const MESSAGE_LIMIT = 50;
-const MESSAGE_BATCH_SIZE = 10;
-const messageCache = new Map();
-let selectedFiles = [];
-
-// Initialize UI elements for image sharing
-function initializeImageSharingUI() {
-  // Add styles for the image upload system
-  const style = document.createElement('style');
-  style.textContent = `
-    .message-media {
-      max-width: 300px;
-      max-height: 200px;
-      border-radius: 10px;
-      margin-top: 10px;
-      cursor: pointer;
-      transition: transform 0.3s ease;
-    }
+  // Initialize app
+  function initApp() {
+    // Initialize message input height adjustment
+    initMessageInput();
     
-    .message-media:hover {
-      transform: scale(1.05);
-    }
+    // Media upload event listeners
+    imageButton.addEventListener('click', () => imageInput.click());
+    videoButton.addEventListener('click', () => videoInput.click());
+    imageInput.addEventListener('change', handleMediaSelection);
+    videoInput.addEventListener('change', handleMediaSelection);
     
-    .preview-area {
-      padding: 10px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      background: linear-gradient(145deg, #f0f5fc, #e6eaf3);
-      border-radius: 10px;
-      margin-bottom: 10px;
-      box-shadow: 
-        3px 3px 6px rgba(0, 0, 0, 0.15),
-        -3px -3px 6px rgba(255, 255, 255, 0.8);
-    }
-    
-    .preview-item {
-      position: relative;
-      width: 100px;
-      height: 100px;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.15);
-      transition: transform 0.3s ease;
-    }
-    
-    .preview-item:hover {
-      transform: scale(1.05);
-      box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.2);
-    }
-    
-    .preview-item img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    
-    .preview-remove {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      background: rgba(0, 0, 0, 0.6);
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 20px;
-      height: 20px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      transition: background 0.3s ease;
-    }
-    
-    .preview-remove:hover {
-      background: rgba(0, 0, 0, 0.8);
-    }
-    
-    .upload-btn {
-      background: linear-gradient(145deg, #f0f5fc, #e6eaf3);
-      border: none;
-      padding: 8px;
-      cursor: pointer;
-      margin-right: 10px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 
-        3px 3px 6px rgba(0, 0, 0, 0.15),
-        -3px -3px 6px rgba(255, 255, 255, 0.8);
-      transition: all 0.3s ease;
-    }
-    
-    .upload-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 
-        4px 4px 8px rgba(0, 0, 0, 0.2),
-        -4px -4px 8px rgba(255, 255, 255, 0.9);
-    }
-    
-    .media-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-    
-    .media-overlay.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    
-    .media-overlay img {
-      max-width: 90%;
-      max-height: 90%;
-      border-radius: 10px;
-      box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
-    }
-    
-    .close-overlay {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
-      border: none;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      font-size: 20px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.3s ease;
-    }
-    
-    .close-overlay:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
-  `;
-  document.head.appendChild(style);
-  
-  // Create preview area
-  const previewArea = document.createElement('div');
-  previewArea.className = 'preview-area';
-  previewArea.style.display = 'none';
-  document.querySelector('.input-container').insertAdjacentElement('beforebegin', previewArea);
-  
-  // Create file input
-  const fileInput = document.createElement('input');
-  fileInput.type = 'file';
-  fileInput.multiple = true;
-  fileInput.accept = 'image/*';
-  fileInput.style.display = 'none';
-  fileInput.id = 'file-input';
-  document.body.appendChild(fileInput);
-  
-  // Create upload button
-  const uploadBtn = document.createElement('button');
-  uploadBtn.className = 'upload-btn';
-  uploadBtn.innerHTML = `
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M21 19H3a2 2 0 01-2-2V8a2 2 0 012-2h5l2-3h6l2 3h3a2 2 0 012 2v9a2 2 0 01-2 2z"/>
-      <circle cx="12" cy="13" r="3"/>
-    </svg>
-  `;
-  document.querySelector('.input-container').insertBefore(uploadBtn, document.querySelector('.input-container').firstChild);
-  
-  // Create media overlay for image preview
-  const mediaOverlay = document.createElement('div');
-  mediaOverlay.className = 'media-overlay';
-  mediaOverlay.innerHTML = `
-    <button class="close-overlay">×</button>
-    <img src="" alt="Full size image">
-  `;
-  document.body.appendChild(mediaOverlay);
-  
-  // Add event listeners
-  uploadBtn.addEventListener('click', () => fileInput.click());
-  
-  fileInput.addEventListener('change', handleFileSelection);
-  
-  mediaOverlay.querySelector('.close-overlay').addEventListener('click', () => {
-    mediaOverlay.classList.remove('active');
-  });
-  
-  // Close overlay when clicking outside the image
-  mediaOverlay.addEventListener('click', (e) => {
-    if (e.target === mediaOverlay) {
-      mediaOverlay.classList.remove('active');
-    }
-  });
-  
-  // Add keyboard listener to close with Escape key
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && mediaOverlay.classList.contains('active')) {
-      mediaOverlay.classList.remove('active');
-    }
-  });
-}
-
-// Handle file selection
-function handleFileSelection(e) {
-  const files = Array.from(e.target.files).filter(file => file.type.startsWith('image/'));
-  if (files.length === 0) return;
-  
-  // Limit to 5 images at a time
-  const maxImages = 5;
-  if (selectedFiles.length + files.length > maxImages) {
-    alert(`You can only upload up to ${maxImages} images at once.`);
-    const allowedCount = maxImages - selectedFiles.length;
-    selectedFiles = [...selectedFiles, ...files.slice(0, allowedCount)];
-  } else {
-    selectedFiles = [...selectedFiles, ...files];
-  }
-  
-  updatePreviewArea();
-}
-
-// Update the preview area with selected images
-function updatePreviewArea() {
-  const previewArea = document.querySelector('.preview-area');
-  previewArea.innerHTML = '';
-  
-  if (selectedFiles.length > 0) {
-    previewArea.style.display = 'flex';
-    
-    selectedFiles.forEach((file, index) => {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const preview = document.createElement('div');
-        preview.className = 'preview-item';
-        
-        const img = document.createElement('img');
-        img.src = e.target.result;
-        
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'preview-remove';
-        removeBtn.innerHTML = '×';
-        removeBtn.onclick = function(e) {
-          e.stopPropagation();
-          selectedFiles.splice(index, 1);
-          updatePreviewArea();
-        };
-        
-        preview.appendChild(img);
-        preview.appendChild(removeBtn);
-        previewArea.appendChild(preview);
-      };
-      reader.readAsDataURL(file);
-    });
-  } else {
-    previewArea.style.display = 'none';
-  }
-}
-
-// Styling for Follow Button
-function initializeFollowButton() {
-  const styleTag = document.createElement('style');
-  styleTag.textContent = `
-    .follow-btn {
-      background-color: #000000;
-      color: #fff;
-      border: none;
-      padding: 4px 8px;
-      text-align: center;
-      text-decoration: none;
-      display: inline-block;
-      font-size: 10px;
-      margin: 4px 2px;
-      cursor: pointer;
-      border-radius: 8px;
-      box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.15), -2px -2px 4px rgba(255, 255, 255, 0.8);
-      transition: all 0.3s ease;
-    }
-    .follow-btn:active {
-      box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.2), inset -2px -2px 4px rgba(255, 255, 255, 0.7);
-    }
-    .follow-btn.followed {
-      background-color: #333333;
-      color: #fff;
-    }
-    .follow-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2), -3px -3px 6px rgba(255, 255, 255, 0.9);
-    }
-  `;
-  document.head.appendChild(styleTag);
-}
-
-// Follow/Unfollow User
-async function toggleFollow(userId, userName) {
-  if (!currentUser) {
-    alert('Please log in first!');
-    return;
-  }
-  
-  try {
-    const followQuery = firestoreQuery(
-      collection(db, 'follows'),
-      where('followerUserId', '==', currentUser.uid),
-      where('followedUserId', '==', userId)
-    );
-    
-    const followSnapshot = await getDocs(followQuery);
-    
-    if (followSnapshot.empty) {
-      await addDoc(collection(db, 'follows'), {
-        followerUserId: currentUser.uid,
-        followedUserId: userId,
-        followedUserName: userName,
-        timestamp: new Date().toISOString()
-      });
-      followedUsers.add(userId);
-      alert(`You are now following ${userName}`);
-    } else {
-      followSnapshot.docs.forEach(async (followDoc) => {
-        await deleteDoc(doc(db, 'follows', followDoc.id));
-      });
-      followedUsers.delete(userId);
-      alert(`You have unfollowed ${userName}`);
-    }
-    
-    updateFollowButtons();
-  } catch (error) {
-    console.error('Follow/Unfollow error:', error);
-  }
-}
-
-// Update Follow Buttons
-function updateFollowButtons() {
-  const followButtons = document.querySelectorAll('.follow-btn');
-  followButtons.forEach(btn => {
-    const userId = btn.getAttribute('data-user-id');
-    btn.textContent = followedUsers.has(userId) ? 'Unfollow' : 'Follow';
-    btn.classList.toggle('followed', followedUsers.has(userId));
-  });
-}
-
-// Fetch Followed Users
-async function fetchFollowedUsers() {
-  if (!currentUser) return;
-  
-  try {
-    const followQuery = firestoreQuery(
-      collection(db, 'follows'),
-      where('followerUserId', '==', currentUser.uid)
-    );
-    
-    const followSnapshot = await getDocs(followQuery);
-    followedUsers.clear();
-    followSnapshot.docs.forEach(doc => {
-      const followedUserId = doc.data().followedUserId;
-      followedUsers.add(followedUserId);
+    // Send Button Event Listener
+    sendButton.addEventListener('click', () => {
+      sendMessage();
     });
     
-    updateFollowButtons();
-  } catch (error) {
-    console.error('Error fetching followed users:', error);
+    // Enter key to send message (Shift+Enter for new line)
+    messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (!sendButton.disabled) {
+          sendMessage();
+        }
+      }
+    });
+    
+    // Listen for typing indicators
+    listenForTypingIndicators();
+    
+    // Listen for messages
+    listenForMessages();
+    
+    // Listen for global rate limit
+    listenForRateLimit();
   }
-}
 
-function moderateContent(text) {
-  const hasBlockedContent = BLOCKED_PATTERNS.some(pattern => pattern.test(text));
-  if (hasBlockedContent) {
-    alert('Your message contains prohibited content. Please revise and adhere to the content guidelines.');
-    return false;
-  }
-  return true;
-}
-
-function createLoadingAnimation() {
-  const dotCount = 3;
-  const loadingDots = Array.from({ length: dotCount }, () => {
-    const dot = document.createElement('div');
-    dot.classList.add('loading-dot');
-    return dot;
-  });
-  
-  loadingIndicator.innerHTML = '';
-  loadingDots.forEach(dot => loadingIndicator.appendChild(dot));
-}
-
-async function getCountryFromIP() {
-  try {
-    const response = await fetch('https://ipapi.co/json/');
-    const data = await response.json();
-    return data.country_code.toLowerCase();
-  } catch (error) {
-    console.error('Failed to fetch country:', error);
-    return 'unknown';
-  }
-}
-
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const userData = userDoc.data();
-      const countryCode = await getCountryFromIP();
+  // Initialize message input with typing indicator
+  function initMessageInput() {
+    messageInput.addEventListener('input', function() {
+      // Adjust height
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
       
-      currentUser = {
-        uid: user.uid,
-        displayName: user.displayName || userData?.displayName || "Anonymous",
-        photoURL: user.photoURL || userData?.photoURL || "default-profile.png",
-        country: countryCode
-      };
+      // Enable/disable send button based on content
+      const hasText = this.value.trim().length > 0;
+      const hasMedia = selectedMedia.length > 0;
+      sendButton.disabled = !(hasText || hasMedia);
       
-      await fetchFollowedUsers();
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-    }
-  } else {
-    currentUser = null;
-    followedUsers.clear();
-  }
-});
-
-// Global Rate Limit Configuration
-const GLOBAL_RATE_LIMIT_MS = 3000; // 3 seconds
-const lastMessageTimeRef = ref(database, 'lastMessageTime'); 
-
-// Function to check and update global rate limit
-async function checkAndUpdateGlobalRateLimit() {
-  try {
-    const snapshot = await get(lastMessageTimeRef);
-    const lastMessageTime = snapshot.exists() ? snapshot.val() : 0;
-    const currentTime = Date.now();
-
-    if (currentTime - lastMessageTime < GLOBAL_RATE_LIMIT_MS) {
-      alert('Please wait 3 seconds before sending your next message. This is a global rate limit.');
-      return false;
-    }
-
-    // Update the last message time in the database
-    await set(lastMessageTimeRef, currentTime);
-    return true;
-  } catch (error) {
-    console.error('Error checking global rate limit:', error);
-    return false;
-  }
-}
-
-// Upload images and get URLs
-async function uploadImages(files) {
-  const uploadPromises = files.map(async (file) => {
-    const imageRef = storageRef(storage, `images/${Date.now()}_${file.name}`);
-    await uploadBytes(imageRef, file);
-    return getDownloadURL(imageRef);
-  });
-  
-  return Promise.all(uploadPromises);
-}
-
-// Send Message Function
-async function sendMessage(parentMessageId = null) {
-  if (!currentUser) {
-    alert('You must log in to continue.');
-    return;
-  }
-
-  const messageText = messageInput.value.trim();
-
-  if (messageText === '' && selectedFiles.length === 0) {
-    alert('Please enter a message or select an image to share.');
-    return;
-  }
-
-  if (messageText !== '' && !moderateContent(messageText)) return;
-
-  // Check and update global rate limit
-  const isAllowed = await checkAndUpdateGlobalRateLimit();
-  if (!isAllowed) return;
-
-  createLoadingAnimation();
-  loadingIndicator.style.display = 'flex';
-
-  try {
-    const newMessageRef = push(chatRef);
+      // Update typing indicator
+      updateTypingStatus();
+    });
     
-    // Upload images if any
-    const imageUrls = selectedFiles.length > 0 ? await uploadImages(selectedFiles) : [];
+    // When user stops typing
+    messageInput.addEventListener('blur', function() {
+      if (currentUser) {
+        const userTypingRef = ref(database, `typing/${currentUser.uid}`);
+        set(userTypingRef, null);
+        clearTimeout(typingTimeout);
+      }
+    });
+  }
+
+  // Update user typing status
+  function updateTypingStatus() {
+    if (!currentUser) return;
     
-    const messageData = {
-      userId: currentUser.uid,
+    // Clear previous timeout
+    clearTimeout(typingTimeout);
+    
+    // Update typing status in database
+    const userTypingRef = ref(database, `typing/${currentUser.uid}`);
+    set(userTypingRef, {
       name: currentUser.displayName,
-      photoURL: currentUser.photoURL,
-      text: messageText,
-      timestamp: new Date().toISOString(),
-      country: currentUser.country,
-      parentMessageId: parentMessageId,
-      replyCount: 0,
-      isCreator: parentMessageId !== null,
-      images: imageUrls
-    };
-
-    await set(newMessageRef, messageData);
+      timestamp: Date.now()
+    });
     
-    // Clear input and selected files
-    messageInput.value = '';
-    selectedFiles = [];
-    updatePreviewArea();
-    
-  } catch (error) {
-    console.error('Error sending message:', error);
-    alert('Failed to send message. Please try again.');
-  } finally {
-    loadingIndicator.style.display = 'none';
-  }
-}
-
-// Send Reply Function
-async function sendReply(parentMessageId) {
-  const replyTextarea = document.querySelector(`[data-message-id="${parentMessageId}"] .reply-textarea`);
-  const replyText = replyTextarea.value.trim();
-
-  if (replyText === '') {
-    alert('Please enter a reply message.');
-    return;
+    // Set timeout to clear typing status after 3 seconds of inactivity
+    typingTimeout = setTimeout(() => {
+      set(userTypingRef, null);
+    }, 3000);
   }
 
-  if (!moderateContent(replyText)) return;
-
-  // Check and update global rate limit
-  const isAllowed = await checkAndUpdateGlobalRateLimit();
-  if (!isAllowed) return;
-
-  try {
-    const reply = {
-      text: replyText,
-      timestamp: new Date().toISOString(),
-      userId: currentUser.uid,
-      name: currentUser.displayName,
-      photoURL: currentUser.photoURL,
-      country: currentUser.country,
-      parentMessageId: parentMessageId,
-      isCreator: true,
-      images: []
-    };
-
-    // Push the reply to the database
-    const newReplyRef = push(chatRef);
-    await set(newReplyRef, reply);
-    replyTextarea.value = '';
-    toggleReplyInput(parentMessageId);
-
-    // Update reply count on parent message
-    const parentRef = ref(database, `messages/${parentMessageId}`);
-    const snapshot = await get(parentRef);
-    if (snapshot.exists()) {
-      await update(parentRef, {
-        replyCount: (snapshot.val().replyCount || 0) + 1
-      });
-    }
-  } catch (error) {
-    console.error('Error sending reply:', error);
-    alert('Failed to send reply. Please try again.');
-  }
-}
-
-// Load more messages
-async function loadMoreMessages() {
-  if (!lastMessageKey) return;
-
-  const messagesQuery = dbQuery(
-    chatRef,
-    limitToLast(MESSAGE_BATCH_SIZE),
-    startAfter(lastMessageKey)
-  );
-
-  try {
-    const snapshot = await get(messagesQuery);
-
-    if (snapshot.exists()) {
-      const messages = [];
-      snapshot.forEach(childSnapshot => {
-        const messageData = childSnapshot.val();
-        if (!messageCache.has(childSnapshot.key)) {
-          messages.push({
-            key: childSnapshot.key,
-            data: messageData
-          });
-          messageCache.set(childSnapshot.key, messageData);
+  // Listen for typing indicators
+  function listenForTypingIndicators() {
+    onValue(typingRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      
+      // Clear old typists
+      typingUsers.clear();
+      
+      // Update typing users map
+      Object.entries(data).forEach(([userId, userData]) => {
+        // Don't show current user typing
+        if (userId === currentUser?.uid) return;
+        
+        // Only show recent typing (last 3 seconds)
+        if (Date.now() - userData.timestamp < 3000) {
+          typingUsers.set(userId, userData.name);
         }
       });
-
-      messages.reverse().forEach(({ key, data }) => {
-        appendMessage(data, key);
-      });
-
-      if (messages.length > 0) {
-        lastMessageKey = messages[0].key;
-      }
-    }
-  } catch (error) {
-    console.error('Error loading more messages:', error);
-  }
-}
-
-// Append Message Function
-function appendMessage(message, messageId) {
-  if (document.querySelector(`[data-message-id="${messageId}"]`)) return;
-
-  const messageElement = document.createElement('div');
-  messageElement.classList.add('message');
-  messageElement.setAttribute('data-message-id', messageId);
-
-  const flagUrl = `https://flagcdn.com/w320/${message.country}.png`;
-  const messageTime = new Date(message.timestamp).toLocaleTimeString();
-
-  const isCreator = message.isCreator ?
-    '<span class="creator-tag">Creator</span>' : '';
-    
-  // Build image gallery HTML if there are any images
-  let imagesHTML = '';
-  if (message.images && message.images.length > 0) {
-    message.images.forEach((imageUrl, index) => {
-      imagesHTML += `
-        <img src="${imageUrl}" class="message-media" alt="Shared image ${index+1}" 
-             data-full-url="${imageUrl}" onclick="showFullImage('${imageUrl}')">
-      `;
+      
+      // Update typing indicator UI
+      updateTypingIndicatorUI();
     });
   }
 
-  messageElement.innerHTML = `
-    <div class="message-header">
-      <div class="profile-section">
-        <div class="profile" style="background-image: url(${message.photoURL})"></div>
-        <h4>
-          ${message.name}
-          ${isCreator}
-          <img src="${flagUrl}" class="message-flag" alt="Flag" onerror="this.src='default-flag.png'">
-          <button class="follow-btn" data-user-id="${message.userId}" onclick="toggleFollow('${message.userId}', '${message.name}')">
-            ${followedUsers.has(message.userId) ? 'Unfollow' : 'Follow'}
-          </button>
-        </h4>
-      </div>
-      <span class="message-time">${messageTime}</span>
-    </div>
-    <div class="message-content">
-      <p>${message.text}</p>
-      <div class="message-images">${imagesHTML}</div>
-    </div>
-    <div class="reply-section">
-      <div class="reply-count" onclick="toggleReplyInput('${messageId}')">
-        <img src="https://cdn-icons-png.flaticon.com/512/2462/2462719.png" alt="Reply">
-        Reply (${message.replyCount || 0})
-      </div>
-    </div>
-  `;
-
-  chatContainer.appendChild(messageElement);
-  chatContainer.scrollTop = chatContainer.scrollHeight;
-}
-
-// Show full-sized image
-function showFullImage(imageUrl) {
-  const overlay = document.querySelector('.media-overlay');
-  const image = overlay.querySelector('img');
-  image.src = imageUrl;
-  overlay.classList.add('active');
-}
-
-// Toggle Reply Input Function
-function toggleReplyInput(messageId) {
-  const parentMessage = document.querySelector(`[data-message-id="${messageId}"]`);
-  const existingReplyInput = parentMessage.querySelector('.reply-input');
-
-  if (existingReplyInput) {
-    existingReplyInput.remove();
-    activeReplies.delete(messageId);
-  } else {
-    const replyInput = document.createElement('div');
-    replyInput.classList.add('reply-input');
-    replyInput.innerHTML = `
-      <textarea placeholder="Type your reply..." class="reply-textarea"></textarea>
-      <button onclick="sendReply('${messageId}')">Send Reply</button>
-    `;
-    parentMessage.appendChild(replyInput);
+  // Update typing indicator UI
+  function updateTypingIndicatorUI() {
+    const typingIndicator = document.getElementById('typingIndicator') || createTypingIndicator();
     
-    // Focus the textarea
-    const textarea = replyInput.querySelector('.reply-textarea');
-    textarea.focus();
-    
-    activeReplies.add(messageId);
-  }
-}
-
-// Initialize the application
-function initApp() {
-  initializeFollowButton();
-  initializeImageSharingUI();
-  
-  // Set up scroll event for loading more messages
-  let scrollTimeout;
-  chatContainer.addEventListener('scroll', () => {
-    if (scrollTimeout) clearTimeout(scrollTimeout);
-    
-    scrollTimeout = setTimeout(() => {
-      if (chatContainer.scrollTop === 0) {
-        loadMoreMessages();
+    if (typingUsers.size > 0) {
+      let message = '';
+      if (typingUsers.size === 1) {
+        message = `${Array.from(typingUsers.values())[0]} is typing...`;
+      } else if (typingUsers.size === 2) {
+        message = `${Array.from(typingUsers.values()).join(' and ')} are typing...`;
+      } else {
+        message = 'Several people are typing...';
       }
-    }, 150);
-  });
-  
-  // Message input events
-  messageInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+      
+      typingIndicator.textContent = message;
+      typingIndicator.style.display = 'block';
+    } else {
+      typingIndicator.style.display = 'none';
     }
-  });
-  
-  // Start real-time message listener
-  const recentMessagesQuery = dbQuery(chatRef, limitToLast(MESSAGE_LIMIT));
-  onChildAdded(recentMessagesQuery, (snapshot) => {
-    const message = snapshot.val();
-    const messageId = snapshot.key;
+  }
+
+  // Create typing indicator element
+  function createTypingIndicator() {
+    let typingIndicator = document.getElementById('typingIndicator');
     
-    if (!messageCache.has(messageId)) {
-      appendMessage(message, messageId);
-      messageCache.set(messageId, message);
-      lastMessageKey = messageId;
+    if (!typingIndicator) {
+      typingIndicator = document.createElement('div');
+      typingIndicator.id = 'typingIndicator';
+      typingIndicator.className = 'typing-indicator';
+      typingIndicator.style.display = 'none';
+      typingIndicator.style.padding = '8px 15px';
+      typingIndicator.style.color = '#8899a6';
+      typingIndicator.style.fontSize = '14px';
+      typingIndicator.style.fontStyle = 'italic';
+      
+      // Insert before input container
+      const inputContainer = document.querySelector('.input-container');
+      document.body.insertBefore(typingIndicator, inputContainer);
+    }
+    
+    return typingIndicator;
+  }
+
+  // Listen for global rate limit
+  function listenForRateLimit() {
+    onValue(rateLimitRef, (snapshot) => {
+      const timestamp = snapshot.val() || 0;
+      globalRateLimit = timestamp;
+    });
+  }
+
+  // Function to handle media selection
+  function handleMediaSelection(e) {
+    const files = e.target.files;
+    if (!files.length) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const fileType = file.type.split('/')[0]; // 'image' or 'video'
+      
+      if (selectedMedia.length >= 4) {
+        alert('You can only attach up to 4 media files');
+        break;
+      }
+
+      // Check file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File size exceeds 10MB limit');
+        continue;
+      }
+
+      // Create a preview of the selected media
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const previewItem = document.createElement('div');
+        previewItem.className = 'preview-item';
+        
+        if (fileType === 'image') {
+          previewItem.innerHTML = `
+            <img src="${e.target.result}" class="preview-image">
+            <button class="remove-media" data-index="${selectedMedia.length}">×</button>
+          `;
+        } else if (fileType === 'video') {
+          previewItem.innerHTML = `
+            <video src="${e.target.result}" class="preview-video"></video>
+            <button class="remove-media" data-index="${selectedMedia.length}">×</button>
+          `;
+        }
+        
+        mediaPreview.appendChild(previewItem);
+        
+        // Enable send button if there's media
+        sendButton.disabled = false;
+      };
+      
+      reader.readAsDataURL(file);
+      selectedMedia.push({
+        file: file,
+        type: fileType
+      });
+    }
+
+    // Add event listeners to remove buttons
+    setTimeout(() => {
+      document.querySelectorAll('.remove-media').forEach(button => {
+        button.addEventListener('click', function() {
+          const index = parseInt(this.getAttribute('data-index'));
+          removeMedia(index);
+        });
+      });
+    }, 100);
+
+    // Reset the file input
+    e.target.value = '';
+  }
+
+  // Function to remove selected media
+  function removeMedia(index) {
+    selectedMedia.splice(index, 1);
+    updateMediaPreview();
+    
+    // Disable send button if no content
+    if (selectedMedia.length === 0 && messageInput.value.trim() === '') {
+      sendButton.disabled = true;
+    }
+  }
+
+  // Update media preview after removal
+  function updateMediaPreview() {
+    mediaPreview.innerHTML = '';
+    
+    selectedMedia.forEach((media, index) => {
+      const previewItem = document.createElement('div');
+      previewItem.className = 'preview-item';
+      
+      if (media.type === 'image') {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          previewItem.innerHTML = `
+            <img src="${e.target.result}" class="preview-image">
+            <button class="remove-media" data-index="${index}">×</button>
+          `;
+          mediaPreview.appendChild(previewItem);
+          
+          // Add event listener to remove button
+          previewItem.querySelector('.remove-media').addEventListener('click', function() {
+            removeMedia(index);
+          });
+        };
+        reader.readAsDataURL(media.file);
+      } else if (media.type === 'video') {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          previewItem.innerHTML = `
+            <video src="${e.target.result}" class="preview-video"></video>
+            <button class="remove-media" data-index="${index}">×</button>
+          `;
+          mediaPreview.appendChild(previewItem);
+          
+          // Add event listener to remove button
+          previewItem.querySelector('.remove-media').addEventListener('click', function() {
+            removeMedia(index);
+          });
+        };
+        reader.readAsDataURL(media.file);
+      }
+    });
+  }
+
+  // Geolocation and Flag Service
+  async function getCountryFromIP() {
+    try {
+      const response = await fetch('https://ipapi.co/json/');
+      const data = await response.json();
+      return data.country_code.toLowerCase();
+    } catch (error) {
+      console.error('Failed to fetch country:', error);
+      return 'unknown';
+    }
+  }
+
+  // Format timestamp
+  function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
+    
+    if (diffInHours < 24) {
+      return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+    } else if (diffInHours < 48) {
+      return 'Yesterday';
+    } else {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${months[date.getMonth()]} ${date.getDate()}`;
+    }
+  }
+
+  // Listen for new messages
+  function listenForMessages() {
+    onChildAdded(chatRef, (snapshot) => {
+      const message = snapshot.val();
+      const messageId = snapshot.key;
+      
+      // Don't re-render existing messages
+      if (document.querySelector(`[data-message-id="${messageId}"]`)) {
+        return;
+      }
+      
+      createMessageElement(message, messageId);
+    });
+  }
+
+  // Create message element
+  function createMessageElement(message, messageId) {
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('message');
+    messageElement.setAttribute('data-message-id', messageId);
+
+    const flagUrl = `https://flagcdn.com/w320/${message.country || 'unknown'}.png`;
+    const messageTime = formatTimestamp(message.timestamp);
+    const isFollowing = followedUsers.has(message.userId);
+    const followBtnDisplay = message.userId === currentUser?.uid ? 'none' : 'inline-block';
+
+    let mediaHTML = '';
+    if (message.media && message.media.length > 0) {
+      mediaHTML = '<div class="media-container">';
+      message.media.forEach(media => {
+        if (media.type === 'image') {
+          mediaHTML += `<img src="${media.url}" class="message-image" onclick="showFullImage('${media.url}')">`;
+        } else if (media.type === 'video') {
+          mediaHTML += `<video src="${media.url}" class="message-video" controls></video>`;
+        }
+      });
+      mediaHTML += '</div>';
+    }
+
+    messageElement.innerHTML = `
+      <img src="${message.photoURL}" class="profile-image" alt="Profile">
+      <div class="message-content">
+        <div class="message-header">
+          <span class="user-name">${message.name}</span>
+          <span class="user-handle">${message.handle || '@user'}</span>
+          <img src="${flagUrl}" class="country-flag" alt="Flag" onerror="this.src='default-flag.png'">
+          <span class="message-time">${messageTime}</span>
+          <button class="follow-btn ${isFollowing ? 'followed' : ''}" 
+            data-user-id="${message.userId}" 
+            onclick="toggleFollow('${message.userId}', '${message.name}')"
+            style="display: ${followBtnDisplay}">
+            ${isFollowing ? 'Following' : 'Follow'}
+          </button>
+        </div>
+        <div class="message-text">${message.text}</div>
+        ${mediaHTML}
+        <div class="action-buttons">
+          <button class="action-button" onclick="toggleReplyInput('${messageId}')">
+            <svg viewBox="0 0 24 24">
+              <path d="M14.046 2.242l-4.148-.01h-.002c-4.374 0-7.8 3.427-7.8 7.802 0 4.098 3.186 7.206 7.465 7.37v3.828a.85.85 0 0 0 .12.403.744.744 0 0 0 1.034.229c.264-.168 6.473-4.14 8.088-5.506 1.902-1.61 3.04-3.97 3.043-6.312v-.017c-.006-4.367-3.43-7.787-7.8-7.788zm3.787 12.972c-1.134.96-4.862 3.405-6.772 4.643V16.67a.75.75 0 0 0-.75-.75h-.396c-3.66 0-6.318-2.476-6.318-5.886 0-3.534 2.768-6.302 6.3-6.302l4.147.01h.002c3.532 0 6.3 2.766 6.302 6.296-.003 1.91-.942 3.844-2.514 5.176z"></path>
+            </svg>
+            ${message.replyCount || 0}
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Append message to chat container
+    chatContainer.appendChild(messageElement);
+    
+    // Scroll to bottom if near bottom
+    const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 200;
+    if (isNearBottom) {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+  }
+
+  // Show full image in modal
+  window.showFullImage = function(url) {
+    const modal = document.createElement('div');
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    modal.style.zIndex = '1000';
+    modal.style.cursor = 'pointer';
+    
+    const img = document.createElement('img');
+    img.src = url;
+    img.style.maxWidth = '90%';
+    img.style.maxHeight = '90%';
+    img.style.objectFit = 'contain';
+    
+    modal.appendChild(img);
+    document.body.appendChild(modal);
+    
+    modal.addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+  };
+
+  // Authentication State Observer
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userData = userDoc.data() || {};
+        const countryCode = await getCountryFromIP();
+
+        currentUser = {
+          uid: user.uid,
+          displayName: user.displayName || userData?.displayName || "User" + Math.floor(Math.random() * 10000),
+          handle: userData?.handle || "@user" + Math.floor(Math.random() * 10000),
+          photoURL: user.photoURL || userData?.photoURL || "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png",
+          country: countryCode
+        };
+
+        // Create user in database if not exists
+        if (!userDoc.exists()) {
+          await setDoc(doc(db, 'users', user.uid), {
+            displayName: currentUser.displayName,
+            handle: currentUser.handle,
+            photoURL: currentUser.photoURL,
+            createdAt: new Date().toISOString()
+          });
+        }
+
+        // Fetch followed users
+        await fetchFollowedUsers();
+        
+        // Set up presence system
+        setupPresence(user.uid);
+        
+        // Hide loading indicator once auth is complete
+        loadingIndicator.style.display = 'none';
+        
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        loadingIndicator.style.display = 'none';
+      }
+    } else {
+      // Sign in anonymously if no user
+      signInAnonymously(auth)
+        .catch((error) => {
+          console.error('Anonymous auth error:', error);
+          loadingIndicator.style.display = 'none';
+        });
     }
   });
-  
-  // Load initial messages
-  loadMoreMessages();
-}
 
-// Expose functions to global scope
-window.sendMessage = sendMessage;
-window.sendReply = sendReply;
-window.toggleReplyInput = toggleReplyInput;
-window.toggleFollow = toggleFollow;
-window.showFullImage = showFullImage;
+  // Set up user presence
+  function setupPresence(userId) {
+    const userStatusRef = ref(database, `presence/${userId}`);
+    
+    // Set user as online
+    const onlineData = {
+      status: 'online',
+      lastSeen: Date.now()
+    };
+    
+    // Set user as offline when disconnected
+    const connectedRef = ref(database, '.info/connected');
+    onValue(connectedRef, (snapshot) => {
+      if (snapshot.val() === true) {
+        // User is connected
+        set(userStatusRef, onlineData);
+        
+        // Clear presence on disconnect
+        onDisconnect(userStatusRef).set({
+          status: 'offline',
+          lastSeen: Date.now()
+        });
+      }
+    });
+  }
 
-// Initialize the app when the DOM is loaded
-document.addEventListener('DOMContentLoaded', initApp);
+  // Fetch Followed Users
+  async function fetchFollowedUsers() {
+    if (!currentUser) return;
+
+    try {
+      const followQuery = query(
+        collection(db, 'follows'),
+        where('followerUserId', '==', currentUser.uid)
+      );
+
+      const followSnapshot = await getDocs(followQuery);
+      followedUsers.clear();
+      followSnapshot.docs.forEach(doc => {
+        const followedUserId = doc.data().followedUserId;
+        followedUsers.add(followedUserId);
+      });
+
+      updateFollowButtons();
+    } catch (error) {
+      console.error('Error fetching followed users:', error);
+    }
+  }
+
+  // Update Follow Buttons
+  function updateFollowButtons() {
+    document.querySelectorAll('.follow-btn').forEach(btn => {
+      const userId = btn.getAttribute('data-user-id');
+      if (userId === currentUser?.uid) {
+        btn.style.display = 'none'; // Hide follow button for own messages
+      } else {
+        btn.textContent = followedUsers.has(userId) ? 'Following' : 'Follow';
+        btn.classList.toggle('followed', followedUsers.has(userId));
+      }
+    });
+  }
+
+  // Follow/Unfollow User
+  window.toggleFollow = async function(userId, userName) {
+    if (!currentUser) {
+      alert('Please log in to follow users');
+      return;
+    }
+
+    try {
+      const followQuery = query(
+        collection(db, 'follows'),
+        where('followerUserId', '==', currentUser.uid),
+        where('followedUserId', '==', userId)
+      );
+
+      const followSnapshot = await getDocs(followQuery);
+
+      if (followSnapshot.empty) {
+        // Follow the user
+        await addDoc(collection(db, 'follows'), {
+          followerUserId: currentUser.uid,
+          followedUserId: userId,
+          followedUserName: userName,
+          timestamp: new Date().toISOString()
+        });
+        followedUsers.add(userId);
+      } else {
+        // Unfollow the user
+        followSnapshot.docs.forEach(async (followDoc) => {
+          await deleteDoc(doc(db, 'follows', followDoc.id));
+        });
+        followedUsers.delete(userId);
+      }
+
+      updateFollowButtons();
+    } catch (error) {
+      console.error('Follow/Unfollow error:', error);
+    }
+  };
+
+  // Function to upload media files
+  async function uploadMedia(file) {
+    return new Promise((resolve, reject) => {
+      const fileRef = storageRef(storage, `media/${Date.now()}_${file.name}`);
+      const uploadTask = uploadBytesResumable(fileRef, file);
+
+      uploadTask.on('state_changed',
+        (snapshot) => {
+          // Progress tracking if needed
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log('Upload is ' + progress + '% done');
+        },
+        (error) => {
+          // Error handling
+          console.error('Upload error:', error);
+          reject(error);
+        },
+        () => {
+          // Upload complete
+          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+            resolve({
+              url: downloadURL,
+              type: file.type.split('/')[0] // 'image' or 'video'
+            });
+          });
+        }
+      );
+    });
+  }
+
+  // Send Message Function with Media Support
+  async function sendMessage(parentMessageId = null) {
+    if (!currentUser) {
+      alert('You must log in to continue');
+      return;
+    }
+
+    const messageText = messageInput.value.trim();
+    const currentTime = Date.now();
+    const hasMedia = selectedMedia.length > 0;
+
+    // Check if content exists
+    if (!messageText && !hasMedia) return;
+
+    // Check personal rate limit (3 seconds between messages)
+    if (currentTime - lastMessageTime < 3000) {
+      alert('Please wait a few seconds before sending another message');
+      return;
+    }
+
+    // Check global rate limit (3 seconds for any user)
+    if (currentTime - globalRateLimit < 3000) {
+      const waitTime = Math.ceil((3000 - (currentTime - globalRateLimit)) / 1000);
+      alert(`The chat is busy. Please wait ${waitTime} seconds before sending.`);
+      return;
+    }
+
+    try {
+      // Show loading indicator
+      loadingIndicator.style.display = 'flex';
+      
+      // Update global rate limit timestamp
+      await set(rateLimitRef, Date.now());
+      
+      // Clear typing status
+      const userTypingRef = ref(database, `typing/${currentUser.uid}`);
+      set(userTypingRef, null);
+      
+      // Upload all media files
+      const mediaUrls = [];
+      if (hasMedia) {
+        for (const media of selectedMedia) {
+          const uploadResult = await uploadMedia(media.file);
+          mediaUrls.push(uploadResult);
+        }
+      }
+
+      // Create new message
+      const newMessageRef = push(chatRef);
+      const messageData = {
+        userId: currentUser.uid,
+        name: currentUser.displayName,
+        handle: currentUser.handle,
+        photoURL: currentUser.photoURL,
+        text: messageText,
+        media: mediaUrls,
+        timestamp: new Date().toISOString(),
+        country: currentUser.country,
+        parentMessageId: parentMessageId,
+        replyCount: 0
+      };
+
+      // Add message to database
+      await set(newMessageRef, messageData);
+      
+      // Update parent message reply count if this is a reply
+      if (parentMessageId) {
+        const parentRef = ref(database, `messages/${parentMessageId}`);
+        const snapshot = await get(parentRef);
+        if (snapshot.exists()) {
+          await update(parentRef, {
+            replyCount: (snapshot.val().replyCount || 0) + 1
+          });
+        }
+      }
+
+      // Reset UI
+      messageInput.value = '';
+      messageInput.style.height = 'auto';
+      selectedMedia = [];
+      mediaPreview.innerHTML = '';
+      sendButton.disabled = true;
+      lastMessageTime = currentTime;
+      
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Failed to send message. Please try again.');
+    } finally {
+      loadingIndicator.style.display = 'none';
+    }
+  }
+
+  // Toggle Reply Input
+  window.toggleReplyInput = function(messageId) {
+    const parentMessage = document.querySelector(`[data-message-id="${messageId}"]`);
+    const existingReplyInput = parentMessage.querySelector('.reply-input');
+
+    if (existingReplyInput) {
+      existingReplyInput.remove();
+      activeReplies.delete(messageId);
+    } else {
+      const replyInput = document.createElement('div');
+      replyInput.classList.add('reply-input');
+      
+      parentMessage.appendChild(replyInput);
+      activeReplies.add(messageId);
+      
+      // Focus the textarea
+      setTimeout(() => {
+        parentMessage.querySelector('.reply-textarea').focus();
+      }, 100);
+    }
+  };
+
+  // Send Reply
+  window.sendReply = function(parentMessageId) {
+    if (!currentUser) {
+      alert('You must log in to reply');
+      return;
+    }
+    
+    const parentMessage = document.querySelector(`[data-message-id="${parentMessageId}"]`);
+    const replyTextarea = parentMessage.querySelector('.reply-textarea');
+    const replyText = replyTextarea.value.trim();
+    
+    if (!replyText) return;
+    
+    sendMessage(parentMessageId);
+    
+    // Remove reply input
+    const replyInput = parentMessage.querySelector('.reply-input');
+    if (replyInput) {
+      replyInput.remove();
+      activeReplies.delete(parentMessageId);
+    }
+  };
+
+  // Initialize the app
+  initApp();

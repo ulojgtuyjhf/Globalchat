@@ -1,4 +1,4 @@
-(() => { // IIFE for scope isolation
+(() => {
   document.addEventListener('DOMContentLoaded', () => {
     // Create unique namespace to avoid conflicts
     const scrollManager = {
@@ -6,7 +6,7 @@
       
       createButton() {
         const button = document.createElement('button');
-        button.innerHTML = '↓';
+        button.innerHTML = '↓'; // You can replace this with an SVG icon for better customization
         button.id = this.uniqueId;
         button.classList.add(`${this.uniqueId}-btn`);
         return button;
@@ -39,16 +39,16 @@
             position: fixed;
             bottom: 100px; /* Updated: Moved the button a little bit higher */
             right: 20px;
-            width: 45px;
-            height: 45px;
-            background: white;
-            color: black;
-            border: 2px solid rgba(0,0,0,0.1);
+            width: 50px;
+            height: 50px;
+            background: #15202b; /* Twitter dark theme background color */
+            color: #1da1f2; /* Twitter blue */
+            border: 2px solid rgba(29, 161, 242, 0.2); /* Twitter blue with transparency */
             border-radius: 50%;
             cursor: pointer;
             box-shadow: 
-              0 4px 6px rgba(0,0,0,0.1),
-              0 1px 3px rgba(0,0,0,0.08);
+              0 4px 6px rgba(0,0,0,0.2),
+              0 1px 3px rgba(0,0,0,0.15);
             z-index: 1000;
             font-size: 24px;
             font-weight: bold;
@@ -59,11 +59,11 @@
             opacity: 0;
             background: linear-gradient(
               120deg,
-              #ffffff 0%,
-              #ffffff 30%,
-              rgba(255, 255, 255, 0.8) 50%,
-              #ffffff 70%,
-              #ffffff 100%
+              #15202b 0%,
+              #15202b 30%,
+              rgba(21, 32, 43, 0.8) 50%,
+              #15202b 70%,
+              #15202b 100%
             );
             background-size: 400% 100%;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -79,15 +79,18 @@
           
           .${this.uniqueId}-btn:hover {
             transform: scale(1.1);
+            background-color: #1da1f2; /* Twitter blue on hover */
+            color: #fff; /* White text on hover */
+            border-color: #1da1f2; /* Twitter blue on hover */
             box-shadow: 
-              0 6px 8px rgba(0,0,0,0.15),
-              0 2px 4px rgba(0,0,0,0.12);
+              0 6px 8px rgba(29, 161, 242, 0.25),
+              0 2px 4px rgba(29, 161, 242, 0.2);
           }
           
           .${this.uniqueId}-btn:active {
             transform: scale(0.95);
             box-shadow: 
-              0 2px 4px rgba(0,0,0,0.1);
+              0 2px 4px rgba(29, 161, 242, 0.2);
           }
 
           @media (prefers-reduced-motion: reduce) {
