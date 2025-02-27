@@ -26,8 +26,6 @@
     --offline-red: #e0245e;
     --shadow-color: rgba(0, 0, 0, 0.2);
     --twitter-blue: #1da1f2;
-    --twitter-blue-dark: #1a91da;
-    --twitter-blue-light: #1da1f2;
 }
 
 html, body {
@@ -251,152 +249,94 @@ html, body {
 }
 
 /* Bio Modal */
-.twitter-modal {
+.profile-modal {
     position: fixed;
-    top: 0;
+    bottom: 0;
     left: 0;
     width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    display: none;
+    height: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-end;
     z-index: 1000;
+    transition: opacity 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
 }
 
-.twitter-modal-content {
+.profile-modal.active {
+    height: 100%;
+    opacity: 1;
+    pointer-events: all;
+}
+
+.profile-content {
     background: var(--bg-primary);
+    width: 100%;
     max-width: 600px;
-    width: 90%;
-    border-radius: 16px;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    padding: 20px;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
     position: relative;
-    overflow: hidden;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
 }
 
-.modal-header {
-    display: flex;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-color);
-    position: sticky;
-    top: 0;
-    background: var(--bg-primary);
-    z-index: 10;
+.profile-modal.active .profile-content {
+    transform: translateY(0);
 }
 
-.close-button {
-    width: 36px;
-    height: 36px;
-    border-radius: 9999px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.profile-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
     background: transparent;
     border: none;
     color: var(--text-primary);
+    font-size: 24px;
     cursor: pointer;
-    margin-right: 16px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
 }
 
-.close-button:hover {
+.profile-close:hover {
     background: rgba(255, 255, 255, 0.1);
 }
 
-.modal-title {
-    font-size: 19px;
-    font-weight: 800;
-    color: var(--text-primary);
-}
-
-.profile-section {
-    padding: 0;
-}
-
-.profile-banner {
-    height: 150px;
-    background: var(--bg-secondary);
-    position: relative;
-}
-
-.profile-avatar-container {
-    position: absolute;
-    bottom: -36px;
-    left: 16px;
+.profile-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
 }
 
 .profile-avatar {
-    width: 72px;
-    height: 72px;
-    border-radius: 9999px;
-    border: 4px solid var(--bg-primary);
-    object-fit: cover;
-}
-
-.profile-info {
-    padding: 48px 16px 16px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin-right: 15px;
 }
 
 .profile-name {
-    font-size: 19px;
-    font-weight: 800;
-    color: var(--text-primary);
-    margin-bottom: 2px;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 5px;
 }
 
-.profile-username {
-    font-size: 15px;
+.profile-channel {
+    font-size: 14px;
     color: var(--text-secondary);
-    margin-bottom: 12px;
 }
 
 .profile-bio {
-    font-size: 15px;
+    margin-top: 15px;
+    line-height: 1.5;
     color: var(--text-primary);
-    line-height: 20px;
-    margin-bottom: 12px;
-}
-
-.profile-meta {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    color: var(--text-secondary);
-    font-size: 15px;
-    margin-bottom: 16px;
-}
-
-.meta-item {
-    display: flex;
-    align-items: center;
-}
-
-.meta-icon {
-    margin-right: 4px;
-}
-
-.follow-button {
-    background-color: var(--text-primary);
-    color: var(--bg-primary);
-    padding: 6px 16px;
-    border-radius: 9999px;
-    font-weight: 700;
-    font-size: 15px;
-    border: none;
-    cursor: pointer;
-    margin-left: auto;
-}
-
-.follow-button:hover {
-    background-color: #e6e6e6;
-}
-
-.verified-badge {
-    width: 16px;
-    height: 16px;
-    margin-left: 4px;
+    margin-bottom: 20px;
 }
 
 /* Loading skeleton styles */
@@ -486,11 +426,9 @@ html, body {
 }
 
 @media (max-width: 480px) {
-    .twitter-modal-content {
+    .profile-content {
         width: 100%;
-        height: 100%;
-        max-height: 100vh;
-        border-radius: 0;
+        border-radius: 16px 16px 0 0;
     }
 }
 </style>
@@ -519,27 +457,19 @@ html, body {
         </div>
     </div>
 
-    <!-- Twitter-style Bio Modal -->
-    <div id="bioModal" class="twitter-modal">
-        <div class="twitter-modal-content">
-            <div class="modal-header">
-                <button id="closeButton" class="close-button">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                        <path d="M13.414 12l5.293-5.293a1 1 0 00-1.414-1.414L12 10.586 6.707 5.293a1 1 0 00-1.414 1.414L10.586 12l-5.293 5.293a1 1 0 101.414 1.414L12 13.414l5.293 5.293a1 1 0 001.414-1.414L13.414 12z"/>
-                    </svg>
-                </button>
-                <h2 class="modal-title">Profile</h2>
-            </div>
-            <div id="bioContent" class="profile-section">
+    <!-- Simple Profile Modal -->
+    <div id="profileModal" class="profile-modal">
+        <div class="profile-content">
+            <button id="closeButton" class="profile-close">×</button>
+            <div id="profileContent">
                 <!-- Profile content will be dynamically populated here -->
             </div>
         </div>
     </div>
 
-    
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, query, where, getDocs, getDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, query, where, getDocs, getDoc, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   // Firebase Configuration
@@ -562,15 +492,62 @@ html, body {
   const userSearchInput = document.getElementById('userSearchInput');
   const userList = document.getElementById('userList');
   const userCount = document.getElementById('userCount');
-  const bioModal = document.getElementById('bioModal');
-  const bioContent = document.getElementById('bioContent');
+  const profileModal = document.getElementById('profileModal');
+  const profileContent = document.getElementById('profileContent');
   const closeButton = document.getElementById('closeButton');
 
+  // User presence system
+  let currentUserRef;
+  let userStatusRef;
+  let unsubscribePresence;
+  let unsubscribeUsers;
+
   // Close modal events
-  closeButton.onclick = () => bioModal.style.display = 'none';
-  bioModal.onclick = (e) => {
-    if (e.target === bioModal) bioModal.style.display = 'none';
+  closeButton.onclick = () => {
+    profileModal.classList.remove('active');
+    setTimeout(() => {
+      profileContent.innerHTML = '';
+    }, 300);
   };
+  
+  profileModal.onclick = (e) => {
+    if (e.target === profileModal) {
+      profileModal.classList.remove('active');
+      setTimeout(() => {
+        profileContent.innerHTML = '';
+      }, 300);
+    }
+  };
+
+  // Setup user presence system
+  async function setupPresence(userId) {
+    if (currentUserRef) {
+      // Clean up previous listeners
+      if (unsubscribePresence) unsubscribePresence();
+    }
+    
+    // Set up user's online status
+    currentUserRef = doc(db, 'users', userId);
+    userStatusRef = doc(db, 'status', userId);
+    
+    // Set user as online
+    try {
+      await setDoc(userStatusRef, {
+        state: 'online',
+        lastChanged: new Date()
+      });
+      
+      // Set up disconnect hook
+      window.addEventListener('beforeunload', async () => {
+        await setDoc(userStatusRef, {
+          state: 'offline',
+          lastChanged: new Date()
+        });
+      });
+    } catch (error) {
+      console.error("Error setting up presence:", error);
+    }
+  }
 
   // Fetch and Display Available Users
   async function fetchAvailableUsers() {
@@ -581,37 +558,57 @@ html, body {
         return;
       }
       
+      // Clean up previous listeners
+      if (unsubscribeUsers) unsubscribeUsers();
+      
+      // Set up real-time listener on users collection
       const usersRef = collection(db, 'users');
-      const snapshot = await getDocs(usersRef);
-      
-      userList.innerHTML = ''; // Clear existing users
-      let availableUsers = 0;
-      
-      // Include current user
-      const currentUserData = await getCurrentUserData(currentUser.uid);
-      const currentUserCard = createUserCard(currentUserData, true);
-      userList.appendChild(currentUserCard);
-      availableUsers++;
-      
-      snapshot.forEach((doc) => {
-        const userData = doc.data();
+      unsubscribeUsers = onSnapshot(usersRef, async (snapshot) => {
+        const statusQuery = collection(db, 'status');
+        const statusSnapshot = await getDocs(statusQuery);
         
-        // Skip the current user if not already added
-        if (doc.id === currentUser.uid) return;
+        // Create a map of user statuses
+        const userStatuses = {};
+        statusSnapshot.forEach(doc => {
+          userStatuses[doc.id] = doc.data().state === 'online';
+        });
         
-        // Filter based on search input
-        const searchTerm = userSearchInput.value.toLowerCase();
-        if (searchTerm &&
-          !userData.username.toLowerCase().includes(searchTerm) &&
-          !(userData.country || '').toLowerCase().includes(searchTerm))
-          return;
+        userList.innerHTML = ''; // Clear existing users
+        let availableUsers = 0;
         
-        const userCard = createUserCard({ ...userData, uid: doc.id });
-        userList.appendChild(userCard);
+        // Include current user
+        const currentUserData = await getCurrentUserData(currentUser.uid);
+        const currentUserCard = createUserCard({
+          ...currentUserData,
+          isOnline: true
+        }, true);
+        userList.appendChild(currentUserCard);
         availableUsers++;
+        
+        // Filter and display other users
+        snapshot.forEach((doc) => {
+          if (doc.id === currentUser.uid) return;
+          
+          const userData = doc.data();
+          
+          // Filter based on search input
+          const searchTerm = userSearchInput.value.toLowerCase();
+          if (searchTerm &&
+            !userData.username.toLowerCase().includes(searchTerm) &&
+            !(userData.country || '').toLowerCase().includes(searchTerm))
+            return;
+          
+          const userCard = createUserCard({
+            ...userData,
+            uid: doc.id,
+            isOnline: userStatuses[doc.id] || false
+          });
+          userList.appendChild(userCard);
+          availableUsers++;
+        });
+        
+        userCount.textContent = `${availableUsers - 1} available`;
       });
-      
-      userCount.textContent = `${availableUsers - 1} available`;
     } catch (error) {
       console.error("Error fetching users:", error);
     }
@@ -645,62 +642,30 @@ html, body {
     }
   }
 
-  // Show Bio Modal with Twitter-style profile
-  async function showBioModal(userId) {
+  // Show Profile Modal
+  async function showProfileModal(userId) {
     try {
       const userDoc = await getDoc(doc(db, 'users', userId));
       const userData = userDoc.data();
       
-      const joinDate = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      
-      bioContent.innerHTML = `
-        <div class="profile-banner"></div>
-        <div class="profile-avatar-container">
+      profileContent.innerHTML = `
+        <div class="profile-header">
           <img class="profile-avatar" src="${userData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" alt="${userData.username}">
-        </div>
-        <div class="profile-info">
-          <div class="profile-name">
-            ${userData.username || 'User'}
-            <svg class="verified-badge" viewBox="0 0 24 24" fill="#1da1f2">
-              <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z"/>
-            </svg>
+          <div>
+            <div class="profile-name">${userData.username || 'User'}</div>
+            <div class="profile-channel">@${userData.youtubeChannel || 'user'}</div>
           </div>
-          <div class="profile-username">@${userData.youtubeChannel || 'user'}</div>
-          <div class="profile-bio">${userData.bio || 'No bio available'}</div>
-          <div class="profile-meta">
-            <div class="meta-item">
-              <svg class="meta-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 14.315c-2.088 0-3.787-1.698-3.787-3.786S9.913 6.74 12 6.74s3.787 1.7 3.787 3.787-1.7 3.785-3.787 3.785zm0-6.073c-1.26 0-2.287 1.026-2.287 2.287S10.74 12.814 12 12.814s2.287-1.025 2.287-2.286S13.26 8.24 12 8.24z"/>
-                <path d="M20.692 10.69C20.692 5.9 16.792 2 12 2s-8.692 3.9-8.692 8.69c0 1.902.603 3.708 1.743 5.223l.003-.002.007.015c1.628 2.07 6.278 5.757 6.475 5.912.138.11.33.17.524.17.193 0 .387-.06.522-.17.198-.155 4.847-3.84 6.475-5.912l.007-.014.002.002c1.14-1.516 1.743-3.32 1.743-5.223zM12 20.29c-1.224-.99-4.52-3.715-5.756-5.285-.94-1.25-1.436-2.742-1.436-4.312C4.808 6.727 8.035 3.5 12 3.5s7.192 3.226 7.192 7.19c0 1.57-.497 3.062-1.436 4.313-1.236 1.57-4.532 4.294-5.756 5.285z"/>
-              </svg>
-              ${userData.country ? `<span class="fp fp-${(userData.country || 'us').toLowerCase()} country-flag"></span> ${userData.country.toUpperCase()}` : 'Location not specified'}
-            </div>
-            <div class="meta-item">
-              <svg class="meta-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19.708 2H4.292C3.028 2 2 3.028 2 4.292v15.416C2 20.972 3.028 22 4.292 22h15.416C20.972 22 22 20.972 22 19.708V4.292C22 3.028 20.972 2 19.708 2zm.792 17.708c0 .437-.355.792-.792.792H4.292c-.437 0-.792-.355-.792-.792V6.418c0-.437.354-.79.79-.792h15.42c.436 0 .79.355.79.79V19.71z"/>
-                <circle cx="7.032" cy="8.75" r="1.285"/>
-                <circle cx="7.032" cy="13.156" r="1.285"/>
-                <circle cx="16.968" cy="8.75" r="1.285"/>
-                <circle cx="16.968" cy="13.156" r="1.285"/>
-                <circle cx="12" cy="8.75" r="1.285"/>
-                <circle cx="12" cy="13.156" r="1.285"/>
-                <circle cx="7.032" cy="17.486" r="1.285"/>
-                <circle cx="12" cy="17.486" r="1.285"/>
-              </svg>
-              Joined ${joinDate}
-            </div>
-          </div>
-          <button class="follow-button">Follow</button>
         </div>
+        <div class="profile-bio">${userData.bio || 'No bio available'}</div>
       `;
       
-      bioModal.style.display = 'flex';
+      profileModal.classList.add('active');
     } catch (error) {
-      console.error("Error fetching user bio:", error);
+      console.error("Error fetching user profile:", error);
     }
   }
 
-  // Create Twitter-style User Card
+  // Create User Card
   function createUserCard(userData, isCurrentUser = false) {
     const card = document.createElement('div');
     card.className = 'user-card';
@@ -726,22 +691,20 @@ html, body {
         <div class="user-bio-preview">${bioPreview}</div>
         <div class="user-meta">
           <div class="user-location">
-            <svg class="location-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 14.315c-2.088 0-3.787-1.698-3.787-3.786S9.913 6.74 12 6.74s3.787 1.7 3.787 3.787-1.7 3.785-3.787 3.785zm0-6.073c-1.26 0-2.287 1.026-2.287 2.287S10.74 12.814 12 12.814s2.287-1.025 2.287-2.286S13.26 8.24 12 8.24z"/>
-              <path d="M20.692 10.69C20.692 5.9 16.792 2 12 2s-8.692 3.9-8.692 8.69c0 1.902.603 3.708 1.743 5.223l.003-.002.007.015c1.628 2.07 6.278 5.757 6.475 5.912.138.11.33.17.524.17.193 0 .387-.06.522-.17.198-.155 4.847-3.84 6.475-5.912l.007-.014.002.002c1.14-1.516 1.743-3.32 1.743-5.223zM12 20.29c-1.224-.99-4.52-3.715-5.756-5.285-.94-1.25-1.436-2.742-1.436-4.312C4.808 6.727 8.035 3.5 12 3.5s7.192 3.226 7.192 7.19c0 1.57-.497 3.062-1.436 4.313-1.236 1.57-4.532 4.294-5.756 5.285z"/>
-            </svg>
             ${userData.country ? `<span class="fp fp-${(userData.country || 'us').toLowerCase()}"></span>` : ''}
           </div>
           <div class="status-container">
-            <div class="status-dot ${isCurrentUser || userData.isOnline ? 'online' : 'offline'}"></div>
-            <div class="status-text">${isCurrentUser || userData.isOnline ? 'Online' : 'Offline'}</div>
+            <div class="status-dot ${userData.isOnline ? 'online' : 'offline'}"></div>
+            <div class="status-text">${userData.isOnline ? 'Online' : 'Offline'}</div>
           </div>
         </div>
       </div>
     `;
     
-    // Add click event to show bio
-    card.addEventListener('click', () => showBioModal(userData.uid));
+    // Add click event to show profile
+    if (!isCurrentUser) {
+      card.addEventListener('click', () => showProfileModal(userData.uid));
+    }
     
     return card;
   }
@@ -783,6 +746,9 @@ html, body {
   // Authentication State Listener
   onAuthStateChanged(auth, (user) => {
     if (user) {
+      // Setup user presence
+      setupPresence(user.uid);
+      
       // Show skeletons before loading
       showSkeletons();
       
@@ -803,70 +769,13 @@ html, body {
 <script>
   // Additional enhancements and loading state management
   document.addEventListener('DOMContentLoaded', () => {
-    // Add Twitter-like hover effects
+    // Add hover effects
     document.addEventListener('mouseover', (e) => {
       const userCard = e.target.closest('.user-card');
       if (userCard) {
         userCard.style.transition = 'background-color 0.2s ease';
       }
     });
-
-    // Follow button functionality in profile modal
-    document.addEventListener('click', (e) => {
-      if (e.target.classList.contains('follow-button')) {
-        const button = e.target;
-        if (button.textContent === 'Follow') {
-          button.textContent = 'Following';
-          button.style.backgroundColor = 'transparent';
-          button.style.color = 'var(--text-primary)';
-          button.style.border = '1px solid var(--border-color)';
-        } else {
-          button.textContent = 'Follow';
-          button.style.backgroundColor = 'var(--text-primary)';
-          button.style.color = 'var(--bg-primary)';
-          button.style.border = 'none';
-        }
-        e.stopPropagation();
-      }
-    });
-
-    // Search suggestions
-    const searchInput = document.getElementById('userSearchInput');
-    const searchSuggestions = ['English', 'Spanish', 'Japanese', 'Gamers', 'Artists', 'Developers'];
-    
-    searchInput.addEventListener('focus', () => {
-      if (!searchInput.value) {
-        // Could implement search suggestions here
-        console.log('Search suggestions:', searchSuggestions);
-      }
-    });
-
-    // Real-time status updates simulation
-    function simulateStatusChanges() {
-      const statusDots = document.querySelectorAll('.status-dot:not(.online)');
-      if (statusDots.length > 0) {
-        const randomIndex = Math.floor(Math.random() * statusDots.length);
-        const randomDot = statusDots[randomIndex];
-        
-        const isCurrentlyOnline = randomDot.classList.contains('online');
-        
-        if (isCurrentlyOnline) {
-          randomDot.classList.remove('online');
-          randomDot.classList.add('offline');
-          randomDot.nextElementSibling.textContent = 'Offline';
-        } else {
-          randomDot.classList.remove('offline');
-          randomDot.classList.add('online');
-          randomDot.nextElementSibling.textContent = 'Online';
-        }
-      }
-      
-      // Schedule next update
-      setTimeout(simulateStatusChanges, Math.random() * 10000 + 5000);
-    }
-    
-    // Start status simulation after initial load
-    setTimeout(simulateStatusChanges, 5000);
     
     // Performance optimization - lazy load avatars
     const lazyLoadObserver = new IntersectionObserver((entries) => {
@@ -903,3 +812,5 @@ html, body {
     setupLazyLoading();
   });
 </script>
+</body>
+</html>
