@@ -43,6 +43,225 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+
+    <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+        min-height: 100vh;
+        background-color: #f9f9f9;
+        display: flex;
+        overflow-x: hidden;
+        color: #333;
+    }
+
+    .auth-container {
+        display: flex;
+        width: 100vw;
+        height: 100vh;
+        position: relative;
+    }
+
+    .auth-background {
+        position: fixed;
+        width: 50%;
+        height: 100%;
+        background: linear-gradient(135deg, #e0e7ff 0%, #d1e0ff 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #333;
+        padding: 40px;
+        display: none;
+    }
+
+    .auth-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: #fff;
+        position: relative;
+        transition: transform 0.5s ease;
+    }
+
+    .logo {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 40px;
+        color: #4a90e2;
+    }
+
+    .form-container {
+        width: 100%;
+        max-width: 400px;
+        animation: fadeIn 0.5s ease;
+    }
+
+    .tabs {
+        display: flex;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #e0e7ff;
+    }
+
+    .tab {
+        flex: 1;
+        padding: 15px;
+        text-align: center;
+        cursor: pointer;
+        color: #666;
+        font-weight: 500;
+        position: relative;
+        transition: all 0.3s;
+    }
+
+    .tab.active {
+        color: #4a90e2;
+    }
+
+    .tab.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: #4a90e2;
+    }
+
+    .auth-form {
+        display: none;
+        animation: fadeIn 0.5s ease;
+    }
+
+    .auth-form.active {
+        display: block;
+    }
+
+    .input-group {
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .error-message {
+        color: #dc3545;
+        font-size: 14px;
+        margin-top: 5px;
+        display: none;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 500;
+    }
+
+    input {
+        width: 100%;
+        padding: 15px;
+        border: 2px solid #e0e7ff;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.3s;
+        background: #f9f9f9;
+        color: #333;
+    }
+
+    input:focus {
+        border-color: #4a90e2;
+        background: #fff;
+        outline: none;
+    }
+
+    input.error {
+        border-color: #dc3545;
+    }
+
+    button {
+        width: 100%;
+        padding: 15px;
+        border: none;
+        border-radius: 8px;
+        background-color: #4a90e2;
+        color: white;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-top: 10px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    button:hover {
+        background-color: #357abd;
+        transform: translateY(-2px);
+    }
+
+    button:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .button-spinner {
+        display: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #ffffff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s linear infinite;
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .profile-setup {
+        display: none;
+        animation: fadeIn 0.5s ease;
+    }
+
+    .image-preview {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        margin: 20px auto;
+        background-size: cover;
+        background-position: center;
+        border: 3px solid #4a90e2;
+        display: none;
+    }
+
+    @keyframes spin {
+        to { transform: translateY(-50%) rotate(360deg); }
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (min-width: 768px) {
+        .auth-background {
+            display: flex;
+        }
+        
+        .auth-content {
+            width: 50%;
+            margin-left: 50%;
+        }
+    }
+</style>
 </head>
 <body>
     <div class="auth-container">
@@ -54,7 +273,7 @@
         </div>
 
         <div class="auth-content">
-            <div class="logo">nmedea</div>
+            <div class="logo">Nmedea</div>
             
             <div class="form-container">
                 <div class="tabs">
@@ -128,8 +347,299 @@
         </div>
     </div>
 
-    <script type="module" src="login.js"></script>
-<script src="reply.js"></script>
+    <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+  import { getFirestore, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+    authDomain: "globalchat-2d669.firebaseapp.com",
+    projectId: "globalchat-2d669",
+    storageBucket: "globalchat-2d669.firebasestorage.app",
+    messagingSenderId: "178714711978",
+    appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
+    measurementId: "G-LYZP41ZJ46"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const storage = getStorage(app);
+  const db = getFirestore(app);
+
+  let tempUserData = null;
+
+  // Check authentication state
+  auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          if (userData.photoURL) {
+            // User has completed profile setup, redirect to menu
+            window.location.href = 'half.html';
+            return;
+          }
+        }
+        // Only show profile setup if user doesn't have a profile picture
+        showProfileSetup();
+      } catch (error) {
+        console.error("Error checking user data:", error);
+      }
+    }
+  });
+
+  // Form switching functionality
+  window.switchTab = function(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+
+    if (tab === 'signin') {
+      document.querySelector('.tab:first-child').classList.add('active');
+      document.getElementById('signin-form').classList.add('active');
+    } else {
+      document.querySelector('.tab:last-child').classList.add('active');
+      document.getElementById('signup-form').classList.add('active');
+    }
+  };
+
+  function showProfileSetup() {
+    document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+    document.getElementById('profile-setup-form').classList.add('active');
+    document.querySelector('.tabs').style.display = 'none';
+  }
+
+  // Input validation
+  function validateInput(input) {
+    const value = input.value.trim();
+
+    if (!value && input.required) {
+      return 'This field is required';
+    }
+
+    switch (input.type) {
+      case 'email':
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) {
+          return 'Please enter a valid email address';
+        }
+        break;
+      case 'password':
+        if (value.length < 6) {
+          return 'Password must be at least 6 characters long';
+        }
+        break;
+      case 'text':
+        if (input.id === 'signup-username') {
+          const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+          if (!usernameRegex.test(value)) {
+            return 'Username must be 3-20 characters and can only contain letters, numbers, and underscores';
+          }
+        }
+        break;
+      case 'file':
+        if (input.id === 'profile-picture' && !input.files[0]) {
+          return 'Please select a profile picture';
+        }
+        break;
+    }
+    return null;
+  }
+
+  // Error display
+  function showError(elementId, message) {
+    const errorElement = document.getElementById(elementId);
+    if (errorElement) {
+      errorElement.textContent = message;
+      errorElement.style.display = 'block';
+    }
+  }
+
+  // Clear errors
+  function clearErrors() {
+    document.querySelectorAll('.error-message').forEach(error => {
+      error.textContent = '';
+      error.style.display = 'none';
+    });
+  }
+
+  // Profile picture preview
+  const profilePictureInput = document.getElementById('profile-picture');
+  const imagePreview = document.getElementById('image-preview');
+
+  profilePictureInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        imagePreview.style.backgroundImage = `url(${event.target.result})`;
+        imagePreview.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Sign In Form Submission
+  document.getElementById('signin-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearErrors();
+
+    const email = document.getElementById('signin-email').value;
+    const password = document.getElementById('signin-password').value;
+    const button = e.target.querySelector('button');
+    const spinner = button.querySelector('.button-spinner');
+
+    // Validate inputs
+    const emailInput = document.getElementById('signin-email');
+    const passwordInput = document.getElementById('signin-password');
+    const emailError = validateInput(emailInput);
+    const passwordError = validateInput(passwordInput);
+
+    if (emailError) {
+      showError('signin-email-error', emailError);
+      return;
+    }
+    if (passwordError) {
+      showError('signin-password-error', passwordError);
+      return;
+    }
+
+    button.disabled = true;
+    spinner.style.display = 'block';
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        if (userData.photoURL) {
+          // User has completed profile setup
+          window.location.href = 'manu.html';
+          return;
+        }
+      }
+      // Show profile setup if needed
+      showProfileSetup();
+    } catch (error) {
+      showError('signin-error', 'Invalid email or password');
+      button.disabled = false;
+      spinner.style.display = 'none';
+    }
+  });
+
+  // Sign Up Form Submission
+  document.getElementById('signup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearErrors();
+
+    const email = document.getElementById('signup-email').value;
+    const password = document.getElementById('signup-password').value;
+    const username = document.getElementById('signup-username').value;
+    const button = e.target.querySelector('button');
+    const spinner = button.querySelector('.button-spinner');
+
+    // Validate all inputs
+    const inputs = e.target.querySelectorAll('input');
+    let isValid = true;
+
+    inputs.forEach(input => {
+      const error = validateInput(input);
+      if (error) {
+        showError(`${input.id}-error`, error);
+        isValid = false;
+      }
+    });
+
+    if (!isValid) return;
+
+    button.disabled = true;
+    spinner.style.display = 'block';
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      tempUserData = {
+        uid: userCredential.user.uid,
+        email,
+        username,
+        createdAt: new Date().toISOString()
+      };
+
+      // Create initial user document
+      await setDoc(doc(db, 'users', userCredential.user.uid), tempUserData);
+
+      showProfileSetup();
+    } catch (error) {
+      if (error.code === 'auth/email-already-in-use') {
+        showError('signup-error', 'This email is already registered');
+      } else {
+        showError('signup-error', 'An error occurred during registration');
+      }
+      button.disabled = false;
+      spinner.style.display = 'none';
+    }
+  });
+
+  // Profile Setup Form Submission
+  document.getElementById('profile-setup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearErrors();
+
+    const profilePicture = document.getElementById('profile-picture').files[0];
+    const youtubeChannel = document.getElementById('youtube-channel').value;
+    const button = e.target.querySelector('button');
+    const spinner = button.querySelector('.button-spinner');
+
+    // Validate profile picture
+    if (!profilePicture) {
+      showError('profile-picture-error', 'Please select a profile picture');
+      return;
+    }
+
+    button.disabled = true;
+    spinner.style.display = 'block';
+
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('No authenticated user found');
+
+      // Upload profile picture
+      const storageRef = ref(storage, `profilePictures/${user.uid}`);
+      await uploadBytes(storageRef, profilePicture);
+      const photoURL = await getDownloadURL(storageRef);
+
+      // Update user document with profile picture and YouTube channel
+      await setDoc(doc(db, 'users', user.uid), {
+        ...(tempUserData || {}),
+        photoURL,
+        youtubeChannel: youtubeChannel || null,
+      }, { merge: true });
+
+      // Redirect to main application
+      window.location.href = 'half.html';
+    } catch (error) {
+      console.error('Profile setup error:', error);
+      showError('profile-error', 'An error occurred while setting up your profile');
+      button.disabled = false;
+      spinner.style.display = 'none';
+    }
+  });
+
+  // Real-time input validation
+  document.querySelectorAll('input').forEach(input => {
+    input.addEventListener('input', () => {
+      const error = validateInput(input);
+      const errorElement = document.getElementById(`${input.id}-error`);
+      if (errorElement) {
+        errorElement.textContent = error || '';
+        errorElement.style.display = error ? 'block' : 'none';
+      }
+    });
+  });
+</script>
 
 <script>
   // Prevent any content from showing before splash screen
