@@ -1,3 +1,4 @@
+
 class MinimalTranslator {
   constructor() {
     this.currentLanguage = 'en';
@@ -72,6 +73,7 @@ class MinimalTranslator {
     
     this.translationInitialized = false;
     this.isLoading = false;
+    this.translationComplete = false;
     this.init();
   }
 
@@ -387,6 +389,27 @@ class MinimalTranslator {
         animation: spin 1s ease-in-out infinite;
       }
 
+      .toast-notification {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 14px;
+        z-index: 10000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .toast-notification.active {
+        opacity: 1;
+        visibility: visible;
+      }
+
       @media (max-width: 768px) {
         .minimal-translator {
           top: 10px;
@@ -526,32 +549,86 @@ class MinimalTranslator {
     loadingOverlay.innerHTML = `<div class="loading-spinner"></div>`;
     document.body.appendChild(loadingOverlay);
 
+    // Create toast notification
+    const toastNotification = document.createElement('div');
+    toastNotification.className = 'toast-notification';
+    document.body.appendChild(toastNotification);
+
     this.menu = menu;
     this.trigger = trigger;
     this.loadingOverlay = loadingOverlay;
+    this.toastNotification = toastNotification;
+  }
+
+  showToast(message, duration = 3000) {
+    this.toastNotification.textContent = message;
+    this.toastNotification.classList.add('active');
+    
+    setTimeout(() => {
+      this.toastNotification.classList.remove('active');
+    }, duration);
   }
 
   initializeTranslation() {
-    if (!window.googleTranslateElementInit) {
-      window.googleTranslateElementInit = () => {
-        new google.translate.TranslateElement({
-          pageLanguage: this.originalLanguage,
-          includedLanguages: Object.keys(this.languages).join(','),
-          layout: google.translate.TranslateElement.InlineLayout.NONE,
-          autoDisplay: false
-        }, 'google_translate_element');
-        this.translationInitialized = true;
-      };
+    // Create and add Google Translate element
+    const googleElement = document.createElement('div');
+    googleElement.id = 'google_translate_element';
+    googleElement.style.display = 'none';
+    document.body.appendChild(googleElement);
 
-      const googleElement = document.createElement('div');
-      googleElement.id = 'google_translate_element';
-      googleElement.style.display = 'none';
-      document.body.appendChild(googleElement);
-    }
+    // Define Google Translate Element initialization function
+    window.googleTranslateElementInit = () => {
+      new google.translate.TranslateElement({
+        pageLanguage: this.originalLanguage,
+        includedLanguages: Object.keys(this.languages).join(','),
+        layout: google.translate.TranslateElement.InlineLayout.NONE,
+        autoDisplay: false
+      }, 'google_translate_element');
+      
+      // Add event listener for when translation is finished
+      this.addTranslationCompletionDetection();
+      this.translationInitialized = true;
+      
+      // Load saved language preference after initialization
+      const savedLanguage = localStorage.getItem('preferredLanguage');
+      if (savedLanguage && savedLanguage !== this.originalLanguage) {
+        setTimeout(() => {
+          this.changeLanguage(savedLanguage);
+        }, 500);
+      }
+    };
+  }
+
+  addTranslationCompletionDetection() {
+    // Set up translation progress detection using MutationObserver
+    const translationObserver = new MutationObserver((mutations) => {
+      // Check for specific translation-related DOM changes
+      // Google Translate adds a 'translated' class to elements when done
+      const translatedElements = document.querySelectorAll('.translated');
+      
+      if (translatedElements.length > 0 || document.documentElement.classList.contains('translated-ltr') || document.documentElement.classList.contains('translated-rtl')) {
+        if (this.isLoading) {
+          setTimeout(() => {
+            this.hideLoading();
+            this.showToast(`Translated to ${this.languages[this.currentLanguage].name}`);
+            this.translationComplete = true;
+          }, 500); // Small delay to ensure translation has settled
+        }
+      }
+    });
+    
+    // Start observing the document for translation changes
+    translationObserver.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class']
+    });
   }
 
   showLoading() {
     this.isLoading = true;
+    this.translationComplete = false;
     this.trigger.classList.add('loading');
     this.loadingOverlay.classList.add('active');
   }
@@ -563,112 +640,200 @@ class MinimalTranslator {
   }
 
   changeLanguage(languageCode) {
-    if (!this.translationInitialized) {
-      setTimeout(() => this.changeLanguage(languageCode), 100);
-      return;
-    }
-
-    if (this.isLoading) return;
+    if (this.isLoading || languageCode === this.currentLanguage) return;
     
     this.showLoading();
     
+    // Update selection in menu
+    this.menu.querySelectorAll('.language-option').forEach(option => {
+      option.classList.toggle('active', option.dataset.code === languageCode);
+    });
+    
+    this.currentLanguage = languageCode;
+    this.menu.classList.remove('active');
+    localStorage.setItem('preferredLanguage', languageCode);
+
+    // Apply translation
+    this.applyTranslation(languageCode);
+    
+    // Set a timeout to ensure loading state is removed even if translation doesn't complete
     setTimeout(() => {
+      if (this.isLoading) {
+        this.hideLoading();
+      }
+    }, 5000);
+  }
+
+  applyTranslation(languageCode) {
+    // Force initialization if not already done
+    if (!window.google || !window.google.translate) {
+      this.loadGoogleTranslateScript();
+      setTimeout(() => this.applyTranslation(languageCode), 1000);
+      return;
+    }
+    
+    // Direct API access for better reliability
+    if (window.google && window.google.translate) {
       const select = document.querySelector('.goog-te-combo');
       if (select) {
         select.value = languageCode;
-        select.dispatchEvent(new Event('change'));
-      }
-      
-      this.currentLanguage = languageCode;
-      this.menu.classList.remove('active');
-
-      this.menu.querySelectorAll('.language-option').forEach(option => {
-        option.classList.toggle('active', option.dataset.code === languageCode);
-      });
-
-      localStorage.setItem('preferredLanguage', languageCode);
-
-      // Hide loading after a bit to ensure translation is done
-      setTimeout(() => {
-        this.hideLoading();
         
-        // Force hide Google elements after translation
-        const googleElements = document.querySelectorAll('.VIpgJd-ZVi9od-l4eHX-hSRGPd, .goog-te-banner-frame, .goog-te-menu-frame');
-        googleElements.forEach(element => {
-          element.style.display = 'none';
+        // Trigger change event
+        const event = new Event('change', {
+          bubbles: true,
+          cancelable: true,
         });
-        document.body.style.top = '0px';
-      }, 1000);
-    }, 300);
+        select.dispatchEvent(event);
+        
+        // Also trigger click for better compatibility
+        setTimeout(() => {
+          const event = new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            view: window
+          });
+          select.dispatchEvent(event);
+        }, 100);
+      }
+    }
   }
 
   resetToOriginal() {
-    if (!this.translationInitialized) {
-      setTimeout(() => this.resetToOriginal(), 100);
-      return;
-    }
-
     if (this.isLoading) return;
     
     this.showLoading();
     
-    setTimeout(() => {
-      // Find the iframe and restore original content
+    // Reset to original language
+    if (window.google && window.google.translate) {
+      // Try to find the iframe and restore original content
       const iframe = document.querySelector('iframe.goog-te-menu-frame');
       if (iframe) {
-        const restoreElement = iframe.contentDocument.querySelector('a.goog-te-menu2-item[id*="restore"]');
-        if (restoreElement) {
-          restoreElement.click();
+        try {
+          const restoreElement = iframe.contentDocument.querySelector('a.goog-te-menu2-item[id*="restore"]');
+          if (restoreElement) {
+            restoreElement.click();
+          } else {
+            // Alternative method
+            const domain = window.location.hostname;
+            document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=${domain}; path=/;`;
+            document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=.${domain}; path=/;`;
+            window.location.reload();
+          }
+        } catch (e) {
+          // If iframe access fails due to CORS, use cookie approach
+          const domain = window.location.hostname;
+          document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=${domain}; path=/;`;
+          document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=.${domain}; path=/;`;
+          window.location.reload();
         }
-      }
-
-      this.currentLanguage = this.originalLanguage;
-      this.menu.classList.remove('active');
-      localStorage.removeItem('preferredLanguage');
-
-      this.menu.querySelectorAll('.language-option').forEach(option => {
-        option.classList.toggle('active', option.dataset.code === this.originalLanguage);
-      });
-
-      // Hide loading after a bit to ensure translation is done
-      setTimeout(() => {
-        this.hideLoading();
+      } else {
+        // Try direct DOM manipulation
+        document.documentElement.classList.remove('translated-ltr', 'translated-rtl');
+        document.body.classList.remove('translated-ltr', 'translated-rtl');
         
-        // Force hide Google elements after reset
-        const googleElements = document.querySelectorAll('.VIpgJd-ZVi9od-l4eHX-hSRGPd, .goog-te-banner-frame, .goog-te-menu-frame');
-        googleElements.forEach(element => {
-          element.style.display = 'none';
+        // Reset all translated elements
+        const translated = document.querySelectorAll('.translated');
+        translated.forEach(el => {
+          el.classList.remove('translated');
         });
-        document.body.style.top = '0px';
-      }, 1000);
-    }, 300);
+        
+        
+        // Clear cookies
+        const domain = window.location.hostname;
+        document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=${domain}; path=/;`;
+        document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=.${domain}; path=/;`;
+        
+        setTimeout(() => {
+          window.location.reload(true);
+        }, 100);
+      }
+    } else {
+      // If Google Translate isn't loaded yet, just reload the page
+      window.location.reload(true);
+    }
+
+    this.currentLanguage = this.originalLanguage;
+    this.menu.classList.remove('active');
+    localStorage.removeItem('preferredLanguage');
+
+    this.menu.querySelectorAll('.language-option').forEach(option => {
+      option.classList.toggle('active', option.dataset.code === this.originalLanguage);
+    });
+
+    // If no reload happened, hide loading
+    setTimeout(() => {
+      if (this.isLoading) {
+        this.hideLoading();
+        this.showToast('Restored to original language');
+      }
+    }, 2000);
+  }
+
+  loadGoogleTranslateScript() {
+    if (document.querySelector('script[src*="translate.google.com/translate_a/element.js"]')) {
+      return; // Already loaded
+    }
+    
+    const script = document.createElement('script');
+    script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+    script.async = true;
+    script.onerror = () => {
+      this.hideLoading();
+      this.showToast('Failed to load translation service. Please try again.');
+    };
+    document.head.appendChild(script);
   }
 
   init() {
     this.injectStyles();
     this.createTranslatorUI();
     this.initializeTranslation();
-
-    // Load Google Translate script
-    const script = document.createElement('script');
-    script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-    script.async = true;
-    document.head.appendChild(script);
-
-    // Load saved language preference
+    this.loadGoogleTranslateScript();
+    
+    // Auto-detect user's preferred language
+    const browserLanguage = navigator.language || navigator.userLanguage;
+    const languageCode = browserLanguage.split('-')[0];
+    
+    // Use saved preference over browser language
     const savedLanguage = localStorage.getItem('preferredLanguage');
-    if (savedLanguage && savedLanguage !== this.originalLanguage) {
-      const checkInterval = setInterval(() => {
-        if (this.translationInitialized) {
-          this.changeLanguage(savedLanguage);
-          clearInterval(checkInterval);
-        }
-      }, 100);
+    if (savedLanguage) {
+      // We'll apply this after Google Translate is initialized
+      // (handled in initializeTranslation)
+    } else if (languageCode !== this.originalLanguage && this.languages[languageCode]) {
+      // If user's browser language differs from page language and we support it,
+      // offer to translate (after a short delay to let the page load)
+      setTimeout(() => {
+        this.showToast(`Would you like to translate to ${this.languages[languageCode].name}?`, 5000);
+      }, 2000);
     }
+    
+    // Additional event listeners for improved reliability
+    document.addEventListener('DOMContentLoaded', () => {
+      // Force hide Google elements after DOM is ready
+      const googleElements = document.querySelectorAll('.VIpgJd-ZVi9od-l4eHX-hSRGPd, .goog-te-banner-frame, .goog-te-menu-frame');
+      googleElements.forEach(element => {
+        element.style.display = 'none';
+      });
+      document.body.style.top = '0px';
+    });
+    
+    // Handle page visibility changes
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && this.translationComplete && this.currentLanguage !== this.originalLanguage) {
+        // Re-apply translation if page becomes visible again
+        // This helps with translation persistence
+        this.applyTranslation(this.currentLanguage);
+      }
+    });
   }
 }
 
 // Initialize translator when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    new MinimalTranslator();
+  });
+} else {
+  // DOM already loaded
   new MinimalTranslator();
-});
+}
