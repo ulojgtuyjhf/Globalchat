@@ -35,13 +35,24 @@
             }
           }
 
+          @keyframes ${this.uniqueId}-slideOut {
+            0% {
+              opacity: 1;
+              transform: translateY(0);
+            }
+            100% {
+              opacity: 0;
+              transform: translateY(30px);
+            }
+          }
+
           .${this.uniqueId}-btn {
             position: fixed;
             bottom: 100px; /* Updated: Moved the button a little bit higher */
             right: 20px;
-            width: 50px;
-            height: 50px;
-            background: #15202b; /* Twitter dark theme background color */
+            width: 40px; /* Slightly smaller */
+            height: 40px; /* Slightly smaller */
+            background: #ffffff; /* White background */
             color: #1da1f2; /* Twitter blue */
             border: 2px solid rgba(29, 161, 242, 0.2); /* Twitter blue with transparency */
             border-radius: 50%;
@@ -50,22 +61,13 @@
               0 4px 6px rgba(0,0,0,0.2),
               0 1px 3px rgba(0,0,0,0.15);
             z-index: 1000;
-            font-size: 24px;
+            font-size: 20px; /* Slightly smaller font size */
             font-weight: bold;
             display: none;
             align-items: center;
             justify-content: center;
             outline: none;
             opacity: 0;
-            background: linear-gradient(
-              120deg,
-              #15202b 0%,
-              #15202b 30%,
-              rgba(21, 32, 43, 0.8) 50%,
-              #15202b 70%,
-              #15202b 100%
-            );
-            background-size: 400% 100%;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             -webkit-tap-highlight-color: transparent;
           }
@@ -75,6 +77,11 @@
             animation: 
               ${this.uniqueId}-slideIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards,
               ${this.uniqueId}-shimmer 2s infinite linear;
+          }
+          
+          .${this.uniqueId}-btn.${this.uniqueId}-hidden {
+            animation: ${this.uniqueId}-slideOut 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            display: flex; /* Keep it visible during animation */
           }
           
           .${this.uniqueId}-btn:hover {
@@ -158,9 +165,13 @@
         if (distanceFromBottom > 200) {
           if (!button.classList.contains(`${this.uniqueId}-visible`)) {
             button.classList.add(`${this.uniqueId}-visible`);
+            button.classList.remove(`${this.uniqueId}-hidden`);
           }
         } else {
-          button.classList.remove(`${this.uniqueId}-visible`);
+          if (!button.classList.contains(`${this.uniqueId}-hidden`)) {
+            button.classList.add(`${this.uniqueId}-hidden`);
+            button.classList.remove(`${this.uniqueId}-visible`);
+          }
         }
       },
       
