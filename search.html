@@ -1,575 +1,662 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>moments</title>
-    <link rel="icon" type="image/png" href="https://firebasestorage.googleapis.com/v0/b/chatnot-e5b4e.firebasestorage.app/o/Black%20and%20Blue%20Initials%20Creative%20Logo_20250214_091517_0000.png?alt=media&token=e420af56-8bd5-4691-b246-b0485c30dccd">
-    <link rel="stylesheet" href="vid.css">
+    <title>Enhanced Chat Gallery</title>
     
-    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #15202b;
+            color: #fff;
+        }
+
+        .chat-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 0 60px 0;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            border-left: 1px solid #38444d;
+            border-right: 1px solid #38444d;
+        }
+
+        .message {
+            display: flex;
+            padding: 12px 16px;
+            margin-bottom: 0;
+            align-items: flex-start;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.3s ease forwards;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid #38444d;
+        }
+
+        .message:hover {
+            background-color: #192734;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .profile-pic {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            margin-right: 12px;
+            flex-shrink: 0;
+            object-fit: cover;
+        }
+
+        .message-bubble {
+            background-color: transparent;
+            border-radius: 0;
+            padding: 0;
+            max-width: calc(100% - 60px);
+            position: relative;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        @media (min-width: 768px) {
+            .message-bubble {
+                max-width: calc(100% - 60px);
+            }
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .username {
+            font-weight: 700;
+            color: #fff;
+            font-size: 15px;
+            margin-right: 4px;
+        }
+
+        .status-indicator {
+            display: none;
+        }
+
+        .media-wrapper {
+            width: 100%;
+            max-width: 100%;
+            margin: 10px 0;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #192734;
+            position: relative;
+        }
+
+        .media-wrapper.media-loading::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid #38444d;
+            border-top-color: #1da1f2;
+            transform: translate(-50%, -50%);
+            animation: spin 1s linear infinite;
+        }
+
+        .media-wrapper.media-loading {
+            min-height: 200px;
+        }
+
+        .post-media {
+            width: 100%;
+            max-width: 100%;
+            display: block;
+            border-radius: 16px;
+            transition: opacity 0.2s ease;
+        }
+
+        .post-video {
+            max-height: 80vh;
+            background: #000;
+        }
+
+        .reactions-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 12px;
+            padding-top: 4px;
+        }
+
+        .reaction {
+            background: transparent;
+            border-radius: 50px;
+            padding: 4px 8px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            color: #8899a6;
+            transition: all 0.2s ease;
+        }
+
+        .reaction:hover {
+            color: #1da1f2;
+        }
+
+        .reaction.user-reacted {
+            color: #1da1f2;
+        }
+
+        .loading-spinner {
+            width: 100%;
+            height: 80px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .spinner-inner {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .spinner-circle {
+            width: 30px;
+            height: 30px;
+            border: 2px solid #38444d;
+            border-top-color: #1da1f2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .emoji-picker {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            background: #1e2732;
+            border-radius: 12px;
+            padding: 10px;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            animation: fadeIn 0.2s ease;
+            border: 1px solid #38444d;
+        }
+
+        .emoji-option {
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 4px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .emoji-option:hover {
+            background-color: #2a3d4c;
+        }
+
+        .add-reaction {
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+            color: #8899a6;
+        }
+
+        .add-reaction:hover {
+            color: #1da1f2;
+            background-color: rgba(29, 161, 242, 0.1);
+        }
+
+        .timestamp {
+            color: #8899a6;
+            font-size: 14px;
+            margin-left: 4px;
+        }
+
+        .text-content {
+            color: #fff;
+            font-size: 15px;
+            line-height: 1.4;
+            margin-bottom: 8px;
+            word-wrap: break-word;
+        }
+
+        .header-space {
+            height: 0;
+        }
+
+        .error {
+            color: #e0245e;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
 </head>
 <body>
     <div class="chat-container" id="chat-container"></div>
     <div class="header-space"></div>
 
     <!-- Your existing JavaScript code remains the same -->
-    <script type="module" src="vid.js"></script>
-<script src="vitpre.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, query, orderBy, limit, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot, startAfter } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+const firebaseConfig = {
+    apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+    authDomain: "globalchat-2d669.firebaseapp.com",
+    projectId: "globalchat-2d669",
+    storageBucket: "globalchat-2d669.firebasestorage.app",
+    messagingSenderId: "178714711978",
+    appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
+};
 
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-<script>
-class NavigationHandler {
-    constructor(mediaViewerElement, options = {}) {
-        this.mediaViewer = mediaViewerElement;
-        this.options = {
-            animationDuration: 300,
-            exitAnimation: 'fade', // 'fade' | 'slide'
-            onBeforeExit: null,
-            onAfterExit: null,
-            ...options
-        };
-        
-        this.isOpen = true;
-        this.initialScrollPosition = window.scrollY;
-        
-        this.init();
-    }
+const MESSAGES_PER_PAGE = 20;
+let lastVisible = null;
+let loading = false;
+let realtimeUnsubscribe = null;
+let hasMoreMessages = true;
 
-    init() {
-        // Store the initial state in history
-        const state = { action: 'opened_viewer' };
-        history.pushState(state, '', window.location.href);
+const commonEmojis = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
-        // Handle back button and history changes
-        window.addEventListener('popstate', (event) => {
-            if (this.isOpen) {
-                this.handleExit();
+// Intersection Observer for media loading
+const mediaObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const mediaWrapper = entry.target;
+            const mediaElement = mediaWrapper.querySelector('img, video');
+            
+            if (mediaElement && mediaElement.dataset.src) {
+                mediaElement.src = mediaElement.dataset.src;
+                mediaElement.onload = () => {
+                    mediaWrapper.classList.remove('media-loading');
+                };
+                mediaElement.onerror = () => {
+                    mediaWrapper.classList.remove('media-loading');
+                    mediaWrapper.classList.add('media-error');
+                };
+                mediaObserver.unobserve(mediaWrapper);
             }
-        });
+        }
+    });
+}, {
+    rootMargin: '100px',
+    threshold: 0.1
+});
 
-        // Handle touch gestures
-        this.setupTouchHandling();
+// Scroll Observer for Infinite Loading
+const scrollObserver = new IntersectionObserver((entries) => {
+    const lastEntry = entries[0];
+    if (lastEntry.isIntersecting && hasMoreMessages && !loading) {
+        loadMessages(false);
+    }
+}, {
+    rootMargin: '200px',
+    threshold: 0.1
+});
+
+async function getUserProfile(userId) {
+    try {
+        const userDocRef = doc(db, 'users', userId);
+        const userDoc = await getDoc(userDocRef);
+        return userDoc.exists() ? userDoc.data() : null;
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        return null;
+    }
+}
+
+function formatTimestamp(timestamp) {
+    if (!timestamp) return '';
+    const date = timestamp.toDate();
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    
+    return date.toLocaleDateString();
+}
+
+async function toggleReaction(postId, emoji, userId) {
+    try {
+        const postRef = doc(db, 'posts', postId);
+        const postDoc = await getDoc(postRef);
         
-        // Handle hardware back button (Android)
-        if (window.navigator.userAgent.includes('Android')) {
-            document.addEventListener('backbutton', (e) => {
-                if (this.isOpen) {
-                    e.preventDefault();
-                    this.handleExit();
-                }
+        if (!postDoc.exists()) return;
+        
+        const reactions = postDoc.data().reactions || {};
+        const reactionUsers = reactions[emoji] || [];
+        
+        if (reactionUsers.includes(userId)) {
+            await updateDoc(postRef, {
+                [`reactions.${emoji}`]: arrayRemove(userId)
+            });
+        } else {
+            await updateDoc(postRef, {
+                [`reactions.${emoji}`]: arrayUnion(userId)
             });
         }
+    } catch (error) {
+        console.error('Error toggling reaction:', error);
     }
+}
 
-    setupTouchHandling() {
-        let startY = 0;
-        let currentY = 0;
-        let isDragging = false;
+function createEmojiPicker(postId, userId) {
+    const picker = document.createElement('div');
+    picker.className = 'emoji-picker';
+    
+    commonEmojis.forEach(emoji => {
+        const option = document.createElement('div');
+        option.className = 'emoji-option';
+        option.textContent = emoji;
+        option.onclick = (e) => {
+            e.stopPropagation();
+            toggleReaction(postId, emoji, userId);
+            picker.remove();
+        };
+        picker.appendChild(option);
+    });
+    
+    return picker;
+}
 
-        this.mediaViewer.addEventListener('touchstart', (e) => {
-            startY = e.touches[0].clientY;
-            isDragging = true;
-        });
+function renderReactions(reactions = {}, postId, userId) {
+    const container = document.createElement('div');
+    container.className = 'reactions-container';
+    
+    Object.entries(reactions).forEach(([emoji, users]) => {
+        if (users.length > 0) {
+            const reaction = document.createElement('div');
+            reaction.className = 'reaction';
+            reaction.classList.toggle('user-reacted', users.includes(userId));
+            reaction.innerHTML = `
+                ${emoji}
+                <span class="reaction-count">${users.length}</span>
+            `;
+            reaction.onclick = () => toggleReaction(postId, emoji, userId);
+            container.appendChild(reaction);
+        }
+    });
+    
+    const addReaction = document.createElement('div');
+    addReaction.className = 'add-reaction';
+    addReaction.innerHTML = '😊';
+    addReaction.onclick = (e) => {
+        e.stopPropagation();
+        const existing = document.querySelector('.emoji-picker');
+        if (existing) existing.remove();
+        
+        const picker = createEmojiPicker(postId, userId);
+        addReaction.appendChild(picker);
+        
+        document.addEventListener('click', () => picker.remove(), { once: true });
+    };
+    
+    container.appendChild(addReaction);
+    return container;
+}
 
-        this.mediaViewer.addEventListener('touchmove', (e) => {
-            if (!isDragging) return;
-            
-            currentY = e.touches[0].clientY;
-            const deltaY = currentY - startY;
+function createMediaElement(post) {
+    if (!post.mediaUrl) return null;
 
-            // Only allow dragging down
-            if (deltaY > 0) {
-                this.mediaViewer.style.transform = `translateY(${deltaY}px)`;
-                this.mediaViewer.style.opacity = 1 - (deltaY / window.innerHeight);
-            }
-        });
+    const mediaWrapper = document.createElement('div');
+    mediaWrapper.className = 'media-wrapper media-loading';
 
-        this.mediaViewer.addEventListener('touchend', () => {
-            if (!isDragging) return;
-            
-            const deltaY = currentY - startY;
-            isDragging = false;
-
-            // If dragged more than 30% of screen height, close the viewer
-            if (deltaY > window.innerHeight * 0.3) {
-                this.handleExit();
-            } else {
-                // Reset position with animation
-                this.mediaViewer.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
-                this.mediaViewer.style.transform = 'translateY(0)';
-                this.mediaViewer.style.opacity = '1';
-                
-                setTimeout(() => {
-                    this.mediaViewer.style.transition = '';
-                }, 300);
-            }
-        });
-    }
-
-    async handleExit() {
-        if (typeof this.options.onBeforeExit === 'function') {
-            await this.options.onBeforeExit();
+    const isVideo = post.mediaType?.startsWith('video/') || post.mediaUrl?.match(/\.(mp4|webm|ogg)$/i);
+    
+    if (isVideo) {
+        const video = document.createElement('video');
+        video.className = 'post-media post-video';
+        video.controls = false;
+        video.preload = 'none';
+        video.autoplay = true;
+        video.muted = true;
+        video.dataset.src = post.mediaUrl;
+        video.playsInline = true;
+        
+        if (post.thumbnailUrl) {
+            video.poster = post.thumbnailUrl;
         }
 
-        this.isOpen = false;
+        video.onloadeddata = () => {
+            mediaWrapper.classList.remove('media-loading');
+        };
 
-        // Apply exit animation
-        switch (this.options.exitAnimation) {
-            case 'slide':
-                this.mediaViewer.style.transition = `transform ${this.options.animationDuration}ms ease-out, opacity ${this.options.animationDuration}ms ease-out`;
-                this.mediaViewer.style.transform = 'translateY(100%)';
-                this.mediaViewer.style.opacity = '0';
-                break;
-            case 'fade':
-            default:
-                this.mediaViewer.style.transition = `opacity ${this.options.animationDuration}ms ease-out`;
-                this.mediaViewer.style.opacity = '0';
-                break;
-        }
-
-        // Wait for animation to complete
-        await new Promise(resolve => setTimeout(resolve, this.options.animationDuration));
-
-        // Restore scroll position
-        window.scrollTo(0, this.initialScrollPosition);
-
-        // Clean up
-        if (typeof this.options.onAfterExit === 'function') {
-            await this.options.onAfterExit();
-        }
-
-        // Remove the viewer from DOM
-        this.mediaViewer.remove();
+        mediaWrapper.appendChild(video);
+    } else {
+        const img = document.createElement('img');
+        img.className = 'post-media post-image';
+        img.dataset.src = post.mediaUrl;
+        img.alt = "Posted image";
+        
+        mediaWrapper.appendChild(img);
     }
 
-    // Public method to programmatically close the viewer
-    close() {
-        if (this.isOpen) {
-            history.back();
+    mediaObserver.observe(mediaWrapper);
+    return mediaWrapper;
+}
+
+async function createMessageElement(post, userId) {
+    const userProfile = await getUserProfile(post.userId);
+    const username = userProfile?.displayName || `User ${post.userId.slice(0, 4)}`;
+    const profilePic = userProfile?.photoURL || "/api/placeholder/40/40";
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message';
+    messageDiv.dataset.postId = post.id;
+    
+    const messageContent = `
+        <img src="${profilePic}" alt="Profile" class="profile-pic">
+        <div class="message-bubble">
+            <div class="message-header">
+                <div class="status-indicator"></div>
+                <span class="username">${username}</span>
+                <span class="timestamp">${formatTimestamp(post.createdAt)}</span>
+            </div>
+            <div class="message-content">
+                ${post.text ? `<p class="text-content">${post.text}</p>` : ''}
+            </div>
+        </div>
+    `;
+    
+    messageDiv.innerHTML = messageContent;
+    
+    if (post.mediaUrl) {
+        const mediaElement = createMediaElement(post);
+        if (mediaElement) {
+            messageDiv.querySelector('.message-content').appendChild(mediaElement);
+        }
+    }
+
+    const messageBubble = messageDiv.querySelector('.message-bubble');
+    messageBubble.appendChild(renderReactions(post.reactions, post.id, userId));
+
+    return messageDiv;
+}
+
+function updateMessage(post, userId) {
+    const existingMessage = document.querySelector(`.message[data-post-id="${post.id}"]`);
+    if (existingMessage) {
+        const messageBubble = existingMessage.querySelector('.message-bubble');
+        const oldReactions = messageBubble.querySelector('.reactions-container');
+        if (oldReactions) {
+            oldReactions.replaceWith(renderReactions(post.reactions, post.id, userId));
         }
     }
 }
 
-// Example usage:
-document.addEventListener('DOMContentLoaded', () => {
-    const mediaViewers = document.querySelectorAll('.custom-media-viewer');
-    mediaViewers.forEach(viewer => {
-        new NavigationHandler(viewer, {
-            animationDuration: 300,
-            exitAnimation: 'slide',
-            onBeforeExit: async () => {
-                // Custom logic before exit
-                console.log('Preparing to exit...');
-            },
-            onAfterExit: async () => {
-                // Custom cleanup after exit
-                console.log('Viewer closed successfully');
-            }
-        });
-    });
-});
-</script>
-<script>
-class EnhancedNavigationHandler {
-    constructor(options = {}) {
-        this.options = {
-            scrollContainer: '.chat-container',
-            messageSelector: '.message',
-            confirmExitMessage: 'Press back again to exit',
-            confirmationDuration: 2000,
-            scrollDuration: 500,
-            ...options
-        };
+function createLoadingSpinner() {
+    const spinner = document.createElement('div');
+    spinner.className = 'loading-spinner';
+    spinner.innerHTML = `
+        <div class="spinner-inner">
+            <div class="spinner-circle"></div>
+        </div>
+    `;
+    return spinner;
+}
 
-        this.container = document.querySelector(this.options.scrollContainer);
-        this.backPressCount = 0;
-        this.lastBackPress = 0;
-        this.isFullscreenMedia = false;
-        this.confirmToast = null;
+async function loadMessages(initial = true) {
+    if (loading || (!initial && !hasMoreMessages)) return;
+    loading = true;
+
+    const container = document.getElementById('chat-container');
+    const loadingSpinner = createLoadingSpinner();
+    
+    if (initial) {
+        container.innerHTML = '';
+        container.appendChild(loadingSpinner);
         
-        this.init();
+        if (realtimeUnsubscribe) {
+            realtimeUnsubscribe();
+        }
+    } else {
+        container.appendChild(loadingSpinner);
     }
 
-    init() {
-        // Handle hardware back button (Android)
-        if (window.navigator.userAgent.includes('Android')) {
-            document.addEventListener('backbutton', (e) => {
-                e.preventDefault();
-                this.handleBackPress();
-            });
+    try {
+        let messagesQuery = query(
+            collection(db, 'posts'),
+            orderBy('createdAt', 'desc'),
+            limit(MESSAGES_PER_PAGE)
+        );
+
+        if (!initial && lastVisible) {
+            messagesQuery = query(
+                collection(db, 'posts'),
+                orderBy('createdAt', 'desc'),
+                startAfter(lastVisible),
+                limit(MESSAGES_PER_PAGE)
+            );
         }
 
-        // Handle browser back button
-        window.addEventListener('popstate', (e) => {
-            e.preventDefault();
-            this.handleBackPress();
-            // Push a new state to maintain control
-            history.pushState({ page: 'chat' }, '', window.location.href);
-        });
-
-        // Initialize history state
-        history.pushState({ page: 'chat' }, '', window.location.href);
-
-        // Reset back press count on scroll
-        this.container.addEventListener('scroll', () => {
-            if (this.backPressCount === 1 && 
-                this.container.scrollTop > 0) {
-                this.backPressCount = 0;
-            }
-        });
-    }
-
-    createToast(message) {
-        if (this.confirmToast) {
-            this.confirmToast.remove();
+        const snapshot = await getDocs(messagesQuery);
+        
+        if (snapshot.empty || snapshot.docs.length < MESSAGES_PER_PAGE) {
+            hasMoreMessages = false;
         }
 
-        const toast = document.createElement('div');
-        toast.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 24px;
-            font-size: 14px;
-            z-index: 1000;
-            animation: fadeInUp 0.3s ease;
-        `;
-
-        toast.innerHTML = message;
-        document.body.appendChild(toast);
-        this.confirmToast = toast;
-
-        setTimeout(() => {
-            toast.style.animation = 'fadeOut 0.3s ease forwards';
-            setTimeout(() => toast.remove(), 300);
-            this.confirmToast = null;
-        }, this.options.confirmationDuration);
-    }
-
-    smoothScroll(element, target, duration) {
-        const start = element.scrollTop;
-        const distance = target - start;
-        const startTime = performance.now();
-
-        const easeInOutQuad = (t) => {
-            return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-        };
-
-        const animate = (currentTime) => {
-            const timeElapsed = currentTime - startTime;
-            const progress = Math.min(timeElapsed / duration, 1);
-            const eased = easeInOutQuad(progress);
-            
-            element.scrollTop = start + (distance * eased);
-
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            }
-        };
-
-        requestAnimationFrame(animate);
-    }
-
-    async handleBackPress() {
-        const now = Date.now();
-
-        // Reset count if too much time has passed
-        if (now - this.lastBackPress > this.options.confirmationDuration) {
-            this.backPressCount = 0;
-        }
-        this.lastBackPress = now;
-
-        // If in fullscreen media view, close it first
-        if (this.isFullscreenMedia) {
-            this.closeFullscreenMedia();
-            this.backPressCount = 0;
+        if (snapshot.empty) {
+            loadingSpinner.remove();
+            loading = false;
             return;
         }
 
-        // Handle back press based on count
-        switch (this.backPressCount) {
-            case 0:
-                // First back: Scroll to top with animation
-                if (this.container.scrollTop > 0) {
-                    this.smoothScroll(this.container, 0, this.options.scrollDuration);
-                    this.backPressCount++;
-                } else {
-                    // Already at top, increment count
-                    this.backPressCount++;
-                    this.handleBackPress();
-                }
-                break;
+        lastVisible = snapshot.docs[snapshot.docs.length - 1];
 
-            case 1:
-                // Second back: Show confirmation
-                this.createToast(this.options.confirmExitMessage);
-                this.backPressCount++;
-                break;
-
-            case 2:
-                // Third back: Exit
-                this.exitApp();
-                break;
-        }
-    }
-
-    closeFullscreenMedia() {
-        // Add your existing media close animation logic here
-        this.isFullscreenMedia = false;
-        // Trigger any necessary cleanup or animations
-    }
-
-    exitApp() {
-        // Animate out
-        document.body.style.animation = 'fadeOut 0.3s ease forwards';
-        
-        // Clean up and exit
-        setTimeout(() => {
-            // Remove all event listeners
-            this.cleanup();
+        if (initial) {
+            container.innerHTML = '';
             
-            // If in a standalone web app or PWA
-            if (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches) {
-                window.close();
-            } else {
-                // For browser environment
-                history.go(-history.length);
-                window.location.href = 'login.html';
-            }
-        }, 300);
-    }
+            realtimeUnsubscribe = onSnapshot(
+                query(collection(db, 'posts'), orderBy('createdAt', 'desc')),
+                (snapshot) => {
+                    const currentUser = auth.currentUser;
+                    snapshot.docChanges().forEach((change) => {
+                        const post = { id: change.doc.id, ...change.doc.data() };
+                        if (change.type === 'modified') {
+                            updateMessage(post, currentUser.uid);
+                        }
+                    });
+                }
+            );
+        }
 
-    cleanup() {
-        // Remove event listeners and clean up resources
-        if (this.confirmToast) {
-            this.confirmToast.remove();
+        const currentUser = auth.currentUser;
+        const fragment = document.createDocumentFragment();
+        
+        for (const doc of snapshot.docs) {
+            const post = { id: doc.id, ...doc.data() };
+            const messageElement = await createMessageElement(post, currentUser.uid);
+            fragment.appendChild(messageElement);
+        }
+
+        loadingSpinner.remove();
+        container.appendChild(fragment);
+
+        if (hasMoreMessages) {
+            const lastMessage = container.lastElementChild;
+            if (lastMessage) {
+                scrollObserver.observe(lastMessage);
+            }
+        }
+
+    } catch (error) {
+        console.error('Messages loading error:', error);
+        loadingSpinner.remove();
+        if (initial) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = 'Error loading messages';
+            container.appendChild(errorDiv);
         }
     }
 
-    // Public method to set fullscreen media state
-    setFullscreenMedia(isFullscreen) {
-        this.isFullscreenMedia = isFullscreen;
-    }
+    loading = false;
 }
 
-// Add necessary CSS
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translate(-50%, 20px);
-        }
-        to {
-            opacity: 1;
-            transform: translate(-50%, 0);
-        }
+// Initialize the chat
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        loadMessages(true);
+    } else {
+        window.location.href = 'login.html';
     }
-
-    @keyframes fadeOut {
-        to {
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
-
-// Initialize the handler
-const navigationHandler = new EnhancedNavigationHandler({
-    scrollContainer: '.chat-container',
-    confirmExitMessage: 'Press back again to exit the app',
-    confirmationDuration: 2000,
-    scrollDuration: 500
 });
 
-// Export for use in other scripts
-window.navigationHandler = navigationHandler;
-</script>
-
-<style>
-  .floating-action-button {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: #e0e5ec;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow:
-      6px 6px 12px #b8bec4,
-      -6px -6px 12px #ffffff;
-    z-index: 1000;
-    transform: translateY(0);
-    opacity: 1;
-  }
-
-  .floating-action-button:hover {
-    transform: translateY(-2px);
-    box-shadow:
-      8px 8px 16px #b8bec4,
-      -8px -8px 16px #ffffff;
-  }
-
-  .floating-action-button.hidden {
-    transform: translateY(100px);
-    opacity: 0;
-  }
-
-  .floating-action-button::before,
-  .floating-action-button::after {
-    content: '';
-    position: absolute;
-    background: #2d3436;
-    border-radius: 2px;
-    transition: all 0.3s ease;
-  }
-
-  .floating-action-button::before {
-    width: 20px;
-    height: 2px;
-  }
-
-  .floating-action-button::after {
-    width: 2px;
-    height: 20px;
-  }
-
-  /* Modal styles */
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1001;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-  }
-
-  .modal-overlay.active {
-    opacity: 1;
-    visibility: visible;
-  }
-
-  .modal-content {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    width: 80%;
-    height: 80%;
-    max-width: 800px;
-    max-height: 600px;
-    overflow: hidden;
-    transform: scale(0.8);
-    opacity: 0;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-  }
-
-  .modal-overlay.active .modal-content {
-    transform: scale(1);
-    opacity: 1;
-  }
-
-  /* Iframe styles */
-  .modal-content iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-    border-radius: 8px;
-  }
-</style>
-
-<script>
-  // Wrap everything in a self-executing function to avoid global scope pollution
-  (function() {
-    // Create and append the floating action button
-    const fab = document.createElement('div');
-    fab.className = 'floating-action-button';
-    document.body.appendChild(fab);
-
-    // Create modal overlay and content
-    const modalOverlay = document.createElement('div');
-    modalOverlay.className = 'modal-overlay';
-
-    const modalContent = document.createElement('div');
-    modalContent.className = 'modal-content';
-
-    // Create iframe to load upload.html
-    const iframe = document.createElement('iframe');
-    iframe.src = ''; // Initially empty
-    modalContent.appendChild(iframe);
-
-    modalOverlay.appendChild(modalContent);
-    document.body.appendChild(modalOverlay);
-
-    // Variables for scroll handling
-    let lastScrollPosition = window.pageYOffset;
-    let ticking = false;
-
-    // Handle scroll events
-    function handleScroll() {
-      const currentScrollPosition = window.pageYOffset;
-
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          // Show/hide based on scroll direction
-          if (currentScrollPosition > lastScrollPosition) {
-            // Scrolling down - hide
-            fab.classList.add('hidden');
-          } else {
-            // Scrolling up - show
-            fab.classList.remove('hidden');
-          }
-
-          lastScrollPosition = currentScrollPosition;
-          ticking = false;
-        });
-
-        ticking = true;
-      }
+// Clean up
+window.addEventListener('unload', () => {
+    if (realtimeUnsubscribe) {
+        realtimeUnsubscribe();
     }
-
-    // Handle button click to open modal
-    fab.addEventListener('click', () => {
-      // Set iframe source to upload.html when opening the modal
-      iframe.src = 'upload.html';
-      modalOverlay.classList.add('active');
-    });
-
-    // Handle closing the modal
-    function closeModal() {
-      // Unload the iframe content by setting src to an empty string
-      iframe.src = '';
-      modalOverlay.classList.remove('active');
-    }
-
-    // Close modal when clicking outside the modal content
-    modalOverlay.addEventListener('click', (e) => {
-      if (e.target === modalOverlay) {
-        closeModal();
-      }
-    });
-
-    // Add scroll event listener
-    window.addEventListener('scroll', handleScroll, { passive: true });
-  })();
-</script>
-
+    mediaObserver.disconnect();
+    scrollObserver.disconnect();
+});
+    </script>
+ 
+  
 </body>
 </html>
