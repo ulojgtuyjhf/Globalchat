@@ -642,180 +642,160 @@
 </script>
 
 <script>
-  // Prevent any content from showing before splash screen
+  // Immediately hide everything to prevent flickering
   document.documentElement.style.visibility = 'hidden';
   
-  document.addEventListener('DOMContentLoaded', () => {
-    // Ensure everything is hidden until splash screen is ready
-    document.documentElement.style.visibility = 'visible';
-    
-    // Completely prevent form from showing
-    const authContainer = document.querySelector('.auth-container');
-    authContainer.style.opacity = '0';
-    authContainer.style.pointerEvents = 'none';
-    authContainer.style.position = 'fixed';
-    authContainer.style.top = '-100%';
-    
-    // Create splash screen container
-    const splashScreen = document.createElement('div');
-    splashScreen.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background-color: white;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-        opacity: 1;
-        transition: opacity 0.5s ease-in-out;
-    `;
-    
-    // Create content wrapper
-    const contentWrapper = document.createElement('div');
-    contentWrapper.style.cssText = `
-        text-align: center;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    `;
-    
-    // Create logo container (easy to replace)
-    const logoContainer = document.createElement('div');
-    logoContainer.style.cssText = `
-        width: 150px;
-        height: 150px;
-        margin-bottom: 20px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    `;
-    
-    // Placeholder logo (can be easily replaced)
-    const logoPlaceholder = document.createElement('div');
-    logoPlaceholder.id = 'splash-screen-logo';
-    logoPlaceholder.style.cssText = `
-        width: 120px;
-        height: 120px;
-        background: black;
-        border-radius: 20px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    `;
-    
-    const logoText = document.createElement('span');
-    logoText.textContent = 'N';
-    logoText.style.cssText = `
-        font-size: 48px;
-        font-weight: bold;
-        color: white;
-    `;
-    logoPlaceholder.appendChild(logoText);
-    logoContainer.appendChild(logoPlaceholder);
-    
-    // Create company name
-    const companyName = document.createElement('h1');
-    companyName.textContent = 'nmedea'; // Your company name here
-    companyName.style.cssText = `
-        font-size: 28px;
-        font-weight: 600;
-        color: black;
-        margin-bottom: 20px;
-        letter-spacing: 1px;
-    `;
-    
-    // Create three-dot loading animation
-    const loadingDots = document.createElement('div');
-    loadingDots.style.cssText = `
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    `;
-    
-    // Create three individual dots
-    const dots = [1, 2, 3].map(() => {
-      const dot = document.createElement('div');
-      dot.style.cssText = `
-            width: 10px;
-            height: 10px;
-            background: black;
-            border-radius: 50%;
-            margin: 0 5px;
-            opacity: 0.3;
-            animation: dotPulse 1.5s infinite ease-in-out;
-        `;
-      return dot;
-    });
-    
-    // Stagger the animation of dots
-    dots.forEach((dot, index) => {
-      dot.style.animationDelay = `${index * 0.5}s`;
-      loadingDots.appendChild(dot);
-    });
-    
-    // Append elements
-    contentWrapper.appendChild(logoContainer);
-    contentWrapper.appendChild(companyName);
-    contentWrapper.appendChild(loadingDots);
-    splashScreen.appendChild(contentWrapper);
-    
-    // Add to body immediately
-    document.body.insertBefore(splashScreen, document.body.firstChild);
-    
-    // Add styles
-    const styles = document.createElement('style');
-    styles.textContent = `
-        @keyframes dotPulse {
-            0%, 100% { opacity: 0.3; transform: scale(0.8); }
-            50% { opacity: 1; transform: scale(1); }
-        }
-    `;
-    document.head.appendChild(styles);
-    
-    // Remove splash screen and show form
-    const removeSplashScreen = () => {
-      splashScreen.style.opacity = '0';
-      
-      setTimeout(() => {
-        document.body.removeChild(splashScreen);
-        
-        // Restore the auth container
-        authContainer.style.position = 'static';
-        authContainer.style.top = '0';
-        authContainer.style.opacity = '1';
-        authContainer.style.pointerEvents = 'auto';
-      }, 500);
-    };
-    
-    // Remove after 6 seconds
-    setTimeout(removeSplashScreen, 11000);
-    
-    // Expose a method to easily replace the logo
-    window.replaceSplashScreenLogo = (logoUrl) => {
-      const logoContainer = document.getElementById('splash-screen-logo');
-      if (logoContainer) {
-        // Clear existing content
-        logoContainer.innerHTML = '';
-        
-        // Create and append new logo image
-        const logoImage = document.createElement('img');
-        logoImage.src = logoUrl;
-        logoImage.style.cssText = `
-                max-width: 100%;
-                max-height: 100%;
-                object-fit: contain;
-            `;
-        
-        logoContainer.appendChild(logoImage);
+  // Create splash screen container immediately
+  const splashScreen = document.createElement('div');
+  splashScreen.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #f9f9f9; /* Twitter dark background */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      opacity: 1;
+      transition: opacity 0.5s ease-in-out;
+  `;
+  
+  // Create content wrapper
+  const contentWrapper = document.createElement('div');
+  contentWrapper.style.cssText = `
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+  `;
+  
+  // Create logo container (easy to replace)
+  const logoContainer = document.createElement('div');
+  logoContainer.style.cssText = `
+      width: 150px;
+      height: 150px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+  `;
+  
+  // Placeholder logo (can be easily replaced)
+  const logoPlaceholder = document.createElement('div');
+  logoPlaceholder.id = 'splash-screen-logo';
+  logoPlaceholder.style.cssText = `
+      width: 120px;
+      height: 120px;
+      background: #1da1f2; /* Twitter blue */
+      border-radius: 50%; /* Circular logo */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  `;
+  
+  const logoText = document.createElement('span');
+  logoText.textContent = 'N';
+  logoText.style.cssText = `
+      font-size: 48px;
+      font-weight: bold;
+      color: white;
+  `;
+  logoPlaceholder.appendChild(logoText);
+  logoContainer.appendChild(logoPlaceholder);
+  
+  // Create company name
+  const companyName = document.createElement('h1');
+  companyName.textContent = 'nmedea'; // Your company name here
+  companyName.style.cssText = `
+      font-size: 28px;
+      font-weight: 600;
+      color: #1da1f2; /* White text */
+      margin-bottom: 20px;
+      letter-spacing: 1px;
+  `;
+  
+  // Create Twitter-style loading spinner
+  const loadingSpinner = document.createElement('div');
+  loadingSpinner.style.cssText = `
+      width: 40px;
+      height: 40px;
+      border: 4px solid #1da1f2; /* Twitter blue */
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+  `;
+  
+  // Append elements
+  contentWrapper.appendChild(logoContainer);
+  contentWrapper.appendChild(companyName);
+  contentWrapper.appendChild(loadingSpinner);
+  splashScreen.appendChild(contentWrapper);
+  
+  // Add to body immediately
+  document.body.insertBefore(splashScreen, document.body.firstChild);
+  
+  // Add styles for the spinner animation
+  const styles = document.createElement('style');
+  styles.textContent = `
+      @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
       }
-    };
-  });
-</script> 
+  `;
+  document.head.appendChild(styles);
+  
+  // Show the splash screen immediately
+  document.documentElement.style.visibility = 'visible';
+  
+  // Completely prevent form from showing
+  const authContainer = document.querySelector('.auth-container');
+  authContainer.style.opacity = '0';
+  authContainer.style.pointerEvents = 'none';
+  authContainer.style.position = 'fixed';
+  authContainer.style.top = '-100%';
+  
+  // Remove splash screen and show form
+  const removeSplashScreen = () => {
+    splashScreen.style.opacity = '0';
+    
+    setTimeout(() => {
+      document.body.removeChild(splashScreen);
+      
+      // Restore the auth container
+      authContainer.style.position = 'static';
+      authContainer.style.top = '0';
+      authContainer.style.opacity = '1';
+      authContainer.style.pointerEvents = 'auto';
+    }, 500);
+  };
+  
+  // Remove after 6 seconds
+  setTimeout(removeSplashScreen, 6000);
+  
+  // Expose a method to easily replace the logo
+  window.replaceSplashScreenLogo = (logoUrl) => {
+    const logoContainer = document.getElementById('splash-screen-logo');
+    if (logoContainer) {
+      // Clear existing content
+      logoContainer.innerHTML = '';
+      
+      // Create and append new logo image
+      const logoImage = document.createElement('img');
+      logoImage.src = logoUrl;
+      logoImage.style.cssText = `
+              max-width: 100%;
+              max-height: 100%;
+              object-fit: contain;
+          `;
+      
+      logoContainer.appendChild(logoImage);
+    }
+  };
+</script>
 
 <script>
   if (window !== window.top) {
