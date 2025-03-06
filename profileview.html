@@ -1,503 +1,1167 @@
+
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Profile</title>
+    <title>Profile Settings</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
-    <link rel="stylesheet" href="profile.css">
-    <link rel="icon" type="image/png" href="https://firebasestorage.googleapis.com/v0/b/chatnot-e5b4e.firebasestorage.app/o/Black%20and%20Blue%20Initials%20Creative%20Logo_20250214_091517_0000.png?alt=media&token=e420af56-8bd5-4691-b246-b0485c30dccd">
-    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+        :root {
+            --twitter-bg: #ffffff;
+            --twitter-card: #f7f9fa;
+            --twitter-line: #ebeef0;
+            --twitter-blue: #1da1f2;
+            --twitter-light-blue: #1a91da;
+            --twitter-text: #14171a;
+            --twitter-secondary-text: #657786;
+            --twitter-border: #ebeef0;
+            --twitter-hover: rgba(29, 161, 242, 0.1);
+            --twitter-button: #1da1f2;
+            --twitter-button-hover: #1a91da;
+            --twitter-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--twitter-bg);
+            color: var(--twitter-text);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: var(--twitter-bg);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid var(--twitter-line);
+            position: sticky;
+            top: 0;
+            background: var(--twitter-bg);
+            z-index: 10;
+        }
+
+        .back-button {
+            color: var(--twitter-blue);
+            font-size: 20px;
+            margin-right: 20px;
+            cursor: pointer;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .settings-list {
+            padding: 10px 0;
+        }
+
+        .settings-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid var(--twitter-line);
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .settings-item:hover {
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        .settings-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--twitter-blue);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            color: white;
+        }
+
+        .settings-icon i {
+            font-size: 15px;
+        }
+
+        .settings-item-content {
+            flex-grow: 1;
+        }
+
+        .settings-item-title {
+            font-weight: bold;
+            color: var(--twitter-text);
+            margin-bottom: 3px;
+        }
+
+        .settings-item-subtitle {
+            color: var(--twitter-secondary-text);
+            font-size: 14px;
+        }
+
+        .settings-item-right {
+            color: var(--twitter-secondary-text);
+            margin-left: 10px;
+        }
+
+        .profile-header {
+            padding: 15px;
+            border-bottom: 1px solid var(--twitter-line);
+            background: var(--twitter-bg);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .profile-header.sticky {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            box-shadow: var(--twitter-shadow);
+        }
+
+        .profile-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .profile-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--twitter-blue);
+            margin-right: 15px;
+            cursor: pointer;
+        }
+
+        .profile-name-container {
+            flex-grow: 1;
+        }
+
+        .profile-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--twitter-text);
+            margin-bottom: 3px;
+        }
+
+        .profile-email {
+            color: var(--twitter-secondary-text);
+            font-size: 14px;
+            display: none;
+        }
+
+        .profile-stats {
+            display: flex;
+            margin-top: 15px;
+        }
+
+        .profile-stat {
+            margin-right: 20px;
+            cursor: pointer;
+        }
+
+        .profile-stat-number {
+            font-weight: bold;
+            color: var(--twitter-text);
+        }
+
+        .profile-stat-label {
+            color: var(--twitter-secondary-text);
+            font-size: 13px;
+        }
+
+        /* Edit Profile Page */
+        .edit-profile-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--twitter-bg);
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .edit-profile-container.active {
+            transform: translateX(0);
+        }
+
+        .edit-profile-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            border-bottom: 1px solid var(--twitter-line);
+        }
+
+        .edit-profile-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .cancel-button, .save-button {
+            background: none;
+            border: none;
+            color: var(--twitter-blue);
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .save-button {
+            background: var(--twitter-blue);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+
+        .save-button:hover {
+            background: var(--twitter-light-blue);
+        }
+
+        .edit-profile-image-container {
+            position: relative;
+            width: 100%;
+            height: 160px;
+            background: var(--twitter-card);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .edit-profile-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--twitter-bg);
+        }
+
+        .edit-profile-camera-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .edit-profile-form {
+            padding: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            color: var(--twitter-secondary-text);
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            background: var(--twitter-card);
+            border: 1px solid var(--twitter-line);
+            border-radius: 5px;
+            color: var(--twitter-text);
+            font-size: 16px;
+        }
+
+        .form-input:focus {
+            border-color: var(--twitter-blue);
+            outline: none;
+        }
+
+        .form-textarea {
+            resize: none;
+            height: 100px;
+        }
+
+        .character-count {
+            text-align: right;
+            color: var(--twitter-secondary-text);
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: #ccd6dd;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .toggle-switch::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+
+        .toggle-switch.active {
+            background: var(--twitter-blue);
+        }
+
+        .toggle-switch.active::before {
+            transform: translateX(26px);
+        }
+
+        /* Followers Modal */
+        .follow-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--twitter-bg);
+            z-index: 2000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .follow-screen.active {
+            transform: translateX(0);
+        }
+
+        .follow-header {
+            padding: 15px;
+            border-bottom: 1px solid var(--twitter-line);
+            display: flex;
+            align-items: center;
+            background: var(--twitter-bg);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .follow-back {
+            margin-right: 20px;
+            font-size: 20px;
+            color: var(--twitter-blue);
+            cursor: pointer;
+        }
+
+        .follow-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .follow-body {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .user-list-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid var(--twitter-line);
+            transition: background 0.2s ease;
+        }
+
+        .user-list-item:hover {
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        .user-list-item img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 15px;
+            object-fit: cover;
+            border: 1px solid var(--twitter-line);
+        }
+
+        .user-list-item-info {
+            flex-grow: 1;
+        }
+
+        .user-list-item-name {
+            font-weight: bold;
+            color: var(--twitter-text);
+        }
+
+        .user-list-item-username {
+            color: var(--twitter-secondary-text);
+            font-size: 14px;
+        }
+
+        .follow-button {
+            background: var(--twitter-blue);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s ease;
+        }
+
+        .follow-button:hover {
+            background: var(--twitter-light-blue);
+        }
+
+        .following-button {
+            background: transparent;
+            color: var(--twitter-text);
+            border: 1px solid var(--twitter-border);
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .following-button:hover {
+            background: rgba(224, 36, 94, 0.1);
+            color: #e0245e;
+            border-color: rgba(224, 36, 94, 0.2);
+        }
+
+        .following-button:hover .follow-text {
+            display: none;
+        }
+
+        .following-button:hover .unfollow-text {
+            display: inline;
+        }
+
+        .unfollow-text {
+            display: none;
+            color: #e0245e;
+        }
+
+        .no-results {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--twitter-secondary-text);
+            font-size: 16px;
+        }
+
+        .dark-mode {
+            --twitter-bg: #15202b;
+            --twitter-card: #192734;
+            --twitter-line: #38444d;
+            --twitter-text: #ffffff;
+            --twitter-secondary-text: #8899a6;
+            --twitter-border: #38444d;
+            --twitter-hover: rgba(29, 161, 242, 0.1);
+            --twitter-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--twitter-blue);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 3000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .toast.active {
+            opacity: 1;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-  <div class="profile-header">
-    <div class="profile-image-container">
-      <img id="profileImage" src="" alt="Profile" class="profile-image" />
-      <div class="profile-camera-icon" id="changeProfilePicture">
-        <i class="fas fa-camera"></i>
-        <input type="file" id="profilePictureInput" style="display:none" accept="image/*">
-      </div>
+        <!-- Main Settings Screen -->
+        <div class="header">
+            <div class="header-title">Settings</div>
+        </div>
+
+        <div class="profile-header" id="profileSection">
+            <div class="profile-info">
+                <img id="profileImage" src="default-profile.png" alt="Profile" class="profile-image">
+                <div class="profile-name-container">
+                    <div id="profileName" class="profile-name">User Name</div>
+                    <div id="profileEmail" class="profile-email">user@example.com</div>
+                </div>
+                <div class="settings-item-right">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </div>
+            <div class="profile-stats">
+                <div class="profile-stat" id="followersBtn">
+                    <span id="followersCount" class="profile-stat-number">0</span>
+                    <span class="profile-stat-label">Followers</span>
+                </div>
+                <div class="profile-stat" id="followingBtn">
+                    <span id="followingCount" class="profile-stat-number">0</span>
+                    <span class="profile-stat-label">Following</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-list">
+            <div class="settings-item" id="accountBtn">
+                <div class="settings-icon">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="settings-item-content">
+                    <div class="settings-item-title">Account</div>
+                    <div class="settings-item-subtitle">Security notifications, change number</div>
+                </div>
+                <div class="settings-item-right">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </div>
+
+            <div class="settings-item" id="privacyBtn">
+                <div class="settings-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <div class="settings-item-content">
+                    <div class="settings-item-title">Privacy</div>
+                    <div class="settings-item-subtitle">Block contacts, disappearing messages</div>
+                </div>
+                <div class="settings-item-right">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </div>
+
+            <div class="settings-item" id="chatsBtn">
+                <div class="settings-icon">
+                    <i class="fas fa-comment"></i>
+                </div>
+                <div class="settings-item-content">
+                    <div class="settings-item-title">Chats</div>
+                    <div class="settings-item-subtitle">Theme, wallpapers, chat history</div>
+                </div>
+                <div class="settings-item-right">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </div>
+
+            <div class="settings-item" id="notificationsBtn">
+                <div class="settings-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <div class="settings-item-content">
+                    <div class="settings-item-title">Notifications</div>
+                    <div class="settings-item-subtitle">Message, group & call tones</div>
+                </div>
+                <div class="settings-item-right">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </div>
+
+            <div class="settings-item" id="storageBtn">
+                <div class="settings-icon">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="settings-item-content">
+                    <div class="settings-item-title">Storage and data</div>
+                    <div class="settings-item-subtitle">Network usage, auto-download</div>
+                </div>
+                <div class="settings-item-right">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </div>
+
+            <div class="settings-item" id="darkModeBtn">
+                <div class="settings-icon">
+                    <i class="fas fa-moon"></i>
+                </div>
+                <div class="settings-item-content">
+                    <div class="settings-item-title">Dark Mode</div>
+                    <div class="settings-item-subtitle">Toggle dark/light theme</div>
+                </div>
+                <div class="settings-item-right">
+                    <div class="toggle-switch" id="darkModeSwitch"></div>
+                </div>
+            </div>
+
+            <div class="settings-item" id="helpBtn">
+                <div class="settings-icon">
+                    <i class="fas fa-question-circle"></i>
+                </div>
+                <div class="settings-item-content">
+                    <div class="settings-item-title">Help</div>
+                    <div class="settings-item-subtitle">Help center, contact us</div>
+                </div>
+                <div class="settings-item-right">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </div>
+
+            <div class="settings-item" id="logoutBtn">
+                <div class="settings-icon" style="background: #e0245e;">
+                    <i class="fas fa-sign-out-alt"></i>
+                </div>
+                <div class="settings-item-content">
+                    <div class="settings-item-title">Logout</div>
+                    <div class="settings-item-subtitle">Log out from your account</div>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="profile-name-container">
-      <span id="profileName" class="profile-name"></span>
-      <i class="fas fa-edit edit-name-icon" id="editNameIcon"></i>
+
+    <!-- Edit Profile Screen -->
+    <div class="edit-profile-container" id="editProfileContainer">
+        <div class="edit-profile-header">
+            <button class="cancel-button" id="cancelEditProfile">Cancel</button>
+            <div class="edit-profile-title">Edit profile</div>
+            <button class="save-button" id="saveProfileBtn">Save</button>
+        </div>
+
+        <div class="edit-profile-image-container">
+            <img id="editProfileImage" src="default-profile.png" alt="Profile" class="edit-profile-image">
+            <div class="edit-profile-camera-icon" id="changeProfilePicture">
+                <i class="fas fa-camera"></i>
+                <input type="file" id="profilePictureInput" style="display:none" accept="image/*">
+            </div>
+        </div>
+
+        <div class="edit-profile-form">
+            <div class="form-group">
+                <label class="form-label" for="nameInput">Name</label>
+                <input type="text" id="nameInput" class="form-input" placeholder="Add your name">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="bioInput">Bio</label>
+                <textarea id="bioInput" class="form-input form-textarea" placeholder="Add a bio to tell people about yourself" maxlength="150"></textarea>
+                <div class="character-count"><span id="bioCharCount">0</span>/150</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="emailDisplay">Email</label>
+                <div id="emailDisplay" class="form-input" style="background: var(--twitter-card); opacity: 0.7;"></div>
+            </div>
+        </div>
     </div>
-    <p id="profileEmail" class="profile-email"></p>
 
-    <!-- Followers and Following Section -->
-    <div class="profile-stats">
-      <div class="profile-stat" id="followersBtn">
-        <span id="followersCount" class="profile-stat-number">--</span>
-        <span class="profile-stat-label">Followers</span>
-      </div>
-      <div class="profile-stat" id="followingBtn">
-        <span id="followingCount" class="profile-stat-number">--</span>
-        <span class="profile-stat-label">Following</span>
-      </div>
+    <!-- Followers Screen -->
+    <div class="follow-screen" id="followersScreen">
+        <div class="follow-header">
+            <div class="follow-back" id="closeFollowers">
+                <i class="fas fa-arrow-left"></i>
+            </div>
+            <div class="follow-title" id="followScreenTitle">Followers</div>
+        </div>
+        <div class="follow-body" id="followersBody">
+            <!-- User list will be populated here -->
+        </div>
     </div>
 
-    <!-- Bio Section -->
-    <div class="profile-bio">
-      <span id="profileBio">Add a bio to tell people about yourself</span>
-      <i class="fas fa-edit edit-bio-icon" id="editBioIcon"></i>
+    <!-- Following Screen -->
+    <div class="follow-screen" id="followingScreen">
+        <div class="follow-header">
+            <div class="follow-back" id="closeFollowing">
+                <i class="fas fa-arrow-left"></i>
+            </div>
+            <div class="follow-title">Following</div>
+        </div>
+        <div class="follow-body" id="followingBody">
+            <!-- User list will be populated here -->
+        </div>
     </div>
-  </div>
 
-  <!-- General Settings Section -->
-  <div class="section">
-    <div class="section-title">General Settings</div>
-    <div class="section-item" id="modeToggle">
-      <i class="fas fa-adjust"></i>
-      <span>Dark Mode</span>
-      <div class="toggle-switch" id="darkModeSwitch"></div>
-    </div>
-    <div class="section-item" id="changePasswordBtn">
-      <i class="fas fa-key"></i>
-      <span>Change Password</span>
-      <i class="fas fa-chevron-right"></i>
-    </div>
-    <div class="section-item" id="notificationsToggle">
-      <i class="fas fa-bell"></i>
-      <span>Notifications</span>
-      <div class="toggle-switch" id="notificationsSwitch"></div>
-    </div>
-  </div>
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
 
-  <!-- Account Section -->
-  <div class="section">
-    <div class="section-title">Account</div>
-    <div class="section-item" id="privacyBtn">
-      <i class="fas fa-lock"></i>
-      <span>Privacy Settings</span>
-      <i class="fas fa-chevron-right"></i>
-    </div>
-    <div class="section-item" id="securityBtn">
-      <i class="fas fa-shield-alt"></i>
-      <span>Security</span>
-      <i class="fas fa-chevron-right"></i>
-    </div>
-  </div>
 
-  <!-- Help & Support Section -->
-  <div class="section">
-    <div class="section-title">Help & Support</div>
-    <div class="section-item" id="helpBtn">
-      <i class="fas fa-question-circle"></i>
-      <span>Help Center</span>
-      <i class="fas fa-chevron-right"></i>
-    </div>
-    <div class="section-item" id="contactBtn">
-      <i class="fas fa-envelope"></i>
-      <span>Contact Support</span>
-      <i class="fas fa-chevron-right"></i>
-    </div>
-  </div>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-  <!-- About Section -->
-  <div class="section">
-    <div class="section-title">About</div>
-    <div class="section-item" id="termsBtn">
-      <i class="fas fa-file-alt"></i>
-      <span>Terms of Service</span>
-      <i class="fas fa-chevron-right"></i>
-    </div>
-    <div class="section-item" id="privacyPolicyBtn">
-      <i class="fas fa-shield-alt"></i>
-      <span>Privacy Policy</span>
-      <i class="fas fa-chevron-right"></i>
-    </div>
-    <div class="section-item" id="logoutBtn">
-      <i class="fas fa-sign-out-alt"></i>
-      <span>Logout</span>
-      <i class="fas fa-chevron-right"></i>
-    </div>
-  </div>
-
-  <!-- Modals -->
-  <div id="editNameModal" class="modal">
-    <div class="modal-content">
-      <h2>Edit Name</h2>
-      <input type="text" id="editNameInput" class="modal-input" placeholder="Enter new name">
-      <div class="modal-buttons">
-        <button id="saveNameBtn" class="modal-btn">Save</button>
-        <button id="cancelNameBtn" class="modal-btn">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="editBioModal" class="modal">
-    <div class="modal-content">
-      <h2>Edit Bio</h2>
-      <textarea id="editBioInput" class="modal-input" placeholder="Write something about yourself" rows="4"></textarea>
-      <div class="modal-buttons">
-        <button id="saveBioBtn" class="modal-btn">Save</button>
-        <button id="cancelBioBtn" class="modal-btn">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="followersModal" class="followers-modal">
-    <div class="followers-modal-content">
-      <div class="modal-header">
-        <h2 id="followersModalTitle">Followers</h2>
-      </div>
-      <div id="followersList" class="followers-list">
-        <!-- Followers will be dynamically populated here -->
-      </div>
-    </div>
-  </div>
-</div>
-<script type="module" src="profile.js"></script>
-<script type="module" src="loadingbio.js"></script>
-<script src="skeleprof.js"></script>
-<script src="security.js"></script>
-<script src="about.js"></script>
-<script src="help.js"></script>
-<script src="secsave.js"></script>
-<script src="secback.js"></script>
-<script src="helpback.js"></script>
-<script src="notspin.js"></script>
-<script src="loadfollow.js"></script>
-<script>
-// Modal Navigation Handler
-const modalNavigationHandler = {
-  isModalOpen: false,
-  modalStateKey: 'modalState',
-
-  initialize() {
-    // Initialize modal state in history
-    const initialState = { modalOpen: false };
-    history.replaceState(initialState, '', window.location.href);
-
-    // Listen for history changes (back/forward navigation)
-    window.addEventListener('popstate', (event) => {
-      const state = event.state || { modalOpen: false };
-      this.handleNavigationChange(state);
-    });
-
-    // Add listeners to modal triggers
-    this.setupModalListeners();
-  },
-
-  setupModalListeners() {
-    // When opening modal
-    document.addEventListener('click', (e) => {
-      const profile = e.target.closest('.profile');
-      if (!profile) return;
-
-      this.openModal();
-    });
-
-    // When closing modal via close button
-    const closeButton = document.querySelector('.profile-close');
-    if (closeButton) {
-      closeButton.addEventListener('click', () => {
-        this.closeModal();
-      });
-    }
-
-    // When closing modal via backdrop click
-    const modal = document.querySelector('.profile-modal');
-    if (modal) {
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-          this.closeModal();
-        }
-      });
-    }
-  },
-
-  openModal() {
-    const modal = document.querySelector('.profile-modal');
-    if (!modal || this.isModalOpen) return;
-
-    // Add state to history
-    const newState = { modalOpen: true };
-    history.pushState(newState, '', window.location.href);
-    
-    // Open modal
-    modal.classList.add('active');
-    this.isModalOpen = true;
-  },
-
-  closeModal() {
-    const modal = document.querySelector('.profile-modal');
-    if (!modal || !this.isModalOpen) return;
-
-    // If modal was opened via history push, go back
-    if (history.state?.modalOpen) {
-      history.back();
-    } else {
-      // Otherwise just close the modal
-      this.handleModalClose();
-    }
-  },
-
-  handleNavigationChange(state) {
-    const modal = document.querySelector('.profile-modal');
-    if (!modal) return;
-
-    if (state.modalOpen) {
-      // Open modal without pushing state
-      modal.classList.add('active');
-      this.isModalOpen = true;
-    } else {
-      // Close modal without history manipulation
-      this.handleModalClose();
-    }
-  },
-
-  handleModalClose() {
-    const modal = document.querySelector('.profile-modal');
-    if (!modal) return;
-
-    modal.classList.remove('active');
-    this.isModalOpen = false;
-  }
-};
-
-// Initialize the navigation handler when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  modalNavigationHandler.initialize();
-});
-</script>
-<script>
-// About Modal Navigation Handler
-const aboutModalNavigationHandler = {
-  activeModal: null,
-  modalTypes: {
-    terms: 'termsModal',
-    privacy: 'privacyPolicyModal'
-  },
-
-  initialize() {
-    // Initialize history state
-    const initialState = { 
-      modalType: null,
-      isModalOpen: false 
+    // Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+        authDomain: "globalchat-2d669.firebaseapp.com",
+        projectId: "globalchat-2d669",
+        storageBucket: "globalchat-2d669.appspot.com",
+        messagingSenderId: "178714711978",
+        appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
     };
-    history.replaceState(initialState, '', window.location.href);
 
-    // Set up navigation event listener
-    window.addEventListener('popstate', (event) => {
-      const state = event.state || { modalType: null, isModalOpen: false };
-      this.handleNavigationChange(state);
-    });
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
 
-    // Set up modal triggers
-    this.setupModalTriggers();
-  },
+    // DOM Elements - Main Settings
+    const profileSection = document.getElementById('profileSection');
+    const profileImage = document.getElementById('profileImage');
+    const profileName = document.getElementById('profileName');
+    const profileEmail = document.getElementById('profileEmail');
+    const followersCount = document.getElementById('followersCount');
+    const followingCount = document.getElementById('followingCount');
+    const followersBtn = document.getElementById('followersBtn');
+    const followingBtn = document.getElementById('followingBtn');
+    const darkModeSwitch = document.getElementById('darkModeSwitch');
+    const logoutBtn = document.getElementById('logoutBtn');
 
-  setupModalTriggers() {
-    // Terms button click handler
-    const termsBtn = document.getElementById('termsBtn');
-    if (termsBtn) {
-      termsBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.openModal('terms');
-      });
-    }
+    // DOM Elements - Edit Profile
+    const editProfileContainer = document.getElementById('editProfileContainer');
+    const cancelEditProfile = document.getElementById('cancelEditProfile');
+    const saveProfileBtn = document.getElementById('saveProfileBtn');
+    const editProfileImage = document.getElementById('editProfileImage');
+    const changeProfilePicture = document.getElementById('changeProfilePicture');
+    const profilePictureInput = document.getElementById('profilePictureInput');
+    const nameInput = document.getElementById('nameInput');
+    const bioInput = document.getElementById('bioInput');
+    const bioCharCount = document.getElementById('bioCharCount');
+    const emailDisplay = document.getElementById('emailDisplay');
 
-    // Privacy policy button click handler
-    const privacyBtn = document.getElementById('privacyPolicyBtn');
-    if (privacyBtn) {
-      privacyBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.openModal('privacy');
-      });
-    }
+    // DOM Elements - Followers/Following Screen
+    const followersScreen = document.getElementById('followersScreen');
+    const followingScreen = document.getElementById('followingScreen');
+    const closeFollowers = document.getElementById('closeFollowers');
+    const closeFollowing = document.getElementById('closeFollowing');
+    const followersBody = document.getElementById('followersBody');
+    const followingBody = document.getElementById('followingBody');
 
-    // Back button click handlers
-    const backButtons = document.querySelectorAll('.about-modal-back');
-    backButtons.forEach(button => {
-      button.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.closeModal();
-      });
-    });
+    // DOM Elements - Toast
+    const toast = document.getElementById('toast');
 
-    // Overlay click handler (if exists)
-    const modalOverlay = document.querySelector('.modal-overlay');
-    if (modalOverlay) {
-      modalOverlay.addEventListener('click', (e) => {
-        if (e.target === modalOverlay) {
-          this.closeModal();
-        }
-      });
-    }
-  },
-
-  openModal(modalType) {
-    const modalId = this.modalTypes[modalType];
-    const modalElement = document.getElementById(modalId);
+    // Settings page buttons
+    const accountBtn = document.getElementById('accountBtn');
+    const privacyBtn = document.getElementById('privacyBtn');
+    const chatsBtn = document.getElementById('chatsBtn');
+    const notificationsBtn = document.getElementById('notificationsBtn');
+    const storageBtn = document.getElementById('storageBtn');
+    const helpBtn = document.getElementById('helpBtn');
     
-    if (!modalElement || this.activeModal === modalId) return;
-
-    // Update history state
-    const newState = { 
-      modalType: modalType,
-      isModalOpen: true 
-    };
-    history.pushState(newState, '', `#${modalType}`);
-
-    // Open the modal
-    this.closeAllModals(); // Ensure all other modals are closed
-    modalElement.classList.add('active');
-    this.activeModal = modalId;
-
-    // Show overlay and disable body scroll
-    const modalOverlay = document.querySelector('.modal-overlay');
-    if (modalOverlay) modalOverlay.classList.add('active');
-    document.body.style.overflow = 'hidden';
-  },
-
-  closeModal() {
-    if (!this.activeModal) return;
-
-    // If modal was opened via history push, go back
-    if (history.state?.isModalOpen) {
-      history.back();
-    } else {
-      // Otherwise just close the modal
-      this.handleModalClose();
-    }
-  },
-
-  handleNavigationChange(state) {
-    if (state.isModalOpen && state.modalType) {
-      // Open the appropriate modal without pushing state
-      const modalId = this.modalTypes[state.modalType];
-      const modalElement = document.getElementById(modalId);
-      
-      if (modalElement) {
-        this.closeAllModals();
-        modalElement.classList.add('active');
-        this.activeModal = modalId;
+    // Function to show toast notifications
+    function showToast(message, duration = 2000) {
+        toast.textContent = message;
+        toast.classList.add('active');
         
-        // Show overlay and disable body scroll
-        const modalOverlay = document.querySelector('.modal-overlay');
-        if (modalOverlay) modalOverlay.classList.add('active');
-        document.body.style.overflow = 'hidden';
-      }
-    } else {
-      // Close all modals without pushing state
-      this.handleModalClose();
+        setTimeout(() => {
+            toast.classList.remove('active');
+        }, duration);
     }
-  },
 
-  handleModalClose() {
-    // Close all modals
-    this.closeAllModals();
-    
-    // Hide overlay and restore body scroll
-    const modalOverlay = document.querySelector('.modal-overlay');
-    if (modalOverlay) modalOverlay.classList.remove('active');
-    document.body.style.overflow = '';
-    
-    this.activeModal = null;
-  },
+    // Sticky Profile Header
+    function initializeStickyHeader() {
+        const header = document.querySelector('.header');
+        const headerHeight = header.offsetHeight;
+        
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > headerHeight) {
+                profileSection.classList.add('sticky');
+            } else {
+                profileSection.classList.remove('sticky');
+            }
+        });
+    }
 
-  closeAllModals() {
-    const modals = document.querySelectorAll('.about-modal');
-    modals.forEach(modal => modal.classList.remove('active'));
-  }
-};
+    // Dark Mode Toggle
+    function initializeDarkMode() {
+        // Default to light mode (no dark-mode class)
+        const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
+        
+        if (isDarkMode) {
+            document.body.classList.add('dark-mode');
+            darkModeSwitch.classList.add('active');
+        } else {
+            document.body.classList.remove('dark-mode');
+            darkModeSwitch.classList.remove('active');
+        }
 
-// Initialize the navigation handler when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  aboutModalNavigationHandler.initialize();
-});
-</script>
-<script>
-  (function() {
-    // Wait for DOM to be fully loaded
-    document.addEventListener('DOMContentLoaded', function() {
-      // Twitter-inspired dark theme colors
-      const twitterDarkColors = {
-        background: '#15202b',
-        card: '#192734',
-        text: '#ffffff',
-        secondaryText: '#8899a6',
-        border: '#38444d',
-        blue: '#1da1f2',
-        hover: '#22303c'
-      };
-      
-      // Get the existing dark mode switch
-      const darkModeSwitch = document.getElementById('darkModeSwitch');
-      if (!darkModeSwitch) return; // Exit if element doesn't exist
-      
-      // Create and append styles without modifying existing ones
-      const styleElement = document.createElement('style');
-      styleElement.id = 'twitter-dark-theme-styles';
-      styleElement.textContent = `
-            body.dark-mode {
-                background-color: ${twitterDarkColors.background} !important;
-                color: ${twitterDarkColors.text} !important;
-            }
+        darkModeSwitch.addEventListener('click', function() {
+            this.classList.toggle('active');
+            document.body.classList.toggle('dark-mode');
             
-            body.dark-mode .container,
-            body.dark-mode .section,
-            body.dark-mode .profile-bio {
-                background-color: ${twitterDarkColors.card} !important;
-                border-color: ${twitterDarkColors.border} !important;
+            if (document.body.classList.contains('dark-mode')) {
+                localStorage.setItem('darkMode', 'enabled');
+            } else {
+                localStorage.setItem('darkMode', 'disabled');
             }
+        });
+    }
+
+    // Toggle Edit Profile
+    function initializeEditProfile() {
+        profileSection.addEventListener('click', () => {
+            editProfileContainer.classList.add('active');
+        });
+
+        cancelEditProfile.addEventListener('click', () => {
+            editProfileContainer.classList.remove('active');
+        });
+    }
+
+    // Profile Picture Change
+    function initializeProfilePictureChange(user) {
+        changeProfilePicture.addEventListener('click', () => {
+            profilePictureInput.click();
+        });
+
+        profilePictureInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                try {
+                    const storageRef = ref(storage, `profilePictures/${user.uid}`);
+                    const snapshot = await uploadBytes(storageRef, file);
+                    const photoURL = await getDownloadURL(snapshot.ref);
+
+                    // Preview the image
+                    profileImage.src = photoURL;
+                    editProfileImage.src = photoURL;
+                    
+                    showToast('Profile picture updated!');
+                } catch (error) {
+                    console.error('Error uploading image:', error);
+                    showToast('Failed to upload image. Please try again.');
+                }
+            }
+        });
+    }
+
+    // Bio Input Character Count
+    function initializeBioCharCount() {
+        bioInput.addEventListener('input', () => {
+            const count = bioInput.value.length;
+            bioCharCount.textContent = count;
+        });
+    }
+
+    // Save Profile Changes
+    async function saveProfileChanges(user) {
+        const newName = nameInput.value.trim();
+        const newBio = bioInput.value.trim();
+        const photoURL = editProfileImage.src;
+
+        try {
+            // Update auth profile
+            await updateProfile(user, { 
+                displayName: newName,
+                photoURL: photoURL === 'default-profile.png' ? null : photoURL
+            });
+
+            // Update firestore document
+            await updateDoc(doc(db, 'users', user.uid), {
+                displayName: newName,
+                bio: newBio,
+                photoURL: photoURL === 'default-profile.png' ? null : photoURL
+            });
+
+            // Update UI
+            profileName.textContent = newName;
+            editProfileContainer.classList.remove('active');
             
-            body.dark-mode .section-item {
-                background-color: ${twitterDarkColors.card} !important;
-                color: ${twitterDarkColors.text} !important;
-            }
+            showToast('Profile updated successfully!');
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            showToast('Failed to update profile. Please try again.');
+        }
+    }
+
+    // Fetch Follow Data
+    async function fetchFollowData(user) {
+        try {
+            // Fetch followers count
+            const followersQuery = query(collection(db, 'follows'), 
+                where('followedUserId', '==', user.uid)
+            );
+            const followersSnapshot = await getDocs(followersQuery);
+            followersCount.textContent = followersSnapshot.size;
+
+            // Fetch following count
+            const followingQuery = query(collection(db, 'follows'), 
+                where('followerUserId', '==', user.uid)
+            );
+            const followingSnapshot = await getDocs(followingQuery);
+            followingCount.textContent = followingSnapshot.size;
+        } catch (error) {
+            console.error('Error fetching follow data:', error);
+        }
+    }
+
+    // Initialize Followers/Following Screen
+    function initializeFollowScreens(user) {
+        // Followers screen
+        followersBtn.addEventListener('click', async () => {
+            followersBody.innerHTML = '';
+            followersScreen.classList.add('active');
             
-            body.dark-mode .section-item:hover {
-                background-color: ${twitterDarkColors.hover} !important;
+            try {
+                const followersQuery = query(collection(db, 'follows'), 
+                    where('followedUserId', '==', user.uid)
+                );
+                const followersSnapshot = await getDocs(followersQuery);
+                
+                if (followersSnapshot.empty) {
+                    followersBody.innerHTML = '<div class="no-results">No followers yet</div>';
+                } else {
+                    for (const followDoc of followersSnapshot.docs) {
+                        const followerData = followDoc.data();
+                        const followerUserDoc = await getDoc(doc(db, 'users', followerData.followerUserId));
+                        
+                        if (followerUserDoc.exists()) {
+                            const userData = followerUserDoc.data();
+                            const listItem = document.createElement('div');
+                            listItem.classList.add('user-list-item');
+                            listItem.innerHTML = `
+                                <img src="${userData.photoURL || 'default-profile.png'}" alt="Profile">
+                                <div class="user-list-item-info">
+                                    <div class="user-list-item-name">${userData.displayName || 'User'}</div>
+                                    <div class="user-list-item-username">@${userData.displayName?.toLowerCase().replace(/\s/g, '') || 'user'}</div>
+                                </div>
+                                <button class="follow-button">Follow</button>
+                            `;
+                            followersBody.appendChild(listItem);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching followers:', error);
+                followersBody.innerHTML = '<div class="no-results">Error loading followers</div>';
             }
+        });
+
+        // Following screen
+        followingBtn.addEventListener('click', async () => {
+            followingBody.innerHTML = '';
+            followingScreen.classList.add('active');
             
-            body.dark-mode .profile-name {
-                color: ${twitterDarkColors.text} !important;
+            try {
+                const followingQuery = query(collection(db, 'follows'), 
+                    where('followerUserId', '==', user.uid)
+                );
+                const followingSnapshot = await getDocs(followingQuery);
+                
+                if (followingSnapshot.empty) {
+                    followingBody.innerHTML = '<div class="no-results">Not following anyone yet</div>';
+                } else {
+                    for (const followDoc of followingSnapshot.docs) {
+                        const followingData = followDoc.data();
+                        const followedUserDoc = await getDoc(doc(db, 'users', followingData.followedUserId));
+                        
+                        if (followedUserDoc.exists()) {
+                            const userData = followedUserDoc.data();
+                            const listItem = document.createElement('div');
+                            listItem.classList.add('user-list-item');
+                            listItem.innerHTML = `
+                                <img src="${userData.photoURL || 'default-profile.png'}" alt="Profile">
+                                <div class="user-list-item-info">
+                                    <div class="user-list-item-name">${userData.displayName || 'User'}</div>
+                                    <div class="user-list-item-username">@${userData.displayName?.toLowerCase().replace(/\s/g, '') || 'user'}</div>
+                                </div>
+                                <button class="following-button">
+                                    <span class="follow-text">Following</span>
+                                    <span class="unfollow-text">Unfollow</span>
+                                </button>
+                            `;
+                            followingBody.appendChild(listItem);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching following:', error);
+                followingBody.innerHTML = '<div class="no-results">Error loading following</div>';
             }
-            
-            body.dark-mode .profile-email,
-            body.dark-mode .profile-stat-label,
-            body.dark-mode .section-title {
-                color: ${twitterDarkColors.secondaryText} !important;
+        });
+
+        // Close buttons
+        closeFollowers.addEventListener('click', () => {
+            followersScreen.classList.remove('active');
+        });
+        
+        closeFollowing.addEventListener('click', () => {
+            followingScreen.classList.remove('active');
+        });
+    }
+
+    // Initialize Settings Buttons
+    function initializeSettingsButtons() {
+        // These buttons would typically navigate to other screens
+        // For now, we'll just show an alert
+        const settingsButtons = [accountBtn, privacyBtn, chatsBtn, notificationsBtn, storageBtn, helpBtn];
+        
+        settingsButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const title = button.querySelector('.settings-item-title').textContent;
+                showToast(`${title} settings coming soon!`);
+            });
+        });
+    }
+
+    // Logout
+    function initializeLogout() {
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                window.location.href = 'login.html'; // Redirect to login page
+            } catch (error) {
+                console.error('Logout error:', error);
+                showToast('Failed to log out. Please try again.');
             }
-            
-            body.dark-mode .toggle-switch.active {
-                background-color: ${twitterDarkColors.blue} !important;
+        });
+    }
+
+    // Page Animation
+    function initializePageAnimation() {
+        document.body.style.opacity = '0';
+        setTimeout(() => {
+            document.body.style.transition = 'opacity 0.3s ease';
+            document.body.style.opacity = '1';
+        }, 100);
+    }
+
+    // Authentication State Observer
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            try {
+                // Get user data from Firestore
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                let userData = {};
+                
+                if (userDoc.exists()) {
+                    userData = userDoc.data();
+                } else {
+                    // Create user document if it doesn't exist
+                    userData = {
+                        displayName: user.displayName || 'User',
+                        email: user.email,
+                        photoURL: user.photoURL || null,
+                        bio: '',
+                        createdAt: new Date()
+                    };
+                    await updateDoc(doc(db, 'users', user.uid), userData);
+                }
+
+                // Set profile information
+                profileName.textContent = userData.displayName || 'User';
+                emailDisplay.textContent = userData.email || user.email || '';
+                profileImage.src = userData.photoURL || 'default-profile.png';
+                editProfileImage.src = userData.photoURL || 'default-profile.png';
+                
+                // Set edit form values
+                nameInput.value = userData.displayName || '';
+                bioInput.value = userData.bio || '';
+                bioCharCount.textContent = (userData.bio || '').length;
+
+                // Initialize all functionality
+                initializeStickyHeader();
+                initializeDarkMode();
+                initializeEditProfile();
+                initializeProfilePictureChange(user);
+                initializeBioCharCount();
+                initializeFollowScreens(user);
+                initializeSettingsButtons();
+                initializeLogout();
+                fetchFollowData(user);
+                initializePageAnimation();
+
+                // Save profile changes event
+                saveProfileBtn.addEventListener('click', () => saveProfileChanges(user));
+                
+            } catch (error) {
+                console.error('Error initializing app:', error);
+                showToast('An error occurred while loading your profile');
             }
-            
-            body.dark-mode .modal-content,
-            body.dark-mode .followers-modal-content {
-                background-color: ${twitterDarkColors.card} !important;
-                color: ${twitterDarkColors.text} !important;
-                border-color: ${twitterDarkColors.border} !important;
-            }
-            
-            body.dark-mode input,
-            body.dark-mode textarea {
-                background-color: ${twitterDarkColors.background} !important;
-                color: ${twitterDarkColors.text} !important;
-                border-color: ${twitterDarkColors.border} !important;
-            }
-            
-            body.dark-mode .modal-btn {
-                background-color: ${twitterDarkColors.blue} !important;
-            }
-            
-            body.dark-mode .followers-list-item {
-                border-color: ${twitterDarkColors.border} !important;
-            }
-            
-            body.dark-mode .followers-list-item:hover {
-                background-color: ${twitterDarkColors.hover} !important;
-            }
-        `;
-      document.head.appendChild(styleElement);
-      
-      // We're not changing any functionality, just preserving the existing dark mode toggle
-      // but enhancing its appearance with our CSS
-      console.log("Twitter-style dark theme enhancement loaded");
+        } else {
+            // Redirect to login if not authenticated
+            window.location.href = 'login.html';
+        }
     });
-  })();
-</script>
 
+    // Handle follow/unfollow actions
+    document.addEventListener('click', async (e) => {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        // Handle follow button clicks
+        if (e.target.classList.contains('follow-button')) {
+            const userItem = e.target.closest('.user-list-item');
+            const username = userItem.querySelector('.user-list-item-username').textContent.substring(1); // Remove @ symbol
+            
+            try {
+                // In a real app, you would implement the follow logic here
+                // For now, just change the button
+                e.target.textContent = 'Following';
+                e.target.classList.remove('follow-button');
+                e.target.classList.add('following-button');
+                
+                showToast(`You are now following ${username}`);
+                
+                // Update counts (in a real app this would happen after successful database update)
+                const currentCount = parseInt(followingCount.textContent);
+                followingCount.textContent = currentCount + 1;
+            } catch (error) {
+                console.error('Error following user:', error);
+                showToast('Failed to follow user. Please try again.');
+            }
+        }
+        
+        // Handle unfollow (on following-button)
+        if (e.target.classList.contains('following-button') || 
+            e.target.parentElement.classList.contains('following-button')) {
+            
+            const userItem = e.target.closest('.user-list-item');
+            const username = userItem.querySelector('.user-list-item-username').textContent.substring(1);
+            
+            try {
+                // In a real app, you would implement the unfollow logic here
+                const button = e.target.classList.contains('following-button') ? 
+                    e.target : e.target.parentElement;
+                
+                button.innerHTML = 'Follow';
+                button.classList.remove('following-button');
+                button.classList.add('follow-button');
+                
+                showToast(`You have unfollowed ${username}`);
+                
+                // Update counts (in a real app this would happen after successful database update)
+                const currentCount = parseInt(followingCount.textContent);
+                if (currentCount > 0) {
+                    followingCount.textContent = currentCount - 1;
+                }
+            } catch (error) {
+                console.error('Error unfollowing user:', error);
+                showToast('Failed to unfollow user. Please try again.');
+            }
+        }
+    });
+</script>
