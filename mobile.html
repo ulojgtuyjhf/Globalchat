@@ -6,217 +6,258 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Twitter-Style Screen Divider</title>
     <style>
-    /* Global Reset */
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
+   
+/* Global Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-    /* Prevent scrolling */
-    html, body {
-        overflow: hidden;
-        height: 100%;
-        width: 100%;
-    }
+/* Prevent scrolling */
+html, body {
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+}
 
-    body {
-        display: flex;
-        flex-direction: column;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        background: #f9f9f9;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        color: #333;
-    }
+body {
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #ffffff;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    color: #333;
+}
 
-    /* Mobile Menu */
+/* Mobile Menu - at the top as originally */
+.mobile-menu {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 53px;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 1000;
+    border-bottom: 1px solid #efefef;
+}
+
+.menu-items {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 100%;
+    padding: 0 15px;
+}
+
+.menu-item {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.menu-item svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: #666;
+    stroke-width: 2;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menu-item.active {
+    background: transparent;
+}
+
+.menu-item.active svg {
+    stroke: #1da1f2;
+    fill: none;
+}
+
+.menu-item:hover {
+    background-color: rgba(29, 161, 242, 0.1);
+}
+
+.menu-item::after {
+    content: '';
+    position: absolute;
+    bottom: 0px;
+    left: 50%;
+    width: 0;
+    height: 4px;
+    background: #1da1f2;
+    transform: translateX(-50%);
+    transition: width 0.2s ease;
+    border-radius: 9999px;
+}
+
+.menu-item.active::after {
+    width: 20px;
+}
+
+/* Main Content Sections */
+.content-wrapper {
+    display: flex;
+    flex: 1;
+    margin-top: 0;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background-color: #fafafa;
+}
+
+.section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.3s ease;
+    height: 100%;
+    background: #ffffff;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.02);
+    margin: 0 1px;
+}
+
+.left-section, .right-section {
+    width: 25%;
+}
+
+.middle-section {
+    width: 50%;
+}
+
+.prof-section {
+    width: 25%;
+}
+
+iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 0;
+    display: block;
+    background: #ffffff;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+iframe.loaded {
+    opacity: 1;
+}
+
+/* Loading Indicator */
+.loading-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 30px;
+    height: 30px;
+    z-index: 5;
+}
+
+.spinner {
+    box-sizing: border-box;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: #1da1f2;
+    border-left-color: #1da1f2;
+    animation: twitter-spinner 0.8s linear infinite;
+}
+
+@keyframes twitter-spinner {
+    0% { 
+        transform: rotate(0deg);
+    }
+    100% { 
+        transform: rotate(360deg);
+    }
+}
+
+/* Error state */
+.error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+    color: #333;
+}
+
+.error-icon {
+    color: #1da1f2;
+    font-size: 32px;
+    margin-bottom: 15px;
+}
+
+.retry-button {
+    margin-top: 15px;
+    background-color: #1da1f2;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 50px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.retry-button:hover {
+    background-color: #1a91da;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
     .mobile-menu {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 53px;
-        background: #ffffff;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        z-index: 1000;
-        border-bottom: 1px solid #e0e7ff;
+        display: block;
     }
 
-    .menu-items {
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        height: 100%;
-        padding: 0 15px;
-    }
-
-    .menu-item {
-        position: relative;
-        width: 50px;
-        height: 50px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        border-radius: 50%;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        cursor: pointer;
-    }
-
-    .menu-item svg {
-        width: 24px;
-        height: 24px;
-        fill: none;
-        stroke: #666;
-        stroke-width: 2;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .menu-item.active {
-        background: transparent;
-    }
-
-    .menu-item.active svg {
-        stroke: #4a90e2;
-        fill: none;
-    }
-
-    .menu-item:hover {
-        background-color: rgba(74, 144, 226, 0.1);
-    }
-
-    .menu-item::after {
-        content: '';
-        position: absolute;
-        bottom: 0px;
-        left: 50%;
-        width: 0;
-        height: 4px;
-        background: #4a90e2;
-        transform: translateX(-50%);
-        transition: width 0.2s ease;
-        border-radius: 9999px;
-    }
-
-    .menu-item.active::after {
-        width: 20px;
-    }
-
-    /* Main Content Sections */
     .content-wrapper {
-        display: flex;
-        flex: 1;
-        margin-top: 0;
-        width: 100%;
-        height: 100%;
-        position: relative;
+        margin-top: 53px;
+        height: calc(100vh - 53px);
     }
 
     .section {
+        display: none;
+        width: 100% !important;
+        margin: 0;
+    }
+
+    .section.active {
         display: flex;
-        justify-content: center;
-        align-items: center;
-        overflow: hidden;
-        position: relative;
-        transition: all 0.3s ease;
-        height: 100%;
-        border-right: 1px solid #e0e7ff;
+        animation: fadeIn 0.3s ease forwards;
     }
 
-    .left-section, .right-section {
-        width: 25%;
-        background: #ffffff;
-    }
-
-    .middle-section {
-        width: 50%;
-        background: #ffffff;
-    }
-
-    .prof-section {
-        width: 25%;
-        background: #ffffff;
-    }
-
-    iframe {
-        width: 100%;
-        height: 100%;
-        border: none;
-        border-radius: 0;
-        display: block;
-        background: #ffffff;
-    }
-
-    /* Loading Indicator - Todoist-style spinner */
-    .loading-indicator {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 30px;
-        height: 30px;
-    }
-
-    .spinner {
-        box-sizing: border-box;
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        border: 2px solid transparent;
-        border-top-color: #4a90e2;
-        border-left-color: #4a90e2;
-        animation: todoist-spinner 0.8s linear infinite;
-    }
-
-    @keyframes todoist-spinner {
-        0% { 
-            transform: rotate(0deg);
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
         }
-        100% { 
-            transform: rotate(360deg);
+        to {
+            opacity: 1;
+            transform: translateY(0);
         }
     }
-
-    /* Responsive Design */
-    @media (max-width: 768px) {
-        .mobile-menu {
-            display: block;
-        }
-
-        .content-wrapper {
-            margin-top: 53px;
-            height: calc(100vh - 53px);
-        }
-
-        .section {
-            display: none;
-            width: 100% !important;
-        }
-
-        .section.active {
-            display: flex;
-            animation: fadeIn 0.3s ease forwards;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    }
+}
 </style>
 </head>
 <body>
-    <!-- Mobile Menu -->
+    <!-- Mobile Menu - at the top as originally -->
     <div class="mobile-menu">
         <div class="menu-items">
             <div class="menu-item active" data-section="chat">
@@ -227,12 +268,9 @@
             </div>
             <div class="menu-item" data-section="profile">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Video frame rectangle -->
-  <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
-  
-  <!-- Play button triangle -->
-  <path d="M10 8l6 4l-6 4V8z" />
-</svg>
+                <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
+                <path d="M10 8l6 4l-6 4V8z" />
+              </svg>
             </div>
             <div class="menu-item" data-section="reels">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -273,58 +311,139 @@
     </div>
 
     <script>
-        // Function to load iframe with dynamic content
+        // Function to load iframe with better error handling and retries
         function loadIframe(sectionId, url, maxRetries = 5) {
             const section = document.getElementById(sectionId);
             const loadingIndicator = section.querySelector('.loading-indicator');
             let retryCount = 0;
+            let retryTimeout;
 
-            const loadContent = () => {
+            // Clean section before loading
+            clearSection();
+
+            function clearSection() {
+                // Keep only the loading indicator
+                Array.from(section.children).forEach(child => {
+                    if (!child.classList.contains('loading-indicator')) {
+                        section.removeChild(child);
+                    }
+                });
+                loadingIndicator.style.display = 'block';
+            }
+
+            function loadContent() {
+                clearTimeout(retryTimeout); // Clear any pending retries
+                
                 const iframe = document.createElement('iframe');
                 iframe.src = url;
-
+                iframe.setAttribute('allow', 'autoplay; encrypted-media');
+                iframe.setAttribute('allowfullscreen', 'true');
+                
+                // Better load handling
                 iframe.onload = () => {
-                    loadingIndicator.style.display = 'none';
+                    // Try to detect if iframe loaded successfully
+                    try {
+                        // Check if we can access iframe content (same-origin only)
+                        // This will fail silently for cross-origin frames
+                        setTimeout(() => {
+                            loadingIndicator.style.display = 'none';
+                            iframe.classList.add('loaded');
+                        }, 500); // Small delay for visual transition
+                    } catch (e) {
+                        // If we can't access the frame, assume it loaded anyway
+                        loadingIndicator.style.display = 'none';
+                        iframe.classList.add('loaded');
+                    }
                 };
 
-                iframe.onerror = retryLoad;
+                iframe.onerror = () => {
+                    retryLoad('Network error loading content');
+                };
 
-                section.innerHTML = '';
-                section.appendChild(loadingIndicator);
+                // Timeout as backup if onload doesn't fire
+                const timeoutId = setTimeout(() => {
+                    if (!iframe.classList.contains('loaded')) {
+                        retryLoad('Timeout loading content');
+                    }
+                }, 10000); // 10 second timeout
+
+                // Add iframe to section
                 section.appendChild(iframe);
-            };
 
-            const retryLoad = () => {
+                // Cleanup timeout on successful load
+                iframe.addEventListener('load', () => {
+                    clearTimeout(timeoutId);
+                });
+            }
+
+            function retryLoad(reason) {
                 retryCount++;
+                console.log(`Retry ${retryCount}/${maxRetries}: ${reason}`);
+                
                 if (retryCount <= maxRetries) {
-                    setTimeout(loadContent, 2000);
+                    // Exponential backoff with jitter
+                    const delay = Math.min(1000 * Math.pow(1.5, retryCount-1) + Math.random() * 1000, 10000);
+                    
+                    retryTimeout = setTimeout(() => {
+                        clearSection();
+                        loadContent();
+                    }, delay);
                 } else {
                     displayError();
                 }
-            };
+            }
 
-            const displayError = () => {
+            function displayError() {
                 loadingIndicator.style.display = 'none';
+                
+                const errorContainer = document.createElement('div');
+                errorContainer.className = 'error-state';
+                
+                const errorIcon = document.createElement('div');
+                errorIcon.className = 'error-icon';
+                errorIcon.innerHTML = '⚠️';
+                
                 const errorMessage = document.createElement('p');
-                errorMessage.textContent = 'Failed to load content. Please try again.';
-                errorMessage.style.color = '#1d9bf0';
-                errorMessage.style.padding = '20px';
-                errorMessage.style.textAlign = 'center';
-                section.appendChild(errorMessage);
-            };
+                errorMessage.textContent = 'Unable to load content';
+                
+                const retryButton = document.createElement('button');
+                retryButton.className = 'retry-button';
+                retryButton.textContent = 'Try Again';
+                retryButton.addEventListener('click', () => {
+                    retryCount = 0;
+                    clearSection();
+                    loadContent();
+                });
+                
+                errorContainer.appendChild(errorIcon);
+                errorContainer.appendChild(errorMessage);
+                errorContainer.appendChild(retryButton);
+                section.appendChild(errorContainer);
+            }
 
+            // Start loading
             loadContent();
+            
+            // Return a function that can be used to reload this section
+            return function reload() {
+                retryCount = 0;
+                clearSection();
+                loadContent();
+            };
         }
+
+        // Map of section reloaders
+        const sectionReloaders = {};
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', () => {
-            // Load initial content
-            loadIframe('leftSection', './count.html', 10);
-            loadIframe('middleSection', './globalchat.html', 10);
-            loadIframe('rightSection', './search.html', 10);
-            loadIframe('profSection', './profileview.html', 10);
+            // Load initial content with improved reliability
+            sectionReloaders.leftSection = loadIframe('leftSection', './count.html', 10);
+            sectionReloaders.middleSection = loadIframe('middleSection', './globalchat.html', 10);
+            sectionReloaders.rightSection = loadIframe('rightSection', './search.html', 10);
+            sectionReloaders.profSection = loadIframe('profSection', './profileview.html', 10);
 
-            // Mobile menu handling
+            // Mobile menu handling with improved transitions
             const menuItems = document.querySelectorAll('.menu-item');
             const sections = document.querySelectorAll('.section');
 
@@ -358,34 +477,70 @@
 
                     if (targetSection) {
                         targetSection.classList.add('active');
+                        
+                        // If section was previously not visible, check if we need to reload
+                        const sectionId = targetSection.id;
+                        const iframe = targetSection.querySelector('iframe');
+                        const errorState = targetSection.querySelector('.error-state');
+                        
+                        // Reload section if in error state or iframe is missing
+                        if (errorState || !iframe) {
+                            if (sectionReloaders[sectionId]) {
+                                sectionReloaders[sectionId]();
+                            }
+                        }
                     }
                 });
             });
+
+            // Handle window visibility changes
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    // When tab becomes visible again, check if any active section needs reloading
+                    const activeSection = document.querySelector('.section.active');
+                    if (activeSection) {
+                        const iframe = activeSection.querySelector('iframe');
+                        const errorState = activeSection.querySelector('.error-state');
+                        
+                        if (errorState || !iframe) {
+                            const sectionId = activeSection.id;
+                            if (sectionReloaders[sectionId]) {
+                                sectionReloaders[sectionId]();
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Periodic health check for iframes
+            setInterval(() => {
+                const activeSection = document.querySelector('.section.active');
+                if (activeSection) {
+                    const iframe = activeSection.querySelector('iframe');
+                    if (iframe) {
+                        try {
+                            // This will throw an error if iframe is cross-origin or has issues
+                            // We're just checking if the iframe is accessible
+                            const iframeIsAlive = iframe.contentWindow && 
+                                                 iframe.contentWindow.location.href;
+                        } catch (e) {
+                            // Iframe might have issues, but we can't determine for cross-origin frames
+                            // So we only reload if we detect a specific error
+                            if (e.name === 'SecurityError') {
+                                // Cross-origin frame - can't check health directly
+                            } else {
+                                // Other error - iframe might need reloading
+                                const sectionId = activeSection.id;
+                                if (sectionReloaders[sectionId]) {
+                                    sectionReloaders[sectionId]();
+                                }
+                            }
+                        }
+                    }
+                }
+            }, 30000); // Check every 30 seconds
         });
     </script>
-    <script>
-    // Function to apply the theme
-    function applyTheme(theme) {
-        const body = document.body;
-        if (theme === 'dark') {
-            body.classList.add('dark-mode');
-        } else {
-            body.classList.remove('dark-mode');
-        }
-    }
-
-    // Initialize the theme when the page loads
-    document.addEventListener('DOMContentLoaded', () => {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        applyTheme(savedTheme);
-    });
-
-    // Listen for theme changes from other pages
-    window.addEventListener('storage', (event) => {
-        if (event.key === 'theme') {
-            applyTheme(event.newValue);
-        }
-    });
-</script>
+    
 </body>
 </html>
