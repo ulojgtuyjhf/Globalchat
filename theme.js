@@ -27,7 +27,7 @@ function initTheme() {
   });
   
   // Observe both chat messages and user list
-  const chatContainer = document.getElementById('chatContainer');
+  const chatContainer = document.getElementById('chatContainer') || document.getElementById('chat-container');
   if (chatContainer) {
     observer.observe(chatContainer, { 
       childList: true,
@@ -76,10 +76,18 @@ function applyDynamicDarkStyles(nodes) {
     if (node.nodeType === Node.ELEMENT_NODE) {
       // For chat messages
       if (node.classList && node.classList.contains('message')) {
-        if (node.classList.contains('outgoing')) {
-          const content = node.querySelector('.message-content');
-          if (content) content.style.backgroundColor = '#132c3e';
+        const messageBubble = node.querySelector('.message-bubble');
+        if (messageBubble) {
+          messageBubble.style.backgroundColor = '#132c3e';
+          messageBubble.style.color = '#e7e9ea';
         }
+        
+        // Style username and timestamp for search.html
+        const username = node.querySelector('.username');
+        if (username) username.style.color = '#e7e9ea';
+        
+        const timestamp = node.querySelector('.timestamp');
+        if (timestamp) timestamp.style.color = '#8b98a5';
       }
       
       // For user cards
@@ -90,7 +98,7 @@ function applyDynamicDarkStyles(nodes) {
   });
 }
 
-// Define dark theme CSS variables - updated to work for both chat and user list pages
+// Define dark theme CSS variables - updated to work for chat, user list, and search pages
 function applyDarkTheme() {
   // Common variables
   document.documentElement.style.setProperty('--primary-color', '#1d9bf0');
@@ -112,8 +120,39 @@ function applyDarkTheme() {
   document.documentElement.style.setProperty('--hover-bg', 'rgba(29, 155, 240, 0.1)');
   document.documentElement.style.setProperty('--shadow-color', 'rgba(0, 0, 0, 0.3)');
   
-  // Update specific elements
-  // Chat messages
+  // Update body background for all pages
+  document.body.style.backgroundColor = '#15202b';
+  document.body.style.color = '#e7e9ea';
+  
+  // Update specific elements for search.html
+  document.querySelectorAll('.message-bubble').forEach(el => {
+    el.style.backgroundColor = '#1e2732';
+    el.style.color = '#e7e9ea';
+    el.style.borderColor = '#38444d';
+  });
+  
+  document.querySelectorAll('.username').forEach(el => {
+    el.style.color = '#e7e9ea';
+  });
+  
+  document.querySelectorAll('.timestamp').forEach(el => {
+    el.style.color = '#8b98a5';
+  });
+  
+  document.querySelectorAll('.reaction').forEach(el => {
+    el.style.backgroundColor = '#1e2732';
+    el.style.borderColor = '#38444d';
+    if (!el.classList.contains('user-reacted')) {
+      el.style.color = '#8b98a5';
+    }
+  });
+  
+  document.querySelectorAll('.add-reaction').forEach(el => {
+    el.style.backgroundColor = '#1e2732';
+    el.style.borderColor = '#38444d';
+  });
+  
+  // Update chat messages (both for chat pages and search.html)
   document.querySelectorAll('.message.outgoing .message-content').forEach(el => {
     el.style.backgroundColor = '#132c3e';
   });
@@ -135,6 +174,15 @@ function applyDarkTheme() {
   document.querySelectorAll('.skeleton').forEach(el => {
     el.style.backgroundColor = '#2c3640';
   });
+  
+  // Media modal for search.html
+  const mediaModal = document.querySelector('.media-modal');
+  if (mediaModal) {
+    const mediaContent = mediaModal.querySelector('.media-content');
+    if (mediaContent) {
+      mediaContent.style.backgroundColor = '#15202b';
+    }
+  }
   
   // Add class to body for any global CSS targeting
   document.body.classList.add('dark-theme');
@@ -162,8 +210,39 @@ function applyLightTheme() {
   document.documentElement.style.setProperty('--hover-bg', 'rgba(74, 144, 226, 0.1)');
   document.documentElement.style.setProperty('--shadow-color', 'rgba(0, 0, 0, 0.1)');
   
-  // Restore specific elements
-  // Chat messages
+  // Restore body background for all pages
+  document.body.style.backgroundColor = '#ffffff';
+  document.body.style.color = '#0f1419';
+  
+  // Restore specific elements for search.html
+  document.querySelectorAll('.message-bubble').forEach(el => {
+    el.style.backgroundColor = '#f7f9fa';
+    el.style.color = '#0f1419';
+    el.style.borderColor = 'rgba(0, 0, 0, 0.05)';
+  });
+  
+  document.querySelectorAll('.username').forEach(el => {
+    el.style.color = '#0f1419';
+  });
+  
+  document.querySelectorAll('.timestamp').forEach(el => {
+    el.style.color = '#657786';
+  });
+  
+  document.querySelectorAll('.reaction').forEach(el => {
+    el.style.backgroundColor = '#ffffff';
+    el.style.borderColor = 'rgba(0, 0, 0, 0.1)';
+    if (!el.classList.contains('user-reacted')) {
+      el.style.color = 'inherit';
+    }
+  });
+  
+  document.querySelectorAll('.add-reaction').forEach(el => {
+    el.style.backgroundColor = '#ffffff';
+    el.style.borderColor = 'rgba(0, 0, 0, 0.1)';
+  });
+  
+  // Restore chat messages
   document.querySelectorAll('.message.outgoing .message-content').forEach(el => {
     el.style.backgroundColor = 'var(--primary-light)';
   });
@@ -185,6 +264,15 @@ function applyLightTheme() {
   document.querySelectorAll('.skeleton').forEach(el => {
     el.style.backgroundColor = '#ffffff';
   });
+  
+  // Media modal for search.html
+  const mediaModal = document.querySelector('.media-modal');
+  if (mediaModal) {
+    const mediaContent = mediaModal.querySelector('.media-content');
+    if (mediaContent) {
+      mediaContent.style.backgroundColor = '#ffffff';
+    }
+  }
   
   // Remove dark theme class from body
   document.body.classList.remove('dark-theme');
