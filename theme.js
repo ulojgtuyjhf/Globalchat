@@ -1,42 +1,61 @@
-// Dark Theme Toggle for Global Chat
 
-// Create theme toggle button
-function createThemeToggle() {
-  const toggle = document.createElement('button');
-  toggle.id = 'theme-toggle';
-  toggle.innerHTML = '🌙'; // Moon emoji for dark mode toggle
-  toggle.title = 'Toggle Dark Mode';
+// Dark Theme Toggle for Global Chat - Connected to Profile Settings
+
+// Initialize theme
+function initTheme() {
+  // Don't create a new toggle button - use the existing one from profile view
+  const existingToggle = document.getElementById('darkModeSwitch');
   
-  // Style the toggle button
-  toggle.style.position = 'fixed';
-  toggle.style.top = '20px';
-  toggle.style.right = '300px';
-  toggle.style.zIndex = '1000';
-  toggle.style.width = '30px';
-  toggle.style.height = '30px';
-  toggle.style.borderRadius = '50%';
-  toggle.style.border = 'none';
-  toggle.style.backgroundColor = 'var(--primary-light)';
-  toggle.style.color = 'var(--primary-color)';
-  toggle.style.fontSize = '20px';
-  toggle.style.cursor = 'pointer';
-  toggle.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
-  toggle.style.transition = 'all 0.3s ease';
+  // Check for saved theme preference from profile settings
+  const darkMode = localStorage.getItem('darkMode') === 'enabled';
   
-  // Add hover effect
-  toggle.onmouseenter = () => {
-    toggle.style.transform = 'scale(1.1)';
-  };
+  // Apply saved theme
+  if (darkMode) {
+    applyDarkTheme();
+  }
   
-  toggle.onmouseleave = () => {
-    toggle.style.transform = 'scale(1)';
-  };
+  // We don't need to add a click event listener since the profile page already has one
+  // Just make sure our theme functions get called when the toggle changes
   
-  document.body.appendChild(toggle);
-  return toggle;
+  // Add observers to handle dynamically added messages
+  const observer = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+      if (mutation.addedNodes.length) {
+        const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
+        if (isDarkMode) {
+          mutation.addedNodes.forEach(node => {
+            if (node.classList && node.classList.contains('message') && node.classList.contains('outgoing')) {
+              const content = node.querySelector('.message-content');
+              if (content) content.style.backgroundColor = '#132c3e';
+            }
+          });
+        }
+      }
+    });
+  });
+  
+  // Start observing for new messages if we're on the chat page
+  const chatContainer = document.getElementById('chatContainer');
+  if (chatContainer) {
+    observer.observe(chatContainer, { 
+      childList: true,
+      subtree: true
+    });
+  }
+  
+  // Monitor the dark mode setting from localStorage
+  window.addEventListener('storage', (event) => {
+    if (event.key === 'darkMode') {
+      if (event.newValue === 'enabled') {
+        applyDarkTheme();
+      } else {
+        applyLightTheme();
+      }
+    }
+  });
 }
 
-// Define dark theme CSS variables
+// Define dark theme CSS variables - updated to match profile view storage format
 function applyDarkTheme() {
   document.documentElement.style.setProperty('--primary-color', '#1d9bf0'); // Twitter blue
   document.documentElement.style.setProperty('--primary-light', '#1a2634');
@@ -52,13 +71,6 @@ function applyDarkTheme() {
   document.querySelectorAll('.message.outgoing .message-content').forEach(el => {
     el.style.backgroundColor = '#132c3e'; // Darker blue for outgoing messages
   });
-  
-  // Update toggle icon
-  const toggle = document.getElementById('theme-toggle');
-  if (toggle) toggle.innerHTML = '☀️'; // Sun emoji for light mode toggle
-  
-  // Store preference
-  localStorage.setItem('darkMode', 'true');
 }
 
 // Restore light theme CSS variables
@@ -76,80 +88,6 @@ function applyLightTheme() {
   // Restore message styles
   document.querySelectorAll('.message.outgoing .message-content').forEach(el => {
     el.style.backgroundColor = 'var(--primary-light)';
-  });
-  
-  // Update toggle icon
-  const toggle = document.getElementById('theme-toggle');
-  if (toggle) toggle.innerHTML = '🌙'; // Moon emoji for dark mode toggle
-  
-  // Store preference
-  localStorage.setItem('darkMode', 'false');
-}
-
-// Initialize theme
-function initTheme() {
-  // Create toggle button
-  const themeToggle = createThemeToggle();
-  
-  // Check for saved theme preference
-  const darkMode = localStorage.getItem('darkMode') === 'true';
-  
-  // Apply saved theme or default to light
-  if (darkMode) {
-    applyDarkTheme();
-  }
-  
-  // Add toggle event listener
-  themeToggle.addEventListener('click', () => {
-    const isDarkMode = localStorage.getItem('darkMode') === 'true';
-    if (isDarkMode) {
-      applyLightTheme();
-    } else {
-      applyDarkTheme();
-    }
-  });
-  
-  // Add observers to handle dynamically added messages
-  const observer = new MutationObserver(mutations => {
-    mutations.forEach(mutation => {
-      if (mutation.addedNodes.length) {
-        const isDarkMode = localStorage.getItem('darkMode') === 'true';
-        if (isDarkMode) {
-          mutation.addedNodes.forEach(node => {
-            if (node.classList && node.classList.contains('message') && node.classList.contains('outgoing')) {
-              const content = node.querySelector('.message-content');
-              if (content) content.style.backgroundColor = '#132c3e';
-            }
-          });
-        }
-      }
-    });
-  });
-  
-  // Start observing for new messages
-  observer.observe(document.getElementById('chatContainer'), { 
-    childList: true,
-    subtree: true
-  });
-  
-  // Add media query for system preference
-  const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
-  
-  // Initial check if no preference saved
-  if (localStorage.getItem('darkMode') === null && prefersDarkScheme.matches) {
-    applyDarkTheme();
-  }
-  
-  // Listen for changes to system preferences
-  prefersDarkScheme.addEventListener('change', e => {
-    // Only apply if user hasn't set a preference
-    if (localStorage.getItem('darkMode') === null) {
-      if (e.matches) {
-        applyDarkTheme();
-      } else {
-        applyLightTheme();
-      }
-    }
   });
 }
 
