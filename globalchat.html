@@ -933,7 +933,61 @@
     </div>
   </div>
 
-  
+<script>
+  // Wait for the page to fully load
+  document.addEventListener('DOMContentLoaded', function() {
+    // Function to scroll to bottom with animation
+    function scrollToBottomAnimated() {
+      const chatContainer = document.getElementById('chatContainer');
+      if (!chatContainer) return;
+      
+      // Use requestAnimationFrame for smooth scrolling
+      const startPosition = chatContainer.scrollTop;
+      const endPosition = chatContainer.scrollHeight - chatContainer.clientHeight;
+      const duration = 500; // milliseconds
+      const startTime = performance.now();
+      
+      function step(currentTime) {
+        const elapsedTime = currentTime - startTime;
+        if (elapsedTime < duration) {
+          // Use easeOutCubic for smoother animation
+          const progress = 1 - Math.pow(1 - elapsedTime / duration, 3);
+          chatContainer.scrollTop = startPosition + (endPosition - startPosition) * progress;
+          requestAnimationFrame(step);
+        } else {
+          chatContainer.scrollTop = endPosition;
+        }
+      }
+      
+      requestAnimationFrame(step);
+    }
+    
+    // Scroll to bottom on page load (with slight delay to ensure content is loaded)
+    setTimeout(scrollToBottomAnimated, 500);
+    
+    // Create a MutationObserver to detect when new messages are added
+    const chatContainer = document.getElementById('chatContainer');
+    if (chatContainer) {
+      const observer = new MutationObserver(function(mutations) {
+        // Check if a new message was added
+        for (const mutation of mutations) {
+          if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+            for (const node of mutation.addedNodes) {
+              if (node.classList && node.classList.contains('message')) {
+                // New message detected, scroll to bottom
+                scrollToBottomAnimated();
+                break;
+              }
+            }
+          }
+        }
+      });
+      
+      // Start observing the chat container for changes
+      observer.observe(chatContainer, { childList: true });
+    }
+  });
+</script>  
 <script type="module" src="chat.js"></script>
 <script src="loadfollow.js"></script>
 <script src="remove.js"></script>
@@ -947,3 +1001,4 @@
 <script src="link.js"></script>
 <script src="check.js"></script>
 <script src="sound.js"></script>
+<script src="mark.js"></script>
