@@ -1,305 +1,115 @@
-// Enhanced URL detection and custom viewer with Instagram-style effects
-function initializeUrlBeautifier() {
-  // URL pattern for all domains
-  const urlPattern = /(https?:\/\/[^\s<]+)/gi;
 
-  // Create custom viewer with enhanced animations and Instagram-like UI
-  function createCustomViewer(url) {
-    const viewer = document.createElement('div');
-    viewer.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: #fff;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      overflow: hidden;
-    `;
 
-    // Add keyframe animations
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes slideIn {
-        from {
-          transform: translateY(100%);
-          opacity: 0;
-        }
-        to {
-          transform: translateY(0);
-          opacity: 1;
-        }
-      }
-      @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-      @media (max-width: 768px) {
-        .header-controls {
-          font-size: 14px;
-        }
-        .content-wrapper {
-          padding: 12px;
-        }
-      }
-    `;
-    document.head.appendChild(style);
+// Link Detection and Conversion Script
+(function() {
+  // URL regex pattern that matches common URL formats
+  const urlRegex = /(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/gi;
 
-    // Enhanced header with Instagram-style design
-    const header = document.createElement('div');
-    header.style.cssText = `
-      height: 56px;
-      background: #fff;
-      display: flex;
-      align-items: center;
-      padding: 0 16px;
-      gap: 12px;
-      box-shadow: 0 1px 0 rgba(0,0,0,0.1);
-      position: relative;
-      z-index: 1;
-    `;
-
-    // Animated close button (X)
-    const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = `
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path stroke-width="2" d="M18 6L6 18M6 6l12 12"/>
-      </svg>
-    `;
-    closeBtn.style.cssText = `
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 8px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-      color: #000;
-    `;
-    closeBtn.onmouseover = () => {
-      closeBtn.style.background = 'rgba(0,0,0,0.05)';
-      closeBtn.style.transform = 'scale(1.1)';
-    };
-    closeBtn.onmouseout = () => {
-      closeBtn.style.background = 'none';
-      closeBtn.style.transform = 'scale(1)';
-    };
-    closeBtn.onclick = () => {
-      viewer.style.animation = 'slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse';
-      setTimeout(() => viewer.remove(), 300);
-    };
-
-    // Security indicator with animation
-    const security = document.createElement('div');
-    const isSecure = url.startsWith('https://');
-    security.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" 
-           stroke="${isSecure ? '#00c853' : '#ff1744'}" stroke-width="2">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-      </svg>
-      <span style="margin-left: 4px;">
-        ${isSecure ? 'Secure' : 'Not Secure'}
-      </span>
-    `;
-    security.style.cssText = `
-      display: flex;
-      align-items: center;
-      padding: 4px 8px;
-      border-radius: 6px;
-      background: ${isSecure ? 'rgba(0,200,83,0.1)' : 'rgba(255,23,68,0.1)'};
-      color: ${isSecure ? '#00c853' : '#ff1744'};
-      font-size: 12px;
-      font-weight: 500;
-    `;
-
-    // URL display
-    const urlDisplay = document.createElement('div');
-    urlDisplay.textContent = new URL(url).hostname;
-    urlDisplay.style.cssText = `
-      color: #000;
-      font-size: 16px;
-      font-weight: 600;
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    `;
-
-    // Loading spinner
-    const spinner = document.createElement('div');
-    spinner.style.cssText = `
-      width: 24px;
-      height: 24px;
-      border: 2px solid #eee;
-      border-top-color: #000;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    `;
-
-    // Content wrapper
-    const contentWrapper = document.createElement('div');
-    contentWrapper.style.cssText = `
-      flex: 1;
-      position: relative;
-      overflow: hidden;
-      background: #fff;
-    `;
-
-    // Create iframe for content
-    const content = document.createElement('iframe');
-    content.src = url;
-    content.style.cssText = `
-      width: 100%;
-      height: 100%;
-      border: none;
-      opacity: 0;
-      transition: opacity 0.3s;
-    `;
-
-    // Handle iframe load events and errors
-    content.onload = () => {
-      spinner.remove();
-      content.style.opacity = '1';
-    };
-
-    content.onerror = () => {
-      handleLoadError();
-    };
-
-    // Error handling function
-    function handleLoadError() {
-      spinner.remove();
-      const errorMsg = document.createElement('div');
-      errorMsg.style.cssText = `
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
-        color: #666;
-      `;
-      errorMsg.innerHTML = `
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="12"/>
-          <line x1="12" y1="16" x2="12" y2="16"/>
-        </svg>
-        <p style="margin-top: 16px; font-size: 16px;">Unable to load content</p>
-        <button style="
-          margin-top: 12px;
-          padding: 8px 16px;
-          background: #000;
-          color: #fff;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
-          font-size: 14px;
-        ">Open in new tab</button>
-      `;
-      
-      errorMsg.querySelector('button').onclick = () => {
-        window.open(url, '_blank');
-      };
-      
-      contentWrapper.appendChild(errorMsg);
+  // CSS for link styling
+  const linkStyles = `
+    .chat-link {
+      color: #1da1f2;
+      text-decoration: none;
+      word-break: break-all;
+      border-bottom: 1px dotted #1da1f2;
+      transition: color 0.2s, border-bottom 0.2s;
     }
+    .chat-link:hover {
+      color: #0c7abf;
+      border-bottom: 1px solid #0c7abf;
+    }
+  `;
 
-    // Assemble viewer
-    header.appendChild(closeBtn);
-    header.appendChild(security);
-    header.appendChild(urlDisplay);
-    contentWrapper.appendChild(spinner);
-    contentWrapper.appendChild(content);
-    viewer.appendChild(header);
-    viewer.appendChild(contentWrapper);
-    document.body.appendChild(viewer);
-
-    // Add keyboard shortcut to close (Escape key)
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        closeBtn.click();
-        document.removeEventListener('keydown', handleEscape);
-      }
-    };
-    document.addEventListener('keydown', handleEscape);
+  // Add styles to document
+  function addStyles() {
+    const styleElement = document.createElement('style');
+    styleElement.textContent = linkStyles;
+    document.head.appendChild(styleElement);
   }
 
-  // Enhanced URL styling
-  function styleUrls(element) {
-    const text = element.innerHTML;
-    const styledText = text.replace(urlPattern, (url) => {
-      return `<a href="#" 
-              onclick="event.preventDefault(); this.getRootNode().defaultView.createCustomViewer('${url}')" 
-              style="
-                color: #fff;
-                background: #000;
-                padding: 4px 12px;
-                border-radius: 8px;
-                text-decoration: none;
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                font-weight: 500;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-              "
-              onmouseover="
-                this.style.transform='translateY(-2px)';
-                this.style.boxShadow='0 6px 12px rgba(0,0,0,0.3)';
-              "
-              onmouseout="
-                this.style.transform='translateY(0)';
-                this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)';
-              "
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/>
-              </svg>
-              ${new URL(url).hostname}
-            </a>`;
+  // Function to convert text URLs to clickable links
+  function linkify(text) {
+    if (!text) return text;
+    return text.replace(urlRegex, function(url) {
+      // Ensure URL has proper protocol
+      let href = url;
+      if (!href.match(/^https?:\/\//i)) {
+        href = 'http://' + href;
+      }
+      return `<a href="${href}" class="chat-link" target="_blank" rel="noopener noreferrer">${url}</a>`;
     });
-
-    if (text !== styledText) {
-      element.innerHTML = styledText;
-    }
   }
 
-  // Watch for new messages
-  const observer = new MutationObserver(mutations => {
-    mutations.forEach(mutation => {
-      mutation.addedNodes.forEach(node => {
-        if (node.nodeType === 1) {
-          const messageContent = node.querySelector('.message-content p');
-          if (messageContent) {
-            styleUrls(messageContent);
-          }
+  // Process existing messages
+  function processExistingMessages() {
+    const messageTextElements = document.querySelectorAll('.message-text');
+    messageTextElements.forEach(element => {
+      if (!element.dataset.linkified) {
+        element.innerHTML = linkify(element.innerHTML);
+        element.dataset.linkified = 'true';
+      }
+    });
+  }
+
+  // Process new messages as they're added
+  function observeNewMessages() {
+    const chatContainer = document.getElementById('chatContainer');
+    
+    if (!chatContainer) return;
+    
+    const observer = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          mutation.addedNodes.forEach(node => {
+            if (node.nodeType === 1) { // Element node
+              const messageTextElements = node.querySelectorAll('.message-text');
+              messageTextElements.forEach(element => {
+                if (!element.dataset.linkified) {
+                  element.innerHTML = linkify(element.innerHTML);
+                  element.dataset.linkified = 'true';
+                }
+              });
+            }
+          });
         }
       });
     });
-  });
+    
+    // Configure and start the observer
+    observer.observe(chatContainer, { childList: true, subtree: true });
+  }
 
-  // Start observing chat container
-  const chatContainer = document.querySelector('.chat-container');
-  observer.observe(chatContainer, {
-    childList: true,
-    subtree: true
-  });
+  // Handle click events on links to open in browser
+  function handleLinkClicks() {
+    document.addEventListener('click', function(event) {
+      if (event.target.classList.contains('chat-link')) {
+        event.preventDefault();
+        
+        // Open link in user's browser
+        window.open(event.target.href, '_blank');
+      }
+    });
+  }
 
-  // Make createCustomViewer available globally
-  window.createCustomViewer = createCustomViewer;
-}
+  // Initialize the script
+  function init() {
+    // Add styles first
+    addStyles();
+    
+    // Wait for DOM to be fully loaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        processExistingMessages();
+        observeNewMessages();
+        handleLinkClicks();
+      });
+    } else {
+      processExistingMessages();
+      observeNewMessages();
+      handleLinkClicks();
+    }
+  }
 
-// Initialize when document is ready
-document.addEventListener('DOMContentLoaded', initializeUrlBeautifier);
+  // Start the script
+  init();
+})();
