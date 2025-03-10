@@ -1418,117 +1418,87 @@
 </script>
 
 
+
 <script>
-  // Enhanced Content Moderation System for Global Chat
+  // Twitter-style Content Filter System
   (function() {
-    // Expanded list of prohibited content
+    // Focus on serious problematic content only
     const prohibitedContent = [
-      // Profanity - common and variations
-      'fuck', 'f*ck', 'f**k', 'fck', 'shit', 'sh*t', 'sh!t', 'ass', 'a$$', 'damn', 'bitch', 'b!tch',
-      'cunt', 'dick', 'd!ck', 'cock', 'c0ck', 'pussy', 'p*ssy', 'puss', 'asshole', 'a-hole',
-      'whore', 'wh0re', 'slut', 'bastard', 'motherfucker', 'mofo', 'bullshit', 'bullsh*t',
-      
-      // Slurs and hate speech - with common variations
-      'nigger', 'n1gger', 'n!gger', 'negro', 'faggot', 'f@ggot', 'fag', 'retard', 'r3tard',
-      'spic', 'sp!c', 'chink', 'ch!nk', 'kike', 'k!ke', 'tranny', 'tr@nny', 'dyke',
-      'wetback', 'towelhead', 'raghead', 'homo', 'queer', 'paki',
-      
-      // Violence and threats
-      'kill yourself', 'kys', 'suicide', 'kill them', 'murder', 'rape', 'r@pe',
-      'hang yourself', 'bomb', 'terrorist', 'shoot', 'stab', 'die', 'death',
-      
-      // Drug references
-      'cocaine', 'heroin', 'meth', 'crack', 'weed', 'pot', 'marijuana', 'dope', 'pills',
-      'lsd', 'mdma', 'ecstasy', 'xanax', 'crystal', 'overdose', 'drug dealer',
-      
-      // Sexual content
-      'porn', 'p0rn', 'blowjob', 'handjob', 'anal', 'cumshot', 'cum', 'jizz',
-      'masturbate', 'dildo', 'vibrator', 'sex tape', 'nude', 'nudes',
-      
-      // Scams and illegal activity
-      'hack', 'hacking', 'ddos', 'phishing', 'scam', 'illegal', 'steal', 'theft'
+      'fuck', 'shit', 'bitch', 'cunt', 'dick', 'cock', 'pussy',
+      'nigger', 'faggot', 'retard', 'kys', 'kill yourself',
+      'porn', 'rape', 'nazi', 'suicide'
     ];
     
-    // More sophisticated regular expressions for better pattern matching
-    const prohibitedRegexes = prohibitedContent.map(term => {
-      // Create regex pattern that catches common obfuscation tactics
-      const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      return new RegExp(
-        `\\b${escapedTerm}\\b|\\b${escapedTerm}s\\b|\\b${escapedTerm}ing\\b|\\b${escapedTerm}ed\\b|` +
-        `\\b${escapedTerm.replace(/[aeiouy]/g, '[aeiouy@30!*]')}\\b`, 'gi'
-      );
-    });
+    // Simple pattern matching
+    const prohibitedRegexes = prohibitedContent.map(term =>
+      new RegExp(`\\b${term}\\b`, 'i')
+    );
     
-    // Function to censor text with stylized 3D stars
-    function censorText(text) {
-      if (!text) return text;
+    // Check if a message contains prohibited content
+    function containsProhibitedContent(text) {
+      if (!text) return false;
       
-      let censoredText = text;
-      
-      // Replace prohibited content with stars
-      prohibitedRegexes.forEach(regex => {
-        censoredText = censoredText.replace(regex, match => {
-          // Create span with stylized stars
-          return `<span class="censored-text">${'★'.repeat(match.length)}</span>`;
-        });
-      });
-      
-      return censoredText;
+      for (const regex of prohibitedRegexes) {
+        if (regex.test(text)) {
+          return true;
+        }
+      }
+      return false;
     }
     
-    // Function to safely apply HTML with stars while preventing XSS
-    function safelyApplyCensoring(element) {
-      const originalText = element.textContent || element.innerText;
-      const censoredHTML = censorText(originalText);
+    // Create Twitter-style content warning
+    function createContentWarning(messageElement, messageText) {
+      // Save original content
+      messageElement.setAttribute('data-original-content', messageText);
       
-      // Only update if censoring was applied
-      if (censoredHTML.includes('<span class="censored-text">')) {
-        element.innerHTML = censoredHTML;
+      // Create warning wrapper
+      const warningHTML = `
+      <div class="content-warning">
+        <p>This message is hidden because it may contain sensitive content</p>
+        <button class="show-content-btn">Show</button>
+      </div>
+    `;
+      
+      // Replace content with warning
+      const messageTextElement = messageElement.querySelector('.message-text');
+      if (messageTextElement) {
+        messageTextElement.innerHTML = warningHTML;
+        
+        // Add event listener to show button
+        setTimeout(() => {
+          const showBtn = messageTextElement.querySelector('.show-content-btn');
+          if (showBtn) {
+            showBtn.addEventListener('click', function() {
+              const originalContent = messageElement.getAttribute('data-original-content');
+              messageTextElement.textContent = originalContent;
+            });
+          }
+        }, 0);
       }
     }
     
-    // Function to monitor and censor message input (text only)
-    function monitorMessageInput() {
-      const messageInput = document.getElementById('messageInput');
-      if (!messageInput) return;
-      
-      // Add input event listener
-      messageInput.addEventListener('input', function() {
-        const originalText = this.value;
-        
-        // Simple text-only censoring for input field
-        let censoredText = originalText;
-        prohibitedRegexes.forEach(regex => {
-          censoredText = censoredText.replace(regex, match => '★'.repeat(match.length));
-        });
-        
-        // Only update if censoring was applied
-        if (originalText !== censoredText) {
-          this.value = censoredText;
-        }
-      });
-    }
-    
-    // Function to censor displayed messages with styled stars
-    function censorDisplayedMessages() {
-      // Monitor for new messages being added to the DOM
+    // Monitor for new messages
+    function monitorMessages() {
       const chatObserver = new MutationObserver(mutations => {
         mutations.forEach(mutation => {
           if (mutation.type === 'childList') {
             mutation.addedNodes.forEach(node => {
-              if (node.nodeType === 1) { // Element node
-                // Look for message text elements in the added node
-                const messageTexts = node.querySelectorAll('.message-text');
-                messageTexts.forEach(element => {
-                  safelyApplyCensoring(element);
-                });
+              if (node.nodeType === 1 && node.classList.contains('message')) {
+                const messageTextElement = node.querySelector('.message-text');
+                if (messageTextElement) {
+                  const messageText = messageTextElement.textContent;
+                  
+                  // Check if message contains prohibited content
+                  if (containsProhibitedContent(messageText)) {
+                    createContentWarning(node, messageText);
+                  }
+                }
               }
             });
           }
         });
       });
       
-      // Start observing the chat container
       const chatContainer = document.getElementById('chatContainer');
       if (chatContainer) {
         chatObserver.observe(chatContainer, {
@@ -1537,126 +1507,84 @@
         });
       }
       
-      // Initial pass to censor any existing messages
-      document.querySelectorAll('.message-text').forEach(element => {
-        safelyApplyCensoring(element);
+      // Check existing messages
+      document.querySelectorAll('.message').forEach(messageElement => {
+        const messageTextElement = messageElement.querySelector('.message-text');
+        if (messageTextElement) {
+          const messageText = messageTextElement.textContent;
+          if (containsProhibitedContent(messageText)) {
+            createContentWarning(messageElement, messageText);
+          }
+        }
       });
     }
     
-    // Function to add custom CSS for professional 3D censored content
-    function addCensoredStyling() {
+    // Add CSS for content warnings
+    function addWarningStyles() {
       const style = document.createElement('style');
       style.textContent = `
-      /* Base styling for message text */
-      .message-text {
-        word-break: break-word;
-        line-height: 1.4;
+      .content-warning {
+        background-color: rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        padding: 10px;
+        margin: 5px 0;
       }
       
-      /* Professional 3D star styling */
-      .censored-text {
-        display: inline-block;
+      .content-warning p {
+        color: #657786;
+        font-size: 14px;
+        margin-bottom: 8px;
+      }
+      
+      .show-content-btn {
+        background-color: transparent;
+        border: 1px solid #1da1f2;
         color: #1da1f2;
-        font-size: 1.1em;
+        border-radius: 16px;
+        padding: 4px 12px;
+        font-size: 12px;
         font-weight: bold;
-        letter-spacing: 1px;
-        text-shadow: 
-          0 1px 0 #ccc,
-          0 2px 0 #c9c9c9,
-          0 3px 0 #bbb,
-          0 4px 0 #b9b9b9,
-          0 5px 0 #aaa,
-          0 6px 1px rgba(0,0,0,.1),
-          0 0 5px rgba(0,0,0,.1),
-          0 1px 3px rgba(0,0,0,.3),
-          0 3px 5px rgba(0,0,0,.2),
-          0 5px 10px rgba(0,0,0,.25),
-          0 10px 10px rgba(0,0,0,.2),
-          0 20px 20px rgba(0,0,0,.15);
-        background: linear-gradient(to bottom, #1da1f2 0%, #0d8ecf 100%);
-        background-clip: text;
-        -webkit-background-clip: text;
-        color: transparent;
-        margin: 0 2px;
-        padding: 0 2px;
-        border-radius: 3px;
-        animation: starPulse 2s infinite;
-        position: relative;
+        cursor: pointer;
+        transition: background-color 0.2s;
       }
       
-      /* Animation to make stars more visible */
-      @keyframes starPulse {
-        0% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.9; transform: scale(1.05); }
-        100% { opacity: 1; transform: scale(1); }
-      }
-      
-      /* Add subtle glow effect */
-      .censored-text:after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        border-radius: 3px;
-        box-shadow: 0 0 8px 2px rgba(29, 161, 242, 0.6);
-        opacity: 0.6;
-        z-index: -1;
+      .show-content-btn:hover {
+        background-color: rgba(29, 161, 242, 0.1);
       }
     `;
       document.head.appendChild(style);
     }
     
-    // Function to add message submission hook
-    function addMessageSubmitHook() {
-      // Hook into the sendMessage function if it exists
-      if (window.sendMessage) {
-        const originalSendMessage = window.sendMessage;
-        window.sendMessage = function(...args) {
-          // Censor any text before it's sent
-          const messageInput = document.getElementById('messageInput');
-          if (messageInput && messageInput.value) {
-            let censoredText = messageInput.value;
-            prohibitedRegexes.forEach(regex => {
-              censoredText = censoredText.replace(regex, match => '★'.repeat(match.length));
-            });
-            messageInput.value = censoredText;
-          }
-          
-          // Call the original function
-          return originalSendMessage.apply(this, args);
-        };
-      }
-    }
-    
-    // Initialize the content moderation system
-    function initContentModeration() {
-      console.log('Enhanced content moderation system initialized');
-      monitorMessageInput();
-      censorDisplayedMessages();
-      addCensoredStyling();
-      addMessageSubmitHook();
+    // Initialize the system
+    function init() {
+      addWarningStyles();
+      monitorMessages();
       
-      // Set up interval to periodically check for new messages (backup)
+      // Set up a periodic scanner for missed messages
       setInterval(() => {
-        document.querySelectorAll('.message-text').forEach(element => {
-          if (!element.querySelector('.censored-text')) {
-            safelyApplyCensoring(element);
+        document.querySelectorAll('.message').forEach(messageElement => {
+          if (!messageElement.hasAttribute('data-original-content')) {
+            const messageTextElement = messageElement.querySelector('.message-text');
+            if (messageTextElement) {
+              const messageText = messageTextElement.textContent;
+              if (containsProhibitedContent(messageText)) {
+                createContentWarning(messageElement, messageText);
+              }
+            }
           }
         });
       }, 2000);
     }
     
-    // Run when DOM is fully loaded
-    document.addEventListener('DOMContentLoaded', initContentModeration);
-    
-    // If DOM is already loaded, initialize immediately
+    // Run initialization
     if (document.readyState === 'interactive' || document.readyState === 'complete') {
-      setTimeout(initContentModeration, 100);
+      setTimeout(init, 100);
+    } else {
+      document.addEventListener('DOMContentLoaded', init);
     }
   })();
 </script>
+
 
 
 <script type="module" src="chat.js"></script>
