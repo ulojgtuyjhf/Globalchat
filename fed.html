@@ -1,744 +1,427 @@
+<script>
+// Social Media Link Preview Generator
+(function() {
+  // Function to extract video ID from various social media URLs
+  function extractVideoID(url) {
+    // TikTok
+    let tiktokMatch = url.match(/tiktok\.com\/@[\w.-]+\/video\/(\d+)/i) || 
+                      url.match(/vm\.tiktok\.com\/(\w+)/i);
+    if (tiktokMatch) return { platform: 'tiktok', id: tiktokMatch[1] };
+    
+    // YouTube
+    let youtubeMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+    if (youtubeMatch) return { platform: 'youtube', id: youtubeMatch[1] };
+    
+    // Instagram
+    let instagramMatch = url.match(/instagram\.com\/(?:p|reel)\/([^\/?#&]+)/i);
+    if (instagramMatch) return { platform: 'instagram', id: instagramMatch[1] };
+    
+    // Twitter/X
+    let twitterMatch = url.match(/twitter\.com\/\w+\/status\/(\d+)/i) || 
+                       url.match(/x\.com\/\w+\/status\/(\d+)/i);
+    if (twitterMatch) return { platform: 'twitter', id: twitterMatch[1] };
+    
+    return null;
+  }
+  
+  // Generate preview HTML based on platform and ID
+  function generatePreviewHTML(platform, id, originalUrl) {
+    const playIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>`;
+    
+    switch(platform) {
+      case 'tiktok':
+        return `
+          <div class="link-preview tiktok-preview">
+            <div class="preview-header">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M9 0h1.98c.144.715.54 1.617 1.235 2.512C12.895 3.389 13.797 4 15 4v2c-1.753 0-3.07-.814-4-1.829V11a5 5 0 1 1-5-5v2a3 3 0 1 0 3 3V0Z"/>
+              </svg>
+              <span>TikTok</span>
+            </div>
+            <div class="preview-content" data-original-url="${originalUrl}" data-embed-url="https://www.tiktok.com/embed/v2/${id}">
+              <div class="preview-placeholder">
+                <div class="preview-loader"></div>
+                <button class="play-button">${playIcon}</button>
+              </div>
+            </div>
+          </div>
+        `;
+      
+      case 'youtube':
+        return `
+          <div class="link-preview youtube-preview">
+            <div class="preview-header">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="red">
+                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+              </svg>
+              <span>YouTube</span>
+            </div>
+            <div class="preview-content" data-original-url="${originalUrl}" data-embed-url="https://www.youtube.com/embed/${id}?autoplay=1">
+              <div class="preview-placeholder">
+                <img src="https://img.youtube.com/vi/${id}/maxresdefault.jpg" onerror="this.onerror=null;this.src='https://img.youtube.com/vi/${id}/hqdefault.jpg';" alt="YouTube Thumbnail">
+                <button class="play-button">${playIcon}</button>
+              </div>
+            </div>
+          </div>
+        `;
+      
+      case 'instagram':
+        return `
+          <div class="link-preview instagram-preview">
+            <div class="preview-header">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="url(#instagram-gradient)">
+                <defs>
+                  <linearGradient id="instagram-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#FFDC80" />
+                    <stop offset="25%" style="stop-color:#FCAF45" />
+                    <stop offset="50%" style="stop-color:#F77737" />
+                    <stop offset="75%" style="stop-color:#F56040" />
+                    <stop offset="100%" style="stop-color:#FD1D1D" />
+                  </linearGradient>
+                </defs>
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+              </svg>
+              <span>Instagram</span>
+            </div>
+            <div class="preview-content" data-original-url="${originalUrl}" data-embed-url="https://www.instagram.com/p/${id}/embed/captioned/">
+              <div class="preview-placeholder">
+                <div class="preview-loader"></div>
+                <button class="play-button">${playIcon}</button>
+              </div>
+            </div>
+          </div>
+        `;
+      
+      case 'twitter':
+        return `
+          <div class="link-preview twitter-preview">
+            <div class="preview-header">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#1DA1F2">
+                <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+              </svg>
+              <span>Twitter</span>
+            </div>
+            <div class="preview-content" data-original-url="${originalUrl}" data-embed-url="https://platform.twitter.com/embed/Tweet.html?id=${id}">
+              <div class="preview-placeholder">
+                <div class="preview-loader"></div>
+                <button class="play-button">${playIcon}</button>
+              </div>
+            </div>
+          </div>
+        `;
+      
+      default:
+        return '';
+    }
+  }
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Video Feed</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
-        }
-
-        body, html {
-            height: 100%;
-            width: 100%;
-            background-color: #000;
-            color: #fff;
-            overflow: hidden;
-        }
-
-        #app-container {
-            width: 100%;
-            height: 100vh;
-            position: relative;
-        }
-
-        #video-feed {
-            width: 100%;
-            height: 100vh;
-            scroll-snap-type: y mandatory;
-            overflow-y: scroll;
-            overflow-x: hidden;
-            scrollbar-width: none;
-        }
-
-        #video-feed::-webkit-scrollbar {
-            display: none;
-        }
-
-        .video-container {
-            position: relative;
-            width: 100%;
-            height: 100vh;
-            scroll-snap-align: start;
-            scroll-snap-stop: always;
-        }
-
-        .video-player {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-
-        .video-overlay {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 20px;
-            background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
-            display: flex;
-            flex-direction: column;
-            z-index: 10;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .profile-pic {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background-color: #555;
-            margin-right: 10px;
-            object-fit: cover;
-            border: 2px solid #fff;
-        }
-
-        .username {
-            font-weight: bold;
-            font-size: 16px;
-        }
-
-        .video-description {
-            font-size: 14px;
-            margin-bottom: 15px;
-            max-width: 80%;
-        }
-
-        .emoji-reactions {
-            position: absolute;
-            right: 20px;
-            bottom: 80px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .emoji-button {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 50px;
-            height: 50px;
-            background-color: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            font-size: 24px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            animation: pulse 2s infinite;
-        }
-
-        .emoji-button:hover {
-            transform: scale(1.1);
-            background-color: rgba(255, 255, 255, 0.3);
-        }
-
-        .emoji-button:active {
-            transform: scale(0.95);
-        }
-
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3);
-            }
-            70% {
-                box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
-            }
-        }
-
-        .emoji-reaction {
-            position: absolute;
-            animation: floatUp 1.5s forwards ease-out;
-            opacity: 0;
-            font-size: 30px;
-            user-select: none;
-            z-index: 100;
-        }
-
-        @keyframes floatUp {
-            0% {
-                transform: translateY(0) scale(0.5);
-                opacity: 0;
-            }
-            10% {
-                opacity: 1;
-            }
-            80% {
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(-100px) scale(1.5);
-                opacity: 0;
-            }
-        }
-
-        .loading-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #000;
-            z-index: 1000;
-        }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top: 4px solid #fff;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .plus-button {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: linear-gradient(45deg, #ff416c, #ff4b2b);
-            color: white;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 30px;
-            box-shadow: 0 4px 15px rgba(255, 75, 43, 0.5);
-            z-index: 100;
-            animation: pulse-red 2s infinite;
-            transition: all 0.3s ease;
-        }
-
-        .plus-button:hover {
-            transform: scale(1.1);
-        }
-
-        @keyframes pulse-red {
-            0% {
-                box-shadow: 0 0 0 0 rgba(255, 75, 43, 0.7);
-            }
-            70% {
-                box-shadow: 0 0 0 10px rgba(255, 75, 43, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(255, 75, 43, 0);
-            }
-        }
-
-        .empty-state {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            width: 100%;
-            text-align: center;
-            padding: 20px;
-            background: linear-gradient(135deg, #121212 0%, #000000 100%);
-        }
-
-        .empty-icon {
-            font-size: 80px;
-            margin-bottom: 30px;
-            color: #ff4b2b;
-            animation: float 3s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-            100% { transform: translateY(0px); }
-        }
-
-        .empty-text {
-            font-size: 22px;
-            color: #fff;
-            max-width: 300px;
-            line-height: 1.4;
-            margin-bottom: 20px;
-        }
-
-        .empty-subtext {
-            font-size: 16px;
-            color: #aaa;
-            max-width: 280px;
-        }
-
-        .image-post {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            background-color: #000;
-        }
-
-        .image-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: 100%;
-            background-color: #000;
-        }
-
-        .play-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: rgba(0,0,0,0.4);
-            z-index: 15;
-            cursor: pointer;
-        }
-
-        .play-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.2);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 40px;
-            color: white;
-        }
-
-        /* Emoji Animation Container */
-        .emoji-animation-container {
-            position: absolute;
-            pointer-events: none;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            z-index: 12;
-        }
-
-        /* Watermark */
-        .app-watermark {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            font-size: 20px;
-            font-weight: bold;
-            color: rgba(255, 255, 255, 0.7);
-            z-index: 90;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-        }
-
-        /* Video Progress Bar */
-        .video-progress {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background-color: rgba(255, 255, 255, 0.2);
-            z-index: 11;
-        }
-
-        .progress-filled {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #ff416c, #ff4b2b);
-            border-radius: 0 2px 2px 0;
-            transition: width 0.1s linear;
-        }
-    </style>
-</head>
-<body>
-    <div id="app-container">
-        <div class="app-watermark">nmedea</div>
-        <div id="video-feed"></div>
-
+  // Fetch TikTok thumbnail
+  async function fetchTikTokThumbnail(url, elementToUpdate) {
+    try {
+      // Use a CORS proxy to fetch the thumbnail
+      // Note: In a production environment, you should set up your own proxy
+      const corsProxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+      const response = await fetch(corsProxyUrl);
+      const html = await response.text();
+      
+      // Extract thumbnail URL from HTML meta tags
+      const thumbnailMatch = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i);
+      if (thumbnailMatch && thumbnailMatch[1]) {
+        const thumbnail = document.createElement('img');
+        thumbnail.src = thumbnailMatch[1];
+        thumbnail.alt = "TikTok Thumbnail";
         
+        // Replace loader with actual thumbnail
+        const placeholder = elementToUpdate.querySelector('.preview-placeholder');
+        if (placeholder) {
+          const loader = placeholder.querySelector('.preview-loader');
+          if (loader) {
+            placeholder.replaceChild(thumbnail, loader);
+          } else {
+            placeholder.prepend(thumbnail);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching TikTok thumbnail:', error);
+    }
+  }
 
-        <div class="loading-container" id="loading">
-            <div class="spinner"></div>
-        </div>
-    </div>
+  // Add CSS styles for link previews
+  const style = document.createElement('style');
+  style.textContent = `
+    .link-preview {
+      margin: 10px 0;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #38444d;
+      background: #192734;
+      max-width: 100%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    .preview-header {
+      display: flex;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid #38444d;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .preview-header svg {
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    
+    .preview-content {
+      position: relative;
+      width: 100%;
+      cursor: pointer;
+    }
+    
+    .preview-placeholder {
+      position: relative;
+      width: 100%;
+      height: 0;
+      padding-bottom: 56.25%; /* 16:9 aspect ratio */
+      background: #0f1419;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .preview-placeholder img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .preview-loader {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #1da1f2;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .play-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.7);
+      border: none;
+      cursor: pointer;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.2s;
+    }
+    
+    .play-button:hover {
+      background: rgba(29, 161, 242, 0.9);
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+    
+    .preview-iframe-container {
+      position: relative;
+      padding-bottom: 56.25%; /* 16:9 aspect ratio */
+      height: 0;
+      width: 100%;
+    }
+    
+    .preview-iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  `;
+  document.head.appendChild(style);
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, query, orderBy, limit, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  // Process messages to find and convert links
+  function processMessages() {
+    const messages = document.querySelectorAll('.message-text');
+    
+    messages.forEach(message => {
+      if (message.getAttribute('data-processed')) return;
+      
+      // Mark as processed to avoid duplicate processing
+      message.setAttribute('data-processed', 'true');
+      
+      const text = message.innerHTML;
+      
+      // Find URLs in text
+      const urlRegex = /(https?:\/\/[^\s<]+)/g;
+      const urls = text.match(urlRegex) || [];
+      
+      urls.forEach(url => {
+        const videoData = extractVideoID(url);
+        if (videoData) {
+          const previewHTML = generatePreviewHTML(videoData.platform, videoData.id, url);
+          
+          if (previewHTML) {
+            // Add preview after message
+            const messageContent = message.closest('.message-content');
+            let mediaContainer = messageContent.querySelector('.media-container');
+            
+            if (!mediaContainer) {
+              mediaContainer = document.createElement('div');
+              mediaContainer.classList.add('media-container');
+              message.after(mediaContainer);
+            }
+            
+            // Check if preview for this URL already exists
+            const existingPreview = Array.from(mediaContainer.querySelectorAll('.preview-content')).find(
+              elem => elem.dataset.originalUrl === url
+            );
+            
+            if (!existingPreview) {
+              const tempDiv = document.createElement('div');
+              tempDiv.innerHTML = previewHTML;
+              const previewElement = tempDiv.firstElementChild;
+              mediaContainer.appendChild(previewElement);
+              
+              // Fetch thumbnails for platforms that need it
+              if (videoData.platform === 'tiktok') {
+                fetchTikTokThumbnail(url, previewElement);
+              } else if (videoData.platform === 'instagram') {
+                // For Instagram, let's try to use the oEmbed API via a CORS proxy
+                fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://api.instagram.com/oembed/?url=${url}`)}`)
+                  .then(response => response.json())
+                  .then(data => {
+                    if (data.thumbnail_url) {
+                      const thumbnail = document.createElement('img');
+                      thumbnail.src = data.thumbnail_url;
+                      thumbnail.alt = "Instagram Preview";
+                      
+                      const placeholder = previewElement.querySelector('.preview-placeholder');
+                      if (placeholder) {
+                        const loader = placeholder.querySelector('.preview-loader');
+                        if (loader) {
+                          placeholder.replaceChild(thumbnail, loader);
+                        } else {
+                          placeholder.prepend(thumbnail);
+                        }
+                      }
+                    }
+                  })
+                  .catch(err => console.error('Error fetching Instagram data:', err));
+              } else if (videoData.platform === 'twitter') {
+                // For Twitter, try to use the oEmbed API
+                fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://publish.twitter.com/oembed?url=${url}`)}`)
+                  .then(response => response.json())
+                  .then(data => {
+                    if (data.thumbnail_url) {
+                      const thumbnail = document.createElement('img');
+                      thumbnail.src = data.thumbnail_url;
+                      thumbnail.alt = "Tweet Preview";
+                      
+                      const placeholder = previewElement.querySelector('.preview-placeholder');
+                      if (placeholder) {
+                        const loader = placeholder.querySelector('.preview-loader');
+                        if (loader) {
+                          placeholder.replaceChild(thumbnail, loader);
+                        } else {
+                          placeholder.prepend(thumbnail);
+                        }
+                      }
+                    }
+                  })
+                  .catch(err => console.error('Error fetching Twitter data:', err));
+              }
+            }
+          }
+        }
+      });
+    });
+  }
 
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
-            authDomain: "globalchat-2d669.firebaseapp.com",
-            projectId: "globalchat-2d669",
-            storageBucket: "globalchat-2d669.firebasestorage.app",
-            messagingSenderId: "178714711978",
-            appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        const videoFeed = document.getElementById('video-feed');
-        const loadingElement = document.getElementById('loading');
-        let currentlyPlaying = null;
-        let userProfiles = {}; // Cache for user profiles
+  // Handle preview clicks to load embedded content
+  function handlePreviewClicks() {
+    document.addEventListener('click', function(e) {
+      const previewContent = e.target.closest('.preview-content');
+      const playButton = e.target.closest('.play-button');
+      
+      if (previewContent || playButton) {
+        const contentElem = previewContent || playButton.closest('.preview-content');
+        const embedUrl = contentElem.getAttribute('data-embed-url');
+        const originalUrl = contentElem.getAttribute('data-original-url');
         
-        // Emoji options for reactions
-        const emojis = [
-            "❤️", "😂", "🔥", "👏", "✨"
-        ];
-
-        // Check if user is authenticated
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                // User is signed in
-                await loadPosts();
-            } else {
-                // User is signed out, redirect to login
-                window.location.href = 'login.html';
+        if (embedUrl && !contentElem.querySelector('.preview-iframe')) {
+          // Create iframe container
+          const iframeContainer = document.createElement('div');
+          iframeContainer.className = 'preview-iframe-container';
+          
+          // Create iframe
+          const iframe = document.createElement('iframe');
+          iframe.src = embedUrl;
+          iframe.className = 'preview-iframe';
+          iframe.setAttribute('allowfullscreen', '');
+          iframe.setAttribute('allow', 'autoplay; encrypted-media');
+          
+          iframeContainer.appendChild(iframe);
+          
+          // Replace placeholder with iframe
+          const placeholder = contentElem.querySelector('.preview-placeholder');
+          if (placeholder) {
+            contentElem.replaceChild(iframeContainer, placeholder);
+          } else {
+            contentElem.appendChild(iframeContainer);
+          }
+          
+          // For direct playback fallback - open in new tab
+          iframe.onerror = function() {
+            window.open(originalUrl, '_blank');
+          };
+          
+          // Video fallback
+          setTimeout(() => {
+            if (iframe.contentDocument && iframe.contentDocument.body.innerHTML === '') {
+              window.open(originalUrl, '_blank');
             }
-        });
-
-        async function loadPosts() {
-            try {
-                // Query the posts collection
-                const postsQuery = query(
-                    collection(db, 'posts'),
-                    orderBy('createdAt', 'desc'),
-                    limit(30)
-                );
-                
-                const postsSnapshot = await getDocs(postsQuery);
-                
-                if (postsSnapshot.empty) {
-                    showEmptyState();
-                } else {
-                    for (const postDoc of postsSnapshot.docs) {
-                        const postData = postDoc.data();
-                        await createPostElement(postData, postDoc.id);
-                    }
-                    
-                    // Setup intersection observer after posts are loaded
-                    setupIntersectionObserver();
-                }
-                
-                // Hide loading spinner
-                loadingElement.style.display = 'none';
-                
-            } catch (error) {
-                console.error("Error loading posts:", error);
-                loadingElement.style.display = 'none';
-                showErrorState();
-            }
+          }, 3000);
         }
+      }
+    });
+  }
 
-        async function getUserProfile(userId) {
-            // Check cache first
-            if (userProfiles[userId]) {
-                return userProfiles[userId];
-            }
-            
-            try {
-                const userDoc = await getDoc(doc(db, 'users', userId));
-                if (userDoc.exists()) {
-                    const userData = userDoc.data();
-                    userProfiles[userId] = userData; // Cache the profile
-                    return userData;
-                } else {
-                    return {
-                        displayName: "Anonymous User",
-                        photoURL: null
-                    };
-                }
-            } catch (error) {
-                console.error("Error fetching user profile:", error);
-                return {
-                    displayName: "Unknown User",
-                    photoURL: null
-                };
-            }
+  // Process existing messages
+  processMessages();
+  
+  // Set up observers to detect new messages
+  const chatContainer = document.getElementById('chatContainer');
+  
+  if (chatContainer) {
+    // Create a mutation observer to watch for new messages
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.addedNodes.length) {
+          setTimeout(processMessages, 100); // Small delay to ensure DOM is updated
         }
-
-        async function createPostElement(postData, postId) {
-            const container = document.createElement('div');
-            container.className = 'video-container';
-            container.id = `post-${postId}`;
-            
-            // Get user profile
-            const userProfile = await getUserProfile(postData.userId);
-            
-            // Determine if it's a video or an image
-            const isVideo = postData.mediaType && postData.mediaType.startsWith('video/');
-            const isImage = postData.mediaType && postData.mediaType.startsWith('image/');
-            
-            if (isVideo && postData.mediaUrl) {
-                // Create video player
-                const videoPlayer = document.createElement('video');
-                videoPlayer.className = 'video-player';
-                videoPlayer.src = postData.mediaUrl;
-                videoPlayer.setAttribute('playsinline', '');
-                videoPlayer.setAttribute('webkit-playsinline', '');
-                videoPlayer.muted = false;
-                videoPlayer.loop = true;
-                videoPlayer.preload = 'auto';
-                
-                // Add video progress bar
-                const progressBar = document.createElement('div');
-                progressBar.className = 'video-progress';
-                const progressFilled = document.createElement('div');
-                progressFilled.className = 'progress-filled';
-                progressBar.appendChild(progressFilled);
-                
-                // Update progress bar as video plays
-                videoPlayer.addEventListener('timeupdate', () => {
-                    const percent = (videoPlayer.currentTime / videoPlayer.duration) * 100;
-                    progressFilled.style.width = `${percent}%`;
-                });
-                
-                container.appendChild(videoPlayer);
-                container.appendChild(progressBar);
-            } else if (isImage && postData.mediaUrl) {
-                // Create image container
-                const imageContainer = document.createElement('div');
-                imageContainer.className = 'image-container';
-                
-                const imageElement = document.createElement('img');
-                imageElement.className = 'image-post';
-                imageElement.src = postData.mediaUrl;
-                imageElement.alt = 'Post image';
-                
-                imageContainer.appendChild(imageElement);
-                container.appendChild(imageContainer);
-            } else {
-                // Text-only post
-                const textContainer = document.createElement('div');
-                textContainer.className = 'image-container';
-                textContainer.style.backgroundColor = '#111';
-                
-                const textElement = document.createElement('div');
-                textElement.className = 'video-description';
-                textElement.style.fontSize = '24px';
-                textElement.style.maxWidth = '90%';
-                textElement.textContent = postData.text || "No content";
-                
-                textContainer.appendChild(textElement);
-                container.appendChild(textContainer);
-            }
-            
-            // Create overlay with user info
-            const overlay = document.createElement('div');
-            overlay.className = 'video-overlay';
-            
-            // User info section
-            const userInfo = document.createElement('div');
-            userInfo.className = 'user-info';
-            
-            const profilePic = document.createElement('img');
-            profilePic.className = 'profile-pic';
-            profilePic.src = userProfile.photoURL || 'https://via.placeholder.com/50';
-            profilePic.alt = 'Profile picture';
-            
-            const username = document.createElement('div');
-            username.className = 'username';
-            username.textContent = userProfile.displayName || 'Anonymous';
-            
-            userInfo.appendChild(profilePic);
-            userInfo.appendChild(username);
-            
-            // Video description
-            const description = document.createElement('div');
-            description.className = 'video-description';
-            description.textContent = postData.text || '';
-            
-            overlay.appendChild(userInfo);
-            overlay.appendChild(description);
-            
-            // Emoji reaction buttons
-            const emojiReactions = document.createElement('div');
-            emojiReactions.className = 'emoji-reactions';
-            
-            // Create a main emoji button that will show reaction options on click/tap
-            const mainEmojiButton = document.createElement('div');
-            mainEmojiButton.className = 'emoji-button';
-            mainEmojiButton.innerHTML = '👏';
-            emojiReactions.appendChild(mainEmojiButton);
-            
-            // Create emoji animation container
-            const emojiAnimationContainer = document.createElement('div');
-            emojiAnimationContainer.className = 'emoji-animation-container';
-            container.appendChild(emojiAnimationContainer);
-            
-            // Add event listener to main emoji button
-            mainEmojiButton.addEventListener('click', (e) => {
-                // Show random emoji animation
-                const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-                createEmojiAnimation(randomEmoji, e.clientX, e.clientY, emojiAnimationContainer);
-            });
-            
-            container.appendChild(overlay);
-            container.appendChild(emojiReactions);
-            
-            videoFeed.appendChild(container);
-        }
-
-        function createEmojiAnimation(emoji, x, y, container) {
-            const emojiElement = document.createElement('div');
-            emojiElement.className = 'emoji-reaction';
-            emojiElement.textContent = emoji;
-            
-            // Position the emoji near where it was clicked
-            emojiElement.style.left = `${x - 15}px`;
-            emojiElement.style.top = `${y - 15}px`;
-            
-            container.appendChild(emojiElement);
-            
-            // Remove emoji element after animation completes
-            setTimeout(() => {
-                emojiElement.remove();
-            }, 1500);
-        }
-
-        function setupIntersectionObserver() {
-            const options = {
-                root: videoFeed,
-                rootMargin: '0px',
-                threshold: 0.7
-            };
-            
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    const container = entry.target;
-                    const videoElement = container.querySelector('video');
-                    
-                    if (entry.isIntersecting) {
-                        if (videoElement) {
-                            // Pause currently playing video if it's different
-                            if (currentlyPlaying && currentlyPlaying !== videoElement) {
-                                currentlyPlaying.pause();
-                            }
-                            
-                            // Play the new video
-                            videoElement.play().catch(error => {
-                                console.error("Error playing video:", error);
-                                // Create play button overlay if autoplay is prevented
-                                if (!container.querySelector('.play-overlay')) {
-                                    createPlayOverlay(container, videoElement);
-                                }
-                            });
-                            
-                            currentlyPlaying = videoElement;
-                        }
-                    } else {
-                        if (videoElement) {
-                            videoElement.pause();
-                            if (currentlyPlaying === videoElement) {
-                                currentlyPlaying = null;
-                            }
-                        }
-                    }
-                });
-            }, options);
-            
-            // Observe all video containers
-            document.querySelectorAll('.video-container').forEach(container => {
-                observer.observe(container);
-            });
-            
-            // Handle scroll events to ensure the right video is playing
-            videoFeed.addEventListener('scroll', () => {
-                // Small delay to let the scroll settle
-                setTimeout(() => {
-                    const visibleElements = Array.from(document.querySelectorAll('.video-container')).filter(el => {
-                        const rect = el.getBoundingClientRect();
-                        return rect.top >= 0 && rect.top <= window.innerHeight / 2;
-                    });
-                    
-                    if (visibleElements.length > 0) {
-                        const visibleContainer = visibleElements[0];
-                        const videoElement = visibleContainer.querySelector('video');
-                        
-                        if (videoElement) {
-                            // Pause currently playing if different
-                            if (currentlyPlaying && currentlyPlaying !== videoElement) {
-                                currentlyPlaying.pause();
-                            }
-                            
-                            // Play the visible video
-                            videoElement.play().catch(console.error);
-                            currentlyPlaying = videoElement;
-                        }
-                    }
-                }, 100);
-            });
-        }
-
-        function createPlayOverlay(container, videoElement) {
-            const playOverlay = document.createElement('div');
-            playOverlay.className = 'play-overlay';
-            
-            const playIcon = document.createElement('div');
-            playIcon.className = 'play-icon';
-            playIcon.innerHTML = '<i class="fas fa-play"></i>';
-            
-            playOverlay.appendChild(playIcon);
-            container.appendChild(playOverlay);
-            
-            playOverlay.addEventListener('click', () => {
-                videoElement.play().then(() => {
-                    playOverlay.remove();
-                    currentlyPlaying = videoElement;
-                }).catch(console.error);
-            });
-        }
-
-        function showEmptyState() {
-            videoFeed.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="fas fa-video"></i>
-                    </div>
-                    <div class="empty-text">
-                        Be the first to share a moment!
-                    </div>
-                    <div class="empty-subtext">
-                        Create and upload your first video to get started.
-                    </div>
-                </div>
-            `;
-        }
-
-        function showErrorState() {
-            videoFeed.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="fas fa-exclamation-circle"></i>
-                    </div>
-                    <div class="empty-text">
-                        Oops! Something went wrong.
-                    </div>
-                    <div class="empty-subtext">
-                        We're having trouble loading content right now. Please try again later.
-                    </div>
-                </div>
-            `;
-        }
-
-        // Double tap to like
-        document.addEventListener('dblclick', (e) => {
-            const videoContainer = e.target.closest('.video-container');
-            if (videoContainer) {
-                const emojiAnimationContainer = videoContainer.querySelector('.emoji-animation-container');
-                createEmojiAnimation('❤️', e.clientX, e.clientY, emojiAnimationContainer);
-            }
-        });
-    </script>
-</body>
-</html>
+      });
+    });
+    
+    // Start observing
+    observer.observe(chatContainer, { childList: true, subtree: true });
+    
+    // Handle preview clicks
+    handlePreviewClicks();
+  }
+})();
+</script>help me this you can see this are shows it is good it shows links but it cannot show access to tiktok I don't know why okay and sure it allows tiktok by all means okay and it allows all social media platforms including Facebook whatever as long as WhatsApp does it it will do it okay yes perfectly so okay and when users click on that video it will show it full screen and we'll show download icons download buttons you know interactivity like it was made by Twitter okay people come up in an animated manner and Jesus can drag it down to so to to remove the video or they can use and x even if the use their mobile navigator or anything okay this is where it's a browser is approvise anything okay just update this this time perfect it and provide it with an opening and closing script tech make this the perfect you've ever made users can download whatever good I don't know come on to you know do whatever you do by all means it will access it even they in the same in the send input area it will show the videos so that people can see to keep in a small thing you know how WhatsApp does it okay he is perfect it will show us going to loading animation when he's switching the video okay he is it will show a skeleton loading animation come on perfect fiction here okay yes you know and this mass okay to all social media platforms okay all of them and I mean all of them all of them and you'll get permissions by Force anything by false okay will work you know how what's up does it okay make this the best thing ever done for me you don't have to add a necessary things the code will be big and we don't want that
