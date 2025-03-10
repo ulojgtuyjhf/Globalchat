@@ -1,5 +1,5 @@
 
-// Dark Theme Toggle for Global Chat - Works across all pages
+// Dark Theme Toggle for Global Chat - Works across all pages including mobile.html
 
 // Initialize theme
 function initTheme() {
@@ -98,7 +98,7 @@ function applyDynamicDarkStyles(nodes) {
   });
 }
 
-// Define dark theme CSS variables - updated to work for chat, user list, and search pages
+// Define dark theme CSS variables - updated to work for mobile.html, chat, user list, and search pages
 function applyDarkTheme() {
   // Common variables
   document.documentElement.style.setProperty('--primary-color', '#1d9bf0');
@@ -123,6 +123,57 @@ function applyDarkTheme() {
   // Update body background for all pages
   document.body.style.backgroundColor = '#15202b';
   document.body.style.color = '#e7e9ea';
+  
+  // Mobile.html specific styling
+  const mobileMenu = document.querySelector('.mobile-menu');
+  if (mobileMenu) {
+    mobileMenu.style.backgroundColor = '#15202b';
+    mobileMenu.style.borderBottom = '1px solid #38444d';
+  }
+  
+  // Style mobile menu items
+  document.querySelectorAll('.menu-item').forEach(item => {
+    item.style.color = '#8b98a5';
+  });
+  
+  document.querySelectorAll('.menu-item svg').forEach(svg => {
+    svg.style.stroke = '#8b98a5';
+  });
+  
+  document.querySelectorAll('.menu-item.active svg').forEach(svg => {
+    svg.style.stroke = '#1d9bf0';
+  });
+  
+  document.querySelectorAll('.menu-item:hover').forEach(item => {
+    item.style.backgroundColor = 'rgba(29, 161, 242, 0.1)';
+  });
+  
+  // Style content sections
+  document.querySelectorAll('.section').forEach(section => {
+    section.style.backgroundColor = '#15202b';
+    section.style.boxShadow = '0 0 5px rgba(0, 0, 0, 0.2)';
+  });
+  
+  // Style iframes
+  document.querySelectorAll('iframe').forEach(iframe => {
+    iframe.style.backgroundColor = '#15202b';
+  });
+  
+  // Style loading indicators
+  document.querySelectorAll('.spinner').forEach(spinner => {
+    spinner.style.borderTopColor = '#1d9bf0';
+    spinner.style.borderLeftColor = '#1d9bf0';
+  });
+  
+  // Style error states
+  document.querySelectorAll('.error-state').forEach(error => {
+    error.style.color = '#e7e9ea';
+  });
+  
+  document.querySelectorAll('.retry-button').forEach(button => {
+    button.style.backgroundColor = '#1d9bf0';
+    button.style.color = '#e7e9ea';
+  });
   
   // Update specific elements for search.html
   document.querySelectorAll('.message-bubble').forEach(el => {
@@ -213,6 +264,57 @@ function applyLightTheme() {
   // Restore body background for all pages
   document.body.style.backgroundColor = '#ffffff';
   document.body.style.color = '#0f1419';
+  
+  // Mobile.html specific styling
+  const mobileMenu = document.querySelector('.mobile-menu');
+  if (mobileMenu) {
+    mobileMenu.style.backgroundColor = 'rgba(255, 255, 255, 0.98)';
+    mobileMenu.style.borderBottom = '1px solid #efefef';
+  }
+  
+  // Restore mobile menu items
+  document.querySelectorAll('.menu-item').forEach(item => {
+    item.style.color = '#666';
+  });
+  
+  document.querySelectorAll('.menu-item svg').forEach(svg => {
+    svg.style.stroke = '#666';
+  });
+  
+  document.querySelectorAll('.menu-item.active svg').forEach(svg => {
+    svg.style.stroke = '#1da1f2';
+  });
+  
+  document.querySelectorAll('.menu-item:hover').forEach(item => {
+    item.style.backgroundColor = 'rgba(29, 161, 242, 0.1)';
+  });
+  
+  // Restore content sections
+  document.querySelectorAll('.section').forEach(section => {
+    section.style.backgroundColor = '#ffffff';
+    section.style.boxShadow = '0 0 5px rgba(0, 0, 0, 0.02)';
+  });
+  
+  // Restore iframes
+  document.querySelectorAll('iframe').forEach(iframe => {
+    iframe.style.backgroundColor = '#ffffff';
+  });
+  
+  // Restore loading indicators
+  document.querySelectorAll('.spinner').forEach(spinner => {
+    spinner.style.borderTopColor = '#1da1f2';
+    spinner.style.borderLeftColor = '#1da1f2';
+  });
+  
+  // Restore error states
+  document.querySelectorAll('.error-state').forEach(error => {
+    error.style.color = '#333';
+  });
+  
+  document.querySelectorAll('.retry-button').forEach(button => {
+    button.style.backgroundColor = '#1da1f2';
+    button.style.color = '#fff';
+  });
   
   // Restore specific elements for search.html
   document.querySelectorAll('.message-bubble').forEach(el => {
