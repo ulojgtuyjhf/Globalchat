@@ -1,3 +1,4 @@
+
 (() => {
   document.addEventListener('DOMContentLoaded', () => {
     // Create unique namespace to avoid conflicts
@@ -40,20 +41,20 @@
 
           .${this.uniqueId}-btn {
             position: fixed;
-            bottom: 80px; /* Moved higher to avoid blocking content */
+            bottom: 80px;
             right: 20px;
             width: 40px;
             height: 40px;
             border-radius: 50%;
             cursor: pointer;
-            z-index: 999; /* Lower z-index to be less intrusive */
+            z-index: 999;
             font-size: 18px;
             font-weight: bold;
             display: none;
             align-items: center;
             justify-content: center;
             outline: none;
-            opacity: 0.85; /* Slightly transparent */
+            opacity: 0.85;
             transition: all 0.3s ease;
             -webkit-tap-highlight-color: transparent;
             
@@ -64,25 +65,12 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
           }
 
-          /* Dark theme support - will be applied automatically based on detected theme */
-          .dark-mode .${this.uniqueId}-btn,
-          [data-theme="dark"] .${this.uniqueId}-btn,
-          html[data-theme="dark"] .${this.uniqueId}-btn,
-          body.dark-mode .${this.uniqueId}-btn,
-          .dark-theme .${this.uniqueId}-btn {
-            background-color: #222222;
+          /* Dark theme styles - applied when body has dark-mode class */
+          body.dark-mode .${this.uniqueId}-btn {
+            background-color: #192734;
             color: #1da1f2;
             border: 2px solid rgba(29, 161, 242, 0.3);
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-          }
-
-          @media (prefers-color-scheme: dark) {
-            .${this.uniqueId}-btn {
-              background-color: #222222;
-              color: #1da1f2;
-              border: 2px solid rgba(29, 161, 242, 0.3);
-              box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            }
           }
           
           .${this.uniqueId}-btn.${this.uniqueId}-visible {
@@ -142,7 +130,8 @@
             document.querySelector('.messages-container'),
             document.querySelector('.conversation-container'),
             document.querySelector('[role="log"]'),
-            document.querySelector('.overflow-y-auto')
+            document.querySelector('.overflow-y-auto'),
+            document.querySelector('.container') // Added from your HTML
           ];
           
           for (const container of possibleContainers) {
@@ -155,8 +144,11 @@
           this.setupScrollListener(chatContainer, button);
         }
         
-        // Check for theme from local storage
-        this.detectThemeFromLocalStorage();
+        // Check for theme from localStorage
+        this.applyThemeFromLocalStorage();
+        
+        // Listen for theme changes
+        this.listenForThemeChanges();
         
         // Cleanup function
         return () => {
@@ -164,6 +156,38 @@
           button.remove();
           styles.remove();
         };
+      },
+      
+      applyThemeFromLocalStorage() {
+        // Check if dark mode is enabled in localStorage (matching your toggle implementation)
+        const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
+        
+        if (isDarkMode && !document.body.classList.contains('dark-mode')) {
+          document.body.classList.add('dark-mode');
+        } else if (!isDarkMode && document.body.classList.contains('dark-mode')) {
+          document.body.classList.remove('dark-mode');
+        }
+      },
+      
+      listenForThemeChanges() {
+        // Listen for dark mode toggle changes
+        window.addEventListener('storage', (event) => {
+          if (event.key === 'darkMode') {
+            this.applyThemeFromLocalStorage();
+          }
+        });
+        
+        // Also find and monitor the dark mode toggle if it exists
+        const darkModeSwitch = document.getElementById('darkModeSwitch');
+        if (darkModeSwitch) {
+          darkModeSwitch.addEventListener('click', () => {
+            // The toggle updates localStorage, we just need to apply the change
+            setTimeout(() => this.applyThemeFromLocalStorage(), 50);
+          });
+        }
+        
+        // Check for theme changes periodically (for safety)
+        setInterval(() => this.applyThemeFromLocalStorage(), 1000);
       },
       
       setupScrollListener(container, button) {
@@ -190,60 +214,6 @@
         setTimeout(() => {
           this.checkScrollPosition(container, button);
         }, 300);
-      },
-      
-      detectThemeFromLocalStorage() {
-        // Function to check if theme is dark from local storage
-        const checkDarkTheme = () => {
-          try {
-            // Check various common local storage keys for theme
-            const themeKeys = [
-              'theme',
-              'darkMode',
-              'colorScheme',
-              'appearance',
-              'site-theme',
-              'color-mode',
-              'ui-theme'
-            ];
-            
-            for (const key of themeKeys) {
-              const value = localStorage.getItem(key);
-              if (value &&
-                (value.includes('dark') ||
-                  value === 'night' ||
-                  value === 'true' && key.toLowerCase().includes('dark'))) {
-                return true;
-              }
-            }
-            
-            // No dark theme found in local storage
-            return false;
-          } catch (e) {
-            console.warn('Error accessing localStorage:', e);
-            return false;
-          }
-        };
-        
-        // If dark theme is detected, add class to document
-        if (checkDarkTheme()) {
-          document.documentElement.classList.add('dark-theme');
-        }
-        
-        // Listen for storage changes
-        window.addEventListener('storage', (e) => {
-          if (e.key && (
-              e.key.toLowerCase().includes('theme') ||
-              e.key.toLowerCase().includes('mode') ||
-              e.key.toLowerCase().includes('color') ||
-              e.key.toLowerCase().includes('appearance'))) {
-            if (checkDarkTheme()) {
-              document.documentElement.classList.add('dark-theme');
-            } else {
-              document.documentElement.classList.remove('dark-theme');
-            }
-          }
-        });
       },
       
       checkScrollPosition(container, button) {

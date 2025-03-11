@@ -1155,6 +1155,248 @@
     }
   })();
 </script>
+<script>
+  // Theme Integration for MinimalTranslator
+  document.addEventListener('DOMContentLoaded', () => {
+    // Wait for MinimalTranslator to initialize
+    setTimeout(() => {
+      const translatorThemeHandler = {
+        init: function() {
+          // Apply current theme on init
+          this.applyCurrentTheme();
+          
+          // Set up listeners for theme changes
+          this.setupThemeListeners();
+          
+          // Fix original language reset issue
+          this.fixOriginalLanguageReset();
+        },
+        
+        applyCurrentTheme: function() {
+          // Check if dark mode is enabled from localStorage
+          const isDarkMode = localStorage.getItem('darkMode') === 'enabled' ||
+            document.body.classList.contains('dark-theme');
+          
+          // Apply appropriate theme
+          this.applyThemeToTranslator(isDarkMode);
+        },
+        
+        applyThemeToTranslator: function(isDark) {
+          const translator = document.querySelector('.minimal-translator');
+          if (!translator) return;
+          
+          // Create or update theme styles
+          let styles = document.getElementById('translator-theme-styles');
+          if (!styles) {
+            styles = document.createElement('style');
+            styles.id = 'translator-theme-styles';
+            document.head.appendChild(styles);
+          }
+          
+          if (isDark) {
+            styles.textContent = `
+            .translator-trigger {
+              background: #1DA1F2;
+              box-shadow: 0 2px 8px rgba(29, 161, 242, 0.3);
+            }
+            
+            .translator-menu {
+              background: #15202B;
+              border-color: #38444D;
+              box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            }
+            
+            .menu-header {
+              border-bottom: 1px solid #38444D;
+              color: #E7E9EA;
+            }
+            
+            .search-box {
+              border-bottom: 1px solid #38444D;
+            }
+            
+            .search-box input {
+              background: #1E2732;
+              border-color: #38444D;
+              color: #E7E9EA;
+            }
+            
+            .search-icon {
+              color: #8B98A5;
+            }
+            
+            .language-option {
+              color: #E7E9EA;
+            }
+            
+            .language-option:hover {
+              background: rgba(29, 161, 242, 0.2);
+            }
+            
+            .language-option.active {
+              background: rgba(29, 161, 242, 0.2);
+            }
+            
+            .language-name {
+              color: #E7E9EA;
+            }
+            
+            .original-language {
+              border-top: 1px solid #38444D;
+              color: #1DA1F2;
+            }
+            
+            .loading-overlay {
+              background: rgba(21, 32, 43, 0.7);
+            }
+            
+            .toast-notification {
+              background: rgba(0, 0, 0, 0.8);
+            }
+          `;
+          } else {
+            styles.textContent = `
+            .translator-trigger {
+              background: #1DA1F2;
+              box-shadow: 0 2px 8px rgba(29, 161, 242, 0.3);
+            }
+            
+            .translator-menu {
+              background: white;
+              border-color: rgba(0, 0, 0, 0.08);
+              box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            }
+            
+            .menu-header {
+              border-bottom: 1px solid #eee;
+              color: #333;
+            }
+            
+            .search-box {
+              border-bottom: 1px solid #eee;
+            }
+            
+            .search-box input {
+              background: white;
+              border-color: #eee;
+              color: #333;
+            }
+            
+            .search-icon {
+              color: #657786;
+            }
+            
+            .language-option {
+              color: #14171A;
+            }
+            
+            .language-option:hover {
+              background: rgba(29, 161, 242, 0.1);
+            }
+            
+            .language-option.active {
+              background: rgba(29, 161, 242, 0.1);
+            }
+            
+            .language-name {
+              color: #14171A;
+            }
+            
+            .original-language {
+              border-top: 1px solid #eee;
+              color: #1DA1F2;
+            }
+            
+            .loading-overlay {
+              background: rgba(255, 255, 255, 0.7);
+            }
+            
+            .toast-notification {
+              background: rgba(0, 0, 0, 0.8);
+            }
+          `;
+          }
+        },
+        
+        setupThemeListeners: function() {
+          // Listen for changes to localStorage (for cross-tab sync)
+          window.addEventListener('storage', (event) => {
+            if (event.key === 'darkMode') {
+              const isDarkMode = event.newValue === 'enabled';
+              this.applyThemeToTranslator(isDarkMode);
+            }
+          });
+          
+          // Listen for class changes on body element (for runtime theme changes)
+          const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+              if (mutation.attributeName === 'class') {
+                const isDarkMode = document.body.classList.contains('dark-theme');
+                this.applyThemeToTranslator(isDarkMode);
+              }
+            });
+          });
+          
+          observer.observe(document.body, { attributes: true });
+          
+          // Also periodically check for theme changes
+          setInterval(() => {
+            this.applyCurrentTheme();
+          }, 2000);
+        },
+        
+        fixOriginalLanguageReset: function() {
+          // Fix the issue with reverting to original language
+          const checkAndFixResetButton = () => {
+            const resetButton = document.querySelector('.minimal-translator .original-language');
+            if (resetButton && !resetButton._fixed) {
+              resetButton._fixed = true;
+              
+              const originalClick = resetButton.onclick;
+              resetButton.onclick = function(e) {
+                e.preventDefault();
+                
+                // Clear Google Translate cookies
+                const domain = window.location.hostname;
+                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=${domain}; path=/;`;
+                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=.${domain}; path=/;`;
+                
+                // Call original handler if it exists
+                if (typeof originalClick === 'function') {
+                  originalClick.call(this);
+                }
+                
+                // Force reload after a brief delay
+                setTimeout(() => {
+                  window.location.reload(true);
+                }, 300);
+              };
+            }
+          };
+          
+          // Try to fix immediately and also set up an observer to catch if translator loads later
+          checkAndFixResetButton();
+          
+          const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+              if (mutation.addedNodes.length) {
+                checkAndFixResetButton();
+              }
+            });
+          });
+          
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true
+          });
+        }
+      };
+      
+      // Initialize the translator theme handler
+      translatorThemeHandler.init();
+    }, 800); // Wait for translator to initialize
+  });
+</script>
 
 
 
