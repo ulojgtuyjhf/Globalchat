@@ -1398,108 +1398,108 @@
   });
 </script>
 <script>
-// Function to group consecutive messages from the same user
-function groupConsecutiveMessages() {
-  // Get all message elements
-  const messages = document.querySelectorAll('.message');
-  let currentUserId = null;
-  let lastMessageElement = null;
-
-  messages.forEach((messageElement, index) => {
-    // Extract the user ID from the message
-    const userId = messageElement.querySelector('.follow-btn')?.getAttribute('data-user-id');
+  // Function to group consecutive messages from the same user
+  function groupConsecutiveMessages() {
+    // Get all message elements
+    const messages = document.querySelectorAll('.message');
+    let currentUserId = null;
+    let lastMessageElement = null;
     
-    // If this message is from the same user as the previous one
-    if (userId && userId === currentUserId) {
-      // Hide the profile image, user info and action buttons
-      const profileImage = messageElement.querySelector('.profile-image');
-      const messageHeader = messageElement.querySelector('.message-header');
-      const actionButtons = messageElement.querySelector('.action-buttons');
+    messages.forEach((messageElement, index) => {
+      // Extract the user ID from the message
+      const userId = messageElement.querySelector('.follow-btn')?.getAttribute('data-user-id');
       
-      if (profileImage) profileImage.style.visibility = 'hidden';
-      if (messageHeader) messageHeader.style.display = 'none';
-      if (actionButtons) actionButtons.style.display = 'none';
-      
-      // Add a class to indicate it's a consecutive message
-      messageElement.classList.add('consecutive-message');
-      
-      // Reduce the padding/margin to make it appear grouped
-      messageElement.style.paddingTop = '4px';
-      messageElement.style.borderBottom = 'none';
-      
-      // If it's the last message in a group, add a small bottom margin
-      if (index === messages.length - 1 || 
+      // If this message is from the same user as the previous one
+      if (userId && userId === currentUserId) {
+        // Hide the profile image, user info and action buttons
+        const profileImage = messageElement.querySelector('.profile-image');
+        const messageHeader = messageElement.querySelector('.message-header');
+        const actionButtons = messageElement.querySelector('.action-buttons');
+        
+        if (profileImage) profileImage.style.visibility = 'hidden';
+        if (messageHeader) messageHeader.style.display = 'none';
+        if (actionButtons) actionButtons.style.display = 'none';
+        
+        // Add a class to indicate it's a consecutive message
+        messageElement.classList.add('consecutive-message');
+        
+        // Reduce the padding/margin to make it appear grouped
+        messageElement.style.paddingTop = '4px';
+        messageElement.style.borderBottom = 'none';
+        
+        // If it's the last message in a group, add a small bottom margin
+        if (index === messages.length - 1 ||
           messages[index + 1].querySelector('.follow-btn')?.getAttribute('data-user-id') !== userId) {
-        messageElement.style.marginBottom = '8px';
-        messageElement.style.borderBottom = '1px solid #38444d';
-        messageElement.style.paddingBottom = '8px';
+          messageElement.style.marginBottom = '8px';
+          // Commented out the following lines to remove the border and padding at the bottom
+          // messageElement.style.borderBottom = '1px solid #38444d';
+          // messageElement.style.paddingBottom = '8px';
+        }
+        
+        // If it's not the first message in a group, reduce top margin
+        if (lastMessageElement && lastMessageElement.classList.contains('consecutive-message')) {
+          messageElement.style.marginTop = '-6px';
+        }
+      } else {
+        // This is the first message from a user or a message from a different user
+        // Reset the current user ID
+        currentUserId = userId;
+        
+        // Add some extra spacing if this message follows a group
+        if (lastMessageElement && lastMessageElement.classList.contains('consecutive-message')) {
+          messageElement.style.marginTop = '16px';
+        }
       }
       
-      // If it's not the first message in a group, reduce top margin
-      if (lastMessageElement && lastMessageElement.classList.contains('consecutive-message')) {
-        messageElement.style.marginTop = '-6px';
-      }
-    } else {
-      // This is the first message from a user or a message from a different user
-      // Reset the current user ID
-      currentUserId = userId;
-      
-      // Add some extra spacing if this message follows a group
-      if (lastMessageElement && lastMessageElement.classList.contains('consecutive-message')) {
-        messageElement.style.marginTop = '16px';
-      }
-    }
-    
-    lastMessageElement = messageElement;
-  });
-}
-
-// Watch for new messages being added to the chat
-const chatObserver = new MutationObserver((mutations) => {
-  // Check if new messages were added
-  const hasNewMessages = mutations.some(mutation => 
-    Array.from(mutation.addedNodes).some(node => 
-      node.nodeType === 1 && node.classList.contains('message')
-    )
-  );
+      lastMessageElement = messageElement;
+    });
+  }
   
-  if (hasNewMessages) {
-    // Regroup all messages
-    groupConsecutiveMessages();
-  }
-});
-
-// Start observing the chat container
-document.addEventListener('DOMContentLoaded', () => {
-  const chatContainer = document.getElementById('chatContainer');
-  if (chatContainer) {
-    chatObserver.observe(chatContainer, { childList: true });
+  // Watch for new messages being added to the chat
+  const chatObserver = new MutationObserver((mutations) => {
+    // Check if new messages were added
+    const hasNewMessages = mutations.some(mutation =>
+      Array.from(mutation.addedNodes).some(node =>
+        node.nodeType === 1 && node.classList.contains('message')
+      )
+    );
     
-    // Also run once on page load for existing messages
-    setTimeout(groupConsecutiveMessages, 1000);
-  }
-});
-
-// Ensure the observer is started even if content loads dynamically
-const checkForChatContainer = setInterval(() => {
-  const chatContainer = document.getElementById('chatContainer');
-  if (chatContainer) {
-    chatObserver.observe(chatContainer, { childList: true });
-    clearInterval(checkForChatContainer);
-    
-    // Run the grouping function for existing messages
-    groupConsecutiveMessages();
-  }
-}, 500);
-
-// Apply the grouping function whenever new messages are loaded
-document.addEventListener('scroll', () => {
-  // Debounce the function to prevent performance issues
-  clearTimeout(window.scrollDebounce);
-  window.scrollDebounce = setTimeout(groupConsecutiveMessages, 200);
-});
+    if (hasNewMessages) {
+      // Regroup all messages
+      groupConsecutiveMessages();
+    }
+  });
+  
+  // Start observing the chat container
+  document.addEventListener('DOMContentLoaded', () => {
+    const chatContainer = document.getElementById('chatContainer');
+    if (chatContainer) {
+      chatObserver.observe(chatContainer, { childList: true });
+      
+      // Also run once on page load for existing messages
+      setTimeout(groupConsecutiveMessages, 1000);
+    }
+  });
+  
+  // Ensure the observer is started even if content loads dynamically
+  const checkForChatContainer = setInterval(() => {
+    const chatContainer = document.getElementById('chatContainer');
+    if (chatContainer) {
+      chatObserver.observe(chatContainer, { childList: true });
+      clearInterval(checkForChatContainer);
+      
+      // Run the grouping function for existing messages
+      groupConsecutiveMessages();
+    }
+  }, 500);
+  
+  // Apply the grouping function whenever new messages are loaded
+  document.addEventListener('scroll', () => {
+    // Debounce the function to prevent performance issues
+    clearTimeout(window.scrollDebounce);
+    window.scrollDebounce = setTimeout(groupConsecutiveMessages, 200);
+  });
 </script>
-
 
 <script type="module" src="chat.js"></script>
 <script src="loadfollow.js"></script>
