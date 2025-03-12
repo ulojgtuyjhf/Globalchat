@@ -8,21 +8,21 @@
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #6A11CB;
+            --primary-color: #1DA1F2; /* Twitter blue */
             --secondary-color: #FFFFFF;
-            --background-color: #F4F7FE;
+            --background-color: #F7F9FA;
             --text-color: #333;
-            --border-color: #E4E6EB;
-            --light-gray: #F0F2F5;
+            --border-color: #E6ECF0;
+            --light-gray: #F5F8FA;
             --medium-gray: #8D949E;
-            --dark-gray: #65676B;
+            --dark-gray: #657786;
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Roboto', 'Helvetica', sans-serif;
         }
 
         body {
@@ -30,45 +30,6 @@
             color: var(--text-color);
             width: 100%;
             min-height: 100vh;
-        }
-
-        /* Header */
-        .header {
-            background: var(--secondary-color);
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-            padding: 12px 16px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header-logo {
-            color: var(--primary-color);
-            font-weight: bold;
-            font-size: 22px;
-            display: flex;
-            align-items: center;
-        }
-
-        .header-logo i {
-            margin-right: 8px;
-            font-size: 24px;
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-        }
-
-        .profile-pic {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            cursor: pointer;
         }
 
         /* Feed */
@@ -80,8 +41,8 @@
 
         .post {
             background: var(--secondary-color);
-            border-radius: 8px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             margin-bottom: 16px;
             overflow: hidden;
         }
@@ -113,21 +74,6 @@
         .post-time {
             font-size: 12px;
             color: var(--dark-gray);
-        }
-
-        .post-menu {
-            color: var(--dark-gray);
-            cursor: pointer;
-            width: 36px;
-            height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-        }
-
-        .post-menu:hover {
-            background-color: var(--light-gray);
         }
 
         .post-image {
@@ -166,23 +112,117 @@
             font-size: 18px;
         }
 
-        /* Comments */
+        .like-button.active {
+            color: var(--primary-color);
+        }
+
+        .like-button.active i {
+            color: var(--primary-color);
+        }
+
+        /* Comments Section - Facebook Style */
+        .comments-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 900;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+        }
+
+        .comments-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
         .comments-section {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
+            position: fixed;
+            bottom: -100%;
+            left: 0;
+            width: 100%;
+            max-height: 90vh;
             background-color: var(--secondary-color);
+            z-index: 1000;
+            border-top-left-radius: 16px;
+            border-top-right-radius: 16px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            transition: bottom 0.3s ease;
+            display: flex;
+            flex-direction: column;
         }
 
         .comments-section.active {
-            max-height: 500px;
-            overflow-y: auto;
-            border-top: 1px solid var(--border-color);
+            bottom: 0;
         }
 
+        .comments-header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .comments-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .comments-close-btn {
+            background: none;
+            border: none;
+            color: var(--dark-gray);
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+
+        .comments-close-btn:hover {
+            background-color: var(--light-gray);
+        }
+
+        .drag-handle {
+            width: 40px;
+            height: 5px;
+            background-color: #CCD6DD;
+            border-radius: 2.5px;
+            margin: 8px auto;
+            cursor: grab;
+        }
+
+        .comments-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .comments-empty {
+            padding: 20px;
+            text-align: center;
+            color: var(--dark-gray);
+            font-size: 14px;
+        }
+
+        /* Facebook-style comments with connecting lines */
         .comment {
             display: flex;
-            padding: 12px 16px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .comment-wrapper {
+            display: flex;
+            flex-direction: column;
+            position: relative;
         }
 
         .comment-author-pic {
@@ -191,6 +231,11 @@
             border-radius: 50%;
             margin-right: 12px;
             object-fit: cover;
+            z-index: 2;
+        }
+
+        .comment-content {
+            flex: 1;
         }
 
         .comment-bubble {
@@ -198,6 +243,7 @@
             border-radius: 18px;
             padding: 8px 12px;
             max-width: calc(100% - 44px);
+            display: inline-block;
         }
 
         .comment-author {
@@ -225,11 +271,41 @@
             cursor: pointer;
         }
 
+        .comment-action:hover {
+            color: var(--primary-color);
+        }
+
+        .comment-time {
+            color: var(--dark-gray);
+            font-size: 12px;
+        }
+
+        /* Vertical connecting lines between comments */
+        .comment-thread {
+            position: relative;
+        }
+
+        .comment-thread::before {
+            content: '';
+            position: absolute;
+            left: 16px;
+            top: 32px;
+            bottom: 0;
+            width: 2px;
+            background-color: #E6ECF0;
+            z-index: 1;
+        }
+
+        .comment-thread .comment:last-child::before {
+            display: none;
+        }
+
         .comment-form {
+            padding: 16px;
             display: flex;
-            padding: 12px 16px;
             align-items: center;
             border-top: 1px solid var(--border-color);
+            background-color: var(--secondary-color);
         }
 
         .current-user-pic {
@@ -246,6 +322,7 @@
             border-radius: 20px;
             background-color: var(--light-gray);
             overflow: hidden;
+            border: 1px solid var(--border-color);
         }
 
         .comment-input {
@@ -254,7 +331,7 @@
             outline: none;
             padding: 10px 40px 10px 16px;
             background: transparent;
-            font-size: 13px;
+            font-size: 14px;
         }
 
         .send-comment-btn {
@@ -278,27 +355,6 @@
             font-size: 18px;
         }
 
-        .comments-empty {
-            padding: 20px;
-            text-align: center;
-            color: var(--dark-gray);
-            font-size: 14px;
-        }
-
-        .comments-close {
-            padding: 12px;
-            text-align: center;
-            font-size: 14px;
-            color: var(--dark-gray);
-            font-weight: 600;
-            cursor: pointer;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .comments-close:hover {
-            background-color: var(--light-gray);
-        }
-
         /* Skeleton Loading */
         .skeleton-loader {
             max-width: 600px;
@@ -308,7 +364,7 @@
 
         .skeleton-post {
             background: var(--secondary-color);
-            border-radius: 8px;
+            border-radius: 12px;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
             margin-bottom: 16px;
             overflow: hidden;
@@ -385,7 +441,7 @@
         /* Mobile optimizations */
         @media (max-width: 600px) {
             body {
-                padding-bottom: 60px;
+                padding-bottom: 0;
             }
 
             .feed-container {
@@ -396,25 +452,10 @@
                 border-radius: 0;
                 margin-bottom: 8px;
             }
-
-            .header {
-                padding: 12px;
-            }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <div class="header-logo">
-            <i class="ri-chat-3-line"></i>
-            <span>GlobalChat</span>
-        </div>
-        <div class="header-actions">
-            <img id="current-user-pic" class="profile-pic" src="/api/placeholder/40/40" alt="Profile">
-        </div>
-    </div>
-
     <!-- Skeleton Loader -->
     <div id="skeleton-loader" class="skeleton-loader">
         <div class="skeleton-post">
@@ -452,6 +493,32 @@
     <!-- Feed Container -->
     <div id="feed-container" class="feed-container"></div>
 
+    <!-- Comments Overlay -->
+    <div id="comments-overlay" class="comments-overlay"></div>
+
+    <!-- Comments Section Template (will be cloned for each post) -->
+    <div id="comments-template" class="comments-section">
+        <div class="drag-handle"></div>
+        <div class="comments-header">
+            <div class="comments-title">Comments</div>
+            <button class="comments-close-btn">
+                <i class="ri-close-line"></i>
+            </button>
+        </div>
+        <div class="comments-container">
+            <!-- Comments will be loaded here -->
+        </div>
+        <div class="comment-form">
+            <img class="current-user-pic" src="/api/placeholder/32/32" alt="You">
+            <div class="comment-input-container">
+                <input type="text" class="comment-input" placeholder="Write a comment...">
+                <button class="send-comment-btn">
+                    <i class="ri-send-plane-fill"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -484,11 +551,13 @@
         // DOM Elements
         const skeletonLoader = document.getElementById('skeleton-loader');
         const feedContainer = document.getElementById('feed-container');
-        const currentUserPic = document.getElementById('current-user-pic');
+        const commentsOverlay = document.getElementById('comments-overlay');
+        const commentsTemplate = document.getElementById('comments-template');
         
         // Current user data
         let currentUser = null;
         let currentUserProfile = null;
+        let activeCommentsSection = null;
 
         // Utils
         function formatTime(timestamp) {
@@ -572,8 +641,10 @@
             const commentElement = document.createElement('div');
             commentElement.className = 'comment';
             commentElement.innerHTML = `
-                <img class="comment-author-pic" src="${profilePic}" alt="${username}">
-                <div>
+                <div class="comment-wrapper">
+                    <img class="comment-author-pic" src="${profilePic}" alt="${username}">
+                </div>
+                <div class="comment-content">
                     <div class="comment-bubble">
                         <div class="comment-author">${username}</div>
                         <div class="comment-text">${comment.text}</div>
@@ -608,6 +679,166 @@
             }
         }
 
+        // Show comments section
+        function showComments(postId, comments) {
+            // Remove any existing comments section
+            if (activeCommentsSection) {
+                activeCommentsSection.remove();
+            }
+            
+            // Create a new comments section from the template
+            const commentsSection = commentsTemplate.cloneNode(true);
+            commentsSection.removeAttribute('id');
+            commentsSection.dataset.postId = postId;
+            
+            document.body.appendChild(commentsSection);
+            activeCommentsSection = commentsSection;
+            
+            // Load comments
+            const commentsContainer = commentsSection.querySelector('.comments-container');
+            if (comments.length === 0) {
+                commentsContainer.innerHTML = '<div class="comments-empty">No comments yet. Be the first to comment!</div>';
+            } else {
+                commentsContainer.innerHTML = '<div class="comment-thread"></div>';
+                const commentThread = commentsContainer.querySelector('.comment-thread');
+                
+                comments.forEach(async (comment) => {
+                    const commentElement = await createCommentElement(comment);
+                    commentThread.appendChild(commentElement);
+                });
+            }
+            
+            // Set up comment input
+            const commentInput = commentsSection.querySelector('.comment-input');
+            const sendButton = commentsSection.querySelector('.send-comment-btn');
+            const closeButton = commentsSection.querySelector('.comments-close-btn');
+            const currentUserPic = commentsSection.querySelector('.current-user-pic');
+            
+            // Set profile picture
+            if (currentUserProfile?.photoURL) {
+                currentUserPic.src = currentUserProfile.photoURL;
+            }
+            
+            // Event listeners
+            sendButton.addEventListener('click', async () => {
+                const text = commentInput.value;
+                if (!text.trim()) return;
+                
+                const success = await submitComment(postId, text);
+                
+                if (success) {
+                    const newComment = {
+                        userId: currentUser.uid,
+                        text: text,
+                        createdAt: new Date()
+                    };
+                    
+                    const commentElement = await createCommentElement(newComment);
+                    
+                    // Remove the "no comments" message if it exists
+                    const emptyMessage = commentsContainer.querySelector('.comments-empty');
+                    if (emptyMessage) {
+                        commentsContainer.innerHTML = '<div class="comment-thread"></div>';
+                        const commentThread = commentsContainer.querySelector('.comment-thread');
+                        commentThread.appendChild(commentElement);
+                    } else {
+                        const commentThread = commentsContainer.querySelector('.comment-thread');
+                        commentThread.appendChild(commentElement);
+                    }
+                    
+                    commentInput.value = '';
+                    
+                    // Update comment count in the post
+                    const postElement = document.querySelector(`.post[data-post-id="${postId}"]`);
+                    if (postElement) {
+                        const commentButton = postElement.querySelector('.comment-button span');
+                        const currentCount = commentButton.textContent.match(/\d+/);
+                        const newCount = currentCount ? parseInt(currentCount[0]) + 1 : 1;
+                        commentButton.textContent = `Comment (${newCount})`;
+                    }
+                }
+            });
+            
+            commentInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendButton.click();
+                }
+            });
+            
+            closeButton.addEventListener('click', hideComments);
+            
+            // Show the overlay and comments section
+            commentsOverlay.classList.add('active');
+            setTimeout(() => {
+                commentsSection.classList.add('active');
+                commentInput.focus();
+            }, 50);
+            
+            // Implement drag to dismiss
+            const dragHandle = commentsSection.querySelector('.drag-handle');
+            let startY = 0;
+            let currentY = 0;
+            
+            function handleDragStart(e) {
+                startY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+                
+                document.addEventListener('mousemove', handleDragMove);
+                document.addEventListener('touchmove', handleDragMove);
+                document.addEventListener('mouseup', handleDragEnd);
+                document.addEventListener('touchend', handleDragEnd);
+            }
+            
+            function handleDragMove(e) {
+                currentY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+                const deltaY = currentY - startY;
+                
+                if (deltaY > 0) { // Only allow dragging down
+                    commentsSection.style.transform = `translateY(${deltaY}px)`;
+                    commentsOverlay.style.opacity = 1 - (deltaY / 400);
+                }
+            }
+            
+            function handleDragEnd() {
+                const deltaY = currentY - startY;
+                
+                if (deltaY > 100) {
+                    // If dragged down far enough, dismiss
+                    hideComments();
+                } else {
+                    // Otherwise, snap back
+                    commentsSection.style.transform = '';
+                    commentsOverlay.style.opacity = '';
+                }
+                
+                document.removeEventListener('mousemove', handleDragMove);
+                document.removeEventListener('touchmove', handleDragMove);
+                document.removeEventListener('mouseup', handleDragEnd);
+                document.removeEventListener('touchend', handleDragEnd);
+            }
+            
+            dragHandle.addEventListener('mousedown', handleDragStart);
+            dragHandle.addEventListener('touchstart', handleDragStart);
+            
+            // Also allow clicking the overlay to dismiss
+            commentsOverlay.addEventListener('click', hideComments);
+        }
+
+        // Hide comments section
+        function hideComments() {
+            if (activeCommentsSection) {
+                activeCommentsSection.classList.remove('active');
+                commentsOverlay.classList.remove('active');
+                
+                // Remove after animation completes
+                setTimeout(() => {
+                    if (activeCommentsSection) {
+                        activeCommentsSection.remove();
+                        activeCommentsSection = null;
+                    }
+                }, 300);
+            }
+        }
+
         // Create a post element
         async function createPostElement(post) {
             if (!moderateContent(post.mediaUrl, post.mediaType)) {
@@ -623,15 +854,13 @@
             
             const postElement = document.createElement('div');
             postElement.className = 'post';
+            postElement.dataset.postId = post.id;
             postElement.innerHTML = `
                 <div class="post-header">
                     <img class="post-author-pic" src="${profilePic}" alt="${username}">
                     <div class="post-author-info">
                         <div class="post-author-name">${username}</div>
                         <div class="post-time">${formatTime(post.createdAt)}</div>
-                    </div>
-                    <div class="post-menu">
-                        <i class="ri-more-fill"></i>
                     </div>
                 </div>
                 
@@ -651,91 +880,24 @@
                         <span>Share</span>
                     </div>
                 </div>
-                
-                <div class="comments-section" id="comments-${post.id}">
-                    <div class="comments-container" id="comments-container-${post.id}">
-                        ${comments.length === 0 ? 
-                          '<div class="comments-empty">No comments yet. Be the first to comment!</div>' : ''}
-                    </div>
-                    
-                    <div class="comment-form">
-                        <img class="current-user-pic" src="${currentUserProfile?.photoURL || '/api/placeholder/32/32'}" alt="You">
-                        <div class="comment-input-container">
-                            <input type="text" class="comment-input" id="comment-input-${post.id}" placeholder="Write a comment...">
-                            <button class="send-comment-btn" data-post-id="${post.id}">
-                                <i class="ri-send-plane-fill"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="comments-close" data-post-id="${post.id}">
-                        <i class="ri-close-line"></i> Close comments
-                    </div>
-                </div>
             `;
             
-            // Load existing comments
-            const commentsContainer = postElement.querySelector(`#comments-container-${post.id}`);
-            if (comments.length > 0) {
-                commentsContainer.innerHTML = '';
-                for (const comment of comments) {
-                    const commentElement = await createCommentElement(comment);
-                    commentsContainer.appendChild(commentElement);
-                }
-            }
-            
             // Event listeners
+            const likeButton = postElement.querySelector('.like-button');
             const commentButton = postElement.querySelector('.comment-button');
-            const commentSection = postElement.querySelector(`#comments-${post.id}`);
-            const commentClose = postElement.querySelector('.comments-close');
-            const sendButton = postElement.querySelector('.send-comment-btn');
-            const commentInput = postElement.querySelector(`#comment-input-${post.id}`);
+            
+            likeButton.addEventListener('click', function() {
+                this.classList.toggle('active');
+                
+                if (this.classList.contains('active')) {
+                    this.querySelector('i').className = 'ri-heart-fill';
+                } else {
+                    this.querySelector('i').className = 'ri-heart-line';
+                }
+            });
             
             commentButton.addEventListener('click', () => {
-                commentSection.classList.toggle('active');
-                if (commentSection.classList.contains('active')) {
-                    commentInput.focus();
-                }
-            });
-            
-            commentClose.addEventListener('click', () => {
-                commentSection.classList.remove('active');
-            });
-            
-            sendButton.addEventListener('click', async () => {
-                const text = commentInput.value;
-                if (!text.trim()) return;
-                
-                const success = await submitComment(post.id, text);
-                
-                if (success) {
-                    const newComment = {
-                        userId: currentUser.uid,
-                        text: text,
-                        createdAt: new Date()
-                    };
-                    
-                    const commentElement = await createCommentElement(newComment);
-                    
-                    // Remove the "no comments" message if it exists
-                    const emptyMessage = commentsContainer.querySelector('.comments-empty');
-                    if (emptyMessage) {
-                        commentsContainer.innerHTML = '';
-                    }
-                    
-                    commentsContainer.appendChild(commentElement);
-                    commentInput.value = '';
-                    
-                    // Update comment count
-                    const commentCount = commentsContainer.querySelectorAll('.comment').length;
-                    commentButton.querySelector('span').textContent = `Comment (${commentCount})`;
-                }
-            });
-            
-            commentInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    sendButton.click();
-                }
+                showComments(post.id, comments);
             });
             
             return postElement;
@@ -761,7 +923,7 @@
 
                 if (posts.length === 0) {
                     feedContainer.innerHTML = `
-                        <div style="text-align: center; padding: 40px; background: white; border-radius: 8px; margin-top: 20px;">
+                        <div style="text-align: center; padding: 40px; background: white; border-radius: 12px; margin-top: 20px;">
                             <i class="ri-image-line" style="font-size: 48px; color: var(--primary-color); margin-bottom: 16px;"></i>
                             <p>No posts yet. Share something amazing!</p>
                         </div>
@@ -780,7 +942,8 @@
                 console.error('Feed loading error:', error);
                 skeletonLoader.style.display = 'none';
                 feedContainer.innerHTML = `
-                    <div style="text-align: center; padding: 40px; background: white; border-radius: 8px; margin-top: 20px;">
+                    
+                    <div style="text-align: center; padding: 40px; background: white; border-radius: 12px; margin-top: 20px;">
                         <i class="ri-error-warning-line" style="font-size: 48px; color: #ff4d4d; margin-bottom: 16px;"></i>
                         <p>Failed to load feed. Please try again later.</p>
                     </div>
@@ -793,22 +956,15 @@
             if (user) {
                 currentUser = user;
                 currentUserProfile = await getUserProfile(user.uid);
-                
-                // Update header with user profile pic
-                if (currentUserProfile?.photoURL) {
-                    currentUserPic.src = currentUserProfile.photoURL;
-                }
-                
                 loadFeed();
             } else {
-                window.location.href = 'login.html';
+                // Redirect to login or just load feed with limited functionality
+                loadFeed();
             }
         });
 
-        // Handle profile picture click
-        currentUserPic.addEventListener('click', () => {
-            window.location.href = 'menu.html';
-        });
+        // Initialize by loading feed
+        loadFeed();
     </script>
 </body>
 </html>
