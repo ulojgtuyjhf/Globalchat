@@ -966,5 +966,206 @@
         // Initialize by loading feed
         loadFeed();
     </script>
+   
+<script>
+  // GlobalChat Theme Handler - For Feed Page
+  (function() {
+    // Function to apply dark theme
+    function applyDarkTheme() {
+      // Set dark theme CSS variables
+      document.documentElement.style.setProperty('--primary-color', '#1DA1F2');
+      document.documentElement.style.setProperty('--secondary-color', '#15202B');
+      document.documentElement.style.setProperty('--background-color', '#15202B');
+      document.documentElement.style.setProperty('--text-color', '#FFFFFF');
+      document.documentElement.style.setProperty('--border-color', '#38444D');
+      document.documentElement.style.setProperty('--light-gray', '#192734');
+      document.documentElement.style.setProperty('--medium-gray', '#8899A6');
+      document.documentElement.style.setProperty('--dark-gray', '#AAB8C2');
+      
+      // Apply dark theme to specific feed elements
+      document.querySelectorAll('.post').forEach(post => {
+        post.style.backgroundColor = '#192734';
+        post.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.2)';
+      });
+      
+      document.querySelectorAll('.post-author-name').forEach(name => {
+        name.style.color = '#FFFFFF';
+      });
+      
+      document.querySelectorAll('.post-time').forEach(time => {
+        time.style.color = '#8899A6';
+      });
+      
+      document.querySelectorAll('.action-button').forEach(button => {
+        button.style.color = '#8899A6';
+      });
+      
+      document.querySelectorAll('.comments-section').forEach(section => {
+        section.style.backgroundColor = '#15202B';
+      });
+      
+      document.querySelectorAll('.comments-title').forEach(title => {
+        title.style.color = '#FFFFFF';
+      });
+      
+      document.querySelectorAll('.comment-bubble').forEach(bubble => {
+        bubble.style.backgroundColor = '#192734';
+      });
+      
+      document.querySelectorAll('.comment-author').forEach(author => {
+        author.style.color = '#FFFFFF';
+      });
+      
+      document.querySelectorAll('.comment-text').forEach(text => {
+        text.style.color = '#FFFFFF';
+      });
+      
+      document.querySelectorAll('.comment-input-container').forEach(container => {
+        container.style.backgroundColor = '#192734';
+        container.style.borderColor = '#38444D';
+      });
+      
+      document.querySelectorAll('.comment-input').forEach(input => {
+        input.style.color = '#FFFFFF';
+        input.style.backgroundColor = 'transparent';
+      });
+      
+      // Add class to body for any CSS targeting
+      document.body.classList.add('dark-theme');
+    }
+    
+    // Function to apply light theme
+    function applyLightTheme() {
+      // Restore default CSS variables
+      document.documentElement.style.setProperty('--primary-color', '#1DA1F2');
+      document.documentElement.style.setProperty('--secondary-color', '#FFFFFF');
+      document.documentElement.style.setProperty('--background-color', '#F7F9FA');
+      document.documentElement.style.setProperty('--text-color', '#333');
+      document.documentElement.style.setProperty('--border-color', '#E6ECF0');
+      document.documentElement.style.setProperty('--light-gray', '#F5F8FA');
+      document.documentElement.style.setProperty('--medium-gray', '#8D949E');
+      document.documentElement.style.setProperty('--dark-gray', '#657786');
+      
+      // Restore default styles for feed elements
+      document.querySelectorAll('.post').forEach(post => {
+        post.style.backgroundColor = '#FFFFFF';
+        post.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+      });
+      
+      document.querySelectorAll('.post-author-name').forEach(name => {
+        name.style.color = '#333';
+      });
+      
+      document.querySelectorAll('.post-time').forEach(time => {
+        time.style.color = '#657786';
+      });
+      
+      document.querySelectorAll('.action-button').forEach(button => {
+        button.style.color = '#657786';
+      });
+      
+      document.querySelectorAll('.comments-section').forEach(section => {
+        section.style.backgroundColor = '#FFFFFF';
+      });
+      
+      document.querySelectorAll('.comments-title').forEach(title => {
+        title.style.color = '#333';
+      });
+      
+      document.querySelectorAll('.comment-bubble').forEach(bubble => {
+        bubble.style.backgroundColor = '#F5F8FA';
+      });
+      
+      document.querySelectorAll('.comment-author').forEach(author => {
+        author.style.color = '#333';
+      });
+      
+      document.querySelectorAll('.comment-text').forEach(text => {
+        text.style.color = '#333';
+      });
+      
+      document.querySelectorAll('.comment-input-container').forEach(container => {
+        container.style.backgroundColor = '#F5F8FA';
+        container.style.borderColor = '#E6ECF0';
+      });
+      
+      document.querySelectorAll('.comment-input').forEach(input => {
+        input.style.color = '#333';
+        input.style.backgroundColor = 'transparent';
+      });
+      
+      // Remove dark theme class from body
+      document.body.classList.remove('dark-theme');
+    }
+    
+    // Initialize theme based on localStorage
+    function initTheme() {
+      const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
+      if (isDarkMode) {
+        applyDarkTheme();
+      } else {
+        applyLightTheme();
+      }
+    }
+    
+    // Apply theme to dynamically loaded content
+    function setupMutationObserver() {
+      const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+          if (mutation.addedNodes.length) {
+            const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
+            if (isDarkMode) {
+              applyDarkTheme();
+            } else {
+              applyLightTheme();
+            }
+          }
+        });
+      });
+      
+      // Observe the feed container for changes
+      const feedContainer = document.getElementById('feed-container');
+      if (feedContainer) {
+        observer.observe(feedContainer, {
+          childList: true,
+          subtree: true
+        });
+      }
+      
+      // Also observe the comments section which gets dynamically inserted
+      document.body.addEventListener('DOMNodeInserted', event => {
+        if (event.target.classList && event.target.classList.contains('comments-section')) {
+          const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
+          if (isDarkMode) {
+            applyDarkTheme();
+          }
+        }
+      });
+    }
+    
+    // Listen for theme changes from other pages
+    window.addEventListener('storage', event => {
+      if (event.key === 'darkMode') {
+        if (event.newValue === 'enabled') {
+          applyDarkTheme();
+        } else {
+          applyLightTheme();
+        }
+      }
+    });
+    
+    // Initialize on page load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        initTheme();
+        setupMutationObserver();
+      });
+    } else {
+      initTheme();
+      setupMutationObserver();
+    }
+  })();
+</script>
+
 </body>
 </html>
