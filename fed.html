@@ -1,120 +1,372 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Image Gallery</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>GlobalChat - Image Feed</title>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: #6A11CB;
+            --secondary-color: #FFFFFF;
+            --background-color: #F4F7FE;
+            --text-color: #333;
+            --border-color: #E4E6EB;
+            --light-gray: #F0F2F5;
+            --medium-gray: #8D949E;
+            --dark-gray: #65676B;
+        }
+
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #ffffff;
-            padding: 20px;
-            padding-top: 40px;
-        }
-
-        .gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 16px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .gallery-item {
-            position: relative;
-            overflow: hidden;
-            border-radius: 12px;
-            background-color: #f5f8fa;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .gallery-item:hover {
-            transform: scale(1.02);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        }
-
-        .gallery-item img {
+            background: var(--background-color);
+            color: var(--text-color);
             width: 100%;
-            height: 100%;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: var(--secondary-color);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            padding: 12px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-logo {
+            color: var(--primary-color);
+            font-weight: bold;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+        }
+
+        .header-logo i {
+            margin-right: 8px;
+            font-size: 24px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+        }
+
+        .profile-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
             object-fit: cover;
+            cursor: pointer;
+        }
+
+        /* Feed */
+        .feed-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .post {
+            background: var(--secondary-color);
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .post-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+        }
+
+        .post-author-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 12px;
+            object-fit: cover;
+        }
+
+        .post-author-info {
+            flex-grow: 1;
+        }
+
+        .post-author-name {
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 2px;
+        }
+
+        .post-time {
+            font-size: 12px;
+            color: var(--dark-gray);
+        }
+
+        .post-menu {
+            color: var(--dark-gray);
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .post-menu:hover {
+            background-color: var(--light-gray);
+        }
+
+        .post-image {
+            width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+            background-color: #000;
             display: block;
         }
 
-        .profile-info {
-            position: absolute;
-            top: 10px;
-            left: 10px;
+        .post-actions {
+            display: flex;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .action-button {
+            flex: 1;
             display: flex;
             align-items: center;
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 6px 12px;
-            border-radius: 20px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        .profile-info img {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-
-        .profile-info span {
+            justify-content: center;
+            padding: 8px 0;
+            color: var(--dark-gray);
+            font-weight: 600;
             font-size: 14px;
-            font-weight: 500;
-            color: #0f1419;
+            cursor: pointer;
+            border-radius: 4px;
         }
 
-        .options {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 6px;
+        .action-button:hover {
+            background-color: var(--light-gray);
+        }
+
+        .action-button i {
+            margin-right: 6px;
+            font-size: 18px;
+        }
+
+        /* Comments */
+        .comments-section {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background-color: var(--secondary-color);
+        }
+
+        .comments-section.active {
+            max-height: 500px;
+            overflow-y: auto;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .comment {
+            display: flex;
+            padding: 12px 16px;
+        }
+
+        .comment-author-pic {
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
+            margin-right: 12px;
+            object-fit: cover;
+        }
+
+        .comment-bubble {
+            background-color: var(--light-gray);
+            border-radius: 18px;
+            padding: 8px 12px;
+            max-width: calc(100% - 44px);
+        }
+
+        .comment-author {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+
+        .comment-text {
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .comment-actions {
+            display: flex;
+            font-size: 12px;
+            margin-top: 4px;
+            padding-left: 12px;
+        }
+
+        .comment-action {
+            margin-right: 16px;
+            color: var(--dark-gray);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .comment-form {
+            display: flex;
+            padding: 12px 16px;
+            align-items: center;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .current-user-pic {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 12px;
+            object-fit: cover;
+        }
+
+        .comment-input-container {
+            flex-grow: 1;
+            position: relative;
+            border-radius: 20px;
+            background-color: var(--light-gray);
+            overflow: hidden;
+        }
+
+        .comment-input {
+            width: 100%;
+            border: none;
+            outline: none;
+            padding: 10px 40px 10px 16px;
+            background: transparent;
+            font-size: 13px;
+        }
+
+        .send-comment-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary-color);
+            background: none;
+            border: none;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             width: 30px;
             height: 30px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        .options span {
-            width: 4px;
-            height: 4px;
-            background-color: #657786;
             border-radius: 50%;
-            margin: 1px;
         }
 
-        /* Skeleton Loading Animation */
+        .send-comment-btn i {
+            font-size: 18px;
+        }
+
+        .comments-empty {
+            padding: 20px;
+            text-align: center;
+            color: var(--dark-gray);
+            font-size: 14px;
+        }
+
+        .comments-close {
+            padding: 12px;
+            text-align: center;
+            font-size: 14px;
+            color: var(--dark-gray);
+            font-weight: 600;
+            cursor: pointer;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .comments-close:hover {
+            background-color: var(--light-gray);
+        }
+
+        /* Skeleton Loading */
         .skeleton-loader {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 16px;
-            max-width: 1200px;
+            max-width: 600px;
             margin: 0 auto;
+            padding: 16px;
         }
 
-        .skeleton-item {
-            background-color: #e1e8ed;
-            border-radius: 12px;
+        .skeleton-post {
+            background: var(--secondary-color);
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            margin-bottom: 16px;
             overflow: hidden;
-            position: relative;
-            height: 250px;
         }
 
-        .skeleton-item::after {
+        .skeleton-header {
+            display: flex;
+            padding: 12px 16px;
+            align-items: center;
+        }
+
+        .skeleton-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--light-gray);
+            margin-right: 12px;
+        }
+
+        .skeleton-lines {
+            flex-grow: 1;
+        }
+
+        .skeleton-line {
+            height: 12px;
+            background-color: var(--light-gray);
+            margin-bottom: 6px;
+            border-radius: 4px;
+        }
+
+        .skeleton-line.short {
+            width: 40%;
+        }
+
+        .skeleton-image {
+            height: 300px;
+            background-color: var(--light-gray);
+        }
+
+        .skeleton-actions {
+            display: flex;
+            padding: 12px 16px;
+        }
+
+        .skeleton-action {
+            flex: 1;
+            height: 20px;
+            background-color: var(--light-gray);
+            margin: 0 8px;
+            border-radius: 4px;
+        }
+
+        .shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shimmer::after {
             content: '';
             position: absolute;
             top: 0;
@@ -126,31 +378,94 @@
         }
 
         @keyframes shimmer {
-            0% {
-                transform: translateX(-100%);
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 600px) {
+            body {
+                padding-bottom: 60px;
             }
-            100% {
-                transform: translateX(100%);
+
+            .feed-container {
+                padding: 8px;
+            }
+
+            .post {
+                border-radius: 0;
+                margin-bottom: 8px;
+            }
+
+            .header {
+                padding: 12px;
             }
         }
     </style>
 </head>
 <body>
-    <div id="skeleton-loader" class="skeleton-loader">
-        <div class="skeleton-item"></div>
-        <div class="skeleton-item"></div>
-        <div class="skeleton-item"></div>
-        <div class="skeleton-item"></div>
-        <div class="skeleton-item"></div>
-        <div class="skeleton-item"></div>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-logo">
+            <i class="ri-chat-3-line"></i>
+            <span>GlobalChat</span>
+        </div>
+        <div class="header-actions">
+            <img id="current-user-pic" class="profile-pic" src="/api/placeholder/40/40" alt="Profile">
+        </div>
     </div>
 
-    <div id="gallery" class="gallery"></div>
+    <!-- Skeleton Loader -->
+    <div id="skeleton-loader" class="skeleton-loader">
+        <div class="skeleton-post">
+            <div class="skeleton-header">
+                <div class="skeleton-circle shimmer"></div>
+                <div class="skeleton-lines">
+                    <div class="skeleton-line shimmer"></div>
+                    <div class="skeleton-line short shimmer"></div>
+                </div>
+            </div>
+            <div class="skeleton-image shimmer"></div>
+            <div class="skeleton-actions">
+                <div class="skeleton-action shimmer"></div>
+                <div class="skeleton-action shimmer"></div>
+                <div class="skeleton-action shimmer"></div>
+            </div>
+        </div>
+        <div class="skeleton-post">
+            <div class="skeleton-header">
+                <div class="skeleton-circle shimmer"></div>
+                <div class="skeleton-lines">
+                    <div class="skeleton-line shimmer"></div>
+                    <div class="skeleton-line short shimmer"></div>
+                </div>
+            </div>
+            <div class="skeleton-image shimmer"></div>
+            <div class="skeleton-actions">
+                <div class="skeleton-action shimmer"></div>
+                <div class="skeleton-action shimmer"></div>
+                <div class="skeleton-action shimmer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feed Container -->
+    <div id="feed-container" class="feed-container"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, query, orderBy, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { 
+            getFirestore, 
+            collection, 
+            query, 
+            orderBy, 
+            getDocs, 
+            doc, 
+            getDoc, 
+            addDoc, 
+            serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
@@ -161,12 +476,41 @@
             appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
         };
 
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        
+        // DOM Elements
         const skeletonLoader = document.getElementById('skeleton-loader');
+        const feedContainer = document.getElementById('feed-container');
+        const currentUserPic = document.getElementById('current-user-pic');
+        
+        // Current user data
+        let currentUser = null;
+        let currentUserProfile = null;
 
-        // Content Moderation Function
+        // Utils
+        function formatTime(timestamp) {
+            if (!timestamp) return 'Just now';
+            
+            const now = new Date();
+            const postTime = timestamp.toDate ? timestamp.toDate() : timestamp;
+            const diffMs = now - postTime;
+            const diffSec = Math.floor(diffMs / 1000);
+            const diffMin = Math.floor(diffSec / 60);
+            const diffHour = Math.floor(diffMin / 60);
+            const diffDay = Math.floor(diffHour / 24);
+
+            if (diffSec < 60) return 'Just now';
+            if (diffMin < 60) return `${diffMin}m`;
+            if (diffHour < 24) return `${diffHour}h`;
+            if (diffDay < 7) return `${diffDay}d`;
+            
+            return postTime.toLocaleDateString();
+        }
+
+        // Content moderation
         function moderateContent(mediaUrl, mediaType) {
             const inappropriateKeywords = [
                 'nude', 'explicit', 'porn', 
@@ -180,13 +524,14 @@
             ];
 
             return (
-                allowedMediaTypes.includes(mediaType) &&
-                !inappropriateKeywords.some(keyword => 
+                (!mediaType || allowedMediaTypes.includes(mediaType)) &&
+                (!mediaUrl || !inappropriateKeywords.some(keyword => 
                     mediaUrl.toLowerCase().includes(keyword)
-                )
+                ))
             );
         }
 
+        // Fetch user profile from Firestore
         async function getUserProfile(userId) {
             try {
                 const userDocRef = doc(db, 'users', userId);
@@ -198,36 +543,207 @@
             }
         }
 
-        async function createGalleryItem(post) {
+        // Fetch comments for a post
+        async function getPostComments(postId) {
+            try {
+                const commentsQuery = query(
+                    collection(db, 'posts', postId, 'comments'),
+                    orderBy('createdAt', 'asc')
+                );
+                
+                const snapshot = await getDocs(commentsQuery);
+                return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            } catch (error) {
+                console.error('Error fetching comments:', error);
+                return [];
+            }
+        }
+
+        // Create comment element
+        async function createCommentElement(comment) {
+            const userProfile = await getUserProfile(comment.userId);
+            
+            const username = userProfile?.username || 
+                             userProfile?.displayName || 
+                             `User ${comment.userId.slice(0, 4)}`;
+                             
+            const profilePic = userProfile?.photoURL || "/api/placeholder/32/32";
+            
+            const commentElement = document.createElement('div');
+            commentElement.className = 'comment';
+            commentElement.innerHTML = `
+                <img class="comment-author-pic" src="${profilePic}" alt="${username}">
+                <div>
+                    <div class="comment-bubble">
+                        <div class="comment-author">${username}</div>
+                        <div class="comment-text">${comment.text}</div>
+                    </div>
+                    <div class="comment-actions">
+                        <div class="comment-action">Like</div>
+                        <div class="comment-action">Reply</div>
+                        <div class="comment-time">${formatTime(comment.createdAt)}</div>
+                    </div>
+                </div>
+            `;
+            
+            return commentElement;
+        }
+
+        // Add a new comment to Firestore
+        async function submitComment(postId, text) {
+            if (!currentUser || !text.trim()) return false;
+            
+            try {
+                const newComment = {
+                    userId: currentUser.uid,
+                    text: text.trim(),
+                    createdAt: serverTimestamp()
+                };
+                
+                await addDoc(collection(db, 'posts', postId, 'comments'), newComment);
+                return true;
+            } catch (error) {
+                console.error('Error submitting comment:', error);
+                return false;
+            }
+        }
+
+        // Create a post element
+        async function createPostElement(post) {
             if (!moderateContent(post.mediaUrl, post.mediaType)) {
                 return null;
             }
 
             const userProfile = await getUserProfile(post.userId);
-            const username = userProfile?.displayName || `User ${post.userId.slice(0, 4)}`;
-            const profilePic = userProfile?.photoURL || "/api/placeholder/30/30";
-
-            const galleryItem = document.createElement('div');
-            galleryItem.className = 'gallery-item';
-            galleryItem.innerHTML = `
-                <img src="${post.mediaUrl}" alt="Gallery Image" onerror="this.style.display='none'">
-                <div class="profile-info">
-                    <img src="${profilePic}" alt="Profile Image">
-                    <span>${username}</span>
+            const username = userProfile?.username || 
+                             userProfile?.displayName || 
+                             `User ${post.userId.slice(0, 4)}`;
+            const profilePic = userProfile?.photoURL || "/api/placeholder/40/40";
+            const comments = await getPostComments(post.id);
+            
+            const postElement = document.createElement('div');
+            postElement.className = 'post';
+            postElement.innerHTML = `
+                <div class="post-header">
+                    <img class="post-author-pic" src="${profilePic}" alt="${username}">
+                    <div class="post-author-info">
+                        <div class="post-author-name">${username}</div>
+                        <div class="post-time">${formatTime(post.createdAt)}</div>
+                    </div>
+                    <div class="post-menu">
+                        <i class="ri-more-fill"></i>
+                    </div>
                 </div>
-                <div class="options">
-                    <span></span>
-                    <span></span>
-                    <span></span>
+                
+                <img class="post-image" src="${post.mediaUrl}" alt="Post" onerror="this.style.display='none'">
+                
+                <div class="post-actions">
+                    <div class="action-button like-button">
+                        <i class="ri-heart-line"></i>
+                        <span>Like</span>
+                    </div>
+                    <div class="action-button comment-button" data-post-id="${post.id}">
+                        <i class="ri-chat-1-line"></i>
+                        <span>Comment${comments.length > 0 ? ` (${comments.length})` : ''}</span>
+                    </div>
+                    <div class="action-button share-button">
+                        <i class="ri-share-forward-line"></i>
+                        <span>Share</span>
+                    </div>
+                </div>
+                
+                <div class="comments-section" id="comments-${post.id}">
+                    <div class="comments-container" id="comments-container-${post.id}">
+                        ${comments.length === 0 ? 
+                          '<div class="comments-empty">No comments yet. Be the first to comment!</div>' : ''}
+                    </div>
+                    
+                    <div class="comment-form">
+                        <img class="current-user-pic" src="${currentUserProfile?.photoURL || '/api/placeholder/32/32'}" alt="You">
+                        <div class="comment-input-container">
+                            <input type="text" class="comment-input" id="comment-input-${post.id}" placeholder="Write a comment...">
+                            <button class="send-comment-btn" data-post-id="${post.id}">
+                                <i class="ri-send-plane-fill"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="comments-close" data-post-id="${post.id}">
+                        <i class="ri-close-line"></i> Close comments
+                    </div>
                 </div>
             `;
-
-            return galleryItem;
+            
+            // Load existing comments
+            const commentsContainer = postElement.querySelector(`#comments-container-${post.id}`);
+            if (comments.length > 0) {
+                commentsContainer.innerHTML = '';
+                for (const comment of comments) {
+                    const commentElement = await createCommentElement(comment);
+                    commentsContainer.appendChild(commentElement);
+                }
+            }
+            
+            // Event listeners
+            const commentButton = postElement.querySelector('.comment-button');
+            const commentSection = postElement.querySelector(`#comments-${post.id}`);
+            const commentClose = postElement.querySelector('.comments-close');
+            const sendButton = postElement.querySelector('.send-comment-btn');
+            const commentInput = postElement.querySelector(`#comment-input-${post.id}`);
+            
+            commentButton.addEventListener('click', () => {
+                commentSection.classList.toggle('active');
+                if (commentSection.classList.contains('active')) {
+                    commentInput.focus();
+                }
+            });
+            
+            commentClose.addEventListener('click', () => {
+                commentSection.classList.remove('active');
+            });
+            
+            sendButton.addEventListener('click', async () => {
+                const text = commentInput.value;
+                if (!text.trim()) return;
+                
+                const success = await submitComment(post.id, text);
+                
+                if (success) {
+                    const newComment = {
+                        userId: currentUser.uid,
+                        text: text,
+                        createdAt: new Date()
+                    };
+                    
+                    const commentElement = await createCommentElement(newComment);
+                    
+                    // Remove the "no comments" message if it exists
+                    const emptyMessage = commentsContainer.querySelector('.comments-empty');
+                    if (emptyMessage) {
+                        commentsContainer.innerHTML = '';
+                    }
+                    
+                    commentsContainer.appendChild(commentElement);
+                    commentInput.value = '';
+                    
+                    // Update comment count
+                    const commentCount = commentsContainer.querySelectorAll('.comment').length;
+                    commentButton.querySelector('span').textContent = `Comment (${commentCount})`;
+                }
+            });
+            
+            commentInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendButton.click();
+                }
+            });
+            
+            return postElement;
         }
 
-        async function loadGallery() {
-            const galleryContainer = document.getElementById('gallery');
-            galleryContainer.innerHTML = ''; // Clear existing content
+        // Load feed
+        async function loadFeed() {
+            feedContainer.innerHTML = ''; // Clear existing content
 
             try {
                 const postsQuery = query(
@@ -243,28 +759,55 @@
                 // Hide skeleton loader
                 skeletonLoader.style.display = 'none';
 
+                if (posts.length === 0) {
+                    feedContainer.innerHTML = `
+                        <div style="text-align: center; padding: 40px; background: white; border-radius: 8px; margin-top: 20px;">
+                            <i class="ri-image-line" style="font-size: 48px; color: var(--primary-color); margin-bottom: 16px;"></i>
+                            <p>No posts yet. Share something amazing!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
                 for (const post of posts) {
-                    const galleryItem = await createGalleryItem(post);
-                    if (galleryItem) {
-                        galleryContainer.appendChild(galleryItem);
+                    const postElement = await createPostElement(post);
+                    if (postElement) {
+                        feedContainer.appendChild(postElement);
                     }
                 }
 
             } catch (error) {
-                console.error('Gallery loading error:', error);
+                console.error('Feed loading error:', error);
                 skeletonLoader.style.display = 'none';
-                galleryContainer.innerHTML = `
-                    <p style="text-align: center; color: #657786;">Failed to load gallery. Please try again later.</p>
+                feedContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px; background: white; border-radius: 8px; margin-top: 20px;">
+                        <i class="ri-error-warning-line" style="font-size: 48px; color: #ff4d4d; margin-bottom: 16px;"></i>
+                        <p>Failed to load feed. Please try again later.</p>
+                    </div>
                 `;
             }
         }
 
-        onAuthStateChanged(auth, (user) => {
+        // Check authentication and load feed
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
-                loadGallery();
+                currentUser = user;
+                currentUserProfile = await getUserProfile(user.uid);
+                
+                // Update header with user profile pic
+                if (currentUserProfile?.photoURL) {
+                    currentUserPic.src = currentUserProfile.photoURL;
+                }
+                
+                loadFeed();
             } else {
                 window.location.href = 'login.html';
             }
+        });
+
+        // Handle profile picture click
+        currentUserPic.addEventListener('click', () => {
+            window.location.href = 'menu.html';
         });
     </script>
 </body>
