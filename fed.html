@@ -519,453 +519,522 @@
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            collection, 
-            query, 
-            orderBy, 
-            getDocs, 
-            doc, 
-            getDoc, 
-            addDoc, 
-            serverTimestamp 
-        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
-            authDomain: "globalchat-2d669.firebaseapp.com",
-            projectId: "globalchat-2d669",
-            storageBucket: "globalchat-2d669.firebasestorage.app",
-            messagingSenderId: "178714711978",
-            appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
-        };
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { 
+        getFirestore, 
+        collection, 
+        query, 
+        orderBy, 
+        getDocs, 
+        doc, 
+        getDoc, 
+        addDoc, 
+        serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+        authDomain: "globalchat-2d669.firebaseapp.com",
+        projectId: "globalchat-2d669",
+        storageBucket: "globalchat-2d669.firebaseapp.com",
+        messagingSenderId: "178714711978",
+        appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    
+    // DOM Elements
+    const skeletonLoader = document.getElementById('skeleton-loader');
+    const feedContainer = document.getElementById('feed-container');
+    const commentsOverlay = document.getElementById('comments-overlay');
+    const commentsTemplate = document.getElementById('comments-template');
+    
+    // Current user data
+    let currentUser = null;
+    let currentUserProfile = null;
+    let activeCommentsSection = null;
+    let feedLoaded = false; // Flag to prevent double loading
+    let loadedPostIds = new Set(); // Keep track of loaded post IDs
+
+    // Utils
+    function formatTime(timestamp) {
+        if (!timestamp) return 'Just now';
         
-        // DOM Elements
-        const skeletonLoader = document.getElementById('skeleton-loader');
-        const feedContainer = document.getElementById('feed-container');
-        const commentsOverlay = document.getElementById('comments-overlay');
-        const commentsTemplate = document.getElementById('comments-template');
+        const now = new Date();
+        const postTime = timestamp.toDate ? timestamp.toDate() : timestamp;
+        const diffMs = now - postTime;
+        const diffSec = Math.floor(diffMs / 1000);
+        const diffMin = Math.floor(diffSec / 60);
+        const diffHour = Math.floor(diffMin / 60);
+        const diffDay = Math.floor(diffHour / 24);
+
+        if (diffSec < 60) return 'Just now';
+        if (diffMin < 60) return `${diffMin}m`;
+        if (diffHour < 24) return `${diffHour}h`;
+        if (diffDay < 7) return `${diffDay}d`;
         
-        // Current user data
-        let currentUser = null;
-        let currentUserProfile = null;
-        let activeCommentsSection = null;
+        return postTime.toLocaleDateString();
+    }
+    
+    // Check if post is less than 60 hours old
+    function isRecentPost(timestamp) {
+        if (!timestamp) return false;
+        
+        const now = new Date();
+        const postTime = timestamp.toDate ? timestamp.toDate() : timestamp;
+        const diffMs = now - postTime;
+        const diffHours = diffMs / (1000 * 60 * 60);
+        
+        return diffHours < 60; // Less than 60 hours old
+    }
 
-        // Utils
-        function formatTime(timestamp) {
-            if (!timestamp) return 'Just now';
-            
-            const now = new Date();
-            const postTime = timestamp.toDate ? timestamp.toDate() : timestamp;
-            const diffMs = now - postTime;
-            const diffSec = Math.floor(diffMs / 1000);
-            const diffMin = Math.floor(diffSec / 60);
-            const diffHour = Math.floor(diffMin / 60);
-            const diffDay = Math.floor(diffHour / 24);
+    // Content moderation
+    function moderateContent(mediaUrl, mediaType) {
+        const inappropriateKeywords = [
+            'nude', 'explicit', 'porn', 
+            'advertisement', 'spam', 
+            'offensive', 'violent'
+        ];
 
-            if (diffSec < 60) return 'Just now';
-            if (diffMin < 60) return `${diffMin}m`;
-            if (diffHour < 24) return `${diffHour}h`;
-            if (diffDay < 7) return `${diffDay}d`;
-            
-            return postTime.toLocaleDateString();
+        const allowedMediaTypes = [
+            'image/jpeg', 'image/png', 
+            'image/gif', 'image/webp'
+        ];
+
+        return (
+            (!mediaType || allowedMediaTypes.includes(mediaType)) &&
+            (!mediaUrl || !inappropriateKeywords.some(keyword => 
+                mediaUrl.toLowerCase().includes(keyword)
+            ))
+        );
+    }
+
+    // Fetch user profile from Firestore
+    async function getUserProfile(userId) {
+        try {
+            const userDocRef = doc(db, 'users', userId);
+            const userDoc = await getDoc(userDocRef);
+            return userDoc.exists() ? userDoc.data() : null;
+        } catch (error) {
+            console.error('Error fetching user profile:', error);
+            return null;
         }
+    }
 
-        // Content moderation
-        function moderateContent(mediaUrl, mediaType) {
-            const inappropriateKeywords = [
-                'nude', 'explicit', 'porn', 
-                'advertisement', 'spam', 
-                'offensive', 'violent'
-            ];
-
-            const allowedMediaTypes = [
-                'image/jpeg', 'image/png', 
-                'image/gif', 'image/webp'
-            ];
-
-            return (
-                (!mediaType || allowedMediaTypes.includes(mediaType)) &&
-                (!mediaUrl || !inappropriateKeywords.some(keyword => 
-                    mediaUrl.toLowerCase().includes(keyword)
-                ))
+    // Fetch comments for a post
+    async function getPostComments(postId) {
+        try {
+            const commentsQuery = query(
+                collection(db, 'posts', postId, 'comments'),
+                orderBy('createdAt', 'asc')
             );
-        }
-
-        // Fetch user profile from Firestore
-        async function getUserProfile(userId) {
-            try {
-                const userDocRef = doc(db, 'users', userId);
-                const userDoc = await getDoc(userDocRef);
-                return userDoc.exists() ? userDoc.data() : null;
-            } catch (error) {
-                console.error('Error fetching user profile:', error);
-                return null;
-            }
-        }
-
-        // Fetch comments for a post
-        async function getPostComments(postId) {
-            try {
-                const commentsQuery = query(
-                    collection(db, 'posts', postId, 'comments'),
-                    orderBy('createdAt', 'asc')
-                );
-                
-                const snapshot = await getDocs(commentsQuery);
-                return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            } catch (error) {
-                console.error('Error fetching comments:', error);
-                return [];
-            }
-        }
-
-        // Create comment element
-        async function createCommentElement(comment) {
-            const userProfile = await getUserProfile(comment.userId);
             
-            const username = userProfile?.username || 
-                             userProfile?.displayName || 
-                             `User ${comment.userId.slice(0, 4)}`;
-                             
-            const profilePic = userProfile?.photoURL || "/api/placeholder/32/32";
-            
-            const commentElement = document.createElement('div');
-            commentElement.className = 'comment';
-            commentElement.innerHTML = `
-                <div class="comment-wrapper">
-                    <img class="comment-author-pic" src="${profilePic}" alt="${username}">
+            const snapshot = await getDocs(commentsQuery);
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (error) {
+            console.error('Error fetching comments:', error);
+            return [];
+        }
+    }
+
+    // Create comment element
+    async function createCommentElement(comment) {
+        const userProfile = await getUserProfile(comment.userId);
+        
+        const username = userProfile?.username || 
+                         userProfile?.displayName || 
+                         `User ${comment.userId.slice(0, 4)}`;
+                         
+        const profilePic = userProfile?.photoURL || "/api/placeholder/32/32";
+        
+        const commentElement = document.createElement('div');
+        commentElement.className = 'comment';
+        commentElement.innerHTML = `
+            <div class="comment-wrapper">
+                <img class="comment-author-pic" src="${profilePic}" alt="${username}">
+            </div>
+            <div class="comment-content">
+                <div class="comment-bubble">
+                    <div class="comment-author">${username}</div>
+                    <div class="comment-text">${comment.text}</div>
                 </div>
-                <div class="comment-content">
-                    <div class="comment-bubble">
-                        <div class="comment-author">${username}</div>
-                        <div class="comment-text">${comment.text}</div>
-                    </div>
-                    <div class="comment-actions">
-                        <div class="comment-action">Like</div>
-                        <div class="comment-action">Reply</div>
-                        <div class="comment-time">${formatTime(comment.createdAt)}</div>
-                    </div>
+                <div class="comment-actions">
+                    <div class="comment-action">Like</div>
+                    <div class="comment-action">Reply</div>
+                    <div class="comment-time">${formatTime(comment.createdAt)}</div>
                 </div>
-            `;
-            
-            return commentElement;
-        }
+            </div>
+        `;
+        
+        return commentElement;
+    }
 
-        // Add a new comment to Firestore
-        async function submitComment(postId, text) {
-            if (!currentUser || !text.trim()) return false;
+    // Add a new comment to Firestore
+    async function submitComment(postId, text) {
+        if (!currentUser || !text.trim()) return false;
+        
+        try {
+            const newComment = {
+                userId: currentUser.uid,
+                text: text.trim(),
+                createdAt: serverTimestamp()
+            };
             
-            try {
+            await addDoc(collection(db, 'posts', postId, 'comments'), newComment);
+            return true;
+        } catch (error) {
+            console.error('Error submitting comment:', error);
+            return false;
+        }
+    }
+
+    // Show comments section
+    function showComments(postId, comments) {
+        // Remove any existing comments section
+        if (activeCommentsSection) {
+            activeCommentsSection.remove();
+        }
+        
+        // Create a new comments section from the template
+        const commentsSection = commentsTemplate.cloneNode(true);
+        commentsSection.removeAttribute('id');
+        commentsSection.dataset.postId = postId;
+        
+        document.body.appendChild(commentsSection);
+        activeCommentsSection = commentsSection;
+        
+        // Load comments
+        const commentsContainer = commentsSection.querySelector('.comments-container');
+        if (comments.length === 0) {
+            commentsContainer.innerHTML = '<div class="comments-empty">No comments yet. Be the first to comment!</div>';
+        } else {
+            commentsContainer.innerHTML = '<div class="comment-thread"></div>';
+            const commentThread = commentsContainer.querySelector('.comment-thread');
+            
+            comments.forEach(async (comment) => {
+                const commentElement = await createCommentElement(comment);
+                commentThread.appendChild(commentElement);
+            });
+        }
+        
+        // Set up comment input
+        const commentInput = commentsSection.querySelector('.comment-input');
+        const sendButton = commentsSection.querySelector('.send-comment-btn');
+        const closeButton = commentsSection.querySelector('.comments-close-btn');
+        const currentUserPic = commentsSection.querySelector('.current-user-pic');
+        
+        // Set profile picture
+        if (currentUserProfile?.photoURL) {
+            currentUserPic.src = currentUserProfile.photoURL;
+        }
+        
+        // Event listeners
+        sendButton.addEventListener('click', async () => {
+            const text = commentInput.value;
+            if (!text.trim()) return;
+            
+            const success = await submitComment(postId, text);
+            
+            if (success) {
                 const newComment = {
                     userId: currentUser.uid,
-                    text: text.trim(),
-                    createdAt: serverTimestamp()
+                    text: text,
+                    createdAt: new Date()
                 };
                 
-                await addDoc(collection(db, 'posts', postId, 'comments'), newComment);
-                return true;
-            } catch (error) {
-                console.error('Error submitting comment:', error);
-                return false;
-            }
-        }
-
-        // Show comments section
-        function showComments(postId, comments) {
-            // Remove any existing comments section
-            if (activeCommentsSection) {
-                activeCommentsSection.remove();
-            }
-            
-            // Create a new comments section from the template
-            const commentsSection = commentsTemplate.cloneNode(true);
-            commentsSection.removeAttribute('id');
-            commentsSection.dataset.postId = postId;
-            
-            document.body.appendChild(commentsSection);
-            activeCommentsSection = commentsSection;
-            
-            // Load comments
-            const commentsContainer = commentsSection.querySelector('.comments-container');
-            if (comments.length === 0) {
-                commentsContainer.innerHTML = '<div class="comments-empty">No comments yet. Be the first to comment!</div>';
-            } else {
-                commentsContainer.innerHTML = '<div class="comment-thread"></div>';
-                const commentThread = commentsContainer.querySelector('.comment-thread');
+                const commentElement = await createCommentElement(newComment);
                 
-                comments.forEach(async (comment) => {
-                    const commentElement = await createCommentElement(comment);
+                // Remove the "no comments" message if it exists
+                const emptyMessage = commentsContainer.querySelector('.comments-empty');
+                if (emptyMessage) {
+                    commentsContainer.innerHTML = '<div class="comment-thread"></div>';
+                    const commentThread = commentsContainer.querySelector('.comment-thread');
                     commentThread.appendChild(commentElement);
-                });
-            }
-            
-            // Set up comment input
-            const commentInput = commentsSection.querySelector('.comment-input');
-            const sendButton = commentsSection.querySelector('.send-comment-btn');
-            const closeButton = commentsSection.querySelector('.comments-close-btn');
-            const currentUserPic = commentsSection.querySelector('.current-user-pic');
-            
-            // Set profile picture
-            if (currentUserProfile?.photoURL) {
-                currentUserPic.src = currentUserProfile.photoURL;
-            }
-            
-            // Event listeners
-            sendButton.addEventListener('click', async () => {
-                const text = commentInput.value;
-                if (!text.trim()) return;
-                
-                const success = await submitComment(postId, text);
-                
-                if (success) {
-                    const newComment = {
-                        userId: currentUser.uid,
-                        text: text,
-                        createdAt: new Date()
-                    };
-                    
-                    const commentElement = await createCommentElement(newComment);
-                    
-                    // Remove the "no comments" message if it exists
-                    const emptyMessage = commentsContainer.querySelector('.comments-empty');
-                    if (emptyMessage) {
-                        commentsContainer.innerHTML = '<div class="comment-thread"></div>';
-                        const commentThread = commentsContainer.querySelector('.comment-thread');
-                        commentThread.appendChild(commentElement);
-                    } else {
-                        const commentThread = commentsContainer.querySelector('.comment-thread');
-                        commentThread.appendChild(commentElement);
-                    }
-                    
-                    commentInput.value = '';
-                    
-                    // Update comment count in the post
-                    const postElement = document.querySelector(`.post[data-post-id="${postId}"]`);
-                    if (postElement) {
-                        const commentButton = postElement.querySelector('.comment-button span');
-                        const currentCount = commentButton.textContent.match(/\d+/);
-                        const newCount = currentCount ? parseInt(currentCount[0]) + 1 : 1;
-                        commentButton.textContent = `Comment (${newCount})`;
-                    }
-                }
-            });
-            
-            commentInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    sendButton.click();
-                }
-            });
-            
-            closeButton.addEventListener('click', hideComments);
-            
-            // Show the overlay and comments section
-            commentsOverlay.classList.add('active');
-            setTimeout(() => {
-                commentsSection.classList.add('active');
-                commentInput.focus();
-            }, 50);
-            
-            // Implement drag to dismiss
-            const dragHandle = commentsSection.querySelector('.drag-handle');
-            let startY = 0;
-            let currentY = 0;
-            
-            function handleDragStart(e) {
-                startY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-                
-                document.addEventListener('mousemove', handleDragMove);
-                document.addEventListener('touchmove', handleDragMove);
-                document.addEventListener('mouseup', handleDragEnd);
-                document.addEventListener('touchend', handleDragEnd);
-            }
-            
-            function handleDragMove(e) {
-                currentY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-                const deltaY = currentY - startY;
-                
-                if (deltaY > 0) { // Only allow dragging down
-                    commentsSection.style.transform = `translateY(${deltaY}px)`;
-                    commentsOverlay.style.opacity = 1 - (deltaY / 400);
-                }
-            }
-            
-            function handleDragEnd() {
-                const deltaY = currentY - startY;
-                
-                if (deltaY > 100) {
-                    // If dragged down far enough, dismiss
-                    hideComments();
                 } else {
-                    // Otherwise, snap back
-                    commentsSection.style.transform = '';
-                    commentsOverlay.style.opacity = '';
+                    const commentThread = commentsContainer.querySelector('.comment-thread');
+                    commentThread.appendChild(commentElement);
                 }
                 
-                document.removeEventListener('mousemove', handleDragMove);
-                document.removeEventListener('touchmove', handleDragMove);
-                document.removeEventListener('mouseup', handleDragEnd);
-                document.removeEventListener('touchend', handleDragEnd);
-            }
-            
-            dragHandle.addEventListener('mousedown', handleDragStart);
-            dragHandle.addEventListener('touchstart', handleDragStart);
-            
-            // Also allow clicking the overlay to dismiss
-            commentsOverlay.addEventListener('click', hideComments);
-        }
-
-        // Hide comments section
-        function hideComments() {
-            if (activeCommentsSection) {
-                activeCommentsSection.classList.remove('active');
-                commentsOverlay.classList.remove('active');
+                commentInput.value = '';
                 
-                // Remove after animation completes
-                setTimeout(() => {
-                    if (activeCommentsSection) {
-                        activeCommentsSection.remove();
-                        activeCommentsSection = null;
-                    }
-                }, 300);
-            }
-        }
-
-        // Create a post element
-        async function createPostElement(post) {
-            if (!moderateContent(post.mediaUrl, post.mediaType)) {
-                return null;
-            }
-
-            const userProfile = await getUserProfile(post.userId);
-            const username = userProfile?.username || 
-                             userProfile?.displayName || 
-                             `User ${post.userId.slice(0, 4)}`;
-            const profilePic = userProfile?.photoURL || "/api/placeholder/40/40";
-            const comments = await getPostComments(post.id);
-            
-            const postElement = document.createElement('div');
-            postElement.className = 'post';
-            postElement.dataset.postId = post.id;
-            postElement.innerHTML = `
-                <div class="post-header">
-                    <img class="post-author-pic" src="${profilePic}" alt="${username}">
-                    <div class="post-author-info">
-                        <div class="post-author-name">${username}</div>
-                        <div class="post-time">${formatTime(post.createdAt)}</div>
-                    </div>
-                </div>
-                
-                <img class="post-image" src="${post.mediaUrl}" alt="Post" onerror="this.style.display='none'">
-                
-                <div class="post-actions">
-                    <div class="action-button like-button">
-                        <i class="ri-heart-line"></i>
-                        <span>Like</span>
-                    </div>
-                    <div class="action-button comment-button" data-post-id="${post.id}">
-                        <i class="ri-chat-1-line"></i>
-                        <span>Comment${comments.length > 0 ? ` (${comments.length})` : ''}</span>
-                    </div>
-                    <div class="action-button share-button">
-                        <i class="ri-share-forward-line"></i>
-                        <span>Share</span>
-                    </div>
-                </div>
-            `;
-            
-            // Event listeners
-            const likeButton = postElement.querySelector('.like-button');
-            const commentButton = postElement.querySelector('.comment-button');
-            
-            likeButton.addEventListener('click', function() {
-                this.classList.toggle('active');
-                
-                if (this.classList.contains('active')) {
-                    this.querySelector('i').className = 'ri-heart-fill';
-                } else {
-                    this.querySelector('i').className = 'ri-heart-line';
+                // Update comment count in the post
+                const postElement = document.querySelector(`.post[data-post-id="${postId}"]`);
+                if (postElement) {
+                    const commentButton = postElement.querySelector('.comment-button span');
+                    const currentCount = commentButton.textContent.match(/\d+/);
+                    const newCount = currentCount ? parseInt(currentCount[0]) + 1 : 1;
+                    commentButton.textContent = `Comment (${newCount})`;
                 }
-            });
-            
-            commentButton.addEventListener('click', () => {
-                showComments(post.id, comments);
-            });
-            
-            return postElement;
-        }
-
-        // Load feed
-        async function loadFeed() {
-            feedContainer.innerHTML = ''; // Clear existing content
-
-            try {
-                const postsQuery = query(
-                    collection(db, 'posts'),
-                    orderBy('createdAt', 'desc')
-                );
-
-                const snapshot = await getDocs(postsQuery);
-                const posts = snapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() }))
-                    .filter(post => post.mediaUrl);
-
-                // Hide skeleton loader
-                skeletonLoader.style.display = 'none';
-
-                if (posts.length === 0) {
-                    feedContainer.innerHTML = `
-                        <div style="text-align: center; padding: 40px; background: white; border-radius: 12px; margin-top: 20px;">
-                            <i class="ri-image-line" style="font-size: 48px; color: var(--primary-color); margin-bottom: 16px;"></i>
-                            <p>No posts yet. Share something amazing!</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                for (const post of posts) {
-                    const postElement = await createPostElement(post);
-                    if (postElement) {
-                        feedContainer.appendChild(postElement);
-                    }
-                }
-
-            } catch (error) {
-                console.error('Feed loading error:', error);
-                skeletonLoader.style.display = 'none';
-                feedContainer.innerHTML = `
-                    
-                    <div style="text-align: center; padding: 40px; background: white; border-radius: 12px; margin-top: 20px;">
-                        <i class="ri-error-warning-line" style="font-size: 48px; color: #ff4d4d; margin-bottom: 16px;"></i>
-                        <p>Failed to load feed. Please try again later.</p>
-                    </div>
-                `;
-            }
-        }
-
-        // Check authentication and load feed
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                currentUserProfile = await getUserProfile(user.uid);
-                loadFeed();
-            } else {
-                // Redirect to login or just load feed with limited functionality
-                loadFeed();
             }
         });
+        
+        commentInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendButton.click();
+            }
+        });
+        
+        closeButton.addEventListener('click', hideComments);
+        
+        // Show the overlay and comments section
+        commentsOverlay.classList.add('active');
+        setTimeout(() => {
+            commentsSection.classList.add('active');
+            commentInput.focus();
+        }, 50);
+        
+        // Implement drag to dismiss
+        const dragHandle = commentsSection.querySelector('.drag-handle');
+        let startY = 0;
+        let currentY = 0;
+        
+        function handleDragStart(e) {
+            startY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+            
+            document.addEventListener('mousemove', handleDragMove);
+            document.addEventListener('touchmove', handleDragMove);
+            document.addEventListener('mouseup', handleDragEnd);
+            document.addEventListener('touchend', handleDragEnd);
+        }
+        
+        function handleDragMove(e) {
+            currentY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+            const deltaY = currentY - startY;
+            
+            if (deltaY > 0) { // Only allow dragging down
+                commentsSection.style.transform = `translateY(${deltaY}px)`;
+                commentsOverlay.style.opacity = 1 - (deltaY / 400);
+            }
+        }
+        
+        function handleDragEnd() {
+            const deltaY = currentY - startY;
+            
+            if (deltaY > 100) {
+                // If dragged down far enough, dismiss
+                hideComments();
+            } else {
+                // Otherwise, snap back
+                commentsSection.style.transform = '';
+                commentsOverlay.style.opacity = '';
+            }
+            
+            document.removeEventListener('mousemove', handleDragMove);
+            document.removeEventListener('touchmove', handleDragMove);
+            document.removeEventListener('mouseup', handleDragEnd);
+            document.removeEventListener('touchend', handleDragEnd);
+        }
+        
+        dragHandle.addEventListener('mousedown', handleDragStart);
+        dragHandle.addEventListener('touchstart', handleDragStart);
+        
+        // Also allow clicking the overlay to dismiss
+        commentsOverlay.addEventListener('click', hideComments);
+    }
 
-        // Initialize by loading feed
-        loadFeed();
-    </script>
+    // Hide comments section
+    function hideComments() {
+        if (activeCommentsSection) {
+            activeCommentsSection.classList.remove('active');
+            commentsOverlay.classList.remove('active');
+            
+            // Remove after animation completes
+            setTimeout(() => {
+                if (activeCommentsSection) {
+                    activeCommentsSection.remove();
+                    activeCommentsSection = null;
+                }
+            }, 300);
+        }
+    }
+
+    // Create a post element
+    async function createPostElement(post) {
+        // Skip posts that don't have a media URL
+        if (!post.mediaUrl) {
+            return null;
+        }
+
+        // Skip posts older than 60 hours
+        if (!isRecentPost(post.createdAt)) {
+            return null;
+        }
+
+        if (!moderateContent(post.mediaUrl, post.mediaType)) {
+            return null;
+        }
+
+        // Check if we've already loaded this post
+        if (loadedPostIds.has(post.id)) {
+            return null;
+        }
+        
+        // Add this post ID to our tracking set
+        loadedPostIds.add(post.id);
+
+        const userProfile = await getUserProfile(post.userId);
+        const username = userProfile?.username || 
+                         userProfile?.displayName || 
+                         `User ${post.userId.slice(0, 4)}`;
+        const profilePic = userProfile?.photoURL || "/api/placeholder/40/40";
+        const comments = await getPostComments(post.id);
+        
+        const postElement = document.createElement('div');
+        postElement.className = 'post';
+        postElement.dataset.postId = post.id;
+        postElement.innerHTML = `
+            <div class="post-header">
+                <img class="post-author-pic" src="${profilePic}" alt="${username}">
+                <div class="post-author-info">
+                    <div class="post-author-name">${username}</div>
+                    <div class="post-time">${formatTime(post.createdAt)}</div>
+                </div>
+            </div>
+            
+            <img class="post-image" src="${post.mediaUrl}" alt="Post" onerror="this.style.display='none'">
+            
+            <div class="post-actions">
+                <div class="action-button like-button">
+                    <i class="ri-heart-line"></i>
+                    <span>Like</span>
+                </div>
+                <div class="action-button comment-button" data-post-id="${post.id}">
+                    <i class="ri-chat-1-line"></i>
+                    <span>Comment${comments.length > 0 ? ` (${comments.length})` : ''}</span>
+                </div>
+                <div class="action-button share-button">
+                    <i class="ri-share-forward-line"></i>
+                    <span>Share</span>
+                </div>
+            </div>
+        `;
+        
+        // Event listeners
+        const likeButton = postElement.querySelector('.like-button');
+        const commentButton = postElement.querySelector('.comment-button');
+        
+        likeButton.addEventListener('click', function() {
+            this.classList.toggle('active');
+            
+            if (this.classList.contains('active')) {
+                this.querySelector('i').className = 'ri-heart-fill';
+            } else {
+                this.querySelector('i').className = 'ri-heart-line';
+            }
+        });
+        
+        commentButton.addEventListener('click', () => {
+            showComments(post.id, comments);
+        });
+        
+        return postElement;
+    }
+
+    // Load feed
+    async function loadFeed() {
+        if (feedLoaded) {
+            console.log("Feed is already being loaded, preventing duplicate loading");
+            return;
+        }
+        
+        feedLoaded = true;
+        
+        try {
+            // Clear existing content before loading new posts
+            feedContainer.innerHTML = '';
+            
+            const postsQuery = query(
+                collection(db, 'posts'),
+                orderBy('createdAt', 'desc')
+            );
+
+            const snapshot = await getDocs(postsQuery);
+            
+            // Filter out posts without media URLs and posts older than 60 hours
+            const posts = snapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() }))
+                .filter(post => post.mediaUrl && isRecentPost(post.createdAt));
+
+            // Hide skeleton loader
+            if (skeletonLoader) {
+                skeletonLoader.style.display = 'none';
+            }
+
+            if (posts.length === 0) {
+                feedContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px; background: white; border-radius: 12px; margin-top: 20px;">
+                        <i class="ri-image-line" style="font-size: 48px; color: var(--primary-color); margin-bottom: 16px;"></i>
+                        <p>No recent posts. Share something amazing!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Use a fragment for better performance
+            const fragment = document.createDocumentFragment();
+            let validPostsCount = 0;
+
+            for (const post of posts) {
+                const postElement = await createPostElement(post);
+                if (postElement) {
+                    fragment.appendChild(postElement);
+                    validPostsCount++;
+                }
+            }
+
+            // Only display the empty state if we didn't add any posts
+            if (validPostsCount === 0) {
+                feedContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px; background: white; border-radius: 12px; margin-top: 20px;">
+                        <i class="ri-image-line" style="font-size: 48px; color: var(--primary-color); margin-bottom: 16px;"></i>
+                        <p>No recent posts with images found. Share something amazing!</p>
+                    </div>
+                `;
+            } else {
+                feedContainer.appendChild(fragment);
+            }
+
+        } catch (error) {
+            console.error('Feed loading error:', error);
+            
+            // Hide skeleton loader on error
+            if (skeletonLoader) {
+                skeletonLoader.style.display = 'none';
+            }
+            
+            feedContainer.innerHTML = `
+                <div style="text-align: center; padding: 40px; background: white; border-radius: 12px; margin-top: 20px;">
+                    <i class="ri-error-warning-line" style="font-size: 48px; color: #ff4d4d; margin-bottom: 16px;"></i>
+                    <p>Failed to load feed. Please try again later.</p>
+                </div>
+            `;
+        } finally {
+            // Allow feed to be reloaded after a delay
+            setTimeout(() => {
+                feedLoaded = false;
+            }, 1000);
+        }
+    }
+
+    // Check authentication and load feed
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            currentUser = user;
+            currentUserProfile = await getUserProfile(user.uid);
+            loadFeed();
+        } else {
+            // Redirect to login or just load feed with limited functionality
+            loadFeed();
+        }
+    });
+</script>
    
 <script>
   // GlobalChat Theme Handler - For Feed Page
