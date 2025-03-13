@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seamless View</title>
+    <title>Seamless Adaptive Display</title>
     <style>
         * {
             margin: 0;
@@ -11,13 +11,14 @@
             border: 0;
             outline: none;
             overflow: hidden;
+            box-sizing: border-box;
         }
         html, body {
             height: 100%;
             width: 100%;
             background: transparent;
         }
-        #contentContainer {
+        #embedContainer {
             position: fixed;
             top: 0;
             left: 0;
@@ -33,43 +34,34 @@
     </style>
 </head>
 <body>
-    <div id="contentContainer">
-        <iframe id="dynamicFrame" src="" allowfullscreen></iframe>
+    <div id="embedContainer">
+        <iframe id="embeddedSite" src="" allowfullscreen></iframe>
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            let iframe = document.getElementById("dynamicFrame");
+        document.addEventListener("DOMContentLoaded", function() {
+            const iframe = document.getElementById("embeddedSite");
 
-            // Function to determine which file to load
-            function loadContent() {
-                let screenWidth = window.innerWidth;
-                let screenHeight = window.innerHeight;
-
-                // If screen width is less than 768px, assume mobile
-                let isMobile = screenWidth < 768;
-
-                // Set the iframe source based on device type
-                iframe.src = isMobile ? "/mobile (1).html" : "relhalf.html";
+            function loadCorrectPage() {
+                let url = window.innerWidth <= 768 ? "/mobile (1).html" : "relhalf.html";
+                iframe.src = url;
             }
 
-            // Load content on first run
-            loadContent();
-
-            // Ensure iframe is always properly sized
+            // Ensure iframe resizes dynamically and loads correctly
             function resizeIframe() {
                 iframe.style.height = window.innerHeight + "px";
                 iframe.style.width = window.innerWidth + "px";
             }
 
-            window.addEventListener("resize", function () {
-                resizeIframe();
-                loadContent(); // Re-check if the device type changed (e.g., resizing window on desktop)
-            });
-
+            // Load the correct page once
+            loadCorrectPage();
             resizeIframe();
+
+            // Listen for screen resize (but do not auto-refresh)
+            window.addEventListener("resize", resizeIframe);
         });
     </script>
+
    
 
 
@@ -248,29 +240,6 @@
   window.addEventListener('load', createDownloadNotification);
 </script>
 
-<script>
-    // Function to apply the theme
-    function applyTheme(theme) {
-        const body = document.body;
-        if (theme === 'dark') {
-            body.classList.add('dark-mode');
-        } else {
-            body.classList.remove('dark-mode');
-        }
-    }
 
-    // Initialize the theme when the page loads
-    document.addEventListener('DOMContentLoaded', () => {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        applyTheme(savedTheme);
-    });
-
-    // Listen for theme changes from other pages
-    window.addEventListener('storage', (event) => {
-        if (event.key === 'theme') {
-            applyTheme(event.newValue);
-        }
-    });
-</script>
 </body>
 </html>
