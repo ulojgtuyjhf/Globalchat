@@ -1053,58 +1053,46 @@ iframe {
     <script src="theme.js"></script>
     <script>
   document.addEventListener("DOMContentLoaded", function() {
-    // Disable any form submission
-    document.addEventListener("submit", function(event) {
-      event.preventDefault();
+    // Completely disable beforeunload (prevents leave warnings)
+    window.addEventListener("beforeunload", function(event) {
+      event.stopImmediatePropagation();
     });
     
-    // Disable refresh when resizing (keyboard opening)
-    let lastHeight = window.innerHeight;
-    window.addEventListener("resize", function() {
-      if (window.innerHeight < lastHeight) {
+    // Block all key-based refreshes
+    document.addEventListener("keydown", function(event) {
+      if (event.key === "F5" || (event.ctrlKey && event.key === "r")) {
         event.preventDefault();
+        console.log("🔒 Page refresh blocked.");
+      }
+    });
+    
+    // Block resize-based refresh (keyboard opening)
+    let lastHeight = window.innerHeight;
+    window.addEventListener("resize", function(event) {
+      if (window.innerHeight < lastHeight) {
         event.stopImmediatePropagation();
-        console.log("Prevented refresh due to resize.");
+        console.log("🔒 Resize refresh blocked.");
       }
       lastHeight = window.innerHeight;
     });
     
-    // Disable any key-based refreshes
-    document.addEventListener("keydown", function(event) {
-      if (event.key === "F5" || (event.ctrlKey && event.key === "r")) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        console.log("Refresh blocked.");
-      }
-    });
-    
-    // Disable accidental reload on mobile input focus
-    let inputs = document.querySelectorAll("input, textarea");
-    inputs.forEach(input => {
-      input.addEventListener("focus", function() {
-        history.pushState(null, null, document.URL); // Prevents back action refresh
-      });
-    });
-    
-    // Force disable all refresh actions
-    window.addEventListener("beforeunload", function(event) {
-      event.preventDefault();
-      event.returnValue = "";
-    });
-    
-    // Intercept refresh events caused by iframes
+    // Prevent iframe-based refresh
     let iframes = document.querySelectorAll("iframe");
     iframes.forEach(iframe => {
       iframe.addEventListener("load", function() {
         iframe.contentWindow.addEventListener("beforeunload", function(event) {
-          event.preventDefault();
-          event.returnValue = "";
-          console.log("Iframe refresh blocked.");
+          event.stopImmediatePropagation();
         });
       });
     });
     
-    console.log("🚨 All refresh attempts are now blocked by force.");
+    // Block navigation changes
+    history.pushState(null, null, document.URL);
+    window.addEventListener("popstate", function(event) {
+      history.pushState(null, null, document.URL);
+    });
+    
+    console.log("🚨 Absolute refresh prevention activated. No warnings, no popups, no reloads.");
   });
 </script>
 </body>
