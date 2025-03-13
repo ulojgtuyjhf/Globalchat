@@ -1053,27 +1053,58 @@ iframe {
     <script src="theme.js"></script>
     <script>
   document.addEventListener("DOMContentLoaded", function() {
-    let resizeTimeout;
-    let lastHeight = window.innerHeight;
-    
-    window.addEventListener("resize", function() {
-      clearTimeout(resizeTimeout);
-      
-      resizeTimeout = setTimeout(function() {
-        let newHeight = window.innerHeight;
-        
-        // If the height decreases, it means the keyboard is opening.
-        if (newHeight < lastHeight) {
-          document.body.style.height = newHeight + "px";
-          document.body.style.overflow = "hidden"; // Prevents unwanted refresh
-        } else {
-          document.body.style.height = "100%";
-          document.body.style.overflow = ""; // Reset overflow when keyboard closes
-        }
-        
-        lastHeight = newHeight;
-      }, 200);
+    // Disable any form submission
+    document.addEventListener("submit", function(event) {
+      event.preventDefault();
     });
+    
+    // Disable refresh when resizing (keyboard opening)
+    let lastHeight = window.innerHeight;
+    window.addEventListener("resize", function() {
+      if (window.innerHeight < lastHeight) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        console.log("Prevented refresh due to resize.");
+      }
+      lastHeight = window.innerHeight;
+    });
+    
+    // Disable any key-based refreshes
+    document.addEventListener("keydown", function(event) {
+      if (event.key === "F5" || (event.ctrlKey && event.key === "r")) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        console.log("Refresh blocked.");
+      }
+    });
+    
+    // Disable accidental reload on mobile input focus
+    let inputs = document.querySelectorAll("input, textarea");
+    inputs.forEach(input => {
+      input.addEventListener("focus", function() {
+        history.pushState(null, null, document.URL); // Prevents back action refresh
+      });
+    });
+    
+    // Force disable all refresh actions
+    window.addEventListener("beforeunload", function(event) {
+      event.preventDefault();
+      event.returnValue = "";
+    });
+    
+    // Intercept refresh events caused by iframes
+    let iframes = document.querySelectorAll("iframe");
+    iframes.forEach(iframe => {
+      iframe.addEventListener("load", function() {
+        iframe.contentWindow.addEventListener("beforeunload", function(event) {
+          event.preventDefault();
+          event.returnValue = "";
+          console.log("Iframe refresh blocked.");
+        });
+      });
+    });
+    
+    console.log("🚨 All refresh attempts are now blocked by force.");
   });
 </script>
 </body>
