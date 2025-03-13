@@ -1051,5 +1051,44 @@ iframe {
         }, { passive: true });
     </script>
     <script src="theme.js"></script>
+    <script>
+  (function () {
+    let preventRefresh = true; // Ensures the script remains active
+
+    // Intercept any page refresh attempts and prevent them
+    window.addEventListener("beforeunload", function (event) {
+      if (preventRefresh) {
+        event.preventDefault();
+        event.returnValue = ""; // Blocks any auto-refresh triggers
+      }
+    });
+
+    // Override any function or script trying to reload the page
+    const originalReload = location.reload;
+    location.reload = function () {
+      if (preventRefresh) {
+        console.warn("Page refresh blocked.");
+      } else {
+        originalReload.call(location);
+      }
+    };
+
+    // Prevent form submissions or other triggers from causing a refresh
+    document.addEventListener("submit", function (event) {
+      event.preventDefault();
+      console.warn("Form submission blocked from refreshing the page.");
+    });
+
+    // Detect auto-refresh attempts from JavaScript code and block them
+    const observer = new MutationObserver(() => {
+      if (document.readyState === "loading") {
+        console.warn("An attempt to refresh the page was blocked.");
+      }
+    });
+
+    observer.observe(document, { childList: true, subtree: true });
+
+  })();
+</script>
 </body>
 </html>
