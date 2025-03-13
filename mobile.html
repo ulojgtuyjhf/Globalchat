@@ -1052,54 +1052,29 @@ iframe {
     </script>
     <script src="theme.js"></script>
     <script>
-    // Function to prevent iframe refresh on input change
-    function preventIframeRefresh() {
-        // Select all iframes in the document
-        const iframes = document.querySelectorAll('iframe');
-
-        iframes.forEach(iframe => {
-            // Add a load event listener to each iframe
-            iframe.addEventListener('load', () => {
-                try {
-                    // Access the iframe's document
-                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-
-                    // Select all input elements within the iframe
-                    const inputs = iframeDoc.querySelectorAll('input, textarea');
-
-                    inputs.forEach(input => {
-                        // Add event listeners to prevent default behavior on input change
-                        input.addEventListener('input', (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                        });
-
-                        input.addEventListener('change', (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                        });
-
-                        input.addEventListener('keydown', (e) => {
-                            // Prevent default behavior for specific keys (e.g., Enter)
-                            if (e.key === 'Enter') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                            }
-                        });
-                    });
-                } catch (e) {
-                    // Handle cross-origin restrictions
-                    console.log('Cannot access iframe content due to cross-origin policy');
-                }
-            });
-        });
-    }
-
-    // Call the function to prevent iframe refresh
-    preventIframeRefresh();
-
-    // Optionally, you can call this function periodically to handle dynamically loaded content
-    setInterval(preventIframeRefresh, 5000); // Check every 5 seconds
+  document.addEventListener("DOMContentLoaded", function() {
+    let resizeTimeout;
+    let lastHeight = window.innerHeight;
+    
+    window.addEventListener("resize", function() {
+      clearTimeout(resizeTimeout);
+      
+      resizeTimeout = setTimeout(function() {
+        let newHeight = window.innerHeight;
+        
+        // If the height decreases, it means the keyboard is opening.
+        if (newHeight < lastHeight) {
+          document.body.style.height = newHeight + "px";
+          document.body.style.overflow = "hidden"; // Prevents unwanted refresh
+        } else {
+          document.body.style.height = "100%";
+          document.body.style.overflow = ""; // Reset overflow when keyboard closes
+        }
+        
+        lastHeight = newHeight;
+      }, 200);
+    });
+  });
 </script>
 </body>
 </html>
