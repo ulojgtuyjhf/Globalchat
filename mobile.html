@@ -1052,47 +1052,46 @@ iframe {
     </script>
     <script src="theme.js"></script>
     <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    // Completely disable beforeunload (prevents leave warnings)
-    window.addEventListener("beforeunload", function(event) {
-      event.stopImmediatePropagation();
-    });
+  // Prevent form submission and page refresh on input clear or interaction
+  document.addEventListener('DOMContentLoaded', function() {
+    // Select all input elements
+    const inputs = document.querySelectorAll('input, textarea');
     
-    // Block all key-based refreshes
-    document.addEventListener("keydown", function(event) {
-      if (event.key === "F5" || (event.ctrlKey && event.key === "r")) {
-        event.preventDefault();
-        console.log("🔒 Page refresh blocked.");
-      }
-    });
-    
-    // Block resize-based refresh (keyboard opening)
-    let lastHeight = window.innerHeight;
-    window.addEventListener("resize", function(event) {
-      if (window.innerHeight < lastHeight) {
-        event.stopImmediatePropagation();
-        console.log("🔒 Resize refresh blocked.");
-      }
-      lastHeight = window.innerHeight;
-    });
-    
-    // Prevent iframe-based refresh
-    let iframes = document.querySelectorAll("iframe");
-    iframes.forEach(iframe => {
-      iframe.addEventListener("load", function() {
-        iframe.contentWindow.addEventListener("beforeunload", function(event) {
-          event.stopImmediatePropagation();
-        });
+    // Add event listeners to each input element
+    inputs.forEach(input => {
+      // Prevent default behavior on input clear (e.g., pressing escape)
+      input.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      });
+      
+      // Prevent form submission on enter key press
+      input.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      });
+      
+      // Prevent default behavior on input clear (e.g., clear button)
+      input.addEventListener('input', function(event) {
+        if (event.target.value === '') {
+          event.preventDefault();
+          event.stopPropagation();
+        }
       });
     });
     
-    // Block navigation changes
-    history.pushState(null, null, document.URL);
-    window.addEventListener("popstate", function(event) {
-      history.pushState(null, null, document.URL);
+    // Prevent form submission
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+      form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+      });
     });
-    
-    console.log("🚨 Absolute refresh prevention activated. No warnings, no popups, no reloads.");
   });
 </script>
 </body>
