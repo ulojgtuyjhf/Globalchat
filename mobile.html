@@ -1052,43 +1052,54 @@ iframe {
     </script>
     <script src="theme.js"></script>
     <script>
-  (function () {
-    let preventRefresh = true; // Ensures the script remains active
+    // Function to prevent iframe refresh on input change
+    function preventIframeRefresh() {
+        // Select all iframes in the document
+        const iframes = document.querySelectorAll('iframe');
 
-    // Intercept any page refresh attempts and prevent them
-    window.addEventListener("beforeunload", function (event) {
-      if (preventRefresh) {
-        event.preventDefault();
-        event.returnValue = ""; // Blocks any auto-refresh triggers
-      }
-    });
+        iframes.forEach(iframe => {
+            // Add a load event listener to each iframe
+            iframe.addEventListener('load', () => {
+                try {
+                    // Access the iframe's document
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
 
-    // Override any function or script trying to reload the page
-    const originalReload = location.reload;
-    location.reload = function () {
-      if (preventRefresh) {
-        console.warn("Page refresh blocked.");
-      } else {
-        originalReload.call(location);
-      }
-    };
+                    // Select all input elements within the iframe
+                    const inputs = iframeDoc.querySelectorAll('input, textarea');
 
-    // Prevent form submissions or other triggers from causing a refresh
-    document.addEventListener("submit", function (event) {
-      event.preventDefault();
-      console.warn("Form submission blocked from refreshing the page.");
-    });
+                    inputs.forEach(input => {
+                        // Add event listeners to prevent default behavior on input change
+                        input.addEventListener('input', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        });
 
-    // Detect auto-refresh attempts from JavaScript code and block them
-    const observer = new MutationObserver(() => {
-      if (document.readyState === "loading") {
-        console.warn("An attempt to refresh the page was blocked.");
-      }
-    });
+                        input.addEventListener('change', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        });
 
-    observer.observe(document, { childList: true, subtree: true });
+                        input.addEventListener('keydown', (e) => {
+                            // Prevent default behavior for specific keys (e.g., Enter)
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                            }
+                        });
+                    });
+                } catch (e) {
+                    // Handle cross-origin restrictions
+                    console.log('Cannot access iframe content due to cross-origin policy');
+                }
+            });
+        });
+    }
 
-  })();
+    // Call the function to prevent iframe refresh
+    preventIframeRefresh();
+
+    // Optionally, you can call this function periodically to handle dynamically loaded content
+    setInterval(preventIframeRefresh, 5000); // Check every 5 seconds
 </script>
 </body>
 </html>
