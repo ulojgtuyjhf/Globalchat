@@ -4,1552 +4,788 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GlobalChat - Image Feed</title>
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <title>GlobalChat</title>
     <style>
-        
-:root {
-    --primary-color: #1877F2; /* Facebook blue */
-    --secondary-color: #FFFFFF;
-    --background-color: #F0F2F5; /* Facebook background gray */
-    --text-color: #050505;
-    --border-color: #E4E6EB;
-    --light-gray: #F2F3F5;
-    --medium-gray: #65676B;
-    --dark-gray: #606770;
-}
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-}
-
-body {
-    background: var(--background-color);
-    color: var(--text-color);
-    width: 100%;
-    min-height: 100vh;
-}
-
-/* Feed */
-.feed-container {
-    max-width: 680px;
-    width: 100%;
-    margin: 0 auto;
-    padding: 12px 0;
-}
-
-.post {
-    background: var(--secondary-color);
-    margin-bottom: 8px;
-    overflow: hidden;
-    border-radius: 8px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.post-header {
-    display: flex;
-    align-items: center;
-    padding: 12px 16px;
-}
-
-.post-author-pic {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    margin-right: 8px;
-    object-fit: cover;
-    border: 1px solid var(--border-color);
-}
-
-.post-author-info {
-    flex-grow: 1;
-}
-
-.post-author-name {
-    font-weight: 600;
-    color: var(--text-color);
-    font-size: 14px;
-    margin-bottom: 1px;
-}
-
-.post-time {
-    font-size: 12px;
-    color: var(--medium-gray);
-}
-
-.post-image {
-    width: 100%;
-    max-height: 70vh;
-    object-fit: contain;
-    background-color: #000;
-    display: block;
-}
-
-.post-content {
-    padding: 12px 16px;
-    font-size: 15px;
-    line-height: 1.4;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.post-actions {
-    display: flex;
-    padding: 6px 0;
-    border-top: 1px solid var(--border-color);
-}
-
-.action-button {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 0;
-    color: var(--medium-gray);
-    font-weight: 500;
-    font-size: 13px;
-    cursor: pointer;
-}
-
-.action-button:hover {
-    background-color: var(--light-gray);
-}
-
-.action-button i {
-    margin-right: 4px;
-    font-size: 16px;
-}
-
-.like-button.active {
-    color: var(--primary-color);
-}
-
-.like-button.active i {
-    color: var(--primary-color);
-}
-
-/* Comments Section - Facebook Style */
-.comments-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
-    z-index: 900;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease;
-}
-
-.comments-overlay.active {
-    opacity: 1;
-    visibility: visible;
-}
-
-.comments-section {
-    position: fixed;
-    bottom: -100%;
-    left: 0;
-    width: 100%;
-    max-height: 90vh;
-    background-color: var(--secondary-color);
-    z-index: 1000;
-    border-top-left-radius: 12px;
-    border-top-right-radius: 12px;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-    transition: bottom 0.3s ease;
-    display: flex;
-    flex-direction: column;
-}
-
-.comments-section.active {
-    bottom: 0;
-}
-
-.comments-header {
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.comments-title {
-    font-weight: 600;
-    font-size: 16px;
-    color: var(--text-color);
-}
-
-.comments-close-btn {
-    background: none;
-    border: none;
-    color: var(--dark-gray);
-    cursor: pointer;
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-}
-
-.comments-close-btn:hover {
-    background-color: var(--light-gray);
-}
-
-.drag-handle {
-    width: 36px;
-    height: 4px;
-    background-color: #CCD6DD;
-    border-radius: 2px;
-    margin: 6px auto;
-    cursor: grab;
-}
-
-.comments-container {
-    flex: 1;
-    overflow-y: auto;
-    padding: 12px 16px;
-}
-
-.comments-empty {
-    padding: 20px;
-    text-align: center;
-    color: var(--medium-gray);
-    font-size: 14px;
-}
-
-/* Facebook-style comments */
-.comment {
-    display: flex;
-    margin-bottom: 10px;
-    position: relative;
-}
-
-.comment-wrapper {
-    display: flex;
-    flex-direction: column;
-    position: relative;
-}
-
-.comment-author-pic {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    margin-right: 8px;
-    object-fit: cover;
-    z-index: 2;
-    border: 1px solid var(--border-color);
-}
-
-.comment-content {
-    flex: 1;
-    max-width: calc(100% - 36px);
-}
-
-.comment-bubble {
-    background-color: var(--light-gray);
-    border-radius: 18px;
-    padding: 8px 12px;
-    display: inline-block;
-}
-
-.comment-author {
-    font-weight: 600;
-    font-size: 12px;
-    margin-bottom: 1px;
-}
-
-.comment-text {
-    font-size: 13px;
-    line-height: 1.3;
-}
-
-.comment-actions {
-    display: flex;
-    font-size: 12px;
-    margin-top: 2px;
-    padding-left: 12px;
-}
-
-.comment-action {
-    margin-right: 14px;
-    color: var(--medium-gray);
-    font-weight: 500;
-    cursor: pointer;
-    font-size: 11px;
-}
-
-.comment-action:hover {
-    color: var(--primary-color);
-    text-decoration: underline;
-}
-
-.comment-time {
-    color: var(--medium-gray);
-    font-size: 11px;
-}
-
-.comment-form {
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    border-top: 1px solid var(--border-color);
-    background-color: var(--secondary-color);
-}
-
-.current-user-pic {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    margin-right: 8px;
-    object-fit: cover;
-    border: 1px solid var(--border-color);
-}
-
-.comment-input-container {
-    flex-grow: 1;
-    position: relative;
-    border-radius: 20px;
-    background-color: var(--light-gray);
-    overflow: hidden;
-    border: 1px solid var(--border-color);
-}
-
-.comment-input {
-    width: 100%;
-    border: none;
-    outline: none;
-    padding: 8px 36px 8px 12px;
-    background: transparent;
-    font-size: 13px;
-}
-
-.send-comment-btn {
-    position: absolute;
-    right: 6px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--primary-color);
-    background: none;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-}
-
-.send-comment-btn i {
-    font-size: 16px;
-}
-
-/* Skeleton Loading */
-.skeleton-loader {
-    max-width: 680px;
-    margin: 0 auto;
-    padding: 12px 0;
-}
-
-.skeleton-post {
-    background: var(--secondary-color);
-    border-radius: 8px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    margin-bottom: 8px;
-    overflow: hidden;
-}
-
-.skeleton-header {
-    display: flex;
-    padding: 12px 16px;
-    align-items: center;
-}
-
-.skeleton-circle {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background-color: var(--light-gray);
-    margin-right: 8px;
-}
-
-.skeleton-lines {
-    flex-grow: 1;
-}
-
-.skeleton-line {
-    height: 10px;
-    background-color: var(--light-gray);
-    margin-bottom: 6px;
-    border-radius: 4px;
-}
-
-.skeleton-line.short {
-    width: 40%;
-}
-
-.skeleton-image {
-    height: 250px;
-    background-color: var(--light-gray);
-}
-
-.skeleton-actions {
-    display: flex;
-    padding: 10px 16px;
-}
-
-.skeleton-action {
-    flex: 1;
-    height: 18px;
-    background-color: var(--light-gray);
-    margin: 0 6px;
-    border-radius: 4px;
-}
-
-.shimmer {
-    position: relative;
-    overflow: hidden;
-}
-
-.shimmer::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
-    animation: shimmer 1.5s infinite;
-}
-
-@keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-}
-
-/* Mobile optimizations */
-@media (max-width: 700px) {
-    .feed-container {
-        width: 100%;
-        padding: 0;
-    }
-
-    .post {
-        border-radius: 0;
-        margin-bottom: 8px;
-    }
-}
-
-    </style>
-</head>
-<body>
-    <!-- Skeleton Loader -->
-    <div id="skeleton-loader" class="skeleton-loader">
-        <div class="skeleton-post">
-            <div class="skeleton-header">
-                <div class="skeleton-circle shimmer"></div>
-                <div class="skeleton-lines">
-                    <div class="skeleton-line shimmer"></div>
-                    <div class="skeleton-line short shimmer"></div>
-                </div>
-            </div>
-            <div class="skeleton-image shimmer"></div>
-            <div class="skeleton-actions">
-                <div class="skeleton-action shimmer"></div>
-                <div class="skeleton-action shimmer"></div>
-                <div class="skeleton-action shimmer"></div>
-            </div>
-        </div>
-        <div class="skeleton-post">
-            <div class="skeleton-header">
-                <div class="skeleton-circle shimmer"></div>
-                <div class="skeleton-lines">
-                    <div class="skeleton-line shimmer"></div>
-                    <div class="skeleton-line short shimmer"></div>
-                </div>
-            </div>
-            <div class="skeleton-image shimmer"></div>
-            <div class="skeleton-actions">
-                <div class="skeleton-action shimmer"></div>
-                <div class="skeleton-action shimmer"></div>
-                <div class="skeleton-action shimmer"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Feed Container -->
-    <div id="feed-container" class="feed-container"></div>
-
-    <!-- Comments Overlay -->
-    <div id="comments-overlay" class="comments-overlay"></div>
-
-    <!-- Comments Section Template (will be cloned for each post) -->
-    <div id="comments-template" class="comments-section">
-        <div class="drag-handle"></div>
-        <div class="comments-header">
-            <div class="comments-title">Comments</div>
-            <button class="comments-close-btn">
-                <i class="ri-close-line"></i>
-            </button>
-        </div>
-        <div class="comments-container">
-            <!-- Comments will be loaded here -->
-        </div>
-        <div class="comment-form">
-            <img class="current-user-pic" src="/api/placeholder/32/32" alt="You">
-            <div class="comment-input-container">
-                <input type="text" class="comment-input" placeholder="Write a comment...">
-                <button class="send-comment-btn">
-                    <i class="ri-send-plane-fill"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
-
-
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { 
-        getFirestore, 
-        collection, 
-        query, 
-        orderBy, 
-        getDocs, 
-        doc, 
-        getDoc, 
-        addDoc, 
-        serverTimestamp 
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
-        authDomain: "globalchat-2d669.firebaseapp.com",
-        projectId: "globalchat-2d669",
-        storageBucket: "globalchat-2d669.firebaseapp.com",
-        messagingSenderId: "178714711978",
-        appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
-    };
-
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    
-    // DOM Elements
-    const skeletonLoader = document.getElementById('skeleton-loader');
-    const feedContainer = document.getElementById('feed-container');
-    const commentsOverlay = document.getElementById('comments-overlay');
-    const commentsTemplate = document.getElementById('comments-template');
-    
-    // Current user data
-    let currentUser = null;
-    let currentUserProfile = null;
-    let activeCommentsSection = null;
-    let feedLoaded = false; // Flag to prevent double loading
-    let loadedPostIds = new Set(); // Keep track of loaded post IDs
-
-    // Utils
-    function formatTime(timestamp) {
-        if (!timestamp) return 'Just now';
-        
-        const now = new Date();
-        const postTime = timestamp.toDate ? timestamp.toDate() : timestamp;
-        const diffMs = now - postTime;
-        const diffSec = Math.floor(diffMs / 1000);
-        const diffMin = Math.floor(diffSec / 60);
-        const diffHour = Math.floor(diffMin / 60);
-        const diffDay = Math.floor(diffHour / 24);
-
-        if (diffSec < 60) return 'Just now';
-        if (diffMin < 60) return `${diffMin}m`;
-        if (diffHour < 24) return `${diffHour}h`;
-        if (diffDay < 7) return `${diffDay}d`;
-        
-        return postTime.toLocaleDateString();
-    }
-    
-    // Check if post is less than 60 hours old
-    function isRecentPost(timestamp) {
-        if (!timestamp) return false;
-        
-        const now = new Date();
-        const postTime = timestamp.toDate ? timestamp.toDate() : timestamp;
-        const diffMs = now - postTime;
-        const diffHours = diffMs / (1000 * 60 * 60);
-        
-        return diffHours < 60; // Less than 60 hours old
-    }
-
-    // Content moderation
-    function moderateContent(mediaUrl, mediaType) {
-        const inappropriateKeywords = [
-            'nude', 'explicit', 'porn', 
-            'advertisement', 'spam', 
-            'offensive', 'violent'
-        ];
-
-        const allowedMediaTypes = [
-            'image/jpeg', 'image/png', 
-            'image/gif', 'image/webp'
-        ];
-
-        return (
-            (!mediaType || allowedMediaTypes.includes(mediaType)) &&
-            (!mediaUrl || !inappropriateKeywords.some(keyword => 
-                mediaUrl.toLowerCase().includes(keyword)
-            ))
-        );
-    }
-
-    // Fetch user profile from Firestore
-    async function getUserProfile(userId) {
-        try {
-            const userDocRef = doc(db, 'users', userId);
-            const userDoc = await getDoc(userDocRef);
-            return userDoc.exists() ? userDoc.data() : null;
-        } catch (error) {
-            console.error('Error fetching user profile:', error);
-            return null;
-        }
-    }
-
-    // Fetch comments for a post
-    async function getPostComments(postId) {
-        try {
-            const commentsQuery = query(
-                collection(db, 'posts', postId, 'comments'),
-                orderBy('createdAt', 'asc')
-            );
-            
-            const snapshot = await getDocs(commentsQuery);
-            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        } catch (error) {
-            console.error('Error fetching comments:', error);
-            return [];
-        }
-    }
-
-    // Create comment element
-    async function createCommentElement(comment) {
-        const userProfile = await getUserProfile(comment.userId);
-        
-        const username = userProfile?.username || 
-                         userProfile?.displayName || 
-                         `User ${comment.userId.slice(0, 4)}`;
-                         
-        const profilePic = userProfile?.photoURL || "/api/placeholder/32/32";
-        
-        const commentElement = document.createElement('div');
-        commentElement.className = 'comment';
-        commentElement.innerHTML = `
-            <div class="comment-wrapper">
-                <img class="comment-author-pic" src="${profilePic}" alt="${username}">
-            </div>
-            <div class="comment-content">
-                <div class="comment-bubble">
-                    <div class="comment-author">${username}</div>
-                    <div class="comment-text">${comment.text}</div>
-                </div>
-                <div class="comment-actions">
-                    <div class="comment-action">Like</div>
-                    <div class="comment-action">Reply</div>
-                    <div class="comment-time">${formatTime(comment.createdAt)}</div>
-                </div>
-            </div>
-        `;
-        
-        return commentElement;
-    }
-
-    // Add a new comment to Firestore
-    async function submitComment(postId, text) {
-        if (!currentUser || !text.trim()) return false;
-        
-        try {
-            const newComment = {
-                userId: currentUser.uid,
-                text: text.trim(),
-                createdAt: serverTimestamp()
-            };
-            
-            await addDoc(collection(db, 'posts', postId, 'comments'), newComment);
-            return true;
-        } catch (error) {
-            console.error('Error submitting comment:', error);
-            return false;
-        }
-    }
-
-    // Show comments section
-    function showComments(postId, comments) {
-        // Remove any existing comments section
-        if (activeCommentsSection) {
-            activeCommentsSection.remove();
-        }
-        
-        // Create a new comments section from the template
-        const commentsSection = commentsTemplate.cloneNode(true);
-        commentsSection.removeAttribute('id');
-        commentsSection.dataset.postId = postId;
-        
-        document.body.appendChild(commentsSection);
-        activeCommentsSection = commentsSection;
-        
-        // Load comments
-        const commentsContainer = commentsSection.querySelector('.comments-container');
-        if (comments.length === 0) {
-            commentsContainer.innerHTML = '<div class="comments-empty">No comments yet. Be the first to comment!</div>';
-        } else {
-            commentsContainer.innerHTML = '<div class="comment-thread"></div>';
-            const commentThread = commentsContainer.querySelector('.comment-thread');
-            
-            comments.forEach(async (comment) => {
-                const commentElement = await createCommentElement(comment);
-                commentThread.appendChild(commentElement);
-            });
-        }
-        
-        // Set up comment input
-        const commentInput = commentsSection.querySelector('.comment-input');
-        const sendButton = commentsSection.querySelector('.send-comment-btn');
-        const closeButton = commentsSection.querySelector('.comments-close-btn');
-        const currentUserPic = commentsSection.querySelector('.current-user-pic');
-        
-        // Set profile picture
-        if (currentUserProfile?.photoURL) {
-            currentUserPic.src = currentUserProfile.photoURL;
-        }
-        
-        // Event listeners
-        sendButton.addEventListener('click', async () => {
-            const text = commentInput.value;
-            if (!text.trim()) return;
-            
-            const success = await submitComment(postId, text);
-            
-            if (success) {
-                const newComment = {
-                    userId: currentUser.uid,
-                    text: text,
-                    createdAt: new Date()
-                };
-                
-                const commentElement = await createCommentElement(newComment);
-                
-                // Remove the "no comments" message if it exists
-                const emptyMessage = commentsContainer.querySelector('.comments-empty');
-                if (emptyMessage) {
-                    commentsContainer.innerHTML = '<div class="comment-thread"></div>';
-                    const commentThread = commentsContainer.querySelector('.comment-thread');
-                    commentThread.appendChild(commentElement);
-                } else {
-                    const commentThread = commentsContainer.querySelector('.comment-thread');
-                    commentThread.appendChild(commentElement);
-                }
-                
-                commentInput.value = '';
-                
-                // Update comment count in the post
-                const postElement = document.querySelector(`.post[data-post-id="${postId}"]`);
-                if (postElement) {
-                    const commentButton = postElement.querySelector('.comment-button span');
-                    const currentCount = commentButton.textContent.match(/\d+/);
-                    const newCount = currentCount ? parseInt(currentCount[0]) + 1 : 1;
-                    commentButton.textContent = `Comment (${newCount})`;
-                }
-            }
-        });
-        
-        commentInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendButton.click();
-            }
-        });
-        
-        closeButton.addEventListener('click', hideComments);
-        
-        // Show the overlay and comments section
-        commentsOverlay.classList.add('active');
-        setTimeout(() => {
-            commentsSection.classList.add('active');
-            commentInput.focus();
-        }, 50);
-        
-        // Implement drag to dismiss
-        const dragHandle = commentsSection.querySelector('.drag-handle');
-        let startY = 0;
-        let currentY = 0;
-        
-        function handleDragStart(e) {
-            startY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-            
-            document.addEventListener('mousemove', handleDragMove);
-            document.addEventListener('touchmove', handleDragMove);
-            document.addEventListener('mouseup', handleDragEnd);
-            document.addEventListener('touchend', handleDragEnd);
-        }
-        
-        function handleDragMove(e) {
-            currentY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-            const deltaY = currentY - startY;
-            
-            if (deltaY > 0) { // Only allow dragging down
-                commentsSection.style.transform = `translateY(${deltaY}px)`;
-                commentsOverlay.style.opacity = 1 - (deltaY / 400);
-            }
-        }
-        
-        function handleDragEnd() {
-            const deltaY = currentY - startY;
-            
-            if (deltaY > 100) {
-                // If dragged down far enough, dismiss
-                hideComments();
-            } else {
-                // Otherwise, snap back
-                commentsSection.style.transform = '';
-                commentsOverlay.style.opacity = '';
-            }
-            
-            document.removeEventListener('mousemove', handleDragMove);
-            document.removeEventListener('touchmove', handleDragMove);
-            document.removeEventListener('mouseup', handleDragEnd);
-            document.removeEventListener('touchend', handleDragEnd);
-        }
-        
-        dragHandle.addEventListener('mousedown', handleDragStart);
-        dragHandle.addEventListener('touchstart', handleDragStart);
-        
-        // Also allow clicking the overlay to dismiss
-        commentsOverlay.addEventListener('click', hideComments);
-    }
-
-    // Hide comments section
-    function hideComments() {
-        if (activeCommentsSection) {
-            activeCommentsSection.classList.remove('active');
-            commentsOverlay.classList.remove('active');
-            
-            // Remove after animation completes
-            setTimeout(() => {
-                if (activeCommentsSection) {
-                    activeCommentsSection.remove();
-                    activeCommentsSection = null;
-                }
-            }, 300);
-        }
-    }
-
-    // Create a post element
-    async function createPostElement(post) {
-        // Skip posts that don't have a media URL
-        if (!post.mediaUrl) {
-            return null;
+        :root {
+            --primary-color: #1DA1F2;
+            --background-color: #15202b;
+            --timeline-bg: #192734;
+            --text-color: #ffffff;
+            --secondary-text: #8899a6;
+            --border-color: #38444d;
+            --button-hover: rgba(29, 161, 242, 0.1);
         }
 
-        // Skip posts older than 60 hours
-        if (!isRecentPost(post.createdAt)) {
-            return null;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
-        if (!moderateContent(post.mediaUrl, post.mediaType)) {
-            return null;
+        body {
+            background: var(--background-color);
+            height: 100vh;
+            width: 100%;
+            color: var(--text-color);
+            overflow: hidden;
         }
 
-        // Check if we've already loaded this post
-        if (loadedPostIds.has(post.id)) {
-            return null;
+        .chat-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: var(--background-color);
+            max-width: 600px;
+            margin: 0 auto;
         }
-        
-        // Add this post ID to our tracking set
-        loadedPostIds.add(post.id);
 
-        const userProfile = await getUserProfile(post.userId);
-        const username = userProfile?.username || 
-                         userProfile?.displayName || 
-                         `User ${post.userId.slice(0, 4)}`;
-        const profilePic = userProfile?.photoURL || "/api/placeholder/40/40";
-        const comments = await getPostComments(post.id);
-        
-        const postElement = document.createElement('div');
-        postElement.className = 'post';
-        postElement.dataset.postId = post.id;
-        postElement.innerHTML = `
-            <div class="post-header">
-                <img class="post-author-pic" src="${profilePic}" alt="${username}">
-                <div class="post-author-info">
-                    <div class="post-author-name">${username}</div>
-                    <div class="post-time">${formatTime(post.createdAt)}</div>
-                </div>
-            </div>
-            
-            <img class="post-image" src="${post.mediaUrl}" alt="Post" onerror="this.style.display='none'">
-            
-            <div class="post-actions">
-                <div class="action-button like-button">
-                    <i class="ri-heart-line"></i>
-                    <span>Like</span>
-                </div>
-                <div class="action-button comment-button" data-post-id="${post.id}">
-                    <i class="ri-chat-1-line"></i>
-                    <span>Comment${comments.length > 0 ? ` (${comments.length})` : ''}</span>
-                </div>
-                <div class="action-button share-button">
-                    <i class="ri-share-forward-line"></i>
-                    <span>Share</span>
-                </div>
-            </div>
-        `;
-        
-        // Event listeners
-        const likeButton = postElement.querySelector('.like-button');
-        const commentButton = postElement.querySelector('.comment-button');
-        
-        likeButton.addEventListener('click', function() {
-            this.classList.toggle('active');
-            
-            if (this.classList.contains('active')) {
-                this.querySelector('i').className = 'ri-heart-fill';
-            } else {
-                this.querySelector('i').className = 'ri-heart-line';
-            }
-        });
-        
-        commentButton.addEventListener('click', () => {
-            showComments(post.id, comments);
-        });
-        
-        return postElement;
-    }
-
-    // Load feed
-    async function loadFeed() {
-        if (feedLoaded) {
-            console.log("Feed is already being loaded, preventing duplicate loading");
-            return;
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 15px;
+            background: var(--background-color);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) var(--background-color);
         }
-        
-        feedLoaded = true;
-        
-        try {
-            // Clear existing content before loading new posts
-            feedContainer.innerHTML = '';
-            
-            const postsQuery = query(
-                collection(db, 'posts'),
-                orderBy('createdAt', 'desc')
-            );
 
-            const snapshot = await getDocs(postsQuery);
-            
-            // Filter out posts without media URLs and posts older than 60 hours
-            const posts = snapshot.docs
-                .map(doc => ({ id: doc.id, ...doc.data() }))
-                .filter(post => post.mediaUrl && isRecentPost(post.createdAt));
-
-            // Hide skeleton loader
-            if (skeletonLoader) {
-                skeletonLoader.style.display = 'none';
-            }
-
-            if (posts.length === 0) {
-                feedContainer.innerHTML = `
-                    <div style="text-align: center; padding: 40px; background: white; border-radius: 12px; margin-top: 20px;">
-                        <i class="ri-image-line" style="font-size: 48px; color: var(--primary-color); margin-bottom: 16px;"></i>
-                        <p>No recent posts. Share something amazing!</p>
-                    </div>
-                `;
-                return;
-            }
-
-            // Use a fragment for better performance
-            const fragment = document.createDocumentFragment();
-            let validPostsCount = 0;
-
-            for (const post of posts) {
-                const postElement = await createPostElement(post);
-                if (postElement) {
-                    fragment.appendChild(postElement);
-                    validPostsCount++;
-                }
-            }
-
-            // Only display the empty state if we didn't add any posts
-            if (validPostsCount === 0) {
-                feedContainer.innerHTML = `
-                    <div style="text-align: center; padding: 40px; background: white; border-radius: 12px; margin-top: 20px;">
-                        <i class="ri-image-line" style="font-size: 48px; color: var(--primary-color); margin-bottom: 16px;"></i>
-                        <p>No recent posts with images found. Share something amazing!</p>
-                    </div>
-                `;
-            } else {
-                feedContainer.appendChild(fragment);
-            }
-
-        } catch (error) {
-            console.error('Feed loading error:', error);
-            
-            // Hide skeleton loader on error
-            if (skeletonLoader) {
-                skeletonLoader.style.display = 'none';
-            }
-            
-            feedContainer.innerHTML = `
-                <div style="text-align: center; padding: 40px; background: white; border-radius: 12px; margin-top: 20px;">
-                    <i class="ri-error-warning-line" style="font-size: 48px; color: #ff4d4d; margin-bottom: 16px;"></i>
-                    <p>Failed to load feed. Please try again later.</p>
-                </div>
-            `;
-        } finally {
-            // Allow feed to be reloaded after a delay
-            setTimeout(() => {
-                feedLoaded = false;
-            }, 1000);
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
         }
-    }
 
-    // Check authentication and load feed
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            currentUser = user;
-            currentUserProfile = await getUserProfile(user.uid);
-            loadFeed();
-        } else {
-            // Redirect to login or just load feed with limited functionality
-            loadFeed();
+        .chat-messages::-webkit-scrollbar-track {
+            background: var(--background-color);
         }
-    });
-</script>
-   
-<script>
-  // GlobalChat Theme Handler - For Feed Page
-  (function() {
-    // Function to apply dark theme
-    function applyDarkTheme() {
-      // Set dark theme CSS variables
-      document.documentElement.style.setProperty('--primary-color', '#1DA1F2');
-      document.documentElement.style.setProperty('--secondary-color', '#15202B');
-      document.documentElement.style.setProperty('--background-color', '#15202B');
-      document.documentElement.style.setProperty('--text-color', '#FFFFFF');
-      document.documentElement.style.setProperty('--border-color', '#38444D');
-      document.documentElement.style.setProperty('--light-gray', '#192734');
-      document.documentElement.style.setProperty('--medium-gray', '#8899A6');
-      document.documentElement.style.setProperty('--dark-gray', '#AAB8C2');
-      
-      // Apply dark theme to specific feed elements
-      document.querySelectorAll('.post').forEach(post => {
-        post.style.backgroundColor = '#192734';
-        post.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.2)';
-      });
-      
-      document.querySelectorAll('.post-author-name').forEach(name => {
-        name.style.color = '#FFFFFF';
-      });
-      
-      document.querySelectorAll('.post-time').forEach(time => {
-        time.style.color = '#8899A6';
-      });
-      
-      document.querySelectorAll('.action-button').forEach(button => {
-        button.style.color = '#8899A6';
-      });
-      
-      document.querySelectorAll('.comments-section').forEach(section => {
-        section.style.backgroundColor = '#15202B';
-      });
-      
-      document.querySelectorAll('.comments-title').forEach(title => {
-        title.style.color = '#FFFFFF';
-      });
-      
-      document.querySelectorAll('.comment-bubble').forEach(bubble => {
-        bubble.style.backgroundColor = '#192734';
-      });
-      
-      document.querySelectorAll('.comment-author').forEach(author => {
-        author.style.color = '#FFFFFF';
-      });
-      
-      document.querySelectorAll('.comment-text').forEach(text => {
-        text.style.color = '#FFFFFF';
-      });
-      
-      document.querySelectorAll('.comment-input-container').forEach(container => {
-        container.style.backgroundColor = '#192734';
-        container.style.borderColor = '#38444D';
-      });
-      
-      document.querySelectorAll('.comment-input').forEach(input => {
-        input.style.color = '#FFFFFF';
-        input.style.backgroundColor = 'transparent';
-      });
-      
-      // Add class to body for any CSS targeting
-      document.body.classList.add('dark-theme');
-    }
-    
-    // Function to apply light theme
-    function applyLightTheme() {
-      // Restore default CSS variables
-      document.documentElement.style.setProperty('--primary-color', '#1DA1F2');
-      document.documentElement.style.setProperty('--secondary-color', '#FFFFFF');
-      document.documentElement.style.setProperty('--background-color', '#F7F9FA');
-      document.documentElement.style.setProperty('--text-color', '#333');
-      document.documentElement.style.setProperty('--border-color', '#E6ECF0');
-      document.documentElement.style.setProperty('--light-gray', '#F5F8FA');
-      document.documentElement.style.setProperty('--medium-gray', '#8D949E');
-      document.documentElement.style.setProperty('--dark-gray', '#657786');
-      
-      // Restore default styles for feed elements
-      document.querySelectorAll('.post').forEach(post => {
-        post.style.backgroundColor = '#FFFFFF';
-        post.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
-      });
-      
-      document.querySelectorAll('.post-author-name').forEach(name => {
-        name.style.color = '#333';
-      });
-      
-      document.querySelectorAll('.post-time').forEach(time => {
-        time.style.color = '#657786';
-      });
-      
-      document.querySelectorAll('.action-button').forEach(button => {
-        button.style.color = '#657786';
-      });
-      
-      document.querySelectorAll('.comments-section').forEach(section => {
-        section.style.backgroundColor = '#FFFFFF';
-      });
-      
-      document.querySelectorAll('.comments-title').forEach(title => {
-        title.style.color = '#333';
-      });
-      
-      document.querySelectorAll('.comment-bubble').forEach(bubble => {
-        bubble.style.backgroundColor = '#F5F8FA';
-      });
-      
-      document.querySelectorAll('.comment-author').forEach(author => {
-        author.style.color = '#333';
-      });
-      
-      document.querySelectorAll('.comment-text').forEach(text => {
-        text.style.color = '#333';
-      });
-      
-      document.querySelectorAll('.comment-input-container').forEach(container => {
-        container.style.backgroundColor = '#F5F8FA';
-        container.style.borderColor = '#E6ECF0';
-      });
-      
-      document.querySelectorAll('.comment-input').forEach(input => {
-        input.style.color = '#333';
-        input.style.backgroundColor = 'transparent';
-      });
-      
-      // Remove dark theme class from body
-      document.body.classList.remove('dark-theme');
-    }
-    
-    // Initialize theme based on localStorage
-    function initTheme() {
-      const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
-      if (isDarkMode) {
-        applyDarkTheme();
-      } else {
-        applyLightTheme();
-      }
-    }
-    
-    // Apply theme to dynamically loaded content
-    function setupMutationObserver() {
-      const observer = new MutationObserver(mutations => {
-        mutations.forEach(mutation => {
-          if (mutation.addedNodes.length) {
-            const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
-            if (isDarkMode) {
-              applyDarkTheme();
-            } else {
-              applyLightTheme();
-            }
-          }
-        });
-      });
-      
-      // Observe the feed container for changes
-      const feedContainer = document.getElementById('feed-container');
-      if (feedContainer) {
-        observer.observe(feedContainer, {
-          childList: true,
-          subtree: true
-        });
-      }
-      
-      // Also observe the comments section which gets dynamically inserted
-      document.body.addEventListener('DOMNodeInserted', event => {
-        if (event.target.classList && event.target.classList.contains('comments-section')) {
-          const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
-          if (isDarkMode) {
-            applyDarkTheme();
-          }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
         }
-      });
-    }
-    
-    // Listen for theme changes from other pages
-    window.addEventListener('storage', event => {
-      if (event.key === 'darkMode') {
-        if (event.newValue === 'enabled') {
-          applyDarkTheme();
-        } else {
-          applyLightTheme();
+
+        .message-wrapper {
+            display: flex;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            animation: fadeIn 0.3s ease;
         }
-      }
-    });
-    
-    // Initialize on page load
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => {
-        initTheme();
-        setupMutationObserver();
-      });
-    } else {
-      initTheme();
-      setupMutationObserver();
-    }
-  })();
-</script>
 
+        .message-avatar {
+            margin-right: 12px;
+        }
 
-
-
-
-
-<script>
-(function() {
-    // Create the FAB element
-    const fab = document.createElement('div');
-    fab.className = 'compose-fab';
-    
-    // Create the SVG icon
-    const svg = `
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M14.06 9.02L14.98 9.94L5.92 19H5V18.08L14.06 9.02ZM17.66 3C17.41 3 17.15 3.1 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C18.17 3.09 17.92 3 17.66 3ZM14.06 6.19L3 17.25V21H6.75L17.81 9.94L14.06 6.19Z" fill="currentColor"/>
-        </svg>
-    `;
-    
-    fab.innerHTML = svg;
-    
-    // Apply initial styling
-    const style = document.createElement('style');
-    style.textContent = `
-        .compose-fab {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 56px;
-            height: 56px;
+        .message-avatar img {
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
-            background-color: #1DA1F2;
-            color: white;
+            object-fit: cover;
+        }
+
+        .message-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 4px;
+        }
+
+        .message-name {
+            font-weight: 700;
+            font-size: 15px;
+            margin-right: 5px;
+            color: var(--text-color);
+        }
+
+        .message-username, .message-time {
+            color: var(--secondary-text);
+            font-size: 14px;
+        }
+
+        .message-username {
+            margin-right: 8px;
+        }
+
+        .message-text {
+            font-size: 15px;
+            line-height: 1.4;
+            margin-bottom: 10px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .message-media {
+            border-radius: 16px;
+            overflow: hidden;
+            margin-top: 10px;
+            max-width: 100%;
+        }
+
+        .message-media img {
+            max-width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            display: block;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .message-media img:hover {
+            opacity: 0.9;
+        }
+
+        .message-media video {
+            max-width: 100%;
+            max-height: 400px;
+            display: block;
+            background: #000;
+        }
+
+        .action-buttons {
+            display: flex;
+            margin-top: 8px;
+        }
+
+        .action-button {
+            display: flex;
+            align-items: center;
+            margin-right: 24px;
+            color: var(--secondary-text);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .action-button:hover {
+            color: var(--primary-color);
+        }
+
+        .action-button svg {
+            width: 18px;
+            height: 18px;
+            margin-right: 8px;
+            fill: currentColor;
+        }
+
+        .chat-input-container {
+            padding: 10px 15px;
+            border-top: 1px solid var(--border-color);
+            background: var(--background-color);
+        }
+
+        .media-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .media-preview-item {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .media-preview-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .media-preview-remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 20px;
+            height: 20px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
             cursor: pointer;
-            z-index: 1000;
-            transition: all 0.2s ease-in-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            color: white;
+            font-size: 14px;
+            border: none;
         }
-        
-        .compose-fab:hover {
-            background-color: #1a91da;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            transform: translateY(-2px);
+
+        .chat-input-wrapper {
+            display: flex;
+            align-items: center;
+            background-color: var(--timeline-bg);
+            border-radius: 9999px;
+            padding: 10px 15px;
         }
-        
-        .compose-fab:active {
-            transform: scale(0.95);
+
+        .chat-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: var(--text-color);
+            font-size: 16px;
+            resize: none;
+            max-height: 100px;
+            overflow-y: auto;
+            padding: 0;
         }
-        
-        .compose-fab.hidden {
-            transform: translateY(100px);
-            opacity: 0;
+
+        .chat-input::placeholder {
+            color: var(--secondary-text);
         }
-        
-        /* Dark mode support */
-        body.dark-theme .compose-fab {
-            background-color: #1DA1F2;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+
+        .chat-actions {
+            display: flex;
+            align-items: center;
         }
-        
-        /* Upload iframe styles */
-        .upload-overlay {
+
+        .upload-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            margin-right: 12px;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: currentColor;
+        }
+
+        .send-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 9999px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-left: 8px;
+        }
+
+        .send-btn:disabled {
+            background-color: #1a608f;
+            cursor: not-allowed;
+        }
+
+        .send-btn svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        /* Loading spinner */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .loading-dots {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .loading-dot {
+            width: 8px;
+            height: 8px;
+            margin: 0 4px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            animation: bounce 0.5s infinite alternate;
+        }
+
+        .loading-dot:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .loading-dot:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        /* Global loading overlay */
+        .loading-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1001;
+            background: rgba(21, 32, 43, 0.8);
             display: flex;
-            align-items: center;
             justify-content: center;
+            align-items: center;
+            z-index: 1000;
             opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease;
+            pointer-events: none;
+            transition: opacity 0.3s;
         }
-        
-        .upload-overlay.active {
+
+        .loading-overlay.active {
             opacity: 1;
-            visibility: visible;
+            pointer-events: all;
         }
-        
-        .upload-container {
-            width: 90%;
-            max-width: 600px;
-            max-height: 90vh;
-            background-color: white;
-            border-radius: 16px;
-            overflow: hidden;
-            transform: scale(0.9);
-            transition: transform 0.3s ease;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
-        
-        body.dark-theme .upload-container {
-            background-color: #15202B;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-5px); }
         }
-        
-        .upload-overlay.active .upload-container {
-            transform: scale(1);
+
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
         }
-        
-        .upload-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 16px;
-            border-bottom: 1px solid #E6ECF0;
-        }
-        
-        body.dark-theme .upload-header {
-            border-bottom-color: #38444D;
-        }
-        
-        .upload-title {
-            font-weight: bold;
-            font-size: 18px;
-            color: #333;
-        }
-        
-        body.dark-theme .upload-title {
-            color: #FFFFFF;
-        }
-        
-        .upload-close {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: #657786;
-            background: transparent;
-            border: none;
-            transition: background-color 0.2s;
-        }
-        
-        .upload-close:hover {
-            background-color: rgba(29, 161, 242, 0.1);
-            color: #1DA1F2;
-        }
-        
-        body.dark-theme .upload-close:hover {
-            background-color: rgba(29, 161, 242, 0.2);
-        }
-        
-        .upload-close svg {
-            width: 20px;
-            height: 20px;
-        }
-        
-        .upload-content {
-            height: 80vh;
-            max-height: 600px;
-        }
-        
-        .upload-iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-        
-        /* Hide on desktop devices - ADJUST WIDTH VALUE BELOW AS NEEDED */
-        @media (min-width: 1024px) {
-            .compose-fab {
-                display: none;
+
+        @media (max-width: 768px) {
+            .message-avatar img {
+                width: 40px;
+                height: 40px;
+            }
+
+            .message-wrapper {
+                padding: 10px 0;
+            }
+
+            .action-button {
+                margin-right: 16px;
+            }
+
+            .chat-input-wrapper {
+                padding: 8px 12px;
+            }
+
+            .media-preview-item {
+                width: 80px;
+                height: 80px;
             }
         }
-    `;
-    
-    document.head.appendChild(style);
-    document.body.appendChild(fab);
-    
-    // Create upload overlay
-    const uploadOverlay = document.createElement('div');
-    uploadOverlay.className = 'upload-overlay';
-    
-    uploadOverlay.innerHTML = `
-        <div class="upload-container">
-            <div class="upload-header">
-                <div class="upload-title">New Post</div>
-                <button class="upload-close">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M18.3 5.71a.996.996 0 00-1.41 0L12 10.59 7.11 5.7A.996.996 0 105.7 7.11L10.59 12 5.7 16.89a.996.996 0 101.41 1.41L12 13.41l4.89 4.89a.996.996 0 101.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z" fill="currentColor"/>
-                    </svg>
-                </button>
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+            <div class="loading-dots" id="loadingIndicator">
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
             </div>
-            <div class="upload-content">
-                <iframe class="upload-iframe" src="/upload.html"></iframe>
+            <!-- Messages will be inserted here dynamically -->
+        </div>
+        
+        <div class="chat-input-container">
+            <div class="media-preview" id="mediaPreview"></div>
+            <div class="chat-input-wrapper">
+                <textarea class="chat-input" id="messageInput" placeholder="What's happening?" rows="1"></textarea>
+                <div class="chat-actions">
+                    <button class="upload-btn" id="uploadBtn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M19.75 2H4.25C3.01 2 2 3.01 2 4.25v15.5C2 20.99 3.01 22 4.25 22h15.5c1.24 0 2.25-1.01 2.25-2.25V4.25C22 3.01 20.99 2 19.75 2zM4.25 3.5h15.5c.413 0 .75.337.75.75v9.676l-3.858-3.858c-.14-.14-.33-.22-.53-.22h-.003c-.2 0-.393.08-.532.224l-4.317 4.384-1.813-1.806c-.14-.14-.33-.22-.53-.22-.193-.03-.395.08-.535.227L3.5 17.642V4.25c0-.413.337-.75.75-.75zm-.744 16.28l5.418-5.534 6.282 6.254H4.25c-.402 0-.727-.322-.744-.72zm16.244.72h-2.42l-5.007-4.987 3.792-3.85 4.385 4.384v3.703c0 .413-.337.75-.75.75z"></path>
+                            <circle cx="8.868" cy="8.309" r="1.542"></circle>
+                        </svg>
+                    </button>
+                    <input type="file" id="fileInput" class="file-input" accept="image/*, video/*">
+                    <button class="send-btn" id="sendBtn" disabled>
+                        <svg viewBox="0 0 24 24">
+                            <path d="M2.252 6.456l19.476 5.825c.53.159.53.928 0 1.088L2.252 19.194c-.43.129-.81-.303-.53-.604l4.309-4.672c.45-.487.45-1.256 0-1.742L1.722 7.06c-.28-.302.1-.733.53-.604z"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
-    `;
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, push, onChildAdded, query, orderByChild, limitToLast } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+    authDomain: "globalchat-2d669.firebaseapp.com",
+    projectId: "globalchat-2d669",
+    storageBucket: "globalchat-2d669.firebasestorage.app",
+    messagingSenderId: "178714711978",
+    appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
+    measurementId: "G-LYZP41ZJ46"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const firestore = getFirestore(app);
+const storage = getStorage(app);
+const auth = getAuth(app);
+
+const chatMessages = document.getElementById('chatMessages');
+const messageInput = document.getElementById('messageInput');
+const sendBtn = document.getElementById('sendBtn');
+const fileInput = document.getElementById('fileInput');
+const uploadBtn = document.getElementById('uploadBtn');
+const mediaPreview = document.getElementById('mediaPreview');
+const loadingOverlay = document.getElementById('loadingOverlay');
+const loadingIndicator = document.getElementById('loadingIndicator');
+
+let currentUser = null;
+let userDetails = null;
+let mediaFile = null;
+
+// Auto-resize textarea
+messageInput.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
     
-    document.body.appendChild(uploadOverlay);
+    // Enable/disable send button based on content
+    if (this.value.trim() || mediaFile) {
+        sendBtn.removeAttribute('disabled');
+    } else {
+        sendBtn.setAttribute('disabled', 'true');
+    }
+});
+
+// Format timestamp
+const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+// Format date for tweets
+const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
     
-    // Scroll behavior
-    let lastScrollTop = 0;
-    let scrollTimer;
-    
-    window.addEventListener('scroll', function() {
-        clearTimeout(scrollTimer);
-        
-        const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        
-        if (currentScrollTop > lastScrollTop && currentScrollTop > 100) {
-            // Scrolling down
-            fab.classList.add('hidden');
-        } else {
-            // Scrolling up
-            fab.classList.remove('hidden');
-        }
-        
-        lastScrollTop = currentScrollTop;
-        
-        // Hide after 3 seconds of no scrolling when at the bottom
-        scrollTimer = setTimeout(function() {
-            const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-            const totalHeight = document.documentElement.scrollHeight;
-            const viewportHeight = window.innerHeight;
-            
-            if (scrollPosition + viewportHeight >= totalHeight - 100) {
-                fab.classList.add('hidden');
+    if (diffInSeconds < 60) {
+        return `${diffInSeconds}s`;
+    } else if (diffInSeconds < 3600) {
+        return `${Math.floor(diffInSeconds / 60)}m`;
+    } else if (diffInSeconds < 86400) {
+        return `${Math.floor(diffInSeconds / 3600)}h`;
+    } else {
+        return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+};
+
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        currentUser = user;
+        try {
+            const userDoc = await getDoc(doc(firestore, 'users', user.uid));
+            if (userDoc.exists()) {
+                userDetails = userDoc.data();
             }
-        }, 3000);
-    });
-    
-    // Show upload panel on click
-    fab.addEventListener('click', function() {
-        uploadOverlay.classList.add('active');
-        document.body.style.overflow = 'hidden'; // Prevent background scrolling
-    });
-    
-    // Close upload panel
-    const closeButton = uploadOverlay.querySelector('.upload-close');
-    closeButton.addEventListener('click', function() {
-        uploadOverlay.classList.remove('active');
-        document.body.style.overflow = ''; // Restore scrolling
-    });
-    
-    // Close when clicking outside the container
-    uploadOverlay.addEventListener('click', function(e) {
-        if (e.target === uploadOverlay) {
-            uploadOverlay.classList.remove('active');
-            document.body.style.overflow = '';
+            loadMessages();
+        } catch (error) {
+            console.error("Error fetching user data:", error);
         }
-    });
+    } else {
+        window.location.href = 'login.html';
+    }
+});
+
+const loadMessages = () => {
+    const messagesRef = query(ref(db, 'imageSharing'), orderByChild('timestamp'), limitToLast(50));
     
-    // Listen for theme changes
-    function updateTheme() {
-        const isDarkMode = localStorage.getItem('darkMode') === 'enabled' || document.body.classList.contains('dark-theme');
-        // Theme styling is handled by CSS classes
+    // Show loading indicator
+    if (loadingIndicator) {
+        loadingIndicator.style.display = 'flex';
     }
     
-    // Initialize theme
-    updateTheme();
-    
-    // Listen for theme changes from the app
-    window.addEventListener('storage', function(event) {
-        if (event.key === 'darkMode') {
-            updateTheme();
+    onChildAdded(messagesRef, (snapshot) => {
+        const message = snapshot.val();
+        displayMessage(message);
+        
+        // Hide loading indicator after the first message is loaded
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'none';
         }
     });
+};
+
+const displayMessage = (message) => {
+    const messageWrapper = document.createElement('div');
+    messageWrapper.classList.add('message-wrapper');
     
-    // Handle theme changes (mutation observer)
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                updateTheme();
+    const avatarDiv = document.createElement('div');
+    avatarDiv.classList.add('message-avatar');
+    
+    const avatarImg = document.createElement('img');
+    avatarImg.src = message.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
+    avatarImg.alt = 'Profile';
+    avatarDiv.appendChild(avatarImg);
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.classList.add('message-content');
+    
+    // Message header (name, username, time)
+    const headerDiv = document.createElement('div');
+    headerDiv.classList.add('message-header');
+    
+    const nameSpan = document.createElement('span');
+    nameSpan.classList.add('message-name');
+    nameSpan.textContent = message.username || 'Anonymous';
+    headerDiv.appendChild(nameSpan);
+    
+    const usernameSpan = document.createElement('span');
+    usernameSpan.classList.add('message-username');
+    usernameSpan.textContent = `@${message.username?.toLowerCase().replace(/\s/g, '') || 'user'}`;
+    headerDiv.appendChild(usernameSpan);
+    
+    const timeSpan = document.createElement('span');
+    timeSpan.classList.add('message-time');
+    timeSpan.textContent = `· ${formatDate(message.timestamp)}`;
+    headerDiv.appendChild(timeSpan);
+    
+    contentDiv.appendChild(headerDiv);
+    
+    // Message text
+    if (message.text && message.text.trim()) {
+        const textDiv = document.createElement('div');
+        textDiv.classList.add('message-text');
+        textDiv.textContent = message.text;
+        contentDiv.appendChild(textDiv);
+    }
+    
+    // Message media (image or video)
+    if (message.imageURL || message.videoURL) {
+        const mediaDiv = document.createElement('div');
+        mediaDiv.classList.add('message-media');
+        
+        if (message.imageURL) {
+            const img = document.createElement('img');
+            img.src = message.imageURL;
+            img.alt = 'Shared image';
+            img.loading = 'lazy';
+            mediaDiv.appendChild(img);
+        }
+        
+        if (message.videoURL) {
+            const video = document.createElement('video');
+            video.src = message.videoURL;
+            video.controls = true;
+            video.preload = 'metadata';
+            mediaDiv.appendChild(video);
+        }
+        
+        contentDiv.appendChild(mediaDiv);
+    }
+    
+    // Add action buttons
+    const actionButtons = document.createElement('div');
+    actionButtons.classList.add('action-buttons');
+    
+    // Reply button
+    const replyButton = document.createElement('button');
+    replyButton.classList.add('action-button');
+    replyButton.innerHTML = `
+        <svg viewBox="0 0 24 24">
+            <path d="M1.751 10c0-4.42 3.584-8 8.005-8h4.366c4.49 0 8.129 3.64 8.129 8.13 0 2.96-1.607 5.68-4.196 7.11l-8.054 4.46v-3.69h-.067c-4.49.1-8.183-3.51-8.183-8.01zm8.005-6c-3.317 0-6.005 2.69-6.005 6 0 3.37 2.77 6.08 6.138 6.01l.351-.01h1.761v2.3l5.087-2.81c1.951-1.08 3.163-3.13 3.163-5.36 0-3.39-2.744-6.13-6.129-6.13H9.756z"></path>
+        </svg>
+    `;
+    actionButtons.appendChild(replyButton);
+    
+    // Retweet button
+    const retweetButton = document.createElement('button');
+    retweetButton.classList.add('action-button');
+    retweetButton.innerHTML = `
+        <svg viewBox="0 0 24 24">
+            <path d="M4.5 3.88l4.432 4.14-1.364 1.46L5.5 7.55V16c0 1.1.896 2 2 2H13v2H7.5c-2.209 0-4-1.79-4-4V7.55L1.432 9.48.068 8.02 4.5 3.88zM16.5 6H11V4h5.5c2.209 0 4 1.79 4 4v8.45l2.068-1.93 1.364 1.46-4.432 4.14-4.432-4.14 1.364-1.46 2.068 1.93V8c0-1.1-.896-2-2-2z"></path>
+        </svg>
+    `;
+    actionButtons.appendChild(retweetButton);
+    
+    // Like button
+    const likeButton = document.createElement('button');
+    likeButton.classList.add('action-button');
+    likeButton.innerHTML = `
+        <svg viewBox="0 0 24 24">
+            <path d="M16.697 5.5c-1.222-.06-2.679.51-3.89 2.16l-.805 1.09-.806-1.09C9.984 6.01 8.526 5.44 7.304 5.5c-1.243.07-2.349.78-2.91 1.91-.552 1.12-.633 2.78.479 4.82 1.074 1.97 3.257 4.27 7.129 6.61 3.87-2.34 6.052-4.64 7.126-6.61 1.111-2.04 1.03-3.7.477-4.82-.561-1.13-1.666-1.84-2.908-1.91zm4.187 7.69c-1.351 2.48-4.001 5.12-8.379 7.67l-.503.3-.504-.3c-4.379-2.55-7.029-5.19-8.382-7.67-1.36-2.5-1.41-4.86-.514-6.67.887-1.79 2.647-2.91 4.601-3.01 1.651-.09 3.368.56 4.798 2.01 1.429-1.45 3.146-2.1 4.796-2.01 1.954.1 3.714 1.22 4.601 3.01.896 1.81.846 4.17-.514 6.67z"></path>
+        </svg>
+    `;
+    actionButtons.appendChild(likeButton);
+    
+    // Share button
+    const shareButton = document.createElement('button');
+    shareButton.classList.add('action-button');
+    shareButton.innerHTML = `
+        <svg viewBox="0 0 24 24">
+            <path d="M12 2.59l5.7 5.7-1.41 1.42L13 6.41V16h-2V6.41l-3.3 3.3-1.41-1.42L12 2.59zM21 15l-.02 3.51c0 1.38-1.12 2.49-2.5 2.49H5.5C4.11 21 3 19.88 3 18.5V15h2v3.5c0 .28.22.5.5.5h12.98c.28 0 .5-.22.5-.5L19 15h2z"></path>
+        </svg>
+    `;
+    actionButtons.appendChild(shareButton);
+    
+    contentDiv.appendChild(actionButtons);
+    
+    messageWrapper.appendChild(avatarDiv);
+    messageWrapper.appendChild(contentDiv);
+    
+    chatMessages.appendChild(messageWrapper);
+    
+    // Scroll to bottom
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+};
+
+// Upload button click handler
+uploadBtn.addEventListener('click', () => {
+    fileInput.click();
+});
+
+// File selection handler
+fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        mediaFile = file;
+        
+        // Create preview element
+        mediaPreview.innerHTML = '';
+        const previewItem = document.createElement('div');
+        previewItem.classList.add('media-preview-item');
+        
+        if (file.type.startsWith('image/')) {
+            const img = document.createElement('img');
+            img.classList.add('media-preview-image');
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+            
+            previewItem.appendChild(img);
+        } else if (file.type.startsWith('video/')) {
+            const videoIconSvg = `
+                <svg viewBox="0 0 24 24" width="100" height="100" fill="#1DA1F2">
+                    <path d="M21 12l-18 12v-24z"/>
+                </svg>
+            `;
+            previewItem.innerHTML = videoIconSvg;
+        }
+        
+        // Add remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.classList.add('media-preview-remove');
+        removeBtn.textContent = '×';
+        removeBtn.addEventListener('click', () => {
+            mediaPreview.innerHTML = '';
+            mediaFile = null;
+            
+            // Disable send button if there's no text
+            if (!messageInput.value.trim()) {
+                sendBtn.setAttribute('disabled', 'true');
             }
         });
-    });
-    
-    observer.observe(document.body, { attributes: true });
-    
-    // Ensure fab is visible when page loads (on mobile only)
-    setTimeout(function() {
-        // Check if we should show the FAB based on screen width
-        // *** ADJUST THIS VALUE TO CONTROL WHEN THE BUTTON APPEARS ***
-        const DESKTOP_WIDTH_THRESHOLD = 100; // Button won't appear on screens wider than this
         
-        if (window.innerWidth < DESKTOP_WIDTH_THRESHOLD) {
-            fab.classList.remove('hidden');
-        } else {
-            fab.classList.add('hidden');
-        }
-    }, 500);
-    
-    // Update visibility on window resize
-    window.addEventListener('resize', function() {
-        // *** SAME THRESHOLD AS ABOVE - ADJUST AS NEEDED ***
-        const DESKTOP_WIDTH_THRESHOLD = 1024;
+        previewItem.appendChild(removeBtn);
+        mediaPreview.appendChild(previewItem);
+        mediaPreview.style.display = 'block';
         
-        if (window.innerWidth < DESKTOP_WIDTH_THRESHOLD) {
-            if (!fab.classList.contains('hidden') && lastScrollTop < 100) {
-                fab.classList.remove('hidden');
-            }
-        } else {
-            fab.classList.add('hidden');
-        }
-    });
+        // Enable send button
+        sendBtn.removeAttribute('disabled');
+    }
+});
+
+// Send message handler
+sendBtn.addEventListener('click', sendMessage);
+messageInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+async function sendMessage() {
+    const text = messageInput.value.trim();
     
-    // Safety check to prevent conflicts with other scripts
-    // Use passive event listeners where possible for better performance
-    const safeAddEventListener = function(element, event, handler) {
-        try {
-            element.addEventListener(event, handler, { passive: true });
-        } catch (e) {
-            // Fallback if passive listeners aren't supported
-            element.addEventListener(event, handler);
-        }
-    };
+    // Don't send if no content
+    if (!text && !mediaFile) return;
     
-    // Safer version of scroll and resize listeners (already implemented above with regular listeners)
-})();
+    // Show loading state
+    const originalBtnContent = sendBtn.innerHTML;
+    sendBtn.innerHTML = '<div class="loading-spinner"></div>';
+    sendBtn.setAttribute('disabled', 'true');
+    
+    try {
+        let imageURL = null;
+        let videoURL = null;
+        
+// Upload media if present
+if (mediaFile) {
+const fileRef = storageRef(storage, `imageSharing/${currentUser.uid}/${Date.now()}_${mediaFile.name}`);
+await uploadBytes(fileRef, mediaFile);
+const url = await getDownloadURL(fileRef);
+
+if (mediaFile.type.startsWith('image/')) {
+imageURL = url;
+} else if (mediaFile.type.startsWith('video/')) {
+videoURL = url;
+}
+}
+
+// Create message object
+const messagesRef = ref(db, 'imageSharing');
+await push(messagesRef, {
+text,
+imageURL,
+videoURL,
+userId: currentUser.uid,
+username: userDetails?.username || currentUser.displayName || 'Anonymous',
+photoURL: userDetails?.photoURL || currentUser.photoURL,
+timestamp: Date.now()
+});
+
+// Reset UI
+messageInput.value = '';
+messageInput.style.height = 'auto';
+mediaPreview.innerHTML = '';
+mediaPreview.style.display = 'none';
+mediaFile = null;
+sendBtn.setAttribute('disabled', 'true');
+
+} catch (error) {
+console.error('Error sending message:', error);
+alert('Failed to send message. Please try again.');
+} finally {
+// Reset send button
+sendBtn.innerHTML = `
+<svg viewBox="0 0 24 24">
+  <path d="M2.252 6.456l19.476 5.825c.53.159.53.928 0 1.088L2.252 19.194c-.43.129-.81-.303-.53-.604l4.309-4.672c.45-.487.45-1.256 0-1.742L1.722 7.06c-.28-.302.1-.733.53-.604z"></path>
+</svg>
+`;
+}
+}
+
 </script>
-
-<script src="comment.js"></script>
-
-</body>
-</html>
