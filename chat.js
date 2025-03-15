@@ -95,7 +95,7 @@ const loadFollowedUsers = async () => {
 };
 
 // Toggle follow/unfollow functionality
-const toggleFollow = async (userId, userName) => {
+window.toggleFollow = async function(userId, userName) {
   if (!currentUser) {
     alert("Please log in to follow users.");
     return;
@@ -123,22 +123,23 @@ const toggleFollow = async (userId, userName) => {
       });
       followedUsers.delete(userId);
     }
-    // Optionally, update follow button appearance if needed.
-    updateFollowButtonStyles();
+    // Update follow button appearance
+    updateFollowButtons();
   } catch (error) {
     console.error("Error toggling follow:", error);
   }
 };
 
 // Update follow button styles for all buttons currently in the DOM
-function updateFollowButtonStyles() {
+function updateFollowButtons() {
   document.querySelectorAll('.follow-btn').forEach(btn => {
     const userId = btn.getAttribute('data-user-id');
     if (userId === currentUser?.uid) {
-      btn.style.display = 'none';
+      btn.style.display = 'none'; // Hide follow button for own messages
     } else {
       const isFollowing = followedUsers.has(userId);
       btn.textContent = isFollowing ? 'Following' : 'Follow';
+      btn.classList.toggle('followed', isFollowing);
       btn.style.backgroundColor = isFollowing ? '#1DA1F2' : 'transparent';
       btn.style.color = isFollowing ? '#fff' : '#1DA1F2';
       btn.style.border = '1px solid #1DA1F2';
@@ -197,7 +198,7 @@ const displayMessage = (message) => {
     followButton.classList.add('follow-btn');
     followButton.textContent = followedUsers.has(message.userId) ? 'Following' : 'Follow';
     followButton.setAttribute('data-user-id', message.userId);
-    // Inline styling to mimic Twitter's follow buttons:
+    followButton.setAttribute('onclick', `toggleFollow('${message.userId}', '${message.username}')`);
     followButton.style.padding = '2px 6px';
     followButton.style.fontSize = '12px';
     followButton.style.border = '1px solid #1DA1F2';
@@ -207,7 +208,6 @@ const displayMessage = (message) => {
     followButton.style.cursor = 'pointer';
     followButton.style.outline = 'none';
     followButton.style.marginLeft = '8px';
-    followButton.addEventListener('click', () => toggleFollow(message.userId, message.username));
     headerDiv.appendChild(followButton);
   }
   
@@ -244,8 +244,6 @@ const displayMessage = (message) => {
     }
     contentDiv.appendChild(mediaDiv);
   }
-  
-  // (Removed extra action-buttons / comment icons as requested.)
   
   messageWrapper.appendChild(avatarDiv);
   messageWrapper.appendChild(contentDiv);
