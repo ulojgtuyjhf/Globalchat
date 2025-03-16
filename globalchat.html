@@ -8,13 +8,14 @@
     :root {
         --primary-color: #1DA1F2; /* Twitter blue */
         --background-color: #ffffff; /* White background */
-        --timeline-bg: #f5f8fa; /* Light gray for input background */
+        --timeline-bg: #f5f8fa; /* Light gray for input/background */
         --text-color: #000000; /* Black text */
-        --secondary-text: #657786; /* Gray for usernames and timestamps */
+        --secondary-text: #657786; /* Gray for usernames/timestamps */
         --border-color: #e1e8ed; /* Light gray for borders */
         --button-hover: rgba(29, 161, 242, 0.1); /* Twitter blue hover effect */
     }
 
+    /* Global resets */
     * {
         margin: 0;
         padding: 0;
@@ -30,6 +31,7 @@
         overflow: hidden;
     }
 
+    /* Container with side borders */
     .chat-container {
         width: 100%;
         height: 100vh;
@@ -39,10 +41,11 @@
         max-width: 100%;
         margin: 0 auto;
         position: relative;
-        border-left: 1px solid var(--border-color); /* Vertical line on the left */
-        border-right: 1px solid var(--border-color); /* Vertical line on the right */
+        border-left: 1px solid var(--border-color);
+        border-right: 1px solid var(--border-color);
     }
 
+    /* Chat messages area */
     .chat-messages {
         flex: 1;
         overflow-y: auto;
@@ -50,7 +53,7 @@
         background: var(--background-color);
         display: flex;
         flex-direction: column;
-        gap: 0; /* Remove gap between messages */
+        gap: 0;
         scrollbar-width: thin;
         scrollbar-color: var(--border-color) var(--background-color);
     }
@@ -68,6 +71,7 @@
         border-radius: 3px;
     }
 
+    /* Each message wrapper */
     .message-wrapper {
         display: flex;
         padding: 12px 0;
@@ -75,21 +79,24 @@
         animation: fadeIn 0.3s ease;
     }
 
+    /* Avatar with border */
     .message-avatar {
         margin-right: 12px;
     }
 
     .message-avatar img {
-        width: 40px; /* Smaller profile pictures */
+        width: 40px;
         height: 40px;
         border-radius: 50%;
         object-fit: cover;
+        border: 1px solid var(--border-color);
     }
 
+    /* Message content area */
     .message-content {
         flex: 1;
         min-width: 0;
-        padding-right: 12px; /* Add padding to the right for spacing */
+        padding-right: 12px;
     }
 
     .message-header {
@@ -105,7 +112,8 @@
         color: var(--text-color);
     }
 
-    .message-username, .message-time {
+    .message-username,
+    .message-time {
         color: var(--secondary-text);
         font-size: 14px;
     }
@@ -114,58 +122,136 @@
         margin-right: 8px;
     }
 
+    /* Base message bubble styling with borders and hover animation */
     .message-text {
         font-size: 15px;
         line-height: 1.4;
         margin-bottom: 10px;
         word-wrap: break-word;
         white-space: pre-wrap;
-        color: var(--text-color); /* Ensure text is visible */
+        color: var(--text-color);
         background-color: var(--timeline-bg);
-        padding: 10px;
-        border-radius: 8px;
+        padding: 12px 14px;
+        border-radius: 18px;
         max-width: 70%;
         position: relative;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
     }
 
-    .message-text::after {
-        content: '';
-        position: absolute;
-        width: 0;
-        height: 0;
-        border-style: solid;
+    .message-text:hover {
+        transform: scale(1.02);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
     }
 
-    .message-wrapper[data-sender="user"] .message-text {
-        background-color: var(--primary-color);
-        color: white;
-        align-self: flex-end;
-    }
-
-    .message-wrapper[data-sender="user"] .message-text::after {
-        border-width: 8px 0 8px 8px;
-        border-color: transparent transparent transparent var(--primary-color);
-        right: -8px;
-        top: 10px;
-    }
-
+    /* Pointer indicator for received messages (left side) */
     .message-wrapper[data-sender="other"] .message-text {
         background-color: var(--timeline-bg);
+        color: var(--text-color);
         align-self: flex-start;
+        border-radius: 18px 18px 18px 0;
     }
-
-    .message-wrapper[data-sender="other"] .message-text::after {
-        border-width: 8px 8px 8px 0;
-        border-color: transparent var(--timeline-bg) transparent transparent;
-        left: -8px;
+    .message-wrapper[data-sender="other"] .message-text::before {
+        content: "";
+        position: absolute;
         top: 10px;
+        left: -14px;
+        border-top: 10px solid transparent;
+        border-right: 14px solid var(--border-color);
+        z-index: 0;
+    }
+    .message-wrapper[data-sender="other"] .message-text::after {
+        content: "";
+        position: absolute;
+        top: 10px;
+        left: -12px;
+        border-top: 10px solid transparent;
+        border-right: 12px solid var(--timeline-bg);
+        z-index: 1;
     }
 
+    /* Pointer indicator for sent messages (right side) */
+    .message-wrapper[data-sender="user"] .message-text {
+        background-color: var(--primary-color);
+        color: #fff;
+        align-self: flex-end;
+        border-radius: 18px 18px 18px 0;
+    }
+    .message-wrapper[data-sender="user"] .message-text::before {
+        content: "";
+        position: absolute;
+        top: 10px;
+        right: -14px;
+        border-top: 10px solid transparent;
+        border-left: 14px solid var(--border-color);
+        z-index: 0;
+    }
+    .message-wrapper[data-sender="user"] .message-text::after {
+        content: "";
+        position: absolute;
+        top: 10px;
+        right: -12px;
+        border-top: 10px solid transparent;
+        border-left: 12px solid var(--primary-color);
+        z-index: 1;
+    }
+
+    /* Media (image/video) bubbles styled similarly to text bubbles */
     .message-media {
-        border-radius: 16px;
+        border-radius: 18px;
         overflow: hidden;
         margin-top: 10px;
         max-width: 100%;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        position: relative;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .message-media:hover {
+        transform: scale(1.02);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    }
+
+    /* Pointer for media bubbles (received) */
+    .message-wrapper[data-sender="other"] .message-media::before {
+        content: "";
+        position: absolute;
+        top: 10px;
+        left: -14px;
+        border-top: 10px solid transparent;
+        border-right: 14px solid var(--border-color);
+        z-index: 0;
+    }
+    .message-wrapper[data-sender="other"] .message-media::after {
+        content: "";
+        position: absolute;
+        top: 10px;
+        left: -12px;
+        border-top: 10px solid transparent;
+        border-right: 12px solid var(--timeline-bg);
+        z-index: 1;
+    }
+
+    /* Pointer for media bubbles (sent) */
+    .message-wrapper[data-sender="user"] .message-media::before {
+        content: "";
+        position: absolute;
+        top: 10px;
+        right: -14px;
+        border-top: 10px solid transparent;
+        border-left: 14px solid var(--border-color);
+        z-index: 0;
+    }
+    .message-wrapper[data-sender="user"] .message-media::after {
+        content: "";
+        position: absolute;
+        top: 10px;
+        right: -12px;
+        border-top: 10px solid transparent;
+        border-left: 12px solid var(--primary-color);
+        z-index: 1;
     }
 
     .message-media img {
@@ -188,6 +274,7 @@
         background: #000;
     }
 
+    /* Action buttons with borders */
     .action-buttons {
         display: flex;
         margin-top: 8px;
@@ -199,14 +286,17 @@
         margin-right: 24px;
         color: var(--secondary-text);
         background: none;
-        border: none;
+        border: 1px solid var(--border-color);
+        padding: 4px;
+        border-radius: 4px;
         cursor: pointer;
         font-size: 14px;
-        transition: color 0.2s;
+        transition: color 0.2s, background-color 0.2s;
     }
 
     .action-button:hover {
         color: var(--primary-color);
+        background-color: var(--button-hover);
     }
 
     .action-button svg {
@@ -216,48 +306,11 @@
         fill: currentColor;
     }
 
+    /* Chat input container with border */
     .chat-input-container {
         padding: 10px 15px;
         border-top: 1px solid var(--border-color);
         background: var(--background-color);
-    }
-
-    .media-preview {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 10px;
-    }
-
-    .media-preview-item {
-        position: relative;
-        width: 100px;
-        height: 100px;
-        border-radius: 16px;
-        overflow: hidden;
-    }
-
-    .media-preview-image {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .media-preview-remove {
-        position: absolute;
-        top: 4px;
-        right: 4px;
-        width: 20px;
-        height: 20px;
-        background-color: rgba(0, 0, 0, 0.5);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: white;
-        font-size: 14px;
-        border: none;
     }
 
     .chat-input-wrapper {
@@ -266,6 +319,7 @@
         background-color: var(--timeline-bg);
         border-radius: 9999px;
         padding: 10px 15px;
+        border: 1px solid var(--border-color);
     }
 
     .chat-input {
@@ -292,13 +346,15 @@
 
     .upload-btn {
         background: none;
-        border: none;
+        border: 1px solid var(--border-color);
         cursor: pointer;
         margin-right: 12px;
         color: var(--primary-color);
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 4px;
+        border-radius: 4px;
     }
 
     .upload-btn svg {
@@ -310,7 +366,7 @@
     .send-btn {
         background-color: var(--primary-color);
         color: white;
-        border: none;
+        border: 1px solid var(--border-color);
         border-radius: 9999px;
         width: 36px;
         height: 36px;
@@ -337,6 +393,47 @@
         display: none;
     }
 
+    /* Media preview area with borders */
+    .media-preview {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .media-preview-item {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+    }
+
+    .media-preview-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .media-preview-remove {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 20px;
+        height: 20px;
+        background-color: rgba(0, 0, 0, 0.5);
+        border: 1px solid var(--border-color);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: white;
+        font-size: 14px;
+    }
+
+    /* Loading animations */
     .loading-spinner {
         display: inline-block;
         width: 20px;
@@ -391,6 +488,7 @@
         pointer-events: all;
     }
 
+    /* Keyframe animations */
     @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
@@ -406,30 +504,28 @@
         100% { opacity: 1; transform: translateY(0); }
     }
 
+    /* Responsive adjustments */
     @media (max-width: 768px) {
         .message-avatar img {
-            width: 36px; /* Even smaller profile pictures for mobile */
+            width: 36px;
             height: 36px;
         }
-
         .message-wrapper {
             padding: 10px 0;
         }
-
         .action-button {
             margin-right: 16px;
         }
-
         .chat-input-wrapper {
             padding: 8px 12px;
         }
-
         .media-preview-item {
             width: 80px;
             height: 80px;
         }
     }
 </style>
+
 </head>
 <body>
     <div class="chat-container">
