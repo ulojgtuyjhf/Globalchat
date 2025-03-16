@@ -1498,6 +1498,77 @@
     window.scrollDebounce = setTimeout(groupConsecutiveMessages, 200);
   });
 </script>
+<script>
+
+(function() {
+  // Create CSS for the loader
+  const style = document.createElement('style');
+  style.textContent = `
+    .tweet-loader {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      margin-left: 8px;
+      border: 2px solid rgba(29, 161, 242, 0.2);
+      border-top: 2px solid #1da1f2;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      vertical-align: middle;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Wait for DOM to be fully loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    initialize();
+  });
+
+  // If DOM is already loaded, initialize immediately
+  if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    initialize();
+  }
+
+  function initialize() {
+    // Find the send button
+    const sendButton = document.getElementById('sendButton');
+    if (!sendButton) {
+      console.error('Send button not found. Make sure the button has id="sendButton".');
+      return;
+    }
+
+    // Add click event listener
+    sendButton.addEventListener('click', function(e) {
+      // Only proceed if button isn't disabled
+      if (!sendButton.disabled) {
+        // Create loader element if it doesn't exist
+        let loader = document.querySelector('.tweet-loader');
+        if (!loader) {
+          loader = document.createElement('div');
+          loader.className = 'tweet-loader';
+          sendButton.parentNode.insertBefore(loader, sendButton.nextSibling);
+        } else {
+          // Show the existing loader
+          loader.style.display = 'inline-block';
+        }
+
+        // Hide loader after 3 seconds (simulating request completion)
+        setTimeout(function() {
+          if (loader) {
+            loader.style.display = 'none';
+          }
+        }, 3000);
+      }
+    });
+  }
+})();
+
+</script>
+
 
 <script type="module" src="chat.js"></script>
 <script src="loadfollow.js"></script>
