@@ -1,5 +1,3 @@
-
-// Enhanced Media Viewer for Global Chat - Professional Edition
 (function() {
     // Core variables
     let activeMedia = null;
@@ -89,9 +87,8 @@
     }
 
     function enhanceExistingMedia() {
-        // Enhance all existing videos and images
+        // Enhance all existing videos
         document.querySelectorAll('.message-video').forEach(setupVideo);
-        document.querySelectorAll('.message-image').forEach(setupImage);
         
         // Create observer for autoplay when in viewport
         const viewportObserver = new IntersectionObserver((entries) => {
@@ -102,8 +99,8 @@
             });
         }, { threshold: 0.5 });
         
-        // Observe all media elements
-        document.querySelectorAll('.message-video, .message-image').forEach(media => {
+        // Observe all video elements
+        document.querySelectorAll('.message-video').forEach(media => {
             viewportObserver.observe(media);
         });
     }
@@ -114,9 +111,8 @@
             mutations.forEach(mutation => {
                 mutation.addedNodes.forEach(node => {
                     if (node.nodeType === 1) { // Element node
-                        // Find and enhance new media
+                        // Find and enhance new videos
                         node.querySelectorAll('.message-video').forEach(setupVideo);
-                        node.querySelectorAll('.message-image').forEach(setupImage);
                     }
                 });
             });
@@ -170,35 +166,6 @@
         
         // Try to start playback
         video.play().catch(() => {});
-    }
-
-    function setupImage(image) {
-        // Style the image for the chat view
-        image.style.cssText = `
-            max-width: 100%;
-            max-height: 400px;
-            border-radius: 16px;
-            object-fit: cover;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transition: transform 0.2s ease;
-        `;
-        
-        // Add hover effect
-        image.addEventListener('mouseenter', () => {
-            image.style.transform = 'scale(1.02)';
-        });
-        
-        image.addEventListener('mouseleave', () => {
-            image.style.transform = 'scale(1)';
-        });
-        
-        // Add click handler for fullscreen
-        image.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            openMediaFullscreen(image);
-        });
     }
 
     function handleVideoVisibility(video, isVisible) {
@@ -276,9 +243,6 @@
             activeMedia.play().catch(error => {
                 console.log('Playback error:', error);
             });
-        } else {
-            // Hide progress bar for images
-            mediaOverlay.querySelector('.gc-video-progress-container').style.display = 'none';
         }
         
         // Animate to full size after a short delay
@@ -453,37 +417,6 @@
             e.preventDefault();
         }
     }
-    
-    
-    // Add double tap to zoom functionality
-    let lastTap = 0;
-    let zoomedIn = false;
-    mediaOverlay.addEventListener('click', (e) => {
-        const currentTime = new Date().getTime();
-        const tapLength = currentTime - lastTap;
-        
-        if (tapLength < 300 && tapLength > 0 && !isDragging && activeMedia && activeMedia.tagName === 'IMG') {
-            // Double tap detected for image
-            if (!zoomedIn) {
-                // Zoom in
-                activeMedia.style.maxWidth = '150vw';
-                activeMedia.style.maxHeight = '150vh';
-                activeMedia.style.objectFit = 'cover';
-                zoomedIn = true;
-            } else {
-                // Zoom out
-                activeMedia.style.maxWidth = '95vw';
-                activeMedia.style.maxHeight = '90vh';
-                activeMedia.style.objectFit = 'contain';
-                zoomedIn = false;
-            }
-        } else if (activeMedia && activeMedia.tagName !== 'VIDEO') {
-            // Single tap on overlay (not on video) should close
-            closeMediaFullscreen();
-        }
-        
-        lastTap = currentTime;
-    });
     
     // Close button
     const closeButton = document.createElement('div');
