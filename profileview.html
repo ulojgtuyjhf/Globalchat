@@ -695,7 +695,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+// Removed firebase storage import since storage is disabled
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -711,7 +711,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
+// Removed firebase storage initialization
 
 // DOM Elements - Main Settings
 const profileSection = document.getElementById('profileSection');
@@ -728,8 +728,8 @@ const logoutBtn = document.getElementById('logoutBtn');
 const editProfileContainer = document.getElementById('editProfileContainer');
 const cancelEditProfile = document.getElementById('cancelEditProfile');
 const saveProfileBtn = document.getElementById('saveProfileBtn');
+// Removed profilePictureInput and its associated functionality
 const editProfileImage = document.getElementById('editProfileImage');
-const profilePictureInput = document.getElementById('profilePictureInput');
 const nameInput = document.getElementById('nameInput');
 const bioInput = document.getElementById('bioInput');
 const bioCharCount = document.getElementById('bioCharCount');
@@ -806,70 +806,7 @@ function initializeEditProfile() {
     });
 }
 
-// Handle Profile Picture Change
-function initializeProfilePictureChange(user) {
-    // Set initial profile picture from localStorage if available
-    const cachedProfilePic = localStorage.getItem(`profilePic_${user.uid}`);
-    if (cachedProfilePic) {
-        profileImage.src = cachedProfilePic;
-        editProfileImage.src = cachedProfilePic;
-    }
-
-    // For file input changes - still available but hidden in the UI
-    profilePictureInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            try {
-                const loadingToast = showLoading();
-                
-                // Convert image to base64 for localStorage
-                const reader = new FileReader();
-                reader.onload = async (event) => {
-                    const base64Image = event.target.result;
-                    
-                    // Save to localStorage
-                    localStorage.setItem(`profilePic_${user.uid}`, base64Image);
-                    
-                    // Preview the image
-                    profileImage.src = base64Image;
-                    editProfileImage.src = base64Image;
-                    
-                    // Also upload to Firebase storage for persistence
-                    try {
-                        const storageRef = ref(storage, `profilePictures/${user.uid}`);
-                        const snapshot = await uploadBytes(storageRef, file);
-                        const photoURL = await getDownloadURL(snapshot.ref);
-                        
-                        // Update user profile in Firebase Auth
-                        await updateProfile(user, { photoURL: photoURL });
-                        
-                        // Update user document in Firestore
-                        const userDocRef = doc(db, 'users', user.uid);
-                        await updateDoc(userDocRef, { photoURL: photoURL });
-                        
-                        hideLoading(loadingToast);
-                        showToast('Profile picture updated!');
-                    } catch (error) {
-                        console.error('Error uploading to Firebase:', error);
-                        hideLoading(loadingToast);
-                        // We still have the local version, so just show a partial success
-                        showToast('Profile picture updated locally!');
-                    }
-                };
-                
-                reader.readAsDataURL(file);
-            } catch (error) {
-                console.error('Error processing image:', error);
-                showToast('Failed to update image. Please try again.');
-            }
-        }
-    });
-    
-    // Clicking on the profile image in edit mode should still open file dialog
-    editProfileImage.addEventListener('click', () => {
-        profilePictureInput.click();
-    });
-}
+// Removed initializeProfilePictureChange since image uploading is disabled
 
 // Bio Input Character Count
 function initializeBioCharCount() {
@@ -879,12 +816,11 @@ function initializeBioCharCount() {
     });
 }
 
-// Save Profile Changes with local storage
+// Save Profile Changes without image update
 async function saveProfileChanges(user) {
     const loadingToast = showLoading();
     const newName = nameInput.value.trim();
     const newBio = bioInput.value.trim();
-    const photoURL = editProfileImage.src;
 
     try {
         // Save to localStorage
@@ -894,17 +830,15 @@ async function saveProfileChanges(user) {
         // Update UI immediately
         profileName.textContent = newName;
         
-        // Update auth profile
+        // Update auth profile without photoURL
         await updateProfile(user, { 
-            displayName: newName,
-            photoURL: photoURL === 'default-profile.png' ? null : photoURL
+            displayName: newName
         });
 
-        // Update firestore document
+        // Update firestore document without photoURL
         await updateDoc(doc(db, 'users', user.uid), {
             displayName: newName,
-            bio: newBio,
-            photoURL: photoURL === 'default-profile.png' ? null : photoURL
+            bio: newBio
         });
 
         editProfileContainer.classList.remove('active');
@@ -913,7 +847,6 @@ async function saveProfileChanges(user) {
     } catch (error) {
         console.error('Error updating profile:', error);
         hideLoading(loadingToast);
-        // We still updated locally, so show partial success
         showToast('Profile updated locally. Some changes may not sync.');
         editProfileContainer.classList.remove('active');
     }
@@ -951,7 +884,6 @@ async function fetchFollowData(user) {
         localStorage.setItem(`followingCount_${user.uid}`, followingSnapshot.size);
     } catch (error) {
         console.error('Error fetching follow data:', error);
-        // We'll keep using the cached data if it exists
     }
 }
 
@@ -965,7 +897,6 @@ function initializeFollowScreens(user) {
         const loadingToast = showLoading();
         
         try {
-            // Check localStorage for cached followers list
             const cachedFollowers = localStorage.getItem(`followersList_${user.uid}`);
             
             if (cachedFollowers) {
@@ -1024,7 +955,6 @@ function initializeFollowScreens(user) {
         const loadingToast = showLoading();
         
         try {
-            // Check localStorage for cached following list
             const cachedFollowing = localStorage.getItem(`followingList_${user.uid}`);
             
             if (cachedFollowing) {
@@ -1084,21 +1014,19 @@ function initializeFollowScreens(user) {
     });
     
     closeFollowing.addEventListener('click', () => {
-      
         followingScreen.classList.remove('active');
     });
 }
 
 // Initialize Settings Buttons - updated to load pages
 function initializeSettingsButtons() {
-    // Map of button IDs to their respective pages
     const settingsPageMap = {
         'accountBtn': 'account.html',
         'privacyBtn': 'privacy.html',
         'chatsBtn': 'chats.html',
         'notificationsBtn': 'notifications.html',
         'storageBtn': 'storage.html',
-        'aboutBtn': 'about.html', // Added about page
+        'aboutBtn': 'about.html',
         'helpBtn': 'help.html'
     };
     
@@ -1108,12 +1036,8 @@ function initializeSettingsButtons() {
         if (button) {
             button.addEventListener('click', () => {
                 const loadingToast = showLoading();
-                
-                // Simulate page loading
                 setTimeout(() => {
                     hideLoading(loadingToast);
-                    
-                    // For now, just show a toast instead of redirecting
                     const title = button.querySelector('.settings-item-title').textContent;
                     showToast(`${title} settings would load ${pagePath}`);
                 }, 500);
@@ -1130,7 +1054,7 @@ function initializeLogout() {
         try {
             await signOut(auth);
             hideLoading(loadingToast);
-            window.location.href = 'login.html'; // Redirect to login page
+            window.location.href = 'login.html';
         } catch (error) {
             console.error('Logout error:', error);
             hideLoading(loadingToast);
@@ -1150,12 +1074,9 @@ function initializePageAnimation() {
 
 // Load user data from local storage first, then update from Firestore
 async function loadUserData(user) {
-    // Check if we have cached data in localStorage
     const cachedName = localStorage.getItem(`displayName_${user.uid}`);
     const cachedBio = localStorage.getItem(`bio_${user.uid}`);
-    const cachedProfilePic = localStorage.getItem(`profilePic_${user.uid}`);
     
-    // Apply cached data first for instant loading
     if (cachedName) {
         profileName.textContent = cachedName;
         nameInput.value = cachedName;
@@ -1169,50 +1090,29 @@ async function loadUserData(user) {
         bioCharCount.textContent = cachedBio.length;
     }
     
-    if (cachedProfilePic) {
-        profileImage.src = cachedProfilePic;
-        editProfileImage.src = cachedProfilePic;
-    } else if (user.photoURL) {
-        profileImage.src = user.photoURL;
-        editProfileImage.src = user.photoURL;
-    } else {
-        profileImage.src = 'default-profile.png';
-        editProfileImage.src = 'default-profile.png';
-    }
+    // Since storage is disabled, set default profile images
+    profileImage.src = 'default-profile.png';
+    editProfileImage.src = 'default-profile.png';
     
     emailDisplay.textContent = user.email || '';
     
-    // Then fetch latest data from Firestore in background
     try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         
         if (userDoc.exists()) {
             const userData = userDoc.data();
-            
-            // Update localStorage with latest data
             localStorage.setItem(`displayName_${user.uid}`, userData.displayName || user.displayName || 'User');
             localStorage.setItem(`bio_${user.uid}`, userData.bio || '');
             
-            if (userData.photoURL) {
-                localStorage.setItem(`profilePic_${user.uid}`, userData.photoURL);
-            }
-            
-            // Update UI with latest data
             profileName.textContent = userData.displayName || user.displayName || 'User';
             nameInput.value = userData.displayName || user.displayName || '';
             bioInput.value = userData.bio || '';
             bioCharCount.textContent = (userData.bio || '').length;
-            
-            if (userData.photoURL) {
-                profileImage.src = userData.photoURL;
-                editProfileImage.src = userData.photoURL;
-            }
         } else {
-            // Create user document if it doesn't exist
             const userData = {
                 displayName: user.displayName || cachedName || 'User',
                 email: user.email,
-                photoURL: user.photoURL || cachedProfilePic || null,
+                photoURL: null,
                 bio: cachedBio || '',
                 createdAt: new Date()
             };
@@ -1221,32 +1121,25 @@ async function loadUserData(user) {
         }
     } catch (error) {
         console.error('Error fetching user data from Firestore:', error);
-        // Continue with cached data
     }
 }
 
 // Authentication State Observer
 onAuthStateChanged(auth, async (user) => {
     if (user) {
-        // Show loading indicator
         const loadingToast = showLoading();
         
         try {
-            // Load user data (with local storage prioritized)
             await loadUserData(user);
-            
-            // Initialize all functionality
             initializeStickyHeader();
             initializeEditProfile();
-            initializeProfilePictureChange(user);
+            // Removed initializeProfilePictureChange(user) call
             initializeBioCharCount();
             initializeFollowScreens(user);
             initializeSettingsButtons();
             initializeLogout();
             fetchFollowData(user);
             initializePageAnimation();
-
-            // Save profile changes event
             saveProfileBtn.addEventListener('click', () => saveProfileChanges(user));
             
             hideLoading(loadingToast);
@@ -1256,7 +1149,6 @@ onAuthStateChanged(auth, async (user) => {
             showToast('An error occurred while loading your profile');
         }
     } else {
-        // Redirect to login if not authenticated
         window.location.href = 'login.html';
     }
 });
@@ -1266,20 +1158,16 @@ document.addEventListener('click', async (e) => {
     const user = auth.currentUser;
     if (!user) return;
 
-    // Handle follow button clicks
     if (e.target.classList.contains('follow-button')) {
         const loadingToast = showLoading();
         const userItem = e.target.closest('.user-list-item');
-        const username = userItem.querySelector('.user-list-item-username').textContent.substring(1); // Remove @ symbol
+        const username = userItem.querySelector('.user-list-item-username').textContent.substring(1);
         
         try {
-            // In a real app, you would implement the follow logic here
-            // For now, just change the button
             e.target.textContent = 'Following';
             e.target.classList.remove('follow-button');
             e.target.classList.add('following-button');
             
-            // Update counts (in a real app this would happen after successful database update)
             const currentCount = parseInt(followingCount.textContent);
             followingCount.textContent = currentCount + 1;
             localStorage.setItem(`followingCount_${user.uid}`, currentCount + 1);
@@ -1293,7 +1181,6 @@ document.addEventListener('click', async (e) => {
         }
     }
     
-    // Handle unfollow (on following-button)
     if (e.target.classList.contains('following-button') || 
         e.target.parentElement.classList.contains('following-button')) {
         
@@ -1302,7 +1189,6 @@ document.addEventListener('click', async (e) => {
         const username = userItem.querySelector('.user-list-item-username').textContent.substring(1);
         
         try {
-            // In a real app, you would implement the unfollow logic here
             const button = e.target.classList.contains('following-button') ? 
                 e.target : e.target.parentElement;
             
@@ -1310,7 +1196,6 @@ document.addEventListener('click', async (e) => {
             button.classList.remove('following-button');
             button.classList.add('follow-button');
             
-            // Update counts (in a real app this would happen after successful database update)
             const currentCount = parseInt(followingCount.textContent);
             if (currentCount > 0) {
                 followingCount.textContent = currentCount - 1;
@@ -1326,7 +1211,6 @@ document.addEventListener('click', async (e) => {
         }
     }
 });
-
 </script>
 <script>
   // Complete Settings iframe loader for all sections - With scroll fix
@@ -1481,4 +1365,102 @@ document.addEventListener('click', async (e) => {
       element.style.display = 'none';
     });
   });
+</script>
+<script>
+(function() {
+  // Define a unique color for each letter A–Z
+  const letterColors = {
+    A: "#1abc9c", B: "#2ecc71", C: "#3498db", D: "#9b59b6", E: "#34495e",
+    F: "#16a085", G: "#27ae60", H: "#2980b9", I: "#8e44ad", J: "#2c3e50",
+    K: "#f1c40f", L: "#e67e22", M: "#e74c3c", N: "#ecf0f1", O: "#95a5a6",
+    P: "#f39c12", Q: "#d35400", R: "#c0392b", S: "#bdc3c7", T: "#7f8c8d",
+    U: "#ff5733", V: "#33ff57", W: "#3357ff", X: "#ff33a6", Y: "#a633ff", Z: "#33fff5"
+  };
+
+  // Generate an avatar image using a canvas
+  function generateLetterAvatar(username) {
+    const trimmed = username.trim();
+    const letter = trimmed.charAt(0).toUpperCase();
+    const color = letterColors[letter] || "#000000";
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = 100;
+    canvas.height = 100;
+    const context = canvas.getContext('2d');
+
+    // Draw background
+    context.fillStyle = color;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw the letter in white
+    context.fillStyle = "#FFFFFF";
+    context.font = "bold 50px Arial";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(letter, canvas.width / 2, canvas.height / 2);
+
+    return canvas.toDataURL("image/png");
+  }
+
+  // Apply the avatar to a specific image element if it's using the default image
+  function applyAvatarIfNeeded(imageElement, username) {
+    if (imageElement) {
+      const currentSrc = imageElement.src;
+      const isDefaultImage = currentSrc.includes('default-profile.png') || currentSrc === '';
+
+      if (isDefaultImage) {
+        // Only apply the avatar if the image is default
+        const avatarDataUrl = generateLetterAvatar(username);
+        imageElement.src = avatarDataUrl;
+      }
+    }
+  }
+
+  // Observe changes to an image element and reapply the avatar if necessary
+  function observeImageChanges(imageElement, username) {
+    if (imageElement) {
+      const observer = new MutationObserver((mutationsList) => {
+        for (const mutation of mutationsList) {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
+            // Reapply the avatar only if the new src is the default image
+            applyAvatarIfNeeded(imageElement, username);
+          }
+        }
+      });
+
+      // Start observing the image for attribute changes
+      observer.observe(imageElement, { attributes: true });
+    }
+  }
+
+  // Initialize the avatar script for both main profile and edit profile
+  function initializeAvatarScript() {
+    const profileNameEl = document.getElementById('profileName');
+    const profileImageEl = document.getElementById('profileImage');
+    const editProfileImageEl = document.getElementById('editProfileImage');
+
+    if (profileNameEl) {
+      const username = profileNameEl.textContent || '';
+
+      // Apply avatar to the main profile image
+      if (profileImageEl) {
+        applyAvatarIfNeeded(profileImageEl, username);
+        observeImageChanges(profileImageEl, username);
+      }
+
+      // Apply avatar to the edit profile image
+      if (editProfileImageEl) {
+        applyAvatarIfNeeded(editProfileImageEl, username);
+        observeImageChanges(editProfileImageEl, username);
+      }
+    }
+  }
+
+  // Run the script after the DOM is fully loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAvatarScript);
+  } else {
+    initializeAvatarScript();
+  }
+})();
 </script>
