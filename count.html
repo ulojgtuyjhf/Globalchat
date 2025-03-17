@@ -467,6 +467,7 @@ html, body {
         </div>
     </div>
 
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getFirestore, collection, query, where, getDocs, getDoc, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -477,7 +478,7 @@ html, body {
     apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
     authDomain: "globalchat-2d669.firebaseapp.com",
     projectId: "globalchat-2d669",
-    storageBucket: "globalchat-2d669.firebasestorage.app",
+    storageBucket: "globalchat-2d669.firebaseapp.com",
     messagingSenderId: "178714711978",
     appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
     measurementId: "G-LYZP41ZJ46"
@@ -812,6 +813,99 @@ html, body {
     setupLazyLoading();
   });
 </script>
+
+
+
+<script>
+// Function to generate letter avatars with unique colors for each letter
+function getLetterAvatar(username) {
+  if (username) {
+    const firstLetter = username.charAt(0).toLowerCase();
+    
+    // Define unique color for each letter of the alphabet
+    const letterColors = {
+      'a': '#FF5733', 'b': '#33FF57', 'c': '#3357FF', 'd': '#F033FF', 'e': '#FF9933',
+      'f': '#33FFF9', 'g': '#8C33FF', 'h': '#FF33A1', 'i': '#33FF99', 'j': '#FF5733',
+      'k': '#337DFF', 'l': '#FF338C', 'm': '#33FFCC', 'n': '#FF33F5', 'o': '#33FFA1',
+      'p': '#8833FF', 'q': '#FF3380', 'r': '#33FFDE', 's': '#FF8833', 't': '#33AAFF',
+      'u': '#C4FF33', 'v': '#FF33DE', 'w': '#33FFB8', 'x': '#FF3357', 'y': '#33FFF1',
+      'z': '#FF33BF'
+    };
+    
+    // Get the color for this letter or default to gray
+    const backgroundColor = letterColors[firstLetter] || '#CCCCCC';
+    
+    // Create canvas for the letter avatar
+    const canvas = document.createElement('canvas');
+    canvas.width = 200;
+    canvas.height = 200;
+    const ctx = canvas.getContext('2d');
+    
+    // Draw background
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw letter
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 100px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(firstLetter.toUpperCase(), canvas.width/2, canvas.height/2);
+    
+    return canvas.toDataURL('image/png');
+  }
+  
+  // Fallback to default avatar
+  return 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
+}
+
+// Function to update avatars on the page
+function updateUserAvatars() {
+  const userCards = document.querySelectorAll('.user-card');
+  
+  userCards.forEach(card => {
+    const userAvatar = card.querySelector('.user-avatar');
+    const userName = card.querySelector('.user-name').textContent;
+    
+    // If the avatar is the default one or broken, replace with letter avatar
+    if (!userAvatar.src || 
+        userAvatar.src.includes('default_profile') || 
+        userAvatar.naturalWidth === 0) {
+      
+      userAvatar.src = getLetterAvatar(userName);
+      
+      // Add error handler to replace broken images
+      userAvatar.onerror = function() {
+        this.src = getLetterAvatar(userName);
+      };
+    }
+  });
+}
+
+// Add the function to the existing event listeners
+document.addEventListener('DOMContentLoaded', () => {
+  // Wait for user data to load
+  const userListObserver = new MutationObserver(() => {
+    updateUserAvatars();
+  });
+  
+  userListObserver.observe(document.getElementById('userList'), { 
+    childList: true,
+    subtree: true
+  });
+  
+  // Also update after the original fetchAvailableUsers completes
+  const originalFetch = window.fetchAvailableUsers;
+  if (originalFetch) {
+    window.fetchAvailableUsers = async function() {
+      await originalFetch();
+      setTimeout(updateUserAvatars, 300);
+    };
+  }
+});
+</script>
+
+
 
 <script src="theme.js"></script>
 
