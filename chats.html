@@ -1,14 +1,699 @@
+
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title></title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Customizer</title>
+    <style>
+        :root {
+            --background: #ffffff;
+            --text: #0f1419;
+            --secondary-text: #536471;
+            --border: #eff3f4;
+            --primary: #1d9bf0;
+            --hover: rgba(29, 155, 240, 0.1);
+            --card-bg: #f7f9f9;
+        }
+
+        [data-theme="dim"] {
+            --background: #15202b;
+            --text: #ffffff;
+            --secondary-text: #8899a6;
+            --border: #38444d;
+            --primary: #1d9bf0;
+            --hover: rgba(29, 155, 240, 0.1);
+            --card-bg: #1e2732;
+        }
+
+        [data-theme="dark"] {
+            --background: #000000;
+            --text: #ffffff;
+            --secondary-text: #71767b;
+            --border: #2f3336;
+            --primary: #1d9bf0;
+            --hover: rgba(29, 155, 240, 0.1);
+            --card-bg: #16181c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: all 0.25s cubic-bezier(0.33, 1, 0.68, 1);
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 100%;
+            padding: 16px;
+            margin: 0 auto;
+        }
+
+        .theme-selector {
+            position: relative;
+            margin-bottom: 24px;
+            max-width: 600px;
+        }
+
+        .theme-btn {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            background-color: var(--background);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 9999px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .theme-btn:hover {
+            background-color: var(--hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .theme-btn:active {
+            transform: translateY(0);
+        }
+
+        .theme-btn-text {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .theme-btn svg {
+            fill: var(--text);
+        }
+
+        .theme-btn .chevron {
+            transition: transform 0.3s ease;
+        }
+
+        .theme-btn .chevron.rotate {
+            transform: rotate(180deg);
+        }
+
+        .theme-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            width: 100%;
+            background-color: var(--background);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            z-index: 100;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(-12px) scale(0.98);
+            visibility: hidden;
+            pointer-events: none;
+            transform-origin: top center;
+            transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.33, 1, 0.68, 1), visibility 0.2s;
+        }
+
+        .theme-dropdown.show {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            visibility: visible;
+            pointer-events: all;
+        }
+
+        .theme-options {
+            padding: 8px;
+        }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            cursor: pointer;
+            border-radius: 12px;
+            margin-bottom: 4px;
+            position: relative;
+            overflow: hidden;
+            transition: background-color 0.2s ease;
+        }
+
+        .theme-option:hover {
+            background-color: var(--hover);
+        }
+
+        .theme-option:active {
+            transform: scale(0.98);
+        }
+
+        .theme-option .color-preview {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 12px;
+            border: 1px solid var(--border);
+            transition: transform 0.3s ease;
+        }
+
+        .theme-option:hover .color-preview {
+            transform: scale(1.1);
+        }
+
+        .light-preview {
+            background-color: #ffffff;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+        }
+
+        .dim-preview {
+            background-color: #15202b;
+        }
+
+        .dark-preview {
+            background-color: #000000;
+        }
+
+        .theme-option .theme-details {
+            flex-grow: 1;
+        }
+
+        .theme-option .theme-name {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        .theme-option .theme-description {
+            color: var(--secondary-text);
+            font-size: 13px;
+        }
+
+        .theme-indicator {
+            position: absolute;
+            right: 16px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: scale(0);
+            transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .theme-indicator svg {
+            width: 14px;
+            height: 14px;
+            fill: var(--primary);
+        }
+
+        .theme-option.active .theme-indicator {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .content-section {
+            margin-bottom: 24px;
+            padding: 20px;
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            max-width: 600px;
+        }
+
+        .content-section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-palettes {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .color-palette {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .color-palette:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .color-palette:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .palette-colors {
+            display: flex;
+            height: 80px;
+        }
+
+        .palette-color {
+            flex: 1;
+        }
+
+        .palette-name {
+            padding: 10px;
+            text-align: center;
+            font-weight: 600;
+            background-color: var(--card-bg);
+            font-size: 14px;
+            position: relative;
+        }
+
+        .palette-selected {
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .palette-selected svg {
+            width: 10px;
+            height: 10px;
+            fill: white;
+        }
+
+        .color-palette.active .palette-selected {
+            display: flex;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(29, 155, 240, 0.4);
+            }
+            100% {
+                box-shadow: 0 0 0 4px rgba(29, 155, 240, 0);
+            }
+        }
+
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+            pointer-events: none;
+        }
+
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .color-palettes {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+        }
+    </style>
 </head>
-
 <body>
-  
-</body>
+    <div class="container">
+        <div class="theme-selector">
+            <button class="theme-btn" id="theme-toggle">
+                <div class="theme-btn-text">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm0-2a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"></path>
+                    </svg>
+                    Display
+                </div>
+                <svg class="chevron" viewBox="0 0 24 24" width="20" height="20">
+                    <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"></path>
+                </svg>
+            </button>
 
-</html>
+            <div class="theme-dropdown" id="theme-dropdown">
+                <div class="theme-options">
+                    <div class="theme-option" data-theme="light">
+                        <div class="color-preview light-preview"></div>
+                        <div class="theme-details">
+                            <div class="theme-name">Default</div>
+                            <div class="theme-description">Light mode</div>
+                        </div>
+                        <div class="theme-indicator">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="theme-option" data-theme="dim">
+                        <div class="color-preview dim-preview"></div>
+                        <div class="theme-details">
+                            <div class="theme-name">Dim</div>
+                            <div class="theme-description">Less bright, easier on the eyes</div>
+                        </div>
+                        <div class="theme-indicator">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="theme-option" data-theme="dark">
+                        <div class="color-preview dark-preview"></div>
+                        <div class="theme-details">
+                            <div class="theme-name">Lights out</div>
+                            <div class="theme-description">Dark mode for night use</div>
+                        </div>
+                        <div class="theme-indicator">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <div class="color-palettes" id="color-palettes">
+                <!-- Color palettes will be added dynamically -->
+            </div>
+        </div>
+    </div>
+
+    
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Theme controls
+        const themeBtn = document.getElementById('theme-toggle');
+        const themeDropdown = document.getElementById('theme-dropdown');
+        const themeOptions = document.querySelectorAll('.theme-option');
+        const chevron = document.querySelector('.chevron');
+        const colorPalettes = document.getElementById('color-palettes');
+        
+        // Brand color palettes
+        const brandPalettes = [
+            {
+                name: "Twitter Blue",
+                colors: ["#1DA1F2", "#AAB8C2", "#E1E8ED", "#F5F8FA", "#FFFFFF"]
+            },
+            {
+                name: "Instagram",
+                colors: ["#405DE6", "#5851DB", "#833AB4", "#C13584", "#E1306C", "#FD1D1D", "#F56040", "#F77737", "#FCAF45", "#FFDC80"]
+            },
+            {
+                name: "Facebook",
+                colors: ["#3b5998", "#8b9dc3", "#dfe3ee", "#f7f7f7", "#ffffff"]
+            },
+            {
+                name: "Spotify",
+                colors: ["#1DB954", "#191414", "#FFFFFF"]
+            },
+            {
+                name: "Discord",
+                colors: ["#5865F2", "#57F287", "#FEE75C", "#EB459E", "#ED4245"]
+            },
+            {
+                name: "Slack",
+                colors: ["#4A154B", "#36C5F0", "#2EB67D", "#ECB22E", "#E01E5A"]
+            },
+            {
+                name: "YouTube",
+                colors: ["#FF0000", "#282828", "#FFFFFF"]
+            },
+            {
+                name: "Pinterest",
+                colors: ["#E60023", "#FFFFFF", "#333333"]
+            },
+            {
+                name: "LinkedIn",
+                colors: ["#0077B5", "#000000", "#313335", "#86888A", "#CACCCE"]
+            },
+            {
+                name: "TikTok",
+                colors: ["#000000", "#25F4EE", "#FE2C55", "#FFFFFF"]
+            },
+            {
+                name: "Snapchat",
+                colors: ["#FFFC00", "#000000", "#FFFFFF"]
+            },
+            {
+                name: "Reddit",
+                colors: ["#FF4500", "#5F99CF", "#CEE3F8"]
+            }
+        ];
+        
+        // Load saved theme from localStorage
+        const savedTheme = localStorage.getItem('twitter-theme') || 'light';
+        setTheme(savedTheme);
+        
+        // Load saved color palette from localStorage
+        const savedPalette = localStorage.getItem('color-palette');
+        
+        // Toggle theme dropdown
+        themeBtn.addEventListener('click', function() {
+            themeDropdown.classList.toggle('show');
+            chevron.classList.toggle('rotate');
+            
+            // Add ripple effect
+            createRipple(event, this);
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!themeBtn.contains(event.target) && !themeDropdown.contains(event.target)) {
+                themeDropdown.classList.remove('show');
+                chevron.classList.remove('rotate');
+            }
+        });
+        
+        // Handle theme selection
+        themeOptions.forEach(option => {
+            option.addEventListener('click', function(event) {
+                const theme = this.getAttribute('data-theme');
+                
+                // Add ripple effect
+                createRipple(event, this);
+                
+                // Set theme with animation
+                setThemeWithAnimation(theme);
+                
+                // Close dropdown with slight delay
+                setTimeout(() => {
+                    themeDropdown.classList.remove('show');
+                    chevron.classList.remove('rotate');
+                }, 300);
+            });
+        });
+        
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('twitter-theme', theme);
+            
+            // Update active class
+            themeOptions.forEach(option => {
+                if (option.getAttribute('data-theme') === theme) {
+                    option.classList.add('active');
+                } else {
+                    option.classList.remove('active');
+                }
+            });
+        }
+        
+        function setThemeWithAnimation(theme) {
+            // First add a class to trigger animation
+            document.body.classList.add('theme-transition');
+            
+            // Set the theme
+            setTheme(theme);
+            
+            // Remove the animation class after transition completes
+            setTimeout(() => {
+                document.body.classList.remove('theme-transition');
+            }, 500);
+        }
+        
+        // Create ripple effect
+        function createRipple(event, element) {
+            const ripple = document.createElement('span');
+            ripple.classList.add('ripple');
+            
+            const rect = element.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            
+            const x = event.clientX - rect.left - size / 2;
+            const y = event.clientY - rect.top - size / 2;
+            
+            ripple.style.width = ripple.style.height = `${size}px`;
+            ripple.style.left = `${x}px`;
+            ripple.style.top = `${y}px`;
+            
+            element.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        }
+        
+        // Generate color palettes
+        brandPalettes.forEach((palette, index) => {
+            const paletteElement = document.createElement('div');
+            paletteElement.className = 'color-palette';
+            paletteElement.dataset.palette = index;
+            
+            // Check if this palette is saved
+            if (savedPalette && savedPalette === index.toString()) {
+                paletteElement.classList.add('active');
+            }
+            
+            const colorsContainer = document.createElement('div');
+            colorsContainer.className = 'palette-colors';
+            
+            // Add colors to palette
+            palette.colors.forEach(color => {
+                const colorElement = document.createElement('div');
+                colorElement.className = 'palette-color';
+                colorElement.style.backgroundColor = color;
+                colorsContainer.appendChild(colorElement);
+            });
+            
+            const paletteName = document.createElement('div');
+            paletteName.className = 'palette-name';
+            paletteName.textContent = palette.name;
+            
+            // Add check icon for selected palette
+            const selectedIcon = document.createElement('div');
+            selectedIcon.className = 'palette-selected';
+            selectedIcon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>';
+            paletteName.appendChild(selectedIcon);
+            
+            paletteElement.appendChild(colorsContainer);
+            paletteElement.appendChild(paletteName);
+            
+            // Add click event to select palette
+            paletteElement.addEventListener('click', function(event) {
+                // Add ripple effect
+                createRipple(event, this);
+                
+                // Save palette selection
+                const paletteIndex = this.dataset.palette;
+                localStorage.setItem('color-palette', paletteIndex);
+                
+                // Update active class
+                document.querySelectorAll('.color-palette').forEach(p => {
+                    p.classList.remove('active');
+                });
+                this.classList.add('active');
+                
+                // Show notification
+                showNotification(`${palette.name} palette selected!`);
+            });
+            
+            colorPalettes.appendChild(paletteElement);
+        });
+        
+        // Show notification
+        function showNotification(message) {
+            // Check if notification container exists
+            let notificationContainer = document.getElementById('notification-container');
+            
+            if (!notificationContainer) {
+                notificationContainer = document.createElement('div');
+                notificationContainer.id = 'notification-container';
+                notificationContainer.style.position = 'fixed';
+                notificationContainer.style.bottom = '20px';
+                notificationContainer.style.left = '50%';
+                notificationContainer.style.transform = 'translateX(-50%)';
+                notificationContainer.style.zIndex = '1000';
+                document.body.appendChild(notificationContainer);
+            }
+            
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.style.backgroundColor = 'var(--card-bg)';
+            notification.style.color = 'var(--text)';
+            notification.style.padding = '12px 20px';
+            notification.style.borderRadius = '8px';
+            notification.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+            notification.style.marginBottom = '10px';
+            notification.style.display = 'flex';
+            notification.style.alignItems = 'center';
+            notification.style.justifyContent = 'center';
+            notification.style.fontSize = '14px';
+            notification.style.fontWeight = '600';
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateY(20px)';
+            notification.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            notification.style.border = '1px solid var(--border)';
+            
+            // Add success icon
+            const icon = document.createElement('div');
+            icon.style.marginRight = '8px';
+            icon.style.color = 'var(--primary)';
+            icon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path></svg>';
+            
+            notification.appendChild(icon);
+            notification.appendChild(document.createTextNode(message));
+            notificationContainer.appendChild(notification);
+            
+            // Trigger animation
+            setTimeout(() => {
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateY(0)';
+            }, 10);
+            
+            // Remove notification after delay
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(-20px)';
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+        
+        // For demonstration, add scroll event listener
+        let lastScrollTop = 0;
+        window.addEventListener('scroll', function() {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            if (scrollTop > lastScrollTop && scrollTop > 300) {
+                themeBtn.classList.add('hide');
+            } else {
+                themeBtn.classList.remove('hide');
+            }
+            
+            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+        });
+        
+        // Initialize active theme indicator
+        themeOptions.forEach(option => {
+            if (option.getAttribute('data-theme') === savedTheme) {
+                option.classList.add('active');
+            }
+        });
+    });
+</script>

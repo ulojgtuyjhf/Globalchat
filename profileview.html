@@ -1212,6 +1212,7 @@ document.addEventListener('click', async (e) => {
     }
 });
 </script>
+
 <script>
   // Complete Settings iframe loader for all sections - With scroll fix
   document.addEventListener('DOMContentLoaded', function() {
@@ -1364,6 +1365,110 @@ document.addEventListener('click', async (e) => {
     loadingElements.forEach(element => {
       element.style.display = 'none';
     });
+
+    // Theme listener functionality - scoped only to iframe containers
+    function applyThemeToIframes(theme) {
+      // Get the theme variables without affecting the main document
+      let bgColor, textColor, lineColor, accentColor;
+      
+      switch(theme) {
+        case 'dim':
+          bgColor = '#15202b';
+          textColor = '#ffffff';
+          lineColor = '#38444d';
+          accentColor = '#1da1f2';
+          break;
+        case 'dark':
+          bgColor = '#000000';
+          textColor = '#ffffff';
+          lineColor = '#2f3336';
+          accentColor = '#1da1f2';
+          break;
+        default: // 'light'
+          bgColor = '#ffffff';
+          textColor = '#0f1419';
+          lineColor = '#eff3f4';
+          accentColor = '#1da1f2';
+      }
+      
+      // Apply theme ONLY to our iframe containers
+      for (const container of Object.values(iframeContainers)) {
+        // Update container background
+        container.style.background = bgColor;
+        
+        // Update header styles
+        const header = container.querySelector('div:first-child');
+        if (header) {
+          header.style.background = bgColor;
+          header.style.borderBottom = `1px solid ${lineColor}`;
+          header.style.color = textColor;
+          
+          // Update back button color to match theme
+          const backBtn = header.querySelector('.backBtn svg path');
+          if (backBtn) {
+            backBtn.setAttribute('fill', accentColor);
+          }
+        }
+        
+        // Handle iframe content if possible (without affecting parent document)
+        try {
+          const iframe = container.querySelector('iframe');
+          if (iframe && iframe.contentDocument) {
+            // Only inject CSS into the iframe, not the parent document
+            const style = iframe.contentDocument.createElement('style');
+            style.textContent = `
+              :root {
+                --twitter-bg: ${bgColor} !important;
+                --twitter-text: ${textColor} !important;
+                --twitter-line: ${lineColor} !important;
+                --twitter-accent: ${accentColor} !important;
+              }
+              
+              body {
+                background-color: ${bgColor} !important;
+                color: ${textColor} !important;
+              }
+              
+              .settings-section {
+                background-color: ${bgColor} !important;
+                border-color: ${lineColor} !important;
+              }
+            `;
+            
+            // Add or replace the style element
+            const existingStyle = iframe.contentDocument.querySelector('style[data-theme-injected]');
+            if (existingStyle) {
+              existingStyle.textContent = style.textContent;
+            } else {
+              style.setAttribute('data-theme-injected', 'true');
+              iframe.contentDocument.head.appendChild(style);
+            }
+          }
+        } catch (e) {
+          // Cross-origin restrictions might prevent access
+          console.log('Could not access iframe content for theme application');
+        }
+      }
+    }
+
+    // Listen for theme changes in localStorage
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'twitter-theme') {
+        applyThemeToIframes(e.newValue);
+      }
+    });
+    
+    // Check for theme changes every second (as backup)
+    let lastKnownTheme = localStorage.getItem('twitter-theme') || 'light';
+    applyThemeToIframes(lastKnownTheme);
+    
+    setInterval(() => {
+      const currentTheme = localStorage.getItem('twitter-theme');
+      if (currentTheme && currentTheme !== lastKnownTheme) {
+        lastKnownTheme = currentTheme;
+        applyThemeToIframes(currentTheme);
+      }
+    }, 1000);
   });
 </script>
 <script>
