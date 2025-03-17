@@ -1328,3 +1328,157 @@ document.addEventListener('click', async (e) => {
 });
 
 </script>
+<script>
+  // Complete Settings iframe loader for all sections - With scroll fix
+  document.addEventListener('DOMContentLoaded', function() {
+    // Map of button IDs to their respective content files
+    const settingsMap = {
+      'accountBtn': 'account.html',
+      'privacyBtn': 'privacy.html',
+      'chatsBtn': 'chats.html',
+      'notificationsBtn': 'notifications.html',
+      'storageBtn': 'storage.html',
+      'aboutBtn': 'about.html',
+      'helpBtn': 'help.html'
+    };
+    
+    // Create iframe container (initially hidden)
+    const createIframeContainer = function(title, contentFile) {
+      const iframeContainer = document.createElement('div');
+      iframeContainer.className = 'settingsIframeContainer';
+      iframeContainer.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--twitter-bg);
+            z-index: 2000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        `;
+      
+      // Create header with back button
+      const frameHeader = document.createElement('div');
+      frameHeader.style.cssText = `
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid var(--twitter-line);
+            background: var(--twitter-bg);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        `;
+      
+      // Add SVG back button
+      frameHeader.innerHTML = `
+            <div class="backBtn" style="margin-right: 20px; cursor: pointer;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 11H7.83L13.42 5.41L12 4L4 12L12 20L13.41 18.59L7.83 13H20V11Z" fill="#1da1f2"/>
+                </svg>
+            </div>
+            <div style="font-size: 18px; font-weight: bold;">${title}</div>
+        `;
+      
+      // Create iframe to load the content
+      const iframe = document.createElement('iframe');
+      iframe.src = contentFile;
+      iframe.style.cssText = `
+            flex: 1;
+            width: 100%;
+            border: none;
+            overflow-y: auto;
+        `;
+      
+      // Assemble the components
+      iframeContainer.appendChild(frameHeader);
+      iframeContainer.appendChild(iframe);
+      document.body.appendChild(iframeContainer);
+      
+      return iframeContainer;
+    };
+    
+    // Create iframe containers for each settings section
+    const iframeContainers = {};
+    
+    for (const [btnId, contentFile] of Object.entries(settingsMap)) {
+      // Get the button element
+      const btn = document.getElementById(btnId);
+      if (!btn) continue;
+      
+      // Extract the title from the button
+      const title = btn.querySelector('.settings-item-title').textContent;
+      
+      // Create iframe container
+      iframeContainers[btnId] = createIframeContainer(title, contentFile);
+      
+      // Add click event listener for the button
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Show iframe container
+        iframeContainers[btnId].style.transform = 'translateX(0)';
+        
+        // Prevent background scrolling
+        document.body.style.overflow = 'hidden';
+        
+        // Prevent any notifications from appearing
+        const toastElements = document.querySelectorAll('.toast');
+        toastElements.forEach(toast => {
+          toast.style.display = 'none';
+        });
+        
+        return false;
+      });
+      
+      // Add click event listener for the back button
+      iframeContainers[btnId].querySelector('.backBtn').addEventListener('click', function() {
+        iframeContainers[btnId].style.transform = 'translateX(100%)';
+        
+        // Re-enable scrolling when iframe is closed
+        setTimeout(() => {
+          document.body.style.overflow = '';
+        }, 300);
+      });
+    }
+    
+    // Handle logout button separately
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // We'll keep the original logout functionality
+        // Just prevent notifications
+        const toastElements = document.querySelectorAll('.toast');
+        toastElements.forEach(toast => {
+          toast.style.display = 'none';
+        });
+        
+        // Redirect to login instead of using the original logout function
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 500);
+        
+        return false;
+      });
+    }
+    
+    // Prevent any notifications from appearing globally
+    const originalShowToast = window.showToast;
+    window.showToast = function() {
+      // Do nothing - effectively blocking toast notifications
+    };
+    
+    // Also prevent loading animations from appearing
+    const loadingElements = document.querySelectorAll('[id*="loading"]');
+    loadingElements.forEach(element => {
+      element.style.display = 'none';
+    });
+  });
+</script>
