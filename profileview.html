@@ -252,22 +252,6 @@
             border: 3px solid var(--twitter-bg);
         }
 
-        .edit-profile-camera-icon {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.5);
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-        }
-
         .edit-profile-form {
             padding: 15px;
         }
@@ -543,6 +527,7 @@
                     <i class="fas fa-user"></i>
                 </div>
                 <div class="settings-item-content">
+                  
                     <div class="settings-item-title">Account</div>
                     <div class="settings-item-subtitle">Security notifications, change number</div>
                 </div>
@@ -603,16 +588,16 @@
                 </div>
             </div>
 
-            <div class="settings-item" id="darkModeBtn">
+            <div class="settings-item" id="aboutBtn">
                 <div class="settings-icon">
-                    <i class="fas fa-moon"></i>
+                    <i class="fas fa-info-circle"></i>
                 </div>
                 <div class="settings-item-content">
-                    <div class="settings-item-title">Dark Mode</div>
-                    <div class="settings-item-subtitle">Toggle dark/light theme</div>
+                    <div class="settings-item-title">About</div>
+                    <div class="settings-item-subtitle">App information, terms and privacy</div>
                 </div>
                 <div class="settings-item-right">
-                    <div class="toggle-switch" id="darkModeSwitch"></div>
+                    <i class="fas fa-chevron-right"></i>
                 </div>
             </div>
 
@@ -651,10 +636,8 @@
 
         <div class="edit-profile-image-container">
             <img id="editProfileImage" src="default-profile.png" alt="Profile" class="edit-profile-image">
-            <div class="edit-profile-camera-icon" id="changeProfilePicture">
-                <i class="fas fa-camera"></i>
-                <input type="file" id="profilePictureInput" style="display:none" accept="image/*">
-            </div>
+            <!-- Camera icon removed as requested -->
+            <input type="file" id="profilePictureInput" style="display:none" accept="image/*">
         </div>
 
         <div class="edit-profile-form">
@@ -705,664 +688,643 @@
     <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
 
-
+    
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-
-    // Firebase Configuration
-    const firebaseConfig = {
-        apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
-        authDomain: "globalchat-2d669.firebaseapp.com",
-        projectId: "globalchat-2d669",
-        storageBucket: "globalchat-2d669.appspot.com",
-        messagingSenderId: "178714711978",
-        appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
-    };
-
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const storage = getStorage(app);
-
-    // DOM Elements - Main Settings
-    const profileSection = document.getElementById('profileSection');
-    const profileImage = document.getElementById('profileImage');
-    const profileName = document.getElementById('profileName');
-    const profileEmail = document.getElementById('profileEmail');
-    const followersCount = document.getElementById('followersCount');
-    const followingCount = document.getElementById('followingCount');
-    const followersBtn = document.getElementById('followersBtn');
-    const followingBtn = document.getElementById('followingBtn');
-    const darkModeSwitch = document.getElementById('darkModeSwitch');
-    const logoutBtn = document.getElementById('logoutBtn');
-
-    // DOM Elements - Edit Profile
-    const editProfileContainer = document.getElementById('editProfileContainer');
-    const cancelEditProfile = document.getElementById('cancelEditProfile');
-    const saveProfileBtn = document.getElementById('saveProfileBtn');
-    const editProfileImage = document.getElementById('editProfileImage');
-    const changeProfilePicture = document.getElementById('changeProfilePicture');
-    const profilePictureInput = document.getElementById('profilePictureInput');
-    const nameInput = document.getElementById('nameInput');
-    const bioInput = document.getElementById('bioInput');
-    const bioCharCount = document.getElementById('bioCharCount');
-    const emailDisplay = document.getElementById('emailDisplay');
-
-    // DOM Elements - Followers/Following Screen
-    const followersScreen = document.getElementById('followersScreen');
-    const followingScreen = document.getElementById('followingScreen');
-    const closeFollowers = document.getElementById('closeFollowers');
-    const closeFollowing = document.getElementById('closeFollowing');
-    const followersBody = document.getElementById('followersBody');
-    const followingBody = document.getElementById('followingBody');
-
-    // DOM Elements - Toast
-    const toast = document.getElementById('toast');
-
-    // Settings page buttons
-    const accountBtn = document.getElementById('accountBtn');
-    const privacyBtn = document.getElementById('privacyBtn');
-    const chatsBtn = document.getElementById('chatsBtn');
-    const notificationsBtn = document.getElementById('notificationsBtn');
-    const storageBtn = document.getElementById('storageBtn');
-    const helpBtn = document.getElementById('helpBtn');
     
-    // Function to show toast notifications
-    function showToast(message, duration = 2000) {
-        toast.textContent = message;
-        toast.classList.add('active');
-        
-        setTimeout(() => {
-            toast.classList.remove('active');
-        }, duration);
-    }
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-    // Loading Animation
-    function showLoading() {
-        const loadingToast = document.createElement('div');
-        loadingToast.id = 'loadingToast';
-        loadingToast.className = 'toast active';
-        loadingToast.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-        document.body.appendChild(loadingToast);
-        return loadingToast;
-    }
+// Firebase Configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+    authDomain: "globalchat-2d669.firebaseapp.com",
+    projectId: "globalchat-2d669",
+    storageBucket: "globalchat-2d669.appspot.com",
+    messagingSenderId: "178714711978",
+    appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
+};
 
-    function hideLoading(loadingElement) {
-        if (loadingElement) {
-            loadingElement.remove();
-        }
-    }
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
 
-    // Sticky Profile Header
-    function initializeStickyHeader() {
-        const header = document.querySelector('.header');
-        const headerHeight = header.offsetHeight;
-        
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > headerHeight) {
-                profileSection.classList.add('sticky');
-            } else {
-                profileSection.classList.remove('sticky');
-            }
-        });
-    }
+// DOM Elements - Main Settings
+const profileSection = document.getElementById('profileSection');
+const profileImage = document.getElementById('profileImage');
+const profileName = document.getElementById('profileName');
+const profileEmail = document.getElementById('profileEmail');
+const followersCount = document.getElementById('followersCount');
+const followingCount = document.getElementById('followingCount');
+const followersBtn = document.getElementById('followersBtn');
+const followingBtn = document.getElementById('followingBtn');
+const logoutBtn = document.getElementById('logoutBtn');
 
-    // Dark Mode Toggle - Now using localStorage
-    function initializeDarkMode() {
-        // Check localStorage for dark mode preference
-        const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
-        
-        if (isDarkMode) {
-            document.body.classList.add('dark-mode');
-            darkModeSwitch.classList.add('active');
+// DOM Elements - Edit Profile
+const editProfileContainer = document.getElementById('editProfileContainer');
+const cancelEditProfile = document.getElementById('cancelEditProfile');
+const saveProfileBtn = document.getElementById('saveProfileBtn');
+const editProfileImage = document.getElementById('editProfileImage');
+const profilePictureInput = document.getElementById('profilePictureInput');
+const nameInput = document.getElementById('nameInput');
+const bioInput = document.getElementById('bioInput');
+const bioCharCount = document.getElementById('bioCharCount');
+const emailDisplay = document.getElementById('emailDisplay');
+
+// DOM Elements - Followers/Following Screen
+const followersScreen = document.getElementById('followersScreen');
+const followingScreen = document.getElementById('followingScreen');
+const closeFollowers = document.getElementById('closeFollowers');
+const closeFollowing = document.getElementById('closeFollowing');
+const followersBody = document.getElementById('followersBody');
+const followingBody = document.getElementById('followingBody');
+
+// DOM Elements - Toast
+const toast = document.getElementById('toast');
+
+// Settings page buttons
+const accountBtn = document.getElementById('accountBtn');
+const privacyBtn = document.getElementById('privacyBtn');
+const chatsBtn = document.getElementById('chatsBtn');
+const notificationsBtn = document.getElementById('notificationsBtn');
+const storageBtn = document.getElementById('storageBtn');
+const aboutBtn = document.getElementById('aboutBtn');
+const helpBtn = document.getElementById('helpBtn');
+
+// Function to show toast notifications
+function showToast(message, duration = 2000) {
+    toast.textContent = message;
+    toast.classList.add('active');
+    
+    setTimeout(() => {
+        toast.classList.remove('active');
+    }, duration);
+}
+
+// Loading Animation
+function showLoading() {
+    const loadingToast = document.createElement('div');
+    loadingToast.id = 'loadingToast';
+    loadingToast.className = 'toast active';
+    loadingToast.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+    document.body.appendChild(loadingToast);
+    return loadingToast;
+}
+
+function hideLoading(loadingElement) {
+    if (loadingElement) {
+        loadingElement.remove();
+    }
+}
+
+// Sticky Profile Header
+function initializeStickyHeader() {
+    const header = document.querySelector('.header');
+    const headerHeight = header.offsetHeight;
+    
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > headerHeight) {
+            profileSection.classList.add('sticky');
         } else {
-            document.body.classList.remove('dark-mode');
-            darkModeSwitch.classList.remove('active');
+            profileSection.classList.remove('sticky');
         }
+    });
+}
 
-        darkModeSwitch.addEventListener('click', function() {
-            this.classList.toggle('active');
-            document.body.classList.toggle('dark-mode');
-            
-            if (document.body.classList.contains('dark-mode')) {
-                localStorage.setItem('darkMode', 'enabled');
-            } else {
-                localStorage.setItem('darkMode', 'disabled');
+// Toggle Edit Profile
+function initializeEditProfile() {
+    profileSection.addEventListener('click', () => {
+        editProfileContainer.classList.add('active');
+    });
+
+    cancelEditProfile.addEventListener('click', () => {
+        editProfileContainer.classList.remove('active');
+    });
+}
+
+// Handle Profile Picture Change
+function initializeProfilePictureChange(user) {
+    // Set initial profile picture from localStorage if available
+    const cachedProfilePic = localStorage.getItem(`profilePic_${user.uid}`);
+    if (cachedProfilePic) {
+        profileImage.src = cachedProfilePic;
+        editProfileImage.src = cachedProfilePic;
+    }
+
+    // For file input changes - still available but hidden in the UI
+    profilePictureInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            try {
+                const loadingToast = showLoading();
+                
+                // Convert image to base64 for localStorage
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const base64Image = event.target.result;
+                    
+                    // Save to localStorage
+                    localStorage.setItem(`profilePic_${user.uid}`, base64Image);
+                    
+                    // Preview the image
+                    profileImage.src = base64Image;
+                    editProfileImage.src = base64Image;
+                    
+                    // Also upload to Firebase storage for persistence
+                    try {
+                        const storageRef = ref(storage, `profilePictures/${user.uid}`);
+                        const snapshot = await uploadBytes(storageRef, file);
+                        const photoURL = await getDownloadURL(snapshot.ref);
+                        
+                        // Update user profile in Firebase Auth
+                        await updateProfile(user, { photoURL: photoURL });
+                        
+                        // Update user document in Firestore
+                        const userDocRef = doc(db, 'users', user.uid);
+                        await updateDoc(userDocRef, { photoURL: photoURL });
+                        
+                        hideLoading(loadingToast);
+                        showToast('Profile picture updated!');
+                    } catch (error) {
+                        console.error('Error uploading to Firebase:', error);
+                        hideLoading(loadingToast);
+                        // We still have the local version, so just show a partial success
+                        showToast('Profile picture updated locally!');
+                    }
+                };
+                
+                reader.readAsDataURL(file);
+            } catch (error) {
+                console.error('Error processing image:', error);
+                showToast('Failed to update image. Please try again.');
             }
-        });
-    }
-
-    // Toggle Edit Profile
-    function initializeEditProfile() {
-        profileSection.addEventListener('click', () => {
-            editProfileContainer.classList.add('active');
-        });
-
-        cancelEditProfile.addEventListener('click', () => {
-            editProfileContainer.classList.remove('active');
-        });
-    }
-
-    // Profile Picture Change with local storage
-    function initializeProfilePictureChange(user) {
-        // Set initial profile picture from localStorage if available
-        const cachedProfilePic = localStorage.getItem(`profilePic_${user.uid}`);
-        if (cachedProfilePic) {
-            profileImage.src = cachedProfilePic;
-            editProfileImage.src = cachedProfilePic;
         }
+    });
+    
+    // Clicking on the profile image in edit mode should still open file dialog
+    editProfileImage.addEventListener('click', () => {
+        profilePictureInput.click();
+    });
+}
 
-        changeProfilePicture.addEventListener('click', () => {
-            profilePictureInput.click();
+// Bio Input Character Count
+function initializeBioCharCount() {
+    bioInput.addEventListener('input', () => {
+        const count = bioInput.value.length;
+        bioCharCount.textContent = count;
+    });
+}
+
+// Save Profile Changes with local storage
+async function saveProfileChanges(user) {
+    const loadingToast = showLoading();
+    const newName = nameInput.value.trim();
+    const newBio = bioInput.value.trim();
+    const photoURL = editProfileImage.src;
+
+    try {
+        // Save to localStorage
+        localStorage.setItem(`displayName_${user.uid}`, newName);
+        localStorage.setItem(`bio_${user.uid}`, newBio);
+        
+        // Update UI immediately
+        profileName.textContent = newName;
+        
+        // Update auth profile
+        await updateProfile(user, { 
+            displayName: newName,
+            photoURL: photoURL === 'default-profile.png' ? null : photoURL
         });
 
-        profilePictureInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                try {
-                    const loadingToast = showLoading();
-                    
-                    // Convert image to base64 for localStorage
-                    const reader = new FileReader();
-                    reader.onload = async (event) => {
-                        const base64Image = event.target.result;
-                        
-                        // Save to localStorage
-                        localStorage.setItem(`profilePic_${user.uid}`, base64Image);
-                        
-                        // Preview the image
-                        profileImage.src = base64Image;
-                        editProfileImage.src = base64Image;
-                        
-                        // Also upload to Firebase storage for persistence
-                        try {
-                            const storageRef = ref(storage, `profilePictures/${user.uid}`);
-                            const snapshot = await uploadBytes(storageRef, file);
-                            const photoURL = await getDownloadURL(snapshot.ref);
-                            
-                            // Update user profile in Firebase Auth
-                            await updateProfile(user, { photoURL: photoURL });
-                            
-                            // Update user document in Firestore
-                            const userDocRef = doc(db, 'users', user.uid);
-                            await updateDoc(userDocRef, { photoURL: photoURL });
-                            
-                            hideLoading(loadingToast);
-                            showToast('Profile picture updated!');
-                        } catch (error) {
-                            console.error('Error uploading to Firebase:', error);
-                            hideLoading(loadingToast);
-                            // We still have the local version, so just show a partial success
-                            showToast('Profile picture updated locally!');
-                        }
-                    };
-                    
-                    reader.readAsDataURL(file);
-                } catch (error) {
-                    console.error('Error processing image:', error);
-                    showToast('Failed to update image. Please try again.');
-                }
-            }
+        // Update firestore document
+        await updateDoc(doc(db, 'users', user.uid), {
+            displayName: newName,
+            bio: newBio,
+            photoURL: photoURL === 'default-profile.png' ? null : photoURL
         });
+
+        editProfileContainer.classList.remove('active');
+        hideLoading(loadingToast);
+        showToast('Profile updated successfully!');
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        hideLoading(loadingToast);
+        // We still updated locally, so show partial success
+        showToast('Profile updated locally. Some changes may not sync.');
+        editProfileContainer.classList.remove('active');
     }
+}
 
-    // Bio Input Character Count
-    function initializeBioCharCount() {
-        bioInput.addEventListener('input', () => {
-            const count = bioInput.value.length;
-            bioCharCount.textContent = count;
-        });
+// Fetch Follow Data with caching
+async function fetchFollowData(user) {
+    // Check localStorage first
+    const cachedFollowersCount = localStorage.getItem(`followersCount_${user.uid}`);
+    const cachedFollowingCount = localStorage.getItem(`followingCount_${user.uid}`);
+    
+    if (cachedFollowersCount) {
+        followersCount.textContent = cachedFollowersCount;
     }
+    
+    if (cachedFollowingCount) {
+        followingCount.textContent = cachedFollowingCount;
+    }
+    
+    try {
+        // Fetch followers count
+        const followersQuery = query(collection(db, 'follows'), 
+            where('followedUserId', '==', user.uid)
+        );
+        const followersSnapshot = await getDocs(followersQuery);
+        followersCount.textContent = followersSnapshot.size;
+        localStorage.setItem(`followersCount_${user.uid}`, followersSnapshot.size);
 
-    // Save Profile Changes with local storage
-    async function saveProfileChanges(user) {
+        // Fetch following count
+        const followingQuery = query(collection(db, 'follows'), 
+            where('followerUserId', '==', user.uid)
+        );
+        const followingSnapshot = await getDocs(followingQuery);
+        followingCount.textContent = followingSnapshot.size;
+        localStorage.setItem(`followingCount_${user.uid}`, followingSnapshot.size);
+    } catch (error) {
+        console.error('Error fetching follow data:', error);
+        // We'll keep using the cached data if it exists
+    }
+}
+
+// Initialize Followers/Following Screen
+function initializeFollowScreens(user) {
+    // Followers screen
+    followersBtn.addEventListener('click', async () => {
+        followersBody.innerHTML = '';
+        followersScreen.classList.add('active');
+        
         const loadingToast = showLoading();
-        const newName = nameInput.value.trim();
-        const newBio = bioInput.value.trim();
-        const photoURL = editProfileImage.src;
-
-        try {
-            // Save to localStorage
-            localStorage.setItem(`displayName_${user.uid}`, newName);
-            localStorage.setItem(`bio_${user.uid}`, newBio);
-            
-            // Update UI immediately
-            profileName.textContent = newName;
-            
-            // Update auth profile
-            await updateProfile(user, { 
-                displayName: newName,
-                photoURL: photoURL === 'default-profile.png' ? null : photoURL
-            });
-
-            // Update firestore document
-            await updateDoc(doc(db, 'users', user.uid), {
-                displayName: newName,
-                bio: newBio,
-                photoURL: photoURL === 'default-profile.png' ? null : photoURL
-            });
-
-            editProfileContainer.classList.remove('active');
-            hideLoading(loadingToast);
-            showToast('Profile updated successfully!');
-        } catch (error) {
-            console.error('Error updating profile:', error);
-            hideLoading(loadingToast);
-            // We still updated locally, so show partial success
-            showToast('Profile updated locally. Some changes may not sync.');
-            editProfileContainer.classList.remove('active');
-        }
-    }
-
-    // Fetch Follow Data with caching
-    async function fetchFollowData(user) {
-        // Check localStorage first
-        const cachedFollowersCount = localStorage.getItem(`followersCount_${user.uid}`);
-        const cachedFollowingCount = localStorage.getItem(`followingCount_${user.uid}`);
-        
-        if (cachedFollowersCount) {
-            followersCount.textContent = cachedFollowersCount;
-        }
-        
-        if (cachedFollowingCount) {
-            followingCount.textContent = cachedFollowingCount;
-        }
         
         try {
-            // Fetch followers count
+            // Check localStorage for cached followers list
+            const cachedFollowers = localStorage.getItem(`followersList_${user.uid}`);
+            
+            if (cachedFollowers) {
+                followersBody.innerHTML = cachedFollowers;
+            } else {
+                followersBody.innerHTML = '<div class="no-results">Loading followers...</div>';
+            }
+            
             const followersQuery = query(collection(db, 'follows'), 
                 where('followedUserId', '==', user.uid)
             );
             const followersSnapshot = await getDocs(followersQuery);
-            followersCount.textContent = followersSnapshot.size;
-            localStorage.setItem(`followersCount_${user.uid}`, followersSnapshot.size);
+            
+            if (followersSnapshot.empty) {
+                followersBody.innerHTML = '<div class="no-results">No followers yet</div>';
+                localStorage.setItem(`followersList_${user.uid}`, followersBody.innerHTML);
+            } else {
+                let followersHTML = '';
+                
+                for (const followDoc of followersSnapshot.docs) {
+                    const followerData = followDoc.data();
+                    const followerUserDoc = await getDoc(doc(db, 'users', followerData.followerUserId));
+                    
+                    if (followerUserDoc.exists()) {
+                        const userData = followerUserDoc.data();
+                        followersHTML += `
+                            <div class="user-list-item">
+                                <img src="${userData.photoURL || 'default-profile.png'}" alt="Profile">
+                                <div class="user-list-item-info">
+                                    <div class="user-list-item-name">${userData.displayName || 'User'}</div>
+                                    <div class="user-list-item-username">@${userData.displayName?.toLowerCase().replace(/\s/g, '') || 'user'}</div>
+                                </div>
+                                <button class="follow-button">Follow</button>
+                            </div>
+                        `;
+                    }
+                }
+                
+                followersBody.innerHTML = followersHTML;
+                localStorage.setItem(`followersList_${user.uid}`, followersHTML);
+            }
+            
+            hideLoading(loadingToast);
+        } catch (error) {
+            console.error('Error fetching followers:', error);
+            followersBody.innerHTML = '<div class="no-results">Error loading followers</div>';
+            hideLoading(loadingToast);
+        }
+    });
 
-            // Fetch following count
+    // Following screen
+    followingBtn.addEventListener('click', async () => {
+        followingBody.innerHTML = '';
+        followingScreen.classList.add('active');
+        
+        const loadingToast = showLoading();
+        
+        try {
+            // Check localStorage for cached following list
+            const cachedFollowing = localStorage.getItem(`followingList_${user.uid}`);
+            
+            if (cachedFollowing) {
+                followingBody.innerHTML = cachedFollowing;
+            } else {
+                followingBody.innerHTML = '<div class="no-results">Loading following...</div>';
+            }
+            
             const followingQuery = query(collection(db, 'follows'), 
                 where('followerUserId', '==', user.uid)
             );
             const followingSnapshot = await getDocs(followingQuery);
-            followingCount.textContent = followingSnapshot.size;
-            localStorage.setItem(`followingCount_${user.uid}`, followingSnapshot.size);
-        } catch (error) {
-            console.error('Error fetching follow data:', error);
-            // We'll keep using the cached data if it exists
-        }
-    }
-
-    // Initialize Followers/Following Screen
-    function initializeFollowScreens(user) {
-        // Followers screen
-        followersBtn.addEventListener('click', async () => {
-            followersBody.innerHTML = '';
-            followersScreen.classList.add('active');
             
-            const loadingToast = showLoading();
-            
-            try {
-                // Check localStorage for cached followers list
-                const cachedFollowers = localStorage.getItem(`followersList_${user.uid}`);
-                
-                if (cachedFollowers) {
-                    followersBody.innerHTML = cachedFollowers;
-                } else {
-                    followersBody.innerHTML = '<div class="no-results">Loading followers...</div>';
-                }
-                
-                const followersQuery = query(collection(db, 'follows'), 
-                    where('followedUserId', '==', user.uid)
-                );
-                const followersSnapshot = await getDocs(followersQuery);
-                
-                if (followersSnapshot.empty) {
-                    followersBody.innerHTML = '<div class="no-results">No followers yet</div>';
-                    localStorage.setItem(`followersList_${user.uid}`, followersBody.innerHTML);
-                } else {
-                    let followersHTML = '';
-                    
-                    for (const followDoc of followersSnapshot.docs) {
-                        const followerData = followDoc.data();
-                        const followerUserDoc = await getDoc(doc(db, 'users', followerData.followerUserId));
-                        
-                        if (followerUserDoc.exists()) {
-                            const userData = followerUserDoc.data();
-                            followersHTML += `
-                                <div class="user-list-item">
-                                    <img src="${userData.photoURL || 'default-profile.png'}" alt="Profile">
-                                    <div class="user-list-item-info">
-                                        <div class="user-list-item-name">${userData.displayName || 'User'}</div>
-                                        <div class="user-list-item-username">@${userData.displayName?.toLowerCase().replace(/\s/g, '') || 'user'}</div>
-                                    </div>
-                                    <button class="follow-button">Follow</button>
-                                </div>
-                            `;
-                        }
-                    }
-                    
-                    followersBody.innerHTML = followersHTML;
-                    localStorage.setItem(`followersList_${user.uid}`, followersHTML);
-                }
-                
-                hideLoading(loadingToast);
-            } catch (error) {
-                console.error('Error fetching followers:', error);
-                followersBody.innerHTML = '<div class="no-results">Error loading followers</div>';
-                hideLoading(loadingToast);
-            }
-        });
-
-        // Following screen
-        followingBtn.addEventListener('click', async () => {
-            followingBody.innerHTML = '';
-            followingScreen.classList.add('active');
-            
-            const loadingToast = showLoading();
-            
-            try {
-                // Check localStorage for cached following list
-                const cachedFollowing = localStorage.getItem(`followingList_${user.uid}`);
-                
-                if (cachedFollowing) {
-                    followingBody.innerHTML = cachedFollowing;
-                } else {
-                    followingBody.innerHTML = '<div class="no-results">Loading following...</div>';
-                }
-                
-                const followingQuery = query(collection(db, 'follows'), 
-                    where('followerUserId', '==', user.uid)
-                );
-                const followingSnapshot = await getDocs(followingQuery);
-                
-                if (followingSnapshot.empty) {
-                    followingBody.innerHTML = '<div class="no-results">Not following anyone yet</div>';
-                    localStorage.setItem(`followingList_${user.uid}`, followingBody.innerHTML);
-                } else {
-                    let followingHTML = '';
-                    
-                    for (const followDoc of followingSnapshot.docs) {
-                        const followingData = followDoc.data();
-                        const followedUserDoc = await getDoc(doc(db, 'users', followingData.followedUserId));
-                        
-                        if (followedUserDoc.exists()) {
-                            const userData = followedUserDoc.data();
-                            followingHTML += `
-                                <div class="user-list-item">
-                                    <img src="${userData.photoURL || 'default-profile.png'}" alt="Profile">
-                                    <div class="user-list-item-info">
-                                        <div class="user-list-item-name">${userData.displayName || 'User'}</div>
-                                        <div class="user-list-item-username">@${userData.displayName?.toLowerCase().replace(/\s/g, '') || 'user'}</div>
-                                    </div>
-                                    <button class="following-button">
-                                        <span class="follow-text">Following</span>
-                                        <span class="unfollow-text">Unfollow</span>
-                                    </button>
-                                </div>
-                            `;
-                        }
-                    }
-                    
-                    followingBody.innerHTML = followingHTML;
-                    localStorage.setItem(`followingList_${user.uid}`, followingHTML);
-                }
-                
-                hideLoading(loadingToast);
-            } catch (error) {
-                console.error('Error fetching following:', error);
-                followingBody.innerHTML = '<div class="no-results">Error loading following</div>';
-                hideLoading(loadingToast);
-            }
-        });
-
-        // Close buttons
-        closeFollowers.addEventListener('click', () => {
-            followersScreen.classList.remove('active');
-        });
-        
-        closeFollowing.addEventListener('click', () => {
-            followingScreen.classList.remove('active');
-        });
-    }
-
-    // Initialize Settings Buttons - updated to load pages
-    function initializeSettingsButtons() {
-        // Map of button IDs to their respective pages
-        const settingsPageMap = {
-            'accountBtn': 'account.html',
-            'privacyBtn': 'privacy.html',
-            'chatsBtn': 'chats.html',
-            'notificationsBtn': 'notifications.html',
-            'storageBtn': 'storage.html',
-            'helpBtn': 'help.html'
-        };
-        
-        for (const [buttonId, pagePath] of Object.entries(settingsPageMap)) {
-            const button = document.getElementById(buttonId);
-            
-            if (button) {
-                button.addEventListener('click', () => {
-                    const loadingToast = showLoading();
-                    
-                    // Simulate page loading
-                    setTimeout(() => {
-                        hideLoading(loadingToast);
-                        
-                        // For now, just show a toast instead of redirecting
-                        const title = button.querySelector('.settings-item-title').textContent;
-                        showToast(`${title} settings would load ${pagePath}`);
-                    }, 500);
-                });
-            }
-        }
-    }
-
-    // Logout
-    function initializeLogout() {
-        logoutBtn.addEventListener('click', async () => {
-            const loadingToast = showLoading();
-            
-            try {
-                await signOut(auth);
-                hideLoading(loadingToast);
-                window.location.href = 'login.html'; // Redirect to login page
-            } catch (error) {
-                console.error('Logout error:', error);
-                hideLoading(loadingToast);
-                showToast('Failed to log out. Please try again.');
-            }
-        });
-    }
-
-    // Page Animation
-    function initializePageAnimation() {
-        document.body.style.opacity = '0';
-        setTimeout(() => {
-            document.body.style.transition = 'opacity 0.3s ease';
-            document.body.style.opacity = '1';
-        }, 100);
-    }
-
-    // Load user data from local storage first, then update from Firestore
-    async function loadUserData(user) {
-        // Check if we have cached data in localStorage
-        const cachedName = localStorage.getItem(`displayName_${user.uid}`);
-        const cachedBio = localStorage.getItem(`bio_${user.uid}`);
-        const cachedProfilePic = localStorage.getItem(`profilePic_${user.uid}`);
-        
-        // Apply cached data first for instant loading
-        if (cachedName) {
-            profileName.textContent = cachedName;
-            nameInput.value = cachedName;
-        } else {
-            profileName.textContent = user.displayName || 'User';
-            nameInput.value = user.displayName || '';
-        }
-        
-        if (cachedBio) {
-            bioInput.value = cachedBio;
-            bioCharCount.textContent = cachedBio.length;
-        }
-        
-        if (cachedProfilePic) {
-            profileImage.src = cachedProfilePic;
-            editProfileImage.src = cachedProfilePic;
-        } else if (user.photoURL) {
-            profileImage.src = user.photoURL;
-            editProfileImage.src = user.photoURL;
-        } else {
-            profileImage.src = 'default-profile.png';
-            editProfileImage.src = 'default-profile.png';
-        }
-        
-        emailDisplay.textContent = user.email || '';
-        
-        // Then fetch latest data from Firestore in background
-        try {
-            const userDoc = await getDoc(doc(db, 'users', user.uid));
-            
-            if (userDoc.exists()) {
-                const userData = userDoc.data();
-                
-                // Update localStorage with latest data
-                localStorage.setItem(`displayName_${user.uid}`, userData.displayName || user.displayName || 'User');
-                localStorage.setItem(`bio_${user.uid}`, userData.bio || '');
-                
-                if (userData.photoURL) {
-                    localStorage.setItem(`profilePic_${user.uid}`, userData.photoURL);
-                }
-                
-                // Update UI with latest data
-                profileName.textContent = userData.displayName || user.displayName || 'User';
-                nameInput.value = userData.displayName || user.displayName || '';
-                bioInput.value = userData.bio || '';
-                bioCharCount.textContent = (userData.bio || '').length;
-                
-                if (userData.photoURL) {
-                    profileImage.src = userData.photoURL;
-                    editProfileImage.src = userData.photoURL;
-                }
+            if (followingSnapshot.empty) {
+                followingBody.innerHTML = '<div class="no-results">Not following anyone yet</div>';
+                localStorage.setItem(`followingList_${user.uid}`, followingBody.innerHTML);
             } else {
-                // Create user document if it doesn't exist
-                const userData = {
-                    displayName: user.displayName || cachedName || 'User',
-                    email: user.email,
-                    photoURL: user.photoURL || cachedProfilePic || null,
-                    bio: cachedBio || '',
-                    createdAt: new Date()
-                };
+                let followingHTML = '';
                 
-                await updateDoc(doc(db, 'users', user.uid), userData);
-            }
-        } catch (error) {
-            console.error('Error fetching user data from Firestore:', error);
-            // Continue with cached data
-        }
-    }
-
-    // Authentication State Observer
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            // Show loading indicator
-            const loadingToast = showLoading();
-            
-            try {
-                // Load user data (with local storage prioritized)
-                await loadUserData(user);
-                
-                // Initialize all functionality
-                initializeStickyHeader();
-                initializeDarkMode();
-                initializeEditProfile();
-                initializeProfilePictureChange(user);
-                initializeBioCharCount();
-                initializeFollowScreens(user);
-                initializeSettingsButtons();
-                initializeLogout();
-                fetchFollowData(user);
-                initializePageAnimation();
-
-                // Save profile changes event
-                saveProfileBtn.addEventListener('click', () => saveProfileChanges(user));
-                
-                hideLoading(loadingToast);
-            } catch (error) {
-                console.error('Error initializing app:', error);
-                hideLoading(loadingToast);
-                showToast('An error occurred while loading your profile');
-            }
-        } else {
-            // Redirect to login if not authenticated
-            window.location.href = 'login.html';
-        }
-    });
-
-    // Handle follow/unfollow actions
-    document.addEventListener('click', async (e) => {
-        const user = auth.currentUser;
-        if (!user) return;
-
-        // Handle follow button clicks
-        if (e.target.classList.contains('follow-button')) {
-            const loadingToast = showLoading();
-            const userItem = e.target.closest('.user-list-item');
-            const username = userItem.querySelector('.user-list-item-username').textContent.substring(1); // Remove @ symbol
-            
-            try {
-                // In a real app, you would implement the follow logic here
-                // For now, just change the button
-                e.target.textContent = 'Following';
-                e.target.classList.remove('follow-button');
-                e.target.classList.add('following-button');
-                
-                // Update counts (in a real app this would happen after successful database update)
-                const currentCount = parseInt(followingCount.textContent);
-                followingCount.textContent = currentCount + 1;
-                localStorage.setItem(`followingCount_${user.uid}`, currentCount + 1);
-                
-                hideLoading(loadingToast);
-                showToast(`You are now following ${username}`);
-            } catch (error) {
-                console.error('Error following user:', error);
-                hideLoading(loadingToast);
-                showToast('Failed to follow user. Please try again.');
-            }
-        }
-        
-        // Handle unfollow (on following-button)
-        if (e.target.classList.contains('following-button') || 
-            e.target.parentElement.classList.contains('following-button')) {
-            
-            const loadingToast = showLoading();
-            const userItem = e.target.closest('.user-list-item');
-            const username = userItem.querySelector('.user-list-item-username').textContent.substring(1);
-            
-            try {
-                // In a real app, you would implement the unfollow logic here
-                const button = e.target.classList.contains('following-button') ? 
-                    e.target : e.target.parentElement;
-                
-                button.innerHTML = 'Follow';
-                button.classList.remove('following-button');
-                button.classList.add('follow-button');
-                
-                // Update counts (in a real app this would happen after successful database update)
-                const currentCount = parseInt(followingCount.textContent);
-                if (currentCount > 0) {
-                    followingCount.textContent = currentCount - 1;
-                    localStorage.setItem(`followingCount_${user.uid}`, currentCount - 1);
+                for (const followDoc of followingSnapshot.docs) {
+                    const followingData = followDoc.data();
+                    const followedUserDoc = await getDoc(doc(db, 'users', followingData.followedUserId));
+                    
+                    if (followedUserDoc.exists()) {
+                        const userData = followedUserDoc.data();
+                        followingHTML += `
+                            <div class="user-list-item">
+                                <img src="${userData.photoURL || 'default-profile.png'}" alt="Profile">
+                                <div class="user-list-item-info">
+                                    <div class="user-list-item-name">${userData.displayName || 'User'}</div>
+                                    <div class="user-list-item-username">@${userData.displayName?.toLowerCase().replace(/\s/g, '') || 'user'}</div>
+                                </div>
+                                <button class="following-button">
+                                    <span class="follow-text">Following</span>
+                                    <span class="unfollow-text">Unfollow</span>
+                                </button>
+                            </div>
+                        `;
+                    }
                 }
                 
-                hideLoading(loadingToast);
-                showToast(`You have unfollowed ${username}`);
-            } catch (error) {
-                console.error('Error unfollowing user:', error);
-                hideLoading(loadingToast);
-                showToast('Failed to unfollow user. Please try again.');
+                followingBody.innerHTML = followingHTML;
+                localStorage.setItem(`followingList_${user.uid}`, followingHTML);
             }
+            
+            hideLoading(loadingToast);
+        } catch (error) {
+            console.error('Error fetching following:', error);
+            followingBody.innerHTML = '<div class="no-results">Error loading following</div>';
+            hideLoading(loadingToast);
         }
     });
+
+    // Close buttons
+    closeFollowers.addEventListener('click', () => {
+        followersScreen.classList.remove('active');
+    });
+    
+    closeFollowing.addEventListener('click', () => {
+      
+        followingScreen.classList.remove('active');
+    });
+}
+
+// Initialize Settings Buttons - updated to load pages
+function initializeSettingsButtons() {
+    // Map of button IDs to their respective pages
+    const settingsPageMap = {
+        'accountBtn': 'account.html',
+        'privacyBtn': 'privacy.html',
+        'chatsBtn': 'chats.html',
+        'notificationsBtn': 'notifications.html',
+        'storageBtn': 'storage.html',
+        'aboutBtn': 'about.html', // Added about page
+        'helpBtn': 'help.html'
+    };
+    
+    for (const [buttonId, pagePath] of Object.entries(settingsPageMap)) {
+        const button = document.getElementById(buttonId);
+        
+        if (button) {
+            button.addEventListener('click', () => {
+                const loadingToast = showLoading();
+                
+                // Simulate page loading
+                setTimeout(() => {
+                    hideLoading(loadingToast);
+                    
+                    // For now, just show a toast instead of redirecting
+                    const title = button.querySelector('.settings-item-title').textContent;
+                    showToast(`${title} settings would load ${pagePath}`);
+                }, 500);
+            });
+        }
+    }
+}
+
+// Logout
+function initializeLogout() {
+    logoutBtn.addEventListener('click', async () => {
+        const loadingToast = showLoading();
+        
+        try {
+            await signOut(auth);
+            hideLoading(loadingToast);
+            window.location.href = 'login.html'; // Redirect to login page
+        } catch (error) {
+            console.error('Logout error:', error);
+            hideLoading(loadingToast);
+            showToast('Failed to log out. Please try again.');
+        }
+    });
+}
+
+// Page Animation
+function initializePageAnimation() {
+    document.body.style.opacity = '0';
+    setTimeout(() => {
+        document.body.style.transition = 'opacity 0.3s ease';
+        document.body.style.opacity = '1';
+    }, 100);
+}
+
+// Load user data from local storage first, then update from Firestore
+async function loadUserData(user) {
+    // Check if we have cached data in localStorage
+    const cachedName = localStorage.getItem(`displayName_${user.uid}`);
+    const cachedBio = localStorage.getItem(`bio_${user.uid}`);
+    const cachedProfilePic = localStorage.getItem(`profilePic_${user.uid}`);
+    
+    // Apply cached data first for instant loading
+    if (cachedName) {
+        profileName.textContent = cachedName;
+        nameInput.value = cachedName;
+    } else {
+        profileName.textContent = user.displayName || 'User';
+        nameInput.value = user.displayName || '';
+    }
+    
+    if (cachedBio) {
+        bioInput.value = cachedBio;
+        bioCharCount.textContent = cachedBio.length;
+    }
+    
+    if (cachedProfilePic) {
+        profileImage.src = cachedProfilePic;
+        editProfileImage.src = cachedProfilePic;
+    } else if (user.photoURL) {
+        profileImage.src = user.photoURL;
+        editProfileImage.src = user.photoURL;
+    } else {
+        profileImage.src = 'default-profile.png';
+        editProfileImage.src = 'default-profile.png';
+    }
+    
+    emailDisplay.textContent = user.email || '';
+    
+    // Then fetch latest data from Firestore in background
+    try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        
+        if (userDoc.exists()) {
+            const userData = userDoc.data();
+            
+            // Update localStorage with latest data
+            localStorage.setItem(`displayName_${user.uid}`, userData.displayName || user.displayName || 'User');
+            localStorage.setItem(`bio_${user.uid}`, userData.bio || '');
+            
+            if (userData.photoURL) {
+                localStorage.setItem(`profilePic_${user.uid}`, userData.photoURL);
+            }
+            
+            // Update UI with latest data
+            profileName.textContent = userData.displayName || user.displayName || 'User';
+            nameInput.value = userData.displayName || user.displayName || '';
+            bioInput.value = userData.bio || '';
+            bioCharCount.textContent = (userData.bio || '').length;
+            
+            if (userData.photoURL) {
+                profileImage.src = userData.photoURL;
+                editProfileImage.src = userData.photoURL;
+            }
+        } else {
+            // Create user document if it doesn't exist
+            const userData = {
+                displayName: user.displayName || cachedName || 'User',
+                email: user.email,
+                photoURL: user.photoURL || cachedProfilePic || null,
+                bio: cachedBio || '',
+                createdAt: new Date()
+            };
+            
+            await updateDoc(doc(db, 'users', user.uid), userData);
+        }
+    } catch (error) {
+        console.error('Error fetching user data from Firestore:', error);
+        // Continue with cached data
+    }
+}
+
+// Authentication State Observer
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        // Show loading indicator
+        const loadingToast = showLoading();
+        
+        try {
+            // Load user data (with local storage prioritized)
+            await loadUserData(user);
+            
+            // Initialize all functionality
+            initializeStickyHeader();
+            initializeEditProfile();
+            initializeProfilePictureChange(user);
+            initializeBioCharCount();
+            initializeFollowScreens(user);
+            initializeSettingsButtons();
+            initializeLogout();
+            fetchFollowData(user);
+            initializePageAnimation();
+
+            // Save profile changes event
+            saveProfileBtn.addEventListener('click', () => saveProfileChanges(user));
+            
+            hideLoading(loadingToast);
+        } catch (error) {
+            console.error('Error initializing app:', error);
+            hideLoading(loadingToast);
+            showToast('An error occurred while loading your profile');
+        }
+    } else {
+        // Redirect to login if not authenticated
+        window.location.href = 'login.html';
+    }
+});
+
+// Handle follow/unfollow actions
+document.addEventListener('click', async (e) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    // Handle follow button clicks
+    if (e.target.classList.contains('follow-button')) {
+        const loadingToast = showLoading();
+        const userItem = e.target.closest('.user-list-item');
+        const username = userItem.querySelector('.user-list-item-username').textContent.substring(1); // Remove @ symbol
+        
+        try {
+            // In a real app, you would implement the follow logic here
+            // For now, just change the button
+            e.target.textContent = 'Following';
+            e.target.classList.remove('follow-button');
+            e.target.classList.add('following-button');
+            
+            // Update counts (in a real app this would happen after successful database update)
+            const currentCount = parseInt(followingCount.textContent);
+            followingCount.textContent = currentCount + 1;
+            localStorage.setItem(`followingCount_${user.uid}`, currentCount + 1);
+            
+            hideLoading(loadingToast);
+            showToast(`You are now following ${username}`);
+        } catch (error) {
+            console.error('Error following user:', error);
+            hideLoading(loadingToast);
+            showToast('Failed to follow user. Please try again.');
+        }
+    }
+    
+    // Handle unfollow (on following-button)
+    if (e.target.classList.contains('following-button') || 
+        e.target.parentElement.classList.contains('following-button')) {
+        
+        const loadingToast = showLoading();
+        const userItem = e.target.closest('.user-list-item');
+        const username = userItem.querySelector('.user-list-item-username').textContent.substring(1);
+        
+        try {
+            // In a real app, you would implement the unfollow logic here
+            const button = e.target.classList.contains('following-button') ? 
+                e.target : e.target.parentElement;
+            
+            button.innerHTML = 'Follow';
+            button.classList.remove('following-button');
+            button.classList.add('follow-button');
+            
+            // Update counts (in a real app this would happen after successful database update)
+            const currentCount = parseInt(followingCount.textContent);
+            if (currentCount > 0) {
+                followingCount.textContent = currentCount - 1;
+                localStorage.setItem(`followingCount_${user.uid}`, currentCount - 1);
+            }
+            
+            hideLoading(loadingToast);
+            showToast(`You have unfollowed ${username}`);
+        } catch (error) {
+            console.error('Error unfollowing user:', error);
+            hideLoading(loadingToast);
+            showToast('Failed to unfollow user. Please try again.');
+        }
+    }
+});
+
 </script>
