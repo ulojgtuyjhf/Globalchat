@@ -1433,7 +1433,23 @@ document.addEventListener('click', async (e) => {
     }
   }
 
-  // Initialize the avatar script for both main profile and edit profile
+  // Apply avatars to all user profile images in the Followers and Following lists
+  function applyAvatarsToUserLists() {
+    const userListItems = document.querySelectorAll('.user-list-item');
+
+    userListItems.forEach((userItem) => {
+      const profileImageEl = userItem.querySelector('img');
+      const usernameEl = userItem.querySelector('.user-list-item-name');
+
+      if (profileImageEl && usernameEl) {
+        const username = usernameEl.textContent || '';
+        applyAvatarIfNeeded(profileImageEl, username);
+        observeImageChanges(profileImageEl, username);
+      }
+    });
+  }
+
+  // Initialize the avatar script for all relevant images
   function initializeAvatarScript() {
     const profileNameEl = document.getElementById('profileName');
     const profileImageEl = document.getElementById('profileImage');
@@ -1453,6 +1469,23 @@ document.addEventListener('click', async (e) => {
         applyAvatarIfNeeded(editProfileImageEl, username);
         observeImageChanges(editProfileImageEl, username);
       }
+    }
+
+    // Apply avatars to users in the Followers and Following lists
+    applyAvatarsToUserLists();
+
+    // Observe dynamic changes to the Followers and Following lists
+    const followersBody = document.getElementById('followersBody');
+    const followingBody = document.getElementById('followingBody');
+
+    if (followersBody) {
+      const followersObserver = new MutationObserver(applyAvatarsToUserLists);
+      followersObserver.observe(followersBody, { childList: true, subtree: true });
+    }
+
+    if (followingBody) {
+      const followingObserver = new MutationObserver(applyAvatarsToUserLists);
+      followingObserver.observe(followingBody, { childList: true, subtree: true });
     }
   }
 
