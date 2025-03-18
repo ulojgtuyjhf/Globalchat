@@ -1615,3 +1615,219 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 })();
 </script>
+
+
+<script>
+  (function() {
+    // Force theme application with higher specificity and !important flags
+    const applyThemeWithForce = function(themeName) {
+      // Define themes with more specific values
+      const themes = {
+        light: {
+          bg: '#ffffff',
+          card: '#f7f9fa',
+          line: '#ebeef0',
+          text: '#14171a',
+          secondaryText: '#657786',
+          border: '#ebeef0',
+          blue: '#1da1f2',
+          lightBlue: '#1a91da',
+          button: '#1da1f2',
+          buttonHover: '#1a91da',
+          hover: 'rgba(29, 161, 242, 0.1)',
+          shadow: '0 0 10px rgba(0, 0, 0, 0.1)'
+        },
+        dim: {
+          bg: '#15202b',
+          card: '#192734',
+          line: '#38444d',
+          text: '#ffffff',
+          secondaryText: '#8899a6',
+          border: '#38444d',
+          blue: '#1da1f2',
+          lightBlue: '#1a91da',
+          button: '#1da1f2',
+          buttonHover: '#1a91da',
+          hover: 'rgba(29, 161, 242, 0.1)',
+          shadow: '0 0 10px rgba(0, 0, 0, 0.4)'
+        },
+        dark: {
+          bg: '#000000',
+          card: '#16181c',
+          line: '#2f3336',
+          text: '#ffffff',
+          secondaryText: '#8899a6',
+          border: '#2f3336',
+          blue: '#1da1f2',
+          lightBlue: '#1a91da',
+          button: '#1da1f2',
+          buttonHover: '#1a91da',
+          hover: 'rgba(29, 161, 242, 0.1)',
+          shadow: '0 0 10px rgba(0, 0, 0, 0.4)'
+        }
+      };
+      
+      // Default to light theme if invalid theme name
+      const theme = themes[themeName] || themes.light;
+      
+      // Apply theme through CSS variables with !important
+      const rootStyle = document.documentElement.style;
+      rootStyle.setProperty('--twitter-bg', theme.bg, 'important');
+      rootStyle.setProperty('--twitter-card', theme.card, 'important');
+      rootStyle.setProperty('--twitter-line', theme.line, 'important');
+      rootStyle.setProperty('--twitter-text', theme.text, 'important');
+      rootStyle.setProperty('--twitter-secondary-text', theme.secondaryText, 'important');
+      rootStyle.setProperty('--twitter-border', theme.border, 'important');
+      rootStyle.setProperty('--twitter-blue', theme.blue, 'important');
+      rootStyle.setProperty('--twitter-light-blue', theme.lightBlue, 'important');
+      rootStyle.setProperty('--twitter-button', theme.button, 'important');
+      rootStyle.setProperty('--twitter-button-hover', theme.buttonHover, 'important');
+      rootStyle.setProperty('--twitter-hover', theme.hover, 'important');
+      rootStyle.setProperty('--twitter-shadow', theme.shadow, 'important');
+      
+      // Apply direct styles to body for higher specificity
+      document.body.style.setProperty('background-color', theme.bg, 'important');
+      document.body.style.setProperty('color', theme.text, 'important');
+      
+      // Apply classes for compatibility with existing CSS
+      document.body.classList.remove('dark-mode');
+      if (themeName === 'dark' || themeName === 'dim') {
+        document.body.classList.add('dark-mode');
+      }
+      
+      // Force-apply styles to common elements that might resist theme changes
+      const forceElements = function() {
+        // Apply to container elements
+        document.querySelectorAll('.container, .header, .profile-header, .settings-list, .settings-item, .edit-profile-container, .follow-screen').forEach(el => {
+          el.style.setProperty('background-color', theme.bg, 'important');
+          el.style.setProperty('color', theme.text, 'important');
+          el.style.setProperty('border-color', theme.line, 'important');
+        });
+        
+        // Apply to specific text elements
+        document.querySelectorAll('.profile-name, .settings-item-title, .edit-profile-title, .follow-title').forEach(el => {
+          el.style.setProperty('color', theme.text, 'important');
+        });
+        
+        // Apply to secondary text elements
+        document.querySelectorAll('.profile-email, .settings-item-subtitle, .profile-stat-label').forEach(el => {
+          el.style.setProperty('color', theme.secondaryText, 'important');
+        });
+        
+        // Apply to borders and lines
+        document.querySelectorAll('*[class*="-border"], *[class*="-line"]').forEach(el => {
+          el.style.setProperty('border-color', theme.line, 'important');
+        });
+      };
+      
+      // Apply forced styles immediately
+      forceElements();
+      
+      // Also apply after a short delay to override any late-loading styles
+      setTimeout(forceElements, 100);
+      setTimeout(forceElements, 500);
+      setTimeout(forceElements, 1000);
+      
+      // Save to localStorage
+      localStorage.setItem('twitter-theme', themeName);
+      
+      // Log theme application for debugging
+      console.log('Theme applied:', themeName);
+    };
+    
+    // Function to detect and apply the initial theme
+    const initTheme = function() {
+      const savedTheme = localStorage.getItem('twitter-theme');
+      if (savedTheme) {
+        applyThemeWithForce(savedTheme);
+      } else {
+        // Default to light theme
+        applyThemeWithForce('light');
+      }
+    };
+    
+    // Listen for localStorage changes
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'twitter-theme') {
+        applyThemeWithForce(e.newValue);
+        console.log('Theme changed via storage event:', e.newValue);
+      }
+    });
+    
+    // Create a robust polling mechanism to ensure theme consistency
+    let lastKnownTheme = localStorage.getItem('twitter-theme') || 'light';
+    
+    const robustThemeCheck = function() {
+      const currentTheme = localStorage.getItem('twitter-theme');
+      
+      // Apply theme if different than last known
+      if (currentTheme && currentTheme !== lastKnownTheme) {
+        console.log('Theme changed via polling:', currentTheme, 'from', lastKnownTheme);
+        lastKnownTheme = currentTheme;
+        applyThemeWithForce(currentTheme);
+      }
+      
+      // Also periodically reapply current theme to override any competing styles
+      else if (currentTheme) {
+        // Check if theme is actually applied by testing a key property
+        const actualBg = getComputedStyle(document.documentElement).getPropertyValue('--twitter-bg').trim();
+        const targetBg = (currentTheme === 'dark') ? '#000000' :
+          (currentTheme === 'dim') ? '#15202b' : '#ffffff';
+        
+        if (actualBg !== targetBg) {
+          console.log('Theme enforcement needed. Expected:', targetBg, 'Actual:', actualBg);
+          applyThemeWithForce(currentTheme);
+        }
+      }
+    };
+    
+    // Poll frequently at the beginning, then less frequently
+    const pollIntervals = [100, 200, 500, 1000, 2000, 5000];
+    pollIntervals.forEach(interval => {
+      setTimeout(robustThemeCheck, interval);
+    });
+    
+    // Continue with a reasonable interval
+    setInterval(robustThemeCheck, 2000);
+    
+    // Add manual theme control for testing
+    window._forceTheme = function(theme) {
+      applyThemeWithForce(theme);
+      return `Theme ${theme} has been forcefully applied`;
+    };
+    
+    // Detect and fix issues with dark theme specifically
+    const enforceDarkTheme = function() {
+      const currentTheme = localStorage.getItem('twitter-theme');
+      if (currentTheme === 'dark') {
+        // Super aggressive dark theme application
+        document.body.style.setProperty('background-color', '#000000', 'important');
+        document.documentElement.style.setProperty('--twitter-bg', '#000000', 'important');
+        
+        // Extra specificity by adding an inline style sheet
+        const styleEl = document.createElement('style');
+        styleEl.innerHTML = `
+        :root { --twitter-bg: #000000 !important; }
+        body { background-color: #000000 !important; }
+        .container, .header, .profile-header, .settings-list, .settings-item { 
+          background-color: #000000 !important; 
+        }
+      `;
+        document.head.appendChild(styleEl);
+      }
+    };
+    
+    // Apply dark theme fixes periodically
+    setInterval(enforceDarkTheme, 1000);
+    
+    // Initialize theme when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initTheme);
+    } else {
+      initTheme();
+    }
+    
+    // Also initialize on load to be extra safe
+    window.addEventListener('load', initTheme);
+  })();
+</script>

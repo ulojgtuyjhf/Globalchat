@@ -356,30 +356,203 @@
             });
         });
     </script>
-    <script>
-    // Function to apply the theme
-    function applyTheme(theme) {
-        const body = document.body;
-        if (theme === 'dark') {
-            body.classList.add('dark-mode');
-        } else {
-            body.classList.remove('dark-mode');
-        }
+    
+<script>
+  (function() {
+    // Theme configuration options
+    const themes = {
+      light: {
+        bg: '#ffffff',
+        card: '#f7f9fa',
+        line: '#ebeef0',
+        text: '#14171a',
+        secondaryText: '#657786',
+        border: '#ebeef0',
+        blue: '#1da1f2',
+        hover: 'rgba(29, 161, 242, 0.1)',
+        shadow: '0 0 10px rgba(0, 0, 0, 0.1)'
+      },
+      dim: {
+        bg: '#15202b',
+        card: '#192734',
+        line: '#38444d',
+        text: '#ffffff',
+        secondaryText: '#8899a6',
+        border: '#38444d',
+        blue: '#1da1f2',
+        hover: 'rgba(29, 161, 242, 0.1)',
+        shadow: '0 0 10px rgba(0, 0, 0, 0.4)'
+      },
+      dark: {
+        bg: '#000000',
+        card: '#16181c',
+        line: '#2f3336',
+        text: '#ffffff',
+        secondaryText: '#8899a6',
+        border: '#2f3336',
+        blue: '#1da1f2',
+        hover: 'rgba(29, 161, 242, 0.1)',
+        shadow: '0 0 10px rgba(0, 0, 0, 0.4)'
+      }
+    };
+    
+    // Apply a theme to the entire document
+    function applyTheme(themeName) {
+      if (!themes[themeName]) {
+        themeName = 'light'; // Default to light if theme not found
+      }
+      
+      const theme = themes[themeName];
+      
+      // Change CSS variables in the document
+      document.documentElement.style.setProperty('--twitter-bg', theme.bg);
+      document.documentElement.style.setProperty('--twitter-card', theme.card);
+      document.documentElement.style.setProperty('--twitter-line', theme.line);
+      document.documentElement.style.setProperty('--twitter-text', theme.text);
+      document.documentElement.style.setProperty('--twitter-secondary-text', theme.secondaryText);
+      document.documentElement.style.setProperty('--twitter-border', theme.border);
+      document.documentElement.style.setProperty('--twitter-blue', theme.blue);
+      document.documentElement.style.setProperty('--twitter-hover', theme.hover);
+      document.documentElement.style.setProperty('--twitter-shadow', theme.shadow);
+      
+      // Also set body class for additional theme-specific styling
+      document.body.classList.remove('dark-mode', 'dim-mode', 'light-mode');
+      document.body.classList.add(`${themeName}-mode`);
+      
+      // Special case for dark-mode class for backward compatibility
+      if (themeName === 'dark' || themeName === 'dim') {
+        document.body.classList.add('dark-mode');
+      }
+      
+      // Save the current theme to localStorage
+      localStorage.setItem('twitter-theme', themeName);
+      
+      // Create a custom event to notify other parts of the application
+      const event = new CustomEvent('themeChanged', { detail: { theme: themeName } });
+      document.dispatchEvent(event);
     }
-
-    // Initialize the theme when the page loads
-    document.addEventListener('DOMContentLoaded', () => {
-        const savedTheme = localStorage.getItem('theme') || 'light';
+    
+    // Function to initialize the theme
+    function initTheme() {
+      // Check localStorage for saved theme
+      const savedTheme = localStorage.getItem('twitter-theme');
+      if (savedTheme) {
         applyTheme(savedTheme);
-    });
-
-    // Listen for theme changes from other pages
-    window.addEventListener('storage', (event) => {
-        if (event.key === 'theme') {
-            applyTheme(event.newValue);
+      } else {
+        // Check for system preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          applyTheme('dim');
+        } else {
+          applyTheme('light');
         }
+      }
+    }
+    
+    // Listen for changes in localStorage from other tabs/windows
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'twitter-theme') {
+        applyTheme(e.newValue);
+      }
     });
+    
+    // Listen for system theme changes
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)')
+        .addEventListener('change', e => {
+          const currentTheme = localStorage.getItem('twitter-theme');
+          // Only apply automatic theme if user hasn't explicitly chosen one
+          if (!currentTheme) {
+            applyTheme(e.matches ? 'dim' : 'light');
+          }
+        });
+    }
+    
+    // Create a theme toggler UI if it doesn't exist
+    function createThemeToggler() {
+      // Check if toggler already exists
+      if (document.getElementById('theme-toggler')) return;
+      
+      const togglerContainer = document.createElement('div');
+      togglerContainer.id = 'theme-toggler';
+      togglerContainer.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--twitter-card);
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--twitter-shadow);
+      z-index: 1000;
+      transition: all 0.2s ease;
+    `;
+      
+      // Create icon
+      const icon = document.createElement('i');
+      icon.className = 'fas fa-moon';
+      icon.style.cssText = `
+      color: var(--twitter-blue);
+      font-size: 20px;
+    `;
+      
+      togglerContainer.appendChild(icon);
+      document.body.appendChild(togglerContainer);
+      
+      // Cycle through themes: light -> dim -> dark -> light
+      togglerContainer.addEventListener('click', function() {
+        const currentTheme = localStorage.getItem('twitter-theme') || 'light';
+        const nextTheme = currentTheme === 'light' ? 'dim' : (currentTheme === 'dim' ? 'dark' : 'light');
+        applyTheme(nextTheme);
+        
+        // Update icon
+        if (nextTheme === 'light') {
+          icon.className = 'fas fa-moon';
+        } else if (nextTheme === 'dim') {
+          icon.className = 'fas fa-moon';
+        } else {
+          icon.className = 'fas fa-sun';
+        }
+      });
+      
+      // Update initial icon based on current theme
+      const currentTheme = localStorage.getItem('twitter-theme') || 'light';
+      if (currentTheme === 'dark') {
+        icon.className = 'fas fa-sun';
+      }
+    }
+    
+    // Poll for theme changes (backup method)
+    let lastKnownTheme = localStorage.getItem('twitter-theme');
+    
+    function pollThemeChanges() {
+      const currentTheme = localStorage.getItem('twitter-theme');
+      if (currentTheme && currentTheme !== lastKnownTheme) {
+        lastKnownTheme = currentTheme;
+        applyTheme(currentTheme);
+      }
+    }
+    
+    // Poll every second as a backup
+    setInterval(pollThemeChanges, 1000);
+    
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        initTheme();
+        // Optional: uncomment to add theme toggler
+        // createThemeToggler();
+      });
+    } else {
+      initTheme();
+      // Optional: uncomment to add theme toggler
+      // createThemeToggler();
+    }
+  })();
 </script>
-<script src="theme.js"></script>
+
 </body>
 </html>
