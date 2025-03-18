@@ -131,7 +131,7 @@
             document.querySelector('.conversation-container'),
             document.querySelector('[role="log"]'),
             document.querySelector('.overflow-y-auto'),
-            document.querySelector('.container') // Added from your HTML
+            document.querySelector('.container')
           ];
           
           for (const container of possibleContainers) {
@@ -159,35 +159,28 @@
       },
       
       applyThemeFromLocalStorage() {
-        // Check if dark mode is enabled in localStorage (matching your toggle implementation)
-        const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
+        // Check if dark mode is enabled in localStorage
+        const currentTheme = localStorage.getItem('twitter-theme') || 'light';
         
-        if (isDarkMode && !document.body.classList.contains('dark-mode')) {
+        if (currentTheme === 'dim' || currentTheme === 'dark') {
           document.body.classList.add('dark-mode');
-        } else if (!isDarkMode && document.body.classList.contains('dark-mode')) {
+        } else {
           document.body.classList.remove('dark-mode');
         }
       },
       
       listenForThemeChanges() {
-        // Listen for dark mode toggle changes
+        // Listen for theme changes in localStorage
         window.addEventListener('storage', (event) => {
-          if (event.key === 'darkMode') {
+          if (event.key === 'twitter-theme') {
             this.applyThemeFromLocalStorage();
           }
         });
         
-        // Also find and monitor the dark mode toggle if it exists
-        const darkModeSwitch = document.getElementById('darkModeSwitch');
-        if (darkModeSwitch) {
-          darkModeSwitch.addEventListener('click', () => {
-            // The toggle updates localStorage, we just need to apply the change
-            setTimeout(() => this.applyThemeFromLocalStorage(), 50);
-          });
-        }
-        
-        // Check for theme changes periodically (for safety)
-        setInterval(() => this.applyThemeFromLocalStorage(), 1000);
+        // Check periodically for theme changes
+        setInterval(() => {
+          this.applyThemeFromLocalStorage();
+        }, 1000);
       },
       
       setupScrollListener(container, button) {

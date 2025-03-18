@@ -1307,7 +1307,138 @@ document.addEventListener('scroll', (e) => {
     }
 }, { passive: true });
     </script>
-    <script src="theme.js"></script>
+  
+<script>
+  (function() {
+    // Theme manager for mobile interface - isolated scope to avoid conflicts
+    const mobileThemeManager = {
+      // Theme definitions
+      themes: {
+        light: {
+          bg: '#ffffff',
+          card: '#f7f9fa',
+          line: '#ebeef0',
+          text: '#14171a',
+          secondaryText: '#657786',
+          border: '#ebeef0',
+          blue: '#1da1f2',
+          lightBlue: '#1a91da',
+          menuBg: '#ffffff',
+          sectionBg: '#ffffff'
+        },
+        dim: {
+          bg: '#15202b',
+          card: '#192734',
+          line: '#38444d',
+          text: '#ffffff',
+          secondaryText: '#8899a6',
+          border: '#38444d',
+          blue: '#1da1f2',
+          lightBlue: '#1a91da',
+          menuBg: '#15202b',
+          sectionBg: '#15202b'
+        },
+        dark: {
+          bg: '#000000',
+          card: '#16181c',
+          line: '#2f3336',
+          text: '#ffffff',
+          secondaryText: '#8899a6',
+          border: '#2f3336',
+          blue: '#1da1f2',
+          lightBlue: '#1a91da',
+          menuBg: '#000000',
+          sectionBg: '#000000'
+        }
+      },
+      
+      // Apply theme to mobile interface
+      applyTheme: function(themeName) {
+        const theme = this.themes[themeName] || this.themes.light;
+        
+        // Apply to mobile menu
+        const mobileMenu = document.getElementById('mobileMenu');
+        if (mobileMenu) {
+          mobileMenu.style.backgroundColor = theme.menuBg;
+          mobileMenu.style.borderColor = theme.border;
+        }
+        
+        // Apply to sections
+        const sections = document.querySelectorAll('.section');
+        sections.forEach(section => {
+          section.style.backgroundColor = theme.sectionBg;
+          section.style.borderColor = theme.border;
+        });
+        
+        // Apply to menu items
+        const menuItems = document.querySelectorAll('.menu-item');
+        menuItems.forEach(item => {
+          const svg = item.querySelector('svg');
+          if (svg) {
+            svg.style.stroke = item.classList.contains('active') ? theme.blue : theme.secondaryText;
+          }
+        });
+        
+        // Apply to loading indicators
+        const spinners = document.querySelectorAll('.twitter-spinner');
+        spinners.forEach(spinner => {
+          spinner.style.borderColor = `rgba(29, 161, 242, 0.2)`;
+          spinner.style.borderTopColor = theme.blue;
+        });
+        
+        // Apply to error messages
+        const errorMessages = document.querySelectorAll('.error-message');
+        errorMessages.forEach(msg => {
+          msg.style.color = theme.text;
+        });
+        
+        // Add theme class to body
+        document.body.classList.remove('theme-light', 'theme-dim', 'theme-dark');
+        document.body.classList.add(`theme-${themeName}`);
+        
+        // Store the current theme
+        this.currentTheme = themeName;
+      },
+      
+      // Initialize theme from localStorage
+      init: function() {
+        const savedTheme = localStorage.getItem('twitter-theme');
+        this.applyTheme(savedTheme || 'light');
+        
+        // Set up storage event listener
+        window.addEventListener('storage', (event) => {
+          if (event.key === 'twitter-theme') {
+            this.applyTheme(event.newValue || 'light');
+          }
+        });
+        
+        // Poll for theme changes
+        this.startPolling();
+      },
+      
+      // Poll for theme changes in localStorage
+      startPolling: function() {
+        this.currentTheme = localStorage.getItem('twitter-theme') || 'light';
+        
+        // Check periodically
+        setInterval(() => {
+          const newTheme = localStorage.getItem('twitter-theme');
+          if (newTheme && newTheme !== this.currentTheme) {
+            this.applyTheme(newTheme);
+          }
+        }, 1000);
+      }
+    };
+    
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => mobileThemeManager.init());
+    } else {
+      mobileThemeManager.init();
+    }
+  })();
+</script>
+
     
 </body>
 </html>

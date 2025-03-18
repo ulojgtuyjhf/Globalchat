@@ -790,15 +790,14 @@ body {
         },
         
         applyCurrentTheme: function() {
-          // Check if dark mode is enabled from localStorage
-          const isDarkMode = localStorage.getItem('darkMode') === 'enabled' ||
-            document.body.classList.contains('dark-theme');
+          // Check the theme from localStorage (twitter-theme)
+          const currentTheme = localStorage.getItem('twitter-theme') || 'light';
           
-          // Apply appropriate theme
-          this.applyThemeToTranslator(isDarkMode);
+          // Apply appropriate theme based on the value
+          this.applyThemeToTranslator(currentTheme);
         },
         
-        applyThemeToTranslator: function(isDark) {
+        applyThemeToTranslator: function(theme) {
           const translator = document.querySelector('.minimal-translator');
           if (!translator) return;
           
@@ -810,7 +809,7 @@ body {
             document.head.appendChild(styles);
           }
           
-          if (isDark) {
+          if (theme === 'dim') {
             styles.textContent = `
             .translator-trigger {
               background: #1DA1F2;
@@ -871,7 +870,69 @@ body {
               background: rgba(0, 0, 0, 0.8);
             }
           `;
+          } else if (theme === 'dark') {
+            styles.textContent = `
+            .translator-trigger {
+              background: #1DA1F2;
+              box-shadow: 0 2px 8px rgba(29, 161, 242, 0.3);
+            }
+            
+            .translator-menu {
+              background: #000000;
+              border-color: #2F3336;
+              box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+            }
+            
+            .menu-header {
+              border-bottom: 1px solid #2F3336;
+              color: #FFFFFF;
+            }
+            
+            .search-box {
+              border-bottom: 1px solid #2F3336;
+            }
+            
+            .search-box input {
+              background: #16181C;
+              border-color: #2F3336;
+              color: #FFFFFF;
+            }
+            
+            .search-icon {
+              color: #71767B;
+            }
+            
+            .language-option {
+              color: #FFFFFF;
+            }
+            
+            .language-option:hover {
+              background: rgba(29, 161, 242, 0.2);
+            }
+            
+            .language-option.active {
+              background: rgba(29, 161, 242, 0.2);
+            }
+            
+            .language-name {
+              color: #FFFFFF;
+            }
+            
+            .original-language {
+              border-top: 1px solid #2F3336;
+              color: #1DA1F2;
+            }
+            
+            .loading-overlay {
+              background: rgba(0, 0, 0, 0.7);
+            }
+            
+            .toast-notification {
+              background: rgba(0, 0, 0, 0.8);
+            }
+          `;
           } else {
+            // Light theme (default)
             styles.textContent = `
             .translator-trigger {
               background: #1DA1F2;
@@ -885,26 +946,26 @@ body {
             }
             
             .menu-header {
-              border-bottom: 1px solid #eee;
-              color: #333;
+              border-bottom: 1px solid #EFF3F4;
+              color: #0F1419;
             }
             
             .search-box {
-              border-bottom: 1px solid #eee;
+              border-bottom: 1px solid #EFF3F4;
             }
             
             .search-box input {
               background: white;
-              border-color: #eee;
-              color: #333;
+              border-color: #EFF3F4;
+              color: #0F1419;
             }
             
             .search-icon {
-              color: #657786;
+              color: #536471;
             }
             
             .language-option {
-              color: #14171A;
+              color: #0F1419;
             }
             
             .language-option:hover {
@@ -916,11 +977,11 @@ body {
             }
             
             .language-name {
-              color: #14171A;
+              color: #0F1419;
             }
             
             .original-language {
-              border-top: 1px solid #eee;
+              border-top: 1px solid #EFF3F4;
               color: #1DA1F2;
             }
             
@@ -938,23 +999,22 @@ body {
         setupThemeListeners: function() {
           // Listen for changes to localStorage (for cross-tab sync)
           window.addEventListener('storage', (event) => {
-            if (event.key === 'darkMode') {
-              const isDarkMode = event.newValue === 'enabled';
-              this.applyThemeToTranslator(isDarkMode);
+            if (event.key === 'twitter-theme') {
+              this.applyThemeToTranslator(event.newValue || 'light');
             }
           });
           
-          // Listen for class changes on body element (for runtime theme changes)
+          // Listen for changes to data-theme attribute on document element
           const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
-              if (mutation.attributeName === 'class') {
-                const isDarkMode = document.body.classList.contains('dark-theme');
-                this.applyThemeToTranslator(isDarkMode);
+              if (mutation.attributeName === 'data-theme') {
+                const theme = document.documentElement.getAttribute('data-theme') || 'light';
+                this.applyThemeToTranslator(theme);
               }
             });
           });
           
-          observer.observe(document.body, { attributes: true });
+          observer.observe(document.documentElement, { attributes: true });
           
           // Also periodically check for theme changes
           setInterval(() => {
