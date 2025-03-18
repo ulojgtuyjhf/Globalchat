@@ -691,11 +691,10 @@
     
 
 <script type="module">
-    
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-// Removed firebase storage import since storage is disabled
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -711,7 +710,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-// Removed firebase storage initialization
 
 // DOM Elements - Main Settings
 const profileSection = document.getElementById('profileSection');
@@ -728,7 +726,6 @@ const logoutBtn = document.getElementById('logoutBtn');
 const editProfileContainer = document.getElementById('editProfileContainer');
 const cancelEditProfile = document.getElementById('cancelEditProfile');
 const saveProfileBtn = document.getElementById('saveProfileBtn');
-// Removed profilePictureInput and its associated functionality
 const editProfileImage = document.getElementById('editProfileImage');
 const nameInput = document.getElementById('nameInput');
 const bioInput = document.getElementById('bioInput');
@@ -805,8 +802,6 @@ function initializeEditProfile() {
         editProfileContainer.classList.remove('active');
     });
 }
-
-// Removed initializeProfilePictureChange since image uploading is disabled
 
 // Bio Input Character Count
 function initializeBioCharCount() {
@@ -1018,7 +1013,7 @@ function initializeFollowScreens(user) {
     });
 }
 
-// Initialize Settings Buttons - updated to load pages
+// Initialize Settings Buttons
 function initializeSettingsButtons() {
     const settingsPageMap = {
         'accountBtn': 'account.html',
@@ -1046,21 +1041,31 @@ function initializeSettingsButtons() {
     }
 }
 
-// Logout
+// Logout - FIXED VERSION
 function initializeLogout() {
-    logoutBtn.addEventListener('click', async () => {
-        const loadingToast = showLoading();
+    if (logoutBtn) {
+        // Remove any existing event listeners
+        logoutBtn.replaceWith(logoutBtn.cloneNode(true));
         
-        try {
-            await signOut(auth);
-            hideLoading(loadingToast);
-            window.location.href = 'login.html';
-        } catch (error) {
-            console.error('Logout error:', error);
-            hideLoading(loadingToast);
-            showToast('Failed to log out. Please try again.');
-        }
-    });
+        // Get the fresh reference
+        const freshLogoutBtn = document.getElementById('logoutBtn');
+        
+        // Add the correct event listener
+        freshLogoutBtn.addEventListener('click', async () => {
+            const loadingToast = showLoading();
+            
+            try {
+                await signOut(auth);
+                hideLoading(loadingToast);
+                // Redirect to index.html instead of login.html
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Logout error:', error);
+                hideLoading(loadingToast);
+                showToast('Failed to log out. Please try again.');
+            }
+        });
+    }
 }
 
 // Page Animation
@@ -1090,7 +1095,7 @@ async function loadUserData(user) {
         bioCharCount.textContent = cachedBio.length;
     }
     
-    // Since storage is disabled, set default profile images
+    // Set default profile images
     profileImage.src = 'default-profile.png';
     editProfileImage.src = 'default-profile.png';
     
@@ -1133,11 +1138,10 @@ onAuthStateChanged(auth, async (user) => {
             await loadUserData(user);
             initializeStickyHeader();
             initializeEditProfile();
-            // Removed initializeProfilePictureChange(user) call
             initializeBioCharCount();
             initializeFollowScreens(user);
             initializeSettingsButtons();
-            initializeLogout();
+            initializeLogout(); // This is the fixed logout function
             fetchFollowData(user);
             initializePageAnimation();
             saveProfileBtn.addEventListener('click', () => saveProfileChanges(user));
@@ -1149,7 +1153,7 @@ onAuthStateChanged(auth, async (user) => {
             showToast('An error occurred while loading your profile');
         }
     } else {
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
     }
 });
 
@@ -1211,6 +1215,15 @@ document.addEventListener('click', async (e) => {
         }
     }
 });
+
+// Remove any conflicting event listeners added by other scripts
+document.addEventListener('DOMContentLoaded', function() {
+    // Make sure the logout button is properly configured
+    setTimeout(() => {
+        initializeLogout();
+    }, 500);
+});
+
 </script>
 
 <script>
