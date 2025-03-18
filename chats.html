@@ -49,11 +49,11 @@
             color: var(--text);
             line-height: 1.5;
             overflow-x: hidden;
+            width: 100%;
         }
 
         .container {
             width: 100%;
-            max-width: 600px;
             padding: 16px;
             margin: 0 auto;
         }
@@ -226,7 +226,7 @@
 
         .content-section {
             margin-bottom: 24px;
-            padding: 16px;
+            padding: 20px;
             background-color: var(--card-bg);
             border-radius: 16px;
             border: 1px solid var(--border);
@@ -240,91 +240,80 @@
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
         }
 
-        .section-title {
-            font-weight: 700;
-            font-size: 16px;
-            margin-bottom: 16px;
-        }
-
-        /* Chat bubble color options */
-        .color-options {
+        .color-palettes {
             display: flex;
             flex-direction: column;
             gap: 12px;
+            margin-top: 20px;
             width: 100%;
         }
 
-        .color-option {
+        .color-palette {
             display: flex;
             align-items: center;
-            position: relative;
-            padding: 8px 0;
+            padding: 12px;
+            border-radius: 18px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-
-        .color-option:active {
-            transform: scale(0.98);
-        }
-
-        .bubble-container {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background-color: var(--background);
             position: relative;
-            height: 45px;
-            flex-grow: 1;
+        }
+
+        .color-palette:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .color-palette:active {
+            transform: translateY(0) scale(0.98);
         }
 
         .chat-bubble {
-            position: relative;
-            background-color: var(--bubble-color);
-            border-radius: 18px;
-            padding: 12px;
-            max-width: calc(100% - 40px);
-            min-height: 45px;
-            margin-left: 20px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        .chat-bubble::before {
-            content: '';
-            position: absolute;
-            left: -8px;
-            bottom: 15px;
-            width: 16px;
-            height: 16px;
-            background-color: var(--bubble-color);
-            transform: rotate(45deg);
-            border-radius: 3px;
-        }
-
-        .option-check {
-            width: 24px;
-            height: 24px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            border: 2px solid var(--border);
-            margin-right: 16px;
+            margin-right: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s ease;
         }
 
-        .option-check svg {
-            width: 14px;
-            height: 14px;
-            fill: white;
-            opacity: 0;
-            transform: scale(0);
-            transition: all 0.2s ease;
+        .palette-name {
+            font-weight: 600;
+            font-size: 14px;
+            flex-grow: 1;
         }
 
-        .color-option.active .option-check {
+        .palette-selected {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
             background-color: var(--primary);
-            border-color: var(--primary);
+            display: none;
+            align-items: center;
+            justify-content: center;
         }
 
-        .color-option.active .option-check svg {
-            opacity: 1;
-            transform: scale(1);
+        .palette-selected svg {
+            width: 12px;
+            height: 12px;
+            fill: white;
+        }
+
+        .color-palette.active .palette-selected {
+            display: flex;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(29, 155, 240, 0.4);
+            }
+            100% {
+                box-shadow: 0 0 0 4px rgba(29, 155, 240, 0);
+            }
         }
 
         .ripple {
@@ -341,6 +330,19 @@
                 transform: scale(4);
                 opacity: 0;
             }
+        }
+
+        .heading {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .subheading {
+            font-size: 14px;
+            color: var(--secondary-text);
+            margin-bottom: 16px;
         }
     </style>
 </head>
@@ -402,9 +404,10 @@
         </div>
 
         <div class="content-section">
-            <div class="section-title">Chat Color</div>
-            <div class="color-options" id="color-options">
-                <!-- Color options will be added dynamically -->
+            <div class="heading">Chat Color</div>
+            <div class="subheading">Choose the color for your chat bubbles</div>
+            <div class="color-palettes" id="color-palettes">
+                <!-- Color palettes will be added dynamically -->
             </div>
         </div>
     </div>
@@ -417,26 +420,62 @@
         const themeDropdown = document.getElementById('theme-dropdown');
         const themeOptions = document.querySelectorAll('.theme-option');
         const chevron = document.querySelector('.chevron');
-        const colorOptions = document.getElementById('color-options');
+        const colorPalettes = document.getElementById('color-palettes');
         
-        // Color options
+        // Chat bubble colors (simplified, no brand names)
         const chatColors = [
-            { name: "Default", color: "#1d9bf0" },
-            { name: "Blue", color: "#1DA1F2" },
-            { name: "Green", color: "#4CAF50" },
-            { name: "Purple", color: "#9C27B0" },
-            { name: "Orange", color: "#FF9800" },
-            { name: "Pink", color: "#E91E63" },
-            { name: "Red", color: "#F44336" },
-            { name: "Gray", color: "#607D8B" }
+            {
+                name: "Default Blue",
+                color: "#1d9bf0"
+            },
+            {
+                name: "Purple",
+                color: "#833AB4"
+            },
+            {
+                name: "Red",
+                color: "#E01E5A"
+            },
+            {
+                name: "Green",
+                color: "#1DB954"
+            },
+            {
+                name: "Orange",
+                color: "#F56040"
+            },
+            {
+                name: "Pink",
+                color: "#EB459E"
+            },
+            {
+                name: "Yellow",
+                color: "#FFFC00"
+            },
+            {
+                name: "Turquoise",
+                color: "#36C5F0"
+            },
+            {
+                name: "Dark Blue",
+                color: "#3b5998"
+            },
+            {
+                name: "Black",
+                color: "#000000"
+            },
+            {
+                name: "Gray",
+                color: "#71767b"
+            }
         ];
         
-        // Load saved theme from localStorage
-        const savedTheme = localStorage.getItem('theme') || 'light';
+        // Load saved theme from localStorage - keep original keys to maintain compatibility
+        const savedTheme = localStorage.getItem('twitter-theme') || 'light';
         setTheme(savedTheme);
         
-        // Load saved color from localStorage
-        const savedColor = localStorage.getItem('chat-color') || '0';
+        // Load saved color palette from localStorage
+        const savedPalette = localStorage.getItem('color-palette') || '0'; // Default to the first color
         
         // Toggle theme dropdown
         themeBtn.addEventListener('click', function(event) {
@@ -476,7 +515,8 @@
         
         function setTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('theme', theme);
+            // Keep original localStorage key to maintain compatibility with other pages
+            localStorage.setItem('twitter-theme', theme);
             
             // Update active class
             themeOptions.forEach(option => {
@@ -486,6 +526,12 @@
                     option.classList.remove('active');
                 }
             });
+            
+            // Broadcast theme change event to other pages
+            const themeChangeEvent = new CustomEvent('themeChanged', {
+                detail: { theme: theme }
+            });
+            window.dispatchEvent(themeChangeEvent);
         }
         
         function setThemeWithAnimation(theme) {
@@ -523,54 +569,78 @@
             }, 600);
         }
         
-        // Generate color options
-        chatColors.forEach((colorOption, index) => {
-            const optionElement = document.createElement('div');
-            optionElement.className = 'color-option';
-            optionElement.dataset.color = index;
+        // Generate color palettes as chat bubbles
+        chatColors.forEach((colorObj, index) => {
+            const paletteElement = document.createElement('div');
+            paletteElement.className = 'color-palette';
+            paletteElement.dataset.color = colorObj.color;
+            paletteElement.dataset.index = index;
             
             // Check if this color is saved
-            if (savedColor && savedColor === index.toString()) {
-                optionElement.classList.add('active');
+            if (savedPalette && savedPalette === index.toString()) {
+                paletteElement.classList.add('active');
             }
             
-            // Create check indicator
-            const checkElement = document.createElement('div');
-            checkElement.className = 'option-check';
-            checkElement.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>';
+            const chatBubble = document.createElement('div');
+            chatBubble.className = 'chat-bubble';
+            chatBubble.style.backgroundColor = colorObj.color;
             
-            // Create bubble container
-            const bubbleContainer = document.createElement('div');
-            bubbleContainer.className = 'bubble-container';
+            // For light colors, add a border
+            if (colorObj.color === '#FFFC00' || colorObj.color === '#FFFFFF') {
+                chatBubble.style.border = '1px solid #ddd';
+            }
             
-            // Create chat bubble
-            const bubbleElement = document.createElement('div');
-            bubbleElement.className = 'chat-bubble';
-            bubbleElement.style.setProperty('--bubble-color', colorOption.color);
+            const paletteName = document.createElement('div');
+            paletteName.className = 'palette-name';
+            paletteName.textContent = colorObj.name;
             
-            bubbleContainer.appendChild(bubbleElement);
+            // Add check icon for selected palette
+            const selectedIcon = document.createElement('div');
+            selectedIcon.className = 'palette-selected';
+            selectedIcon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>';
             
-            optionElement.appendChild(checkElement);
-            optionElement.appendChild(bubbleContainer);
+            paletteElement.appendChild(chatBubble);
+            paletteElement.appendChild(paletteName);
+            paletteElement.appendChild(selectedIcon);
             
-            // Add click event to select color
-            optionElement.addEventListener('click', function(event) {
-                // Save color selection
-                const colorIndex = this.dataset.color;
-                localStorage.setItem('chat-color', colorIndex);
+            // Add click event to select palette
+            paletteElement.addEventListener('click', function(event) {
+                // Add ripple effect
+                createRipple(event, this);
+                
+                // Save color selection - keep original keys for compatibility
+                const colorIndex = this.dataset.index;
+                const colorValue = this.dataset.color;
+                localStorage.setItem('color-palette', colorIndex);
+                localStorage.setItem('color-value', colorValue);
                 
                 // Update active class
-                document.querySelectorAll('.color-option').forEach(p => {
+                document.querySelectorAll('.color-palette').forEach(p => {
                     p.classList.remove('active');
                 });
                 this.classList.add('active');
                 
+                // Set CSS variable for chat bubble color
+                document.documentElement.style.setProperty('--chat-bubble', colorValue);
+                
+                // Broadcast color change event to other pages
+                const colorChangeEvent = new CustomEvent('chatColorChanged', {
+                    detail: { color: colorValue }
+                });
+                window.dispatchEvent(colorChangeEvent);
+                
                 // Show notification
-                showNotification(`Color updated!`);
+                showNotification(`${colorObj.name} selected!`);
             });
             
-            colorOptions.appendChild(optionElement);
+            colorPalettes.appendChild(paletteElement);
         });
+        
+        // Apply saved color on page load
+        const savedColorValue = localStorage.getItem('color-value');
+        if (savedColorValue) {
+            document.documentElement.style.setProperty('--chat-bubble', savedColorValue);
+        }
         
         // Show notification
         function showNotification(message) {
@@ -636,6 +706,27 @@
         themeOptions.forEach(option => {
             if (option.getAttribute('data-theme') === savedTheme) {
                 option.classList.add('active');
+            }
+        });
+        
+        // Listen for theme changes from other pages
+        window.addEventListener('storage', function(event) {
+            if (event.key === 'twitter-theme') {
+                setTheme(event.newValue);
+            }
+            if (event.key === 'color-palette' || event.key === 'color-value') {
+                const colorPalettes = document.querySelectorAll('.color-palette');
+                colorPalettes.forEach(palette => {
+                    if (palette.dataset.index === event.newValue) {
+                        palette.classList.add('active');
+                    } else {
+                        palette.classList.remove('active');
+                    }
+                });
+                
+                if (event.key === 'color-value') {
+                    document.documentElement.style.setProperty('--chat-bubble', event.newValue);
+                }
             }
         });
     });
