@@ -1122,70 +1122,249 @@ body {
 <script>
 
 (function() {
-  // Create CSS for the loader
-  const style = document.createElement('style');
-  style.textContent = `
-    .tweet-loader {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      margin-left: 8px;
-      border: 2px solid rgba(29, 161, 242, 0.2);
-      border-top: 2px solid #1da1f2;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      vertical-align: middle;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  `;
-  document.head.appendChild(style);
-
-  // Wait for DOM to be fully loaded
-  document.addEventListener('DOMContentLoaded', function() {
-    initialize();
-  });
-
-  // If DOM is already loaded, initialize immediately
-  if (document.readyState === 'interactive' || document.readyState === 'complete') {
-    initialize();
-  }
-
-  function initialize() {
-    // Find the send button
-    const sendButton = document.getElementById('sendButton');
-    if (!sendButton) {
-      console.error('Send button not found. Make sure the button has id="sendButton".');
-      return;
-    }
-
-    // Add click event listener
-    sendButton.addEventListener('click', function(e) {
-      // Only proceed if button isn't disabled
-      if (!sendButton.disabled) {
-        // Create loader element if it doesn't exist
-        let loader = document.querySelector('.tweet-loader');
-        if (!loader) {
-          loader = document.createElement('div');
-          loader.className = 'tweet-loader';
-          sendButton.parentNode.insertBefore(loader, sendButton.nextSibling);
-        } else {
-          // Show the existing loader
-          loader.style.display = 'inline-block';
-        }
-
-        // Hide loader after 3 seconds (simulating request completion)
-        setTimeout(function() {
-          if (loader) {
-            loader.style.display = 'none';
-          }
-        }, 3000);
+  // Theme handler for Global Chat that responds to localStorage changes
+  const globalChatThemeHandler = {
+    // Theme definitions matching your existing system - with enhanced dark mode
+    themes: {
+      light: {
+        bg: '#ffffff',
+        containerBg: '#ffffff',
+        messageContentBg: '#dceefb',
+        text: '#14171a',
+        secondaryText: '#657786',
+        border: '#e6ecf0',
+        inputBg: '#f5f8fa',
+        blue: '#1da1f2',
+        messageBorder: 'rgba(29, 161, 242, 0.2)'
+      },
+      dim: {
+        bg: '#15202b',
+        containerBg: '#15202b',
+        messageContentBg: '#1e2732',
+        text: '#ffffff',
+        secondaryText: '#8899a6',
+        border: '#38444d',
+        inputBg: '#192734',
+        blue: '#1da1f2',
+        messageBorder: 'rgba(29, 161, 242, 0.3)'
+      },
+      dark: {
+        bg: '#000000',
+        containerBg: '#000000',
+        messageContentBg: '#16181c',
+        text: '#ffffff',
+        secondaryText: '#8899a6',
+        border: '#2f3336',
+        inputBg: '#16181c',
+        blue: '#1da1f2',
+        messageBorder: 'rgba(29, 161, 242, 0.3)'
       }
-    });
-  }
+    },
+    
+    init: function() {
+      // Apply theme on init
+      this.applyCurrentTheme();
+      
+      // Listen for theme changes
+      this.setupThemeListener();
+      
+      // Re-apply theme periodically to ensure consistency
+      this.setupPeriodicCheck();
+    },
+    
+    applyCurrentTheme: function() {
+      const currentTheme = localStorage.getItem('twitter-theme') || 'light';
+      this.applyTheme(currentTheme);
+    },
+    
+    applyTheme: function(themeName) {
+      // Default to light if invalid theme
+      const theme = this.themes[themeName] || this.themes.light;
+      
+      // Create or update theme style element
+      let styleEl = document.getElementById('global-chat-theme');
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'global-chat-theme';
+        document.head.appendChild(styleEl);
+      }
+      
+      // Apply theme using CSS with aggressive !important flags
+      styleEl.textContent = `
+        /* Global Chat theme for ${themeName} mode */
+        body {
+          background-color: ${theme.bg} !important;
+          color: ${theme.text} !important;
+          border-color: ${theme.border} !important;
+        }
+        
+        .chat-container {
+          background-color: ${theme.containerBg} !important;
+          border-color: ${theme.border} !important;
+          background-image: ${themeName === 'dark' ? 'none' : ''} !important;
+        }
+        
+        .message-content {
+          background-color: ${theme.messageContentBg} !important;
+          color: ${theme.text} !important;
+          border-color: ${theme.messageBorder} !important;
+          box-shadow: ${themeName === 'dark' ? '0 1px 3px rgba(0, 0, 0, 0.3)' : '0 1px 3px rgba(0, 0, 0, 0.08)'} !important;
+        }
+        
+        .message-content::before {
+          background-color: ${theme.messageContentBg} !important;
+          border-color: ${theme.messageBorder} !important;
+        }
+        
+        .input-container {
+          background-color: ${theme.containerBg} !important;
+          border-color: ${theme.border} !important;
+          box-shadow: ${themeName === 'dark' ? '0 -1px 5px rgba(0, 0, 0, 0.3)' : '0 -1px 5px rgba(0, 0, 0, 0.05)'} !important;
+        }
+        
+        .input-wrapper {
+          background-color: ${theme.inputBg} !important;
+          border-color: ${theme.border} !important;
+        }
+        
+        .message-textarea {
+          color: ${theme.text} !important;
+          background-color: transparent !important;
+        }
+        
+        .message-textarea::placeholder {
+          color: ${theme.secondaryText} !important;
+        }
+        
+        .message-header {
+          border-color: ${theme.messageBorder} !important;
+        }
+        
+        .user-name {
+          color: ${theme.blue} !important;
+        }
+        
+        .message-time {
+          color: ${theme.secondaryText} !important;
+          border-color: ${theme.border} !important;
+        }
+        
+        .action-buttons {
+          border-color: ${theme.messageBorder} !important;
+        }
+        
+        .action-button {
+          color: ${theme.secondaryText} !important;
+        }
+        
+        .loading-dots {
+          background-color: ${theme.inputBg} !important;
+          border-color: ${theme.messageBorder} !important;
+        }
+        
+        .chat-container::-webkit-scrollbar-track {
+          background: ${theme.containerBg} !important;
+          border-color: ${theme.border} !important;
+        }
+        
+        .chat-container::-webkit-scrollbar-thumb {
+          background: ${theme.blue} !important;
+          border-color: ${theme.containerBg} !important;
+        }
+        
+        .media-preview {
+          background-color: ${theme.inputBg} !important;
+          border-color: ${theme.border} !important;
+        }
+        
+        .preview-item {
+          border-color: ${theme.border} !important;
+          background-color: ${theme.messageContentBg} !important;
+        }
+        
+        .reply-input {
+          border-color: ${theme.messageBorder} !important;
+        }
+        
+        .reply-wrapper {
+          background-color: ${theme.inputBg} !important;
+          border-color: ${theme.border} !important;
+        }
+        
+        .reply-textarea {
+          color: ${theme.text} !important;
+          background-color: transparent !important;
+        }
+        
+        .message {
+          border-top-color: ${themeName === 'dark' ? 'rgba(47, 51, 54, 0.6)' : 'rgba(230, 236, 240, 0.3)'} !important;
+        }
+        
+        .profile-image {
+          border-color: ${theme.containerBg} !important;
+          outline-color: ${theme.border} !important;
+        }
+        
+        .content-warning {
+          background-color: ${themeName === 'dark' ? 'rgba(22, 24, 28, 0.8)' : 'rgba(0, 0, 0, 0.1)'} !important;
+        }
+        
+        .content-warning p {
+          color: ${theme.secondaryText} !important;
+        }
+        
+        .show-content-btn {
+          border-color: ${theme.blue} !important;
+          color: ${theme.blue} !important;
+        }
+        
+        .show-content-btn:hover {
+          background-color: ${themeName === 'dark' ? 'rgba(29, 161, 242, 0.2)' : 'rgba(29, 161, 242, 0.1)'} !important;
+        }
+      `;
+      
+      // Log theme application for debugging
+      console.log('Global Chat theme applied:', themeName);
+    },
+    
+    setupThemeListener: function() {
+      // Listen for localStorage changes
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'twitter-theme') {
+          this.applyTheme(e.newValue);
+        }
+      });
+    },
+    
+    setupPeriodicCheck: function() {
+      // Store the current theme
+      let lastKnownTheme = localStorage.getItem('twitter-theme') || 'light';
+      
+      // Check periodically for theme changes
+      setInterval(() => {
+        const currentTheme = localStorage.getItem('twitter-theme');
+        if (currentTheme && currentTheme !== lastKnownTheme) {
+          lastKnownTheme = currentTheme;
+          this.applyTheme(currentTheme);
+        }
+        
+        // Force reapply every few cycles to ensure consistency
+        if (Math.random() < 0.2) {
+          this.applyTheme(lastKnownTheme);
+        }
+      }, 2000);
+    }
+  };
+  
+  // Initialize the theme handler with a delay
+  setTimeout(() => {
+    globalChatThemeHandler.init();
+  }, 300);
+  
+  // Also initialize on load to be extra safe
+  window.addEventListener('load', () => {
+    globalChatThemeHandler.init();
+  });
 })();
 
 </script>

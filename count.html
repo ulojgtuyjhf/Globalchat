@@ -944,7 +944,142 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 
-<script src="theme.js"></script>
+
+<script>
+  (function() {
+    // Theme application for count.html page
+    const applyCountPageTheme = function(themeName) {
+      // Define themes with values specific to count.html
+      const themes = {
+        light: {
+          bgPrimary: '#f9f9f9',
+          bgSecondary: '#ffffff',
+          textPrimary: '#333',
+          textSecondary: '#666',
+          borderColor: '#e0e7ff',
+          hoverBg: 'rgba(74, 144, 226, 0.1)',
+          onlineGreen: '#4a90e2',
+          offlineRed: '#e0245e',
+          shadowColor: 'rgba(0, 0, 0, 0.1)',
+          todoistBlue: '#4a90e2'
+        },
+        dim: {
+          bgPrimary: '#15202b',
+          bgSecondary: '#1c2732',
+          textPrimary: '#ffffff',
+          textSecondary: '#8899a6',
+          borderColor: '#38444d',
+          hoverBg: 'rgba(29, 161, 242, 0.1)',
+          onlineGreen: '#1da1f2',
+          offlineRed: '#e0245e',
+          shadowColor: 'rgba(0, 0, 0, 0.4)',
+          todoistBlue: '#1da1f2'
+        },
+        dark: {
+          bgPrimary: '#000000',
+          bgSecondary: '#16181c',
+          textPrimary: '#ffffff',
+          textSecondary: '#8899a6',
+          borderColor: '#2f3336',
+          hoverBg: 'rgba(29, 161, 242, 0.1)',
+          onlineGreen: '#1da1f2',
+          offlineRed: '#e0245e',
+          shadowColor: 'rgba(0, 0, 0, 0.4)',
+          todoistBlue: '#1da1f2'
+        }
+      };
+      
+      // Default to light theme if invalid theme name
+      const theme = themes[themeName] || themes.light;
+      
+      // Apply theme through CSS variables with !important
+      const rootStyle = document.documentElement.style;
+      rootStyle.setProperty('--bg-primary', theme.bgPrimary, 'important');
+      rootStyle.setProperty('--bg-secondary', theme.bgSecondary, 'important');
+      rootStyle.setProperty('--text-primary', theme.textPrimary, 'important');
+      rootStyle.setProperty('--text-secondary', theme.textSecondary, 'important');
+      rootStyle.setProperty('--border-color', theme.borderColor, 'important');
+      rootStyle.setProperty('--hover-bg', theme.hoverBg, 'important');
+      rootStyle.setProperty('--online-green', theme.onlineGreen, 'important');
+      rootStyle.setProperty('--offline-red', theme.offlineRed, 'important');
+      rootStyle.setProperty('--shadow-color', theme.shadowColor, 'important');
+      rootStyle.setProperty('--todoist-blue', theme.todoistBlue, 'important');
+      
+      // Add/remove dark mode class on body
+      if (themeName === 'dark' || themeName === 'dim') {
+        document.body.classList.add('dark-theme');
+      } else {
+        document.body.classList.remove('dark-theme');
+      }
+      
+      // Force update specific elements that might be resistant to theme changes
+      const updateElements = function() {
+        // Update user cards
+        document.querySelectorAll('.user-card').forEach(el => {
+          el.style.borderBottomColor = theme.borderColor;
+        });
+        
+        // Update header area
+        const headerWrapper = document.querySelector('.header-wrapper');
+        if (headerWrapper) {
+          headerWrapper.style.backgroundColor = theme.bgPrimary;
+          headerWrapper.style.borderBottomColor = theme.borderColor;
+        }
+        
+        // Update search box
+        const searchBox = document.querySelector('.twitter-search');
+        if (searchBox) {
+          searchBox.style.backgroundColor = theme.bgSecondary;
+        }
+      };
+      
+      // Apply updates immediately and after a delay
+      updateElements();
+      setTimeout(updateElements, 500);
+    };
+    
+    // Initialize theme from localStorage
+    const initCountTheme = function() {
+      const savedTheme = localStorage.getItem('twitter-theme');
+      if (savedTheme) {
+        applyCountPageTheme(savedTheme);
+      } else {
+        applyCountPageTheme('light'); // Default
+      }
+    };
+    
+    // Listen for localStorage changes
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'twitter-theme') {
+        applyCountPageTheme(e.newValue);
+      }
+    });
+    
+    // Polling function to ensure theme consistency
+    const themeConsistencyCheck = function() {
+      const currentTheme = localStorage.getItem('twitter-theme');
+      if (currentTheme) {
+        applyCountPageTheme(currentTheme);
+      }
+    };
+    
+    // Set up polling intervals that won't cause performance issues
+    setTimeout(themeConsistencyCheck, 500);
+    setTimeout(themeConsistencyCheck, 2000);
+    setInterval(themeConsistencyCheck, 5000);
+    
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initCountTheme);
+    } else {
+      initCountTheme();
+    }
+    
+    // Also initialize on window load
+    window.addEventListener('load', initCountTheme);
+  })();
+</script>
+
 
 </body>
 </html>
