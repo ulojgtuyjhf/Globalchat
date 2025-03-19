@@ -1,525 +1,880 @@
-<style>  
+
+<script>
+  // Wait for the page to fully load
+  document.addEventListener('DOMContentLoaded', function() {
+    // Function to scroll to bottom with animation
+    function scrollToBottomAnimated() {
+      const chatContainer = document.getElementById('chatContainer');
+      if (!chatContainer) return;
+      
+      // Use requestAnimationFrame for smooth scrolling
+      const startPosition = chatContainer.scrollTop;
+      const endPosition = chatContainer.scrollHeight - chatContainer.clientHeight;
+      const duration = 500; // milliseconds
+      const startTime = performance.now();
+      
+      function step(currentTime) {
+        const elapsedTime = currentTime - startTime;
+        if (elapsedTime < duration) {
+          // Use easeOutCubic for smoother animation
+          const progress = 1 - Math.pow(1 - elapsedTime / duration, 3);
+          chatContainer.scrollTop = startPosition + (endPosition - startPosition) * progress;
+          requestAnimationFrame(step);
+        } else {
+          chatContainer.scrollTop = endPosition;
+        }
+      }
+      
+      requestAnimationFrame(step);
+    }
+    
+    // Scroll to bottom on page load (with slight delay to ensure content is loaded)
+    setTimeout(scrollToBottomAnimated, 500);
+    
+    // Create a MutationObserver to detect when new messages are added
+    const chatContainer = document.getElementById('chatContainer');
+    if (chatContainer) {
+      const observer = new MutationObserver(function(mutations) {
+        // Check if a new message was added
+        for (const mutation of mutations) {
+          if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+            for (const node of mutation.addedNodes) {
+              if (node.classList && node.classList.contains('message')) {
+                // New message detected, scroll to bottom
+                scrollToBottomAnimated();
+                break;
+              }
+            }
+          }
+        }
+      });
+      
+      // Start observing the chat container for changes
+      observer.observe(chatContainer, { childList: true });
+    }
+  });
+</script>  
+
+
+<script>
+  // Twitter-style Content Filter System
+  (function() {
+    // Focus on serious problematic content only
+    const prohibitedContent = [
+      'fuck', 'shit', 'bitch', 'cunt', 'dick', 'cock', 'pussy',
+      'nigger', 'faggot', 'retard', 'kys', 'kill yourself',
+      'porn', 'rape', 'nazi', 'suicide'
+    ];
+    
+    // Simple pattern matching
+    const prohibitedRegexes = prohibitedContent.map(term =>
+      new RegExp(`\\b${term}\\b`, 'i')
+    );
+    
+    // Check if a message contains prohibited content
+    function containsProhibitedContent(text) {
+      if (!text) return false;
+      
+      for (const regex of prohibitedRegexes) {
+        if (regex.test(text)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    
+    // Create Twitter-style content warning
+    function createContentWarning(messageElement, messageText) {
+      // Save original content
+      messageElement.setAttribute('data-original-content', messageText);
+      
+      // Create warning wrapper
+      const warningHTML = `
+      <div class="content-warning">
+        <p>This message is hidden because it may contain sensitive content</p>
+        <button class="show-content-btn">Show</button>
+      </div>
+    `;
+      
+      // Replace content with warning
+      const messageTextElement = messageElement.querySelector('.message-text');
+      if (messageTextElement) {
+        messageTextElement.innerHTML = warningHTML;
+        
+        // Add event listener to show button
+        setTimeout(() => {
+          const showBtn = messageTextElement.querySelector('.show-content-btn');
+          if (showBtn) {
+            showBtn.addEventListener('click', function() {
+              const originalContent = messageElement.getAttribute('data-original-content');
+              messageTextElement.textContent = originalContent;
+            });
+          }
+        }, 0);
+      }
+    }
+    
+    // Monitor for new messages
+    function monitorMessages() {
+      const chatObserver = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+          if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach(node => {
+              if (node.nodeType === 1 && node.classList.contains('message')) {
+                const messageTextElement = node.querySelector('.message-text');
+                if (messageTextElement) {
+                  const messageText = messageTextElement.textContent;
+                  
+                  // Check if message contains prohibited content
+                  if (containsProhibitedContent(messageText)) {
+                    createContentWarning(node, messageText);
+                  }
+                }
+              }
+            });
+          }
+        });
+      });
+      
+      const chatContainer = document.getElementById('chatContainer');
+      if (chatContainer) {
+        chatObserver.observe(chatContainer, {
+          childList: true,
+          subtree: true
+        });
+      }
+      
+      // Check existing messages
+      document.querySelectorAll('.message').forEach(messageElement => {
+        const messageTextElement = messageElement.querySelector('.message-text');
+        if (messageTextElement) {
+          const messageText = messageTextElement.textContent;
+          if (containsProhibitedContent(messageText)) {
+            createContentWarning(messageElement, messageText);
+          }
+        }
+      });
+    }
+    
+    // Add CSS for content warnings
+    function addWarningStyles() {
+      const style = document.createElement('style');
+      style.textContent = `
+      .content-warning {
+        background-color: rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        padding: 10px;
+        margin: 5px 0;
+      }
+      
+      .content-warning p {
+        color: #657786;
+        font-size: 14px;
+        margin-bottom: 8px;
+      }
+      
+      .show-content-btn {
+        background-color: transparent;
+        border: 1px solid #1da1f2;
+        color: #1da1f2;
+        border-radius: 16px;
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      
+      .show-content-btn:hover {
+        background-color: rgba(29, 161, 242, 0.1);
+      }
+    `;
+      document.head.appendChild(style);
+    }
+    
+    // Initialize the system
+    function init() {
+      addWarningStyles();
+      monitorMessages();
+      
+      // Set up a periodic scanner for missed messages
+      setInterval(() => {
+        document.querySelectorAll('.message').forEach(messageElement => {
+          if (!messageElement.hasAttribute('data-original-content')) {
+            const messageTextElement = messageElement.querySelector('.message-text');
+            if (messageTextElement) {
+              const messageText = messageTextElement.textContent;
+              if (containsProhibitedContent(messageText)) {
+                createContentWarning(messageElement, messageText);
+              }
+            }
+          }
+        });
+      }, 2000);
+    }
+    
+    // Run initialization
+    if (document.readyState === 'interactive' || document.readyState === 'complete') {
+      setTimeout(init, 100);
+    } else {
+      document.addEventListener('DOMContentLoaded', init);
+    }
+  })();
+</script>
+<script>
+  // Theme Integration for MinimalTranslator
+  document.addEventListener('DOMContentLoaded', () => {
+    // Wait for MinimalTranslator to initialize
+    setTimeout(() => {
+      const translatorThemeHandler = {
+        init: function() {
+          // Apply current theme on init
+          this.applyCurrentTheme();
+          
+          // Set up listeners for theme changes
+          this.setupThemeListeners();
+          
+          // Fix original language reset issue
+          this.fixOriginalLanguageReset();
+        },
+        
+        applyCurrentTheme: function() {
+          // Check the theme from localStorage (twitter-theme)
+          const currentTheme = localStorage.getItem('twitter-theme') || 'light';
+          
+          // Apply appropriate theme based on the value
+          this.applyThemeToTranslator(currentTheme);
+        },
+        
+        applyThemeToTranslator: function(theme) {
+          const translator = document.querySelector('.minimal-translator');
+          if (!translator) return;
+          
+          // Create or update theme styles
+          let styles = document.getElementById('translator-theme-styles');
+          if (!styles) {
+            styles = document.createElement('style');
+            styles.id = 'translator-theme-styles';
+            document.head.appendChild(styles);
+          }
+          
+          if (theme === 'dim') {
+            styles.textContent = `
+            .translator-trigger {
+              background: #1DA1F2;
+              box-shadow: 0 2px 8px rgba(29, 161, 242, 0.3);
+            }
+            
+            .translator-menu {
+              background: #15202B;
+              border-color: #38444D;
+              box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            }
+            
+            .menu-header {
+              border-bottom: 1px solid #38444D;
+              color: #E7E9EA;
+            }
+            
+            .search-box {
+              border-bottom: 1px solid #38444D;
+            }
+            
+            .search-box input {
+              background: #1E2732;
+              border-color: #38444D;
+              color: #E7E9EA;
+            }
+            
+            .search-icon {
+              color: #8B98A5;
+            }
+            
+            .language-option {
+              color: #E7E9EA;
+            }
+            
+            .language-option:hover {
+              background: rgba(29, 161, 242, 0.2);
+            }
+            
+            .language-option.active {
+              background: rgba(29, 161, 242, 0.2);
+            }
+            
+            .language-name {
+              color: #E7E9EA;
+            }
+            
+            .original-language {
+              border-top: 1px solid #38444D;
+              color: #1DA1F2;
+            }
+            
+            .loading-overlay {
+              background: rgba(21, 32, 43, 0.7);
+            }
+            
+            .toast-notification {
+              background: rgba(0, 0, 0, 0.8);
+            }
+          `;
+          } else if (theme === 'dark') {
+            styles.textContent = `
+            .translator-trigger {
+              background: #1DA1F2;
+              box-shadow: 0 2px 8px rgba(29, 161, 242, 0.3);
+            }
+            
+            .translator-menu {
+              background: #000000;
+              border-color: #2F3336;
+              box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+            }
+            
+            .menu-header {
+              border-bottom: 1px solid #2F3336;
+              color: #FFFFFF;
+            }
+            
+            .search-box {
+              border-bottom: 1px solid #2F3336;
+            }
+            
+            .search-box input {
+              background: #16181C;
+              border-color: #2F3336;
+              color: #FFFFFF;
+            }
+            
+            .search-icon {
+              color: #71767B;
+            }
+            
+            .language-option {
+              color: #FFFFFF;
+            }
+            
+            .language-option:hover {
+              background: rgba(29, 161, 242, 0.2);
+            }
+            
+            .language-option.active {
+              background: rgba(29, 161, 242, 0.2);
+            }
+            
+            .language-name {
+              color: #FFFFFF;
+            }
+            
+            .original-language {
+              border-top: 1px solid #2F3336;
+              color: #1DA1F2;
+            }
+            
+            .loading-overlay {
+              background: rgba(0, 0, 0, 0.7);
+            }
+            
+            .toast-notification {
+              background: rgba(0, 0, 0, 0.8);
+            }
+          `;
+          } else {
+            // Light theme (default)
+            styles.textContent = `
+            .translator-trigger {
+              background: #1DA1F2;
+              box-shadow: 0 2px 8px rgba(29, 161, 242, 0.3);
+            }
+            
+            .translator-menu {
+              background: white;
+              border-color: rgba(0, 0, 0, 0.08);
+              box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            }
+            
+            .menu-header {
+              border-bottom: 1px solid #EFF3F4;
+              color: #0F1419;
+            }
+            
+            .search-box {
+              border-bottom: 1px solid #EFF3F4;
+            }
+            
+            .search-box input {
+              background: white;
+              border-color: #EFF3F4;
+              color: #0F1419;
+            }
+            
+            .search-icon {
+              color: #536471;
+            }
+            
+            .language-option {
+              color: #0F1419;
+            }
+            
+            .language-option:hover {
+              background: rgba(29, 161, 242, 0.1);
+            }
+            
+            .language-option.active {
+              background: rgba(29, 161, 242, 0.1);
+            }
+            
+            .language-name {
+              color: #0F1419;
+            }
+            
+            .original-language {
+              border-top: 1px solid #EFF3F4;
+              color: #1DA1F2;
+            }
+            
+            .loading-overlay {
+              background: rgba(255, 255, 255, 0.7);
+            }
+            
+            .toast-notification {
+              background: rgba(0, 0, 0, 0.8);
+            }
+          `;
+          }
+        },
+        
+        setupThemeListeners: function() {
+          // Listen for changes to localStorage (for cross-tab sync)
+          window.addEventListener('storage', (event) => {
+            if (event.key === 'twitter-theme') {
+              this.applyThemeToTranslator(event.newValue || 'light');
+            }
+          });
+          
+          // Listen for changes to data-theme attribute on document element
+          const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+              if (mutation.attributeName === 'data-theme') {
+                const theme = document.documentElement.getAttribute('data-theme') || 'light';
+                this.applyThemeToTranslator(theme);
+              }
+            });
+          });
+          
+          observer.observe(document.documentElement, { attributes: true });
+          
+          // Also periodically check for theme changes
+          setInterval(() => {
+            this.applyCurrentTheme();
+          }, 2000);
+        },
+        
+        fixOriginalLanguageReset: function() {
+          // Fix the issue with reverting to original language
+          const checkAndFixResetButton = () => {
+            const resetButton = document.querySelector('.minimal-translator .original-language');
+            if (resetButton && !resetButton._fixed) {
+              resetButton._fixed = true;
+              
+              const originalClick = resetButton.onclick;
+              resetButton.onclick = function(e) {
+                e.preventDefault();
+                
+                // Clear Google Translate cookies
+                const domain = window.location.hostname;
+                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=${domain}; path=/;`;
+                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=.${domain}; path=/;`;
+                
+                // Call original handler if it exists
+                if (typeof originalClick === 'function') {
+                  originalClick.call(this);
+                }
+                
+                // Force reload after a brief delay
+                setTimeout(() => {
+                  window.location.reload(true);
+                }, 300);
+              };
+            }
+          };
+          
+          // Try to fix immediately and also set up an observer to catch if translator loads later
+          checkAndFixResetButton();
+          
+          const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+              if (mutation.addedNodes.length) {
+                checkAndFixResetButton();
+              }
+            });
+          });
+          
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true
+          });
+        }
+      };
+      
+      // Initialize the translator theme handler
+      translatorThemeHandler.init();
+    }, 800); // Wait for translator to initialize
+  });
+</script>
+<script>
+  // Function to group consecutive messages from the same user
+  function groupConsecutiveMessages() {
+    // Get all message elements
+    const messages = document.querySelectorAll('.message');
+    let currentUserId = null;
+    let lastMessageElement = null;
+    
+    messages.forEach((messageElement, index) => {
+      // Extract the user ID from the message
+      const userId = messageElement.querySelector('.follow-btn')?.getAttribute('data-user-id');
+      
+      // If this message is from the same user as the previous one
+      if (userId && userId === currentUserId) {
+        // Hide the profile image, user info and action buttons
+        const profileImage = messageElement.querySelector('.profile-image');
+        const messageHeader = messageElement.querySelector('.message-header');
+        const actionButtons = messageElement.querySelector('.action-buttons');
+        
+        if (profileImage) profileImage.style.visibility = 'hidden';
+        if (messageHeader) messageHeader.style.display = 'none';
+        if (actionButtons) actionButtons.style.display = 'none';
+        
+        // Add a class to indicate it's a consecutive message
+        messageElement.classList.add('consecutive-message');
+        
+        // Reduce the padding/margin to make it appear grouped
+        messageElement.style.paddingTop = '4px';
+        messageElement.style.borderBottom = 'none';
+        
+        // If it's the last message in a group, add a small bottom margin
+        if (index === messages.length - 1 ||
+          messages[index + 1].querySelector('.follow-btn')?.getAttribute('data-user-id') !== userId) {
+          messageElement.style.marginBottom = '8px';
+          // Commented out the following lines to remove the border and padding at the bottom
+          // messageElement.style.borderBottom = '1px solid #38444d';
+          // messageElement.style.paddingBottom = '8px';
+        }
+        
+        // If it's not the first message in a group, reduce top margin
+        if (lastMessageElement && lastMessageElement.classList.contains('consecutive-message')) {
+          messageElement.style.marginTop = '-6px';
+        }
+      } else {
+        // This is the first message from a user or a message from a different user
+        // Reset the current user ID
+        currentUserId = userId;
+        
+        // Add some extra spacing if this message follows a group
+        if (lastMessageElement && lastMessageElement.classList.contains('consecutive-message')) {
+          messageElement.style.marginTop = '16px';
+        }
+      }
+      
+      lastMessageElement = messageElement;
+    });
+  }
   
+  // Watch for new messages being added to the chat
+  const chatObserver = new MutationObserver((mutations) => {
+    // Check if new messages were added
+    const hasNewMessages = mutations.some(mutation =>
+      Array.from(mutation.addedNodes).some(node =>
+        node.nodeType === 1 && node.classList.contains('message')
+      )
+    );
+    
+    if (hasNewMessages) {
+      // Regroup all messages
+      groupConsecutiveMessages();
+    }
+  });
   
-/* ----- Global Resets ----- */  
-* {  
-  margin: 0;  
-  padding: 0;  
-  box-sizing: border-box;  
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;  
-}  
+  // Start observing the chat container
+  document.addEventListener('DOMContentLoaded', () => {
+    const chatContainer = document.getElementById('chatContainer');
+    if (chatContainer) {
+      chatObserver.observe(chatContainer, { childList: true });
+      
+      // Also run once on page load for existing messages
+      setTimeout(groupConsecutiveMessages, 1000);
+    }
+  });
   
-/* ----- Page Layout ----- */  
-body {  
-  display: flex;  
-  flex-direction: column;  
-  height: 100vh;  
-  background-color: #f7f9fa;  
-  color: #14171a;  
-  overflow: hidden;  
-  border-left: 1px solid #e6ecf0;  
-  border-right: 1px solid #e6ecf0;  
-}  
+  // Ensure the observer is started even if content loads dynamically
+  const checkForChatContainer = setInterval(() => {
+    const chatContainer = document.getElementById('chatContainer');
+    if (chatContainer) {
+      chatObserver.observe(chatContainer, { childList: true });
+      clearInterval(checkForChatContainer);
+      
+      // Run the grouping function for existing messages
+      groupConsecutiveMessages();
+    }
+  }, 500);
   
-/* ----- Chat Container ----- */  
-.chat-container {  
-  flex: 1;  
-  overflow-y: auto;  
-  padding: 20px;  
-  background-color: #ffffff;  
-  border-bottom: 1px solid #e6ecf0;  
-  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%231da1f2' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");  
-}  
+  // Apply the grouping function whenever new messages are loaded
+  document.addEventListener('scroll', () => {
+    // Debounce the function to prevent performance issues
+    clearTimeout(window.scrollDebounce);
+    window.scrollDebounce = setTimeout(groupConsecutiveMessages, 200);
+  });
+</script>
+<script>
+
+(function() {
+  // Theme handler for Global Chat that responds to localStorage changes
+  const globalChatThemeHandler = {
+    // Theme definitions matching your existing system - with enhanced dark mode
+    themes: {
+      light: {
+        bg: '#ffffff',
+        containerBg: '#ffffff',
+        messageContentBg: '#dceefb',
+        text: '#14171a',
+        secondaryText: '#657786',
+        border: '#e6ecf0',
+        inputBg: '#f5f8fa',
+        blue: '#1da1f2',
+        messageBorder: 'rgba(29, 161, 242, 0.2)'
+      },
+      dim: {
+        bg: '#15202b',
+        containerBg: '#15202b',
+        messageContentBg: '#1e2732',
+        text: '#ffffff',
+        secondaryText: '#8899a6',
+        border: '#38444d',
+        inputBg: '#192734',
+        blue: '#1da1f2',
+        messageBorder: 'rgba(29, 161, 242, 0.3)'
+      },
+      dark: {
+        bg: '#000000',
+        containerBg: '#000000',
+        messageContentBg: '#16181c',
+        text: '#ffffff',
+        secondaryText: '#8899a6',
+        border: '#2f3336',
+        inputBg: '#16181c',
+        blue: '#1da1f2',
+        messageBorder: 'rgba(29, 161, 242, 0.3)'
+      }
+    },
+    
+    init: function() {
+      // Apply theme on init
+      this.applyCurrentTheme();
+      
+      // Listen for theme changes
+      this.setupThemeListener();
+      
+      // Re-apply theme periodically to ensure consistency
+      this.setupPeriodicCheck();
+    },
+    
+    applyCurrentTheme: function() {
+      const currentTheme = localStorage.getItem('twitter-theme') || 'light';
+      this.applyTheme(currentTheme);
+    },
+    
+    applyTheme: function(themeName) {
+      // Default to light if invalid theme
+      const theme = this.themes[themeName] || this.themes.light;
+      
+      // Create or update theme style element
+      let styleEl = document.getElementById('global-chat-theme');
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'global-chat-theme';
+        document.head.appendChild(styleEl);
+      }
+      
+      // Apply theme using CSS with aggressive !important flags
+      styleEl.textContent = `
+        /* Global Chat theme for ${themeName} mode */
+        body {
+          background-color: ${theme.bg} !important;
+          color: ${theme.text} !important;
+          border-color: ${theme.border} !important;
+        }
+        
+        .chat-container {
+          background-color: ${theme.containerBg} !important;
+          border-color: ${theme.border} !important;
+          background-image: ${themeName === 'dark' ? 'none' : ''} !important;
+        }
+        
+        .message-content {
+          background-color: ${theme.messageContentBg} !important;
+          color: ${theme.text} !important;
+          border-color: ${theme.messageBorder} !important;
+          box-shadow: ${themeName === 'dark' ? '0 1px 3px rgba(0, 0, 0, 0.3)' : '0 1px 3px rgba(0, 0, 0, 0.08)'} !important;
+        }
+        
+        .message-content::before {
+          background-color: ${theme.messageContentBg} !important;
+          border-color: ${theme.messageBorder} !important;
+        }
+        
+        .input-container {
+          background-color: ${theme.containerBg} !important;
+          border-color: ${theme.border} !important;
+          box-shadow: ${themeName === 'dark' ? '0 -1px 5px rgba(0, 0, 0, 0.3)' : '0 -1px 5px rgba(0, 0, 0, 0.05)'} !important;
+        }
+        
+        .input-wrapper {
+          background-color: ${theme.inputBg} !important;
+          border-color: ${theme.border} !important;
+        }
+        
+        .message-textarea {
+          color: ${theme.text} !important;
+          background-color: transparent !important;
+        }
+        
+        .message-textarea::placeholder {
+          color: ${theme.secondaryText} !important;
+        }
+        
+        .message-header {
+          border-color: ${theme.messageBorder} !important;
+        }
+        
+        .user-name {
+          color: ${theme.blue} !important;
+        }
+        
+        .message-time {
+          color: ${theme.secondaryText} !important;
+          border-color: ${theme.border} !important;
+        }
+        
+        .action-buttons {
+          border-color: ${theme.messageBorder} !important;
+        }
+        
+        .action-button {
+          color: ${theme.secondaryText} !important;
+        }
+        
+        .loading-dots {
+          background-color: ${theme.inputBg} !important;
+          border-color: ${theme.messageBorder} !important;
+        }
+        
+        .chat-container::-webkit-scrollbar-track {
+          background: ${theme.containerBg} !important;
+          border-color: ${theme.border} !important;
+        }
+        
+        .chat-container::-webkit-scrollbar-thumb {
+          background: ${theme.blue} !important;
+          border-color: ${theme.containerBg} !important;
+        }
+        
+        .media-preview {
+          background-color: ${theme.inputBg} !important;
+          border-color: ${theme.border} !important;
+        }
+        
+        .preview-item {
+          border-color: ${theme.border} !important;
+          background-color: ${theme.messageContentBg} !important;
+        }
+        
+        .reply-input {
+          border-color: ${theme.messageBorder} !important;
+        }
+        
+        .reply-wrapper {
+          background-color: ${theme.inputBg} !important;
+          border-color: ${theme.border} !important;
+        }
+        
+        .reply-textarea {
+          color: ${theme.text} !important;
+          background-color: transparent !important;
+        }
+        
+        .message {
+          border-top-color: ${themeName === 'dark' ? 'rgba(47, 51, 54, 0.6)' : 'rgba(230, 236, 240, 0.3)'} !important;
+        }
+        
+        .profile-image {
+          border-color: ${theme.containerBg} !important;
+          outline-color: ${theme.border} !important;
+        }
+        
+        .content-warning {
+          background-color: ${themeName === 'dark' ? 'rgba(22, 24, 28, 0.8)' : 'rgba(0, 0, 0, 0.1)'} !important;
+        }
+        
+        .content-warning p {
+          color: ${theme.secondaryText} !important;
+        }
+        
+        .show-content-btn {
+          border-color: ${theme.blue} !important;
+          color: ${theme.blue} !important;
+        }
+        
+        .show-content-btn:hover {
+          background-color: ${themeName === 'dark' ? 'rgba(29, 161, 242, 0.2)' : 'rgba(29, 161, 242, 0.1)'} !important;
+        }
+      `;
+      
+      // Log theme application for debugging
+      console.log('Global Chat theme applied:', themeName);
+    },
+    
+    setupThemeListener: function() {
+      // Listen for localStorage changes
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'twitter-theme') {
+          this.applyTheme(e.newValue);
+        }
+      });
+    },
+    
+    setupPeriodicCheck: function() {
+      // Store the current theme
+      let lastKnownTheme = localStorage.getItem('twitter-theme') || 'light';
+      
+      // Check periodically for theme changes
+      setInterval(() => {
+        const currentTheme = localStorage.getItem('twitter-theme');
+        if (currentTheme && currentTheme !== lastKnownTheme) {
+          lastKnownTheme = currentTheme;
+          this.applyTheme(currentTheme);
+        }
+        
+        // Force reapply every few cycles to ensure consistency
+        if (Math.random() < 0.2) {
+          this.applyTheme(lastKnownTheme);
+        }
+      }, 2000);
+    }
+  };
   
-/* Stylish custom scrollbar */  
-.chat-container::-webkit-scrollbar {  
-  width: 8px;  
-}  
-.chat-container::-webkit-scrollbar-track {  
-  background: rgba(240, 240, 240, 0.5);  
-  border-radius: 10px;  
-  border: 1px solid #e6ecf0;  
-}  
-.chat-container::-webkit-scrollbar-thumb {  
-  background: #1da1f2;  
-  border-radius: 10px;  
-  border: 2px solid #ffffff;  
-  transition: background 0.3s;  
-}  
-.chat-container::-webkit-scrollbar-thumb:hover {  
-  background: #0c85d0;  
-}  
+  // Initialize the theme handler with a delay
+  setTimeout(() => {
+    globalChatThemeHandler.init();
+  }, 300);
   
-/* ----- Message Animation ----- */  
-@keyframes bubbleIn {  
-  0% {  
-    opacity: 0;  
-    transform: translateY(15px) scale(0.95);  
-  }  
-  50% {  
-    opacity: 0.5;  
-    transform: translateY(8px) scale(0.98);  
-  }  
-  100% {  
-    opacity: 1;  
-    transform: translateY(0) scale(1);  
-  }  
-}  
-  
-/* ----- Message Wrapper ----- */  
-.message {  
-  display: flex;  
-  margin: 12px 0;  
-  padding: 8px 0;  
-  animation: bubbleIn 0.5s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;  
-  align-items: flex-start;  
-  border-top: 1px solid rgba(230, 236, 240, 0.3);  
-}  
-  
-/* Profile image - Stylish square with soft corners */  
-.profile-image {  
-  width: 42px;  
-  height: 42px;  
-  border-radius: 12px; /* Softer corners */  
-  margin-right: 12px;  
-  object-fit: cover;  
-  flex-shrink: 0;  
-  align-self: flex-end;  
-  margin-bottom: 10px;  
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);  
-  border: 2px solid white;  
-  outline: 1px solid #e6ecf0;  
-  transition: all 0.3s ease;  
-}  
-  
-.profile-image:hover {  
-  transform: scale(1.05);  
-  border-color: #1da1f2;  
-}  
-  
-/* ----- Message Content - WhatsApp Style ----- */  
-.message-content {  
-  position: relative;  
-  background-color: #dceefb; /* Light blue background like WhatsApp but with Twitter color */  
-  color: #14171a;  
-  padding: 14px 16px;  
-  border-radius: 18px; /* More rounded like WhatsApp */  
-  max-width: 80%;  
-  min-width: 60px;  
-  word-break: break-word;  
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);  
-  transition: all 0.3s ease;  
-  border: 1px solid rgba(29, 161, 242, 0.2);  
-  margin-bottom: 8px;  
-}  
-  
-/* WhatsApp-style pointer - more subtle and rounded */  
-.message-content::before {  
-  content: "";  
-  position: absolute;  
-  bottom: 15px;  
-  left: -7px;  
-  width: 14px;  
-  height: 14px;  
-  background-color: #dceefb;  
-  border-left: 1px solid rgba(29, 161, 242, 0.2);  
-  border-bottom: 1px solid rgba(29, 161, 242, 0.2);  
-  transform: rotate(45deg);  
-  box-shadow: -2px 2px 2px rgba(0, 0, 0, 0.02);  
-}  
-  
-.message-content:hover {  
-  box-shadow: 0 2px 5px rgba(29, 161, 242, 0.15);  
-  border-color: rgba(29, 161, 242, 0.4);  
-}  
-  
-.message-content:hover::before {  
-  border-color: rgba(29, 161, 242, 0.4);  
-}  
-  
-/* ----- Message Header (Name + Time) ----- */  
-.message-header {  
-  display: flex;  
-  align-items: center;  
-  margin-bottom: 6px;  
-  padding-bottom: 4px;  
-  border-bottom: 1px solid rgba(29, 161, 242, 0.1);  
-}  
-.user-name {  
-  font-size: 15px;  
-  font-weight: 700;  
-  color: #1da1f2; /* Twitter blue for name */  
-  margin-right: 8px;  
-}  
-.message-time {  
-  font-size: 12px;  
-  color: #657786;  
-  font-weight: 400;  
-  border-left: 1px solid #e6ecf0;  
-  padding-left: 8px;  
-}  
-  
-/* ----- Message Text ----- */  
-.message-text {  
-  font-size: 15px;  
-  line-height: 1.5;  
-  margin-top: 4px;  
-}  
-  
-/* ----- Media (Images / Videos) ----- */  
-.media-container {  
-  margin: 12px 0 8px;  
-  max-width: 100%;  
-  border-radius: 12px;  
-  overflow: hidden;  
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);  
-  transition: all 0.3s ease;  
-  border: 1px solid #e6ecf0;  
-}  
-.message-image,  
-.message-video {  
-  max-width: 100%;  
-  object-fit: contain;  
-  border-radius: 12px;  
-  cursor: pointer;  
-  transition: all 0.3s ease;  
-}  
-.media-container:hover {  
-  box-shadow: 0 4px 8px rgba(29, 161, 242, 0.15);  
-  border-color: #1da1f2;  
-}  
-  
-/* ----- Action Buttons (Reply, etc.) ----- */  
-.action-buttons {  
-  display: flex;  
-  margin-top: 10px;  
-  border-top: 1px solid rgba(230, 236, 240, 0.5);  
-  padding-top: 6px;  
-}  
-.action-button {  
-  display: flex;  
-  align-items: center;  
-  margin-right: 20px;  
-  color: #657786;  
-  background: none;  
-  border: none;  
-  cursor: pointer;  
-  font-size: 13px;  
-  transition: all 0.2s ease;  
-  padding: 5px 8px;  
-  border-radius: 16px;  
-  border: 1px solid transparent;  
-}  
-.action-button:hover {  
-  color: #1da1f2; /* Twitter blue */  
-  border-color: rgba(29, 161, 242, 0.3);  
-  background-color: rgba(29, 161, 242, 0.05);  
-}  
-.action-button svg {  
-  width: 16px;  
-  height: 16px;  
-  margin-right: 6px;  
-  fill: currentColor;  
-}  
-  
-/* ----- Input Container ----- */  
-.input-container {  
-  display: flex;  
-  flex-direction: column;  
-  padding: 14px;  
-  background-color: #ffffff;  
-  border-top: 1px solid #e6ecf0;  
-  box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.05);  
-}  
-  
-/* Media Preview above input */  
-.media-preview {  
-  display: flex;  
-  flex-wrap: wrap;  
-  gap: 10px;  
-  margin-bottom: 12px;  
-  padding: 8px;  
-  background-color: #f7f9fa;  
-  border-radius: 12px;  
-  border: 1px dashed #ccd6dd;  
-}  
-.preview-item {  
-  position: relative;  
-  width: 80px;  
-  height: 80px;  
-  border-radius: 10px;  
-  overflow: hidden;  
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);  
-  border: 1px solid #e6ecf0;  
-  transition: all 0.3s ease;  
-}  
-.preview-item:hover {  
-  transform: translateY(-2px);  
-  border-color: #1da1f2;  
-}  
-.preview-image,  
-.preview-video {  
-  width: 100%;  
-  height: 100%;  
-  object-fit: cover;  
-  transition: all 0.3s ease;  
-}  
-.remove-media {  
-  position: absolute;  
-  top: 4px;  
-  right: 4px;  
-  width: 22px;  
-  height: 22px;  
-  background-color: rgba(20, 23, 26, 0.7);  
-  border-radius: 50%;  
-  display: flex;  
-  align-items: center;  
-  justify-content: center;  
-  cursor: pointer;  
-  color: white;  
-  font-size: 12px;  
-  border: 1px solid rgba(255, 255, 255, 0.5);  
-  transition: all 0.2s ease;  
-}  
-.remove-media:hover {  
-  background-color: #1da1f2;  
-  transform: scale(1.1);  
-}  
-  
-/* ----- Input Wrapper (WhatsApp-like with Twitter colors) ----- */  
-.input-wrapper {  
-  display: flex;  
-  align-items: center;  
-  background-color: #f5f8fa;  
-  border-radius: 24px;  
-  padding: 8px 6px 8px 16px;  
-  border: 1px solid #e6ecf0;  
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);  
-  transition: all 0.3s ease;  
-}  
-.input-wrapper:focus-within {  
-  border-color: #1da1f2;  
-  box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.2);  
-  background-color: #ffffff;  
-}  
-.message-textarea {  
-  flex: 1;  
-  background: none;  
-  border: none;  
-  color: #14171a;  
-  font-size: 15px;  
-  resize: none;  
-  max-height: 100px;  
-  min-height: 24px;  
-  overflow-y: auto;  
-  padding: 0;  
-  outline: none;  
-  transition: all 0.2s ease;  
-}  
-.message-textarea::placeholder {  
-  color: #aab8c2;  
-}  
-  
-/* ----- Media & Send Buttons ----- */  
-.input-actions {  
-  display: flex;  
-  align-items: center;  
-  border-left: 1px solid rgba(230, 236, 240, 0.5);  
-  padding-left: 10px;  
-  margin-left: 6px;  
-}  
-.media-button {  
-  background: none;  
-  border: 1px solid transparent;  
-  cursor: pointer;  
-  margin-right: 8px;  
-  color: #1da1f2; /* Twitter blue */  
-  display: flex;  
-  align-items: center;  
-  justify-content: center;  
-  width: 34px;  
-  height: 34px;  
-  border-radius: 50%;  
-  transition: all 0.2s ease;  
-}  
-.media-button:hover {  
-  background-color: rgba(29, 161, 242, 0.1);  
-  border-color: rgba(29, 161, 242, 0.3);  
-}  
-.media-button svg {  
-  width: 18px;  
-  height: 18px;  
-  fill: currentColor;  
-}  
-.send-button {  
-  background-color: #1da1f2;  
-  color: white;  
-  border: none;  
-  border-radius: 50%;  
-  width: 38px;  
-  height: 38px;  
-  display: flex;  
-  align-items: center;  
-  justify-content: center;  
-  cursor: pointer;  
-  transition: all 0.3s ease;  
-  margin-left: 6px;  
-  box-shadow: 0 1px 3px rgba(29, 161, 242, 0.3);  
-  border: 1px solid rgba(29, 161, 242, 0.8);  
-}  
-.send-button:hover {  
-  background-color: #0c85d0;  
-  box-shadow: 0 2px 5px rgba(29, 161, 242, 0.4);  
-}  
-.send-button:active {  
-  transform: scale(0.95);  
-}  
-.send-button:disabled {  
-  background-color: #8ecdf8;  
-  cursor: not-allowed;  
-  box-shadow: none;  
-  border-color: #8ecdf8;  
-}  
-.send-button svg {  
-  width: 18px;  
-  height: 18px;  
-  fill: currentColor;  
-}  
-.file-input {  
-  display: none;  
-}  
-  
-/* ----- Country Flag, Follow Button, etc. ----- */  
-.country-flag {  
-  width: 16px;  
-  height: 12px;  
-  margin-left: 6px;  
-  border-radius: 2px;  
-  border: 1px solid #e6ecf0;  
-}  
-.follow-btn {  
-  margin-left: 8px;  
-  background-color: transparent;  
-  color: #1da1f2;  
-  border: 1px solid #1da1f2;  
-  border-radius: 16px;  
-  padding: 2px 10px;  
-  font-size: 12px;  
-  font-weight: 600;  
-  cursor: pointer;  
-  transition: all 0.2s ease;  
-}  
-.follow-btn:hover {  
-  background-color: rgba(29, 161, 242, 0.1);  
-}  
-.follow-btn.followed {  
-  background-color: #1da1f2;  
-  color: white;  
-}  
-  
-/* ----- Loading Dots ----- */  
-.loading-dots {  
-  display: flex;  
-  justify-content: center;  
-  padding: 20px;  
-  border: 1px solid rgba(29, 161, 242, 0.2);  
-  border-radius: 16px;  
-  margin: 10px auto;  
-  max-width: 100px;  
-  background-color: #f5f8fa;  
-}  
-.loading-dot {  
-  width: 8px;  
-  height: 8px;  
-  margin: 0 4px;  
-  border-radius: 50%;  
-  background-color: #1da1f2;  
-  animation: loadingBounce 1s infinite alternate ease-in-out;  
-  border: 1px solid rgba(255, 255, 255, 0.8);  
-}  
-.loading-dot:nth-child(2) {  
-  animation-delay: 0.2s;  
-}  
-.loading-dot:nth-child(3) {  
-  animation-delay: 0.4s;  
-}  
-@keyframes loadingBounce {  
-  from { transform: translateY(0); }  
-  to { transform: translateY(-8px); }  
-}  
-  
-/* ----- Reply UI ----- */  
-.reply-input {  
-  padding: 10px 0 0 52px;  
-  margin-top: 5px;  
-  animation: slideIn 0.4s ease;  
-  border-top: 1px dashed rgba(29, 161, 242, 0.2);  
-}  
-@keyframes slideIn {  
-  from { opacity: 0; transform: translateY(-10px); }  
-  to { opacity: 1; transform: translateY(0); }  
-}  
-.reply-wrapper {  
-  display: flex;  
-  background-color: #f5f8fa;  
-  border-radius: 24px;  
-  padding: 6px 12px;  
-  border: 1px solid #e6ecf0;  
-  transition: all 0.3s ease;  
-}  
-.reply-wrapper:focus-within {  
-  border-color: #1da1f2;  
-  background-color: #ffffff;  
-  box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.2);  
-}  
-.reply-textarea {  
-  flex: 1;  
-  background: none;  
-  border: none;  
-  color: #14171a;  
-  font-size: 14px;  
-  resize: none;  
-  padding: 0;  
-  outline: none;  
-}  
-.reply-send {  
-  background-color: #1da1f2;  
-  color: white;  
-  border: none;  
-  border-radius: 50%;  
-  width: 28px;  
-  height: 28px;  
-  display: flex;  
-  align-items: center;  
-  justify-content: center;  
-  cursor: pointer;  
-  margin-left: 8px;  
-  border: 1px solid rgba(29, 161, 242, 0.8);  
-}  
-.reply-send:hover {  
-  background-color: #0c85d0;  
-}  
-  
-/* ----- Responsive Tweaks ----- */  
-@media (max-width: 768px) {  
-  .profile-image {  
-    width: 36px;  
-    height: 36px;  
-  }  
-  .message {  
-    margin: 10px 0;  
-  }  
-  .input-wrapper {  
-    padding: 6px 6px 6px 12px;  
-  }  
-  .preview-item {  
-    width: 60px;  
-    height: 60px;  
-  }  
-  .send-button {  
-    width: 34px;  
-    height: 34px;  
-  }  
-}  
-  
-</style>help me update this okay after each message you can see there's a borderline in which it shows your line okay remove that line it's not needed it makes it outdated okay even that line that the message box you know use you know but keep everything the same give me the whole full updated CSS code
+  // Also initialize on load to be extra safe
+  window.addEventListener('load', () => {
+    globalChatThemeHandler.init();
+  });
+})();
+
+</script>
+
+
+
