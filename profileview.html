@@ -1834,236 +1834,138 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 <script>
-  // Color Palette Synchronizer
   (function() {
-    // Default blue color
-    const DEFAULT_BLUE = '#1d9bf0';
-    
-    // Function to determine if a color is blue-ish
-    function isBlueish(color) {
-      let r, g, b;
-      
-      if (color.startsWith('#')) {
-        const hex = color.substring(1);
-        r = parseInt(hex.substring(0, 2), 16);
-        g = parseInt(hex.substring(2, 4), 16);
-        b = parseInt(hex.substring(4, 6), 16);
-      } else if (color.startsWith('rgb')) {
-        const rgbValues = color.match(/\d+/g);
-        if (rgbValues && rgbValues.length >= 3) {
-          r = parseInt(rgbValues[0]);
-          g = parseInt(rgbValues[1]);
-          b = parseInt(rgbValues[2]);
-        } else {
-          return false;
-        }
-      } else {
-        return false;
-      }
-      
-      return b > r + 30 && b > g + 30;
+  // Apply color palette on load
+  applyProfileColorPalette();
+  
+  // Listen for changes in localStorage
+  window.addEventListener('storage', function(event) {
+    if (event.key === 'color-value' || event.key === 'color-palette') {
+      applyProfileColorPalette();
     }
+  });
+  
+  // Listen for custom events
+  window.addEventListener('chatColorChanged', function(event) {
+    applyProfileColorPalette();
+  });
+  
+  function applyProfileColorPalette() {
+    const savedColorValue = localStorage.getItem('color-value');
+    const savedColorIndex = localStorage.getItem('color-palette');
     
-    // Function to determine if a color is light
-    function isLightColor(color) {
-      let r, g, b;
+    // Only apply if we have a valid color and it's not the default blue
+    if (savedColorValue && savedColorIndex !== '0') {
+      // Convert hex to RGB
+      const colorObj = hexToRGB(savedColorValue);
+      const rgbString = `${colorObj.r}, ${colorObj.g}, ${colorObj.b}`;
       
-      if (color.startsWith('#')) {
-        const hex = color.substring(1);
-        r = parseInt(hex.substring(0, 2), 16);
-        g = parseInt(hex.substring(2, 4), 16);
-        b = parseInt(hex.substring(4, 6), 16);
-      } else if (color.startsWith('rgb')) {
-        const rgbValues = color.match(/\d+/g);
-        if (rgbValues && rgbValues.length >= 3) {
-          r = parseInt(rgbValues[0]);
-          g = parseInt(rgbValues[1]);
-          b = parseInt(rgbValues[2]);
-        } else {
-          return false;
-        }
-      } else {
-        return false;
+      // Create style element for all overrides
+      let styleEl = document.getElementById('profile-color-palette-style');
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'profile-color-palette-style';
+        document.head.appendChild(styleEl);
       }
       
-      const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-      return luminance > 200;
-    }
-    
-    // Function to determine if a color is black or gray
-    function isNeutral(color) {
-      let r, g, b;
-      
-      if (color.startsWith('#')) {
-        const hex = color.substring(1);
-        r = parseInt(hex.substring(0, 2), 16);
-        g = parseInt(hex.substring(2, 4), 16);
-        b = parseInt(hex.substring(4, 6), 16);
-      } else if (color.startsWith('rgb')) {
-        const rgbValues = color.match(/\d+/g);
-        if (rgbValues && rgbValues.length >= 3) {
-          r = parseInt(rgbValues[0]);
-          g = parseInt(rgbValues[1]);
-          b = parseInt(rgbValues[2]);
-        } else {
-          return false;
-        }
-      } else {
-        return false;
-      }
-      
-      const maxDiff = Math.max(Math.abs(r - g), Math.abs(r - b), Math.abs(g - b));
-      return maxDiff < 30;
-    }
-    
-    // Apply color changes based on the saved palette
-    function applyColorPalette() {
-      const savedColor = localStorage.getItem('color-value') || DEFAULT_BLUE;
-      
-      // If the saved color is the default blue, reset to original styles
-      if (savedColor === DEFAULT_BLUE) {
-        resetToDefault();
-        return;
-      }
-      
-      // Apply to CSS variables
-      document.documentElement.style.setProperty('--primary', savedColor);
-      document.documentElement.style.setProperty('--chat-bubble', savedColor);
-      
-      // Apply to all CSS rules that contain blue
-      for (let i = 0; i < document.styleSheets.length; i++) {
-        try {
-          const styleSheet = document.styleSheets[i];
-          if (styleSheet.href && styleSheet.href.includes('http') &&
-            !styleSheet.href.includes(window.location.host)) {
-            continue; // Skip external stylesheets for security
-          }
-          
-          for (let j = 0; j < styleSheet.cssRules.length; j++) {
-            try {
-              const rule = styleSheet.cssRules[j];
-              if (rule.style) {
-                // Check for blue in background
-                if (rule.style.backgroundColor && isBlueish(rule.style.backgroundColor) &&
-                  !isLightColor(rule.style.backgroundColor) && !isNeutral(rule.style.backgroundColor)) {
-                  rule.style.backgroundColor = savedColor;
-                }
-                
-                // Check for blue in borders      
-                if (rule.style.borderColor && isBlueish(rule.style.borderColor) &&
-                  !isLightColor(rule.style.borderColor) && !isNeutral(rule.style.borderColor)) {
-                  rule.style.borderColor = savedColor;
-                }
-                
-                // Check for blue in text color      
-                if (rule.style.color && isBlueish(rule.style.color) &&
-                  !isLightColor(rule.style.color) && !isNeutral(rule.style.color)) {
-                  rule.style.color = savedColor;
-                }
-                
-                // Check for blue in SVG fill      
-                if (rule.style.fill && isBlueish(rule.style.fill) &&
-                  !isLightColor(rule.style.fill) && !isNeutral(rule.style.fill)) {
-                  rule.style.fill = savedColor;
-                }
-              }
-            } catch (e) {
-              // Skip problematic rules      
-              continue;
-            }
-          }
-        } catch (e) {
-          // Skip inaccessible stylesheets
-          continue;
-        }
-      }
-      
-      // Apply to inline styles for SVGs and other elements
-      const allElements = document.querySelectorAll('*');
-      allElements.forEach(element => {
-        const style = window.getComputedStyle(element);
-        
-        // Check background color
-        if (isBlueish(style.backgroundColor) && !isLightColor(style.backgroundColor) && !isNeutral(style.backgroundColor)) {
-          element.style.backgroundColor = savedColor;
+      // Apply to all blue elements while preserving the logout button color
+      styleEl.textContent = `
+        /* Twitter variables */
+        :root {
+          --twitter-blue: ${savedColorValue} !important;
+          --twitter-light-blue: ${darkenColor(savedColorValue, 0.15)} !important;
+          --twitter-hover: rgba(${rgbString}, 0.1) !important;
+          --twitter-button: ${savedColorValue} !important;
+          --twitter-button-hover: ${darkenColor(savedColorValue, 0.15)} !important;
         }
         
-        // Check text color
-        if (isBlueish(style.color) && !isLightColor(style.color) && !isNeutral(style.color)) {
-          element.style.color = savedColor;
+        /* Keep logout button red */
+        #logoutBtn .settings-icon {
+          background: #e0245e !important;
         }
         
-        // Check border color
-        if (isBlueish(style.borderColor) && !isLightColor(style.borderColor) && !isNeutral(style.borderColor)) {
-          element.style.borderColor = savedColor;
+        /* Back button */
+        .back-button, .follow-back, .backBtn svg path {
+          color: ${savedColorValue} !important;
+          fill: ${savedColorValue} !important;
         }
         
-        // Check for SVG elements
-        if (element.tagName.toLowerCase() === 'svg' ||
-          element.tagName.toLowerCase() === 'path' ||
-          element.tagName.toLowerCase() === 'circle' ||
-          element.tagName.toLowerCase() === 'rect') {
-          const fill = element.getAttribute('fill');
-          if (fill && isBlueish(fill) && !isLightColor(fill) && !isNeutral(fill)) {
-            element.setAttribute('fill', savedColor);
-          }
-          const stroke = element.getAttribute('stroke');
-          if (stroke && isBlueish(stroke) && !isLightColor(stroke) && !isNeutral(stroke)) {
-            element.setAttribute('stroke', savedColor);
-          }
+        /* Regular settings icons */
+        .settings-icon:not(#logoutBtn .settings-icon) {
+          background: ${savedColorValue} !important;
         }
-      });
-    }
-    
-    // Reset to default styles
-    function resetToDefault() {
-      // Reset CSS variables
-      document.documentElement.style.removeProperty('--primary');
-      document.documentElement.style.removeProperty('--chat-bubble');
-      
-      // Reset all elements to their original styles
-      const allElements = document.querySelectorAll('*');
-      allElements.forEach(element => {
-        element.style.backgroundColor = '';
-        element.style.color = '';
-        element.style.borderColor = '';
         
-        // Reset SVG elements
-        if (element.tagName.toLowerCase() === 'svg' ||
-          element.tagName.toLowerCase() === 'path' ||
-          element.tagName.toLowerCase() === 'circle' ||
-          element.tagName.toLowerCase() === 'rect') {
-          element.removeAttribute('fill');
-          element.removeAttribute('stroke');
+        /* Profile elements */
+        .profile-image {
+          border-color: ${savedColorValue} !important;
         }
-      });
-    }
-    
-    // Apply colors when page loads
-    document.addEventListener('DOMContentLoaded', function() {
-      applyColorPalette();
-    });
-    
-    // Listen for color changes
-    window.addEventListener('storage', function(event) {
-      if (event.key === 'color-value') {
-        applyColorPalette();
+        
+        /* Buttons */
+        .cancel-button {
+          color: ${savedColorValue} !important;
+        }
+        
+        .save-button {
+          background: ${savedColorValue} !important;
+          color: white !important;
+        }
+        
+        .save-button:hover {
+          background: ${darkenColor(savedColorValue, 0.15)} !important;
+        }
+        
+        /* Form elements */
+        .form-input:focus {
+          border-color: ${savedColorValue} !important;
+          outline-color: ${savedColorValue} !important;
+        }
+        
+        /* Follow buttons */
+        .follow-button {
+          background: ${savedColorValue} !important;
+        }
+        
+        .follow-button:hover {
+          background: ${darkenColor(savedColorValue, 0.15)} !important;
+        }
+        
+        /* Toggle switches */
+        .toggle-switch.active {
+          background: ${savedColorValue} !important;
+        }
+      `;
+    } else {
+      // Remove all custom styles to revert to default
+      const styleEl = document.getElementById('profile-color-palette-style');
+      if (styleEl) {
+        styleEl.remove();
       }
-    });
+    }
+  }
+  
+  function hexToRGB(hex) {
+    hex = hex.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return { r, g, b };
+  }
+  
+  function darkenColor(hex, percent) {
+    hex = hex.replace('#', '');
+    let r = parseInt(hex.substring(0, 2), 16);
+    let g = parseInt(hex.substring(2, 4), 16);
+    let b = parseInt(hex.substring(4, 6), 16);
     
-    // Listen for custom event from theme customizer
-    window.addEventListener('chatColorChanged', function(event) {
-      applyColorPalette();
-    });
+    r = Math.floor(r * (1 - percent));
+    g = Math.floor(g * (1 - percent));
+    b = Math.floor(b * (1 - percent));
     
-    // Apply after any AJAX content is loaded
-    const originalXHR = window.XMLHttpRequest.prototype.open;
-    window.XMLHttpRequest.prototype.open = function() {
-      this.addEventListener('load', function() {
-        setTimeout(applyColorPalette, 500);
-      });
-      return originalXHR.apply(this, arguments);
-    };
+    r = Math.max(0, r);
+    g = Math.max(0, g);
+    b = Math.max(0, b);
     
-  })();
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  }
+})();
 </script>

@@ -1492,43 +1492,45 @@ setTimeout(initializeThemeManager, 100);
 <script src="comment.js"></script>
 
 
+
+
 <script>
-(function() {
+  (function() {
     // Apply color palette on load
     applyColorPalette();
     
     // Listen for changes in localStorage
     window.addEventListener('storage', function(event) {
-        if (event.key === 'color-value' || event.key === 'color-palette') {
-            applyColorPalette();
-        }
+      if (event.key === 'color-value' || event.key === 'color-palette') {
+        applyColorPalette();
+      }
     });
     
     // Listen for custom events
     window.addEventListener('chatColorChanged', function(event) {
-        applyColorPalette();
+      applyColorPalette();
     });
     
     function applyColorPalette() {
-        const savedColorValue = localStorage.getItem('color-value');
-        const savedColorIndex = localStorage.getItem('color-palette');
+      const savedColorValue = localStorage.getItem('color-value');
+      const savedColorIndex = localStorage.getItem('color-palette');
+      
+      // Only apply if we have a valid color and it's not the default blue
+      if (savedColorValue && savedColorIndex !== '0') {
+        // Convert hex to RGB
+        const colorObj = hexToRGB(savedColorValue);
+        const rgbString = `${colorObj.r}, ${colorObj.g}, ${colorObj.b}`;
         
-        // Only apply if we have a valid color and it's not the default blue
-        if (savedColorValue && savedColorIndex !== '0') {
-            // Convert hex to RGB
-            const colorObj = hexToRGB(savedColorValue);
-            const rgbString = `${colorObj.r}, ${colorObj.g}, ${colorObj.b}`;
-            
-            // Create style element for all overrides
-            let styleEl = document.getElementById('color-palette-style');
-            if (!styleEl) {
-                styleEl = document.createElement('style');
-                styleEl.id = 'color-palette-style';
-                document.head.appendChild(styleEl);
-            }
-            
-            // Apply to all blue elements while preserving black and white
-            styleEl.textContent = `
+        // Create style element for all overrides
+        let styleEl = document.getElementById('color-palette-style');
+        if (!styleEl) {
+          styleEl = document.createElement('style');
+          styleEl.id = 'color-palette-style';
+          document.head.appendChild(styleEl);
+        }
+        
+        // Apply to all blue elements while preserving black and white
+        styleEl.textContent = `
                 /* Primary colors */
                 :root {
                     --primary-color: ${savedColorValue} !important;
@@ -1550,24 +1552,16 @@ setTimeout(initializeThemeManager, 100);
                     background-color: ${darkenColor(savedColorValue, 0.15)} !important;
                 }
                 
-                /* Interactive elements */
-                .action-button:hover, 
-                .media-button, 
-                .user-name:hover,
-                .theme-indicator svg {
+                /* Username should match the color palette */
+                .user-name {
                     color: ${savedColorValue} !important;
                 }
                 
-                /* Follow button */
-                .follow-btn {
+                /* Interactive elements */
+                .action-button:hover, 
+                .media-button,
+                .theme-indicator svg {
                     color: ${savedColorValue} !important;
-                    border-color: ${savedColorValue} !important;
-                }
-                .follow-btn:hover {
-                    background-color: rgba(${rgbString}, 0.1) !important;
-                }
-                .follow-btn.followed {
-                    background-color: ${savedColorValue} !important;
                 }
                 
                 /* Scrollbar */
@@ -1588,38 +1582,38 @@ setTimeout(initializeThemeManager, 100);
                     box-shadow: 0 0 0 2px rgba(${rgbString}, 0.3) !important;
                 }
             `;
-        } else {
-            // Remove all custom styles to revert to default
-            const styleEl = document.getElementById('color-palette-style');
-            if (styleEl) {
-                styleEl.remove();
-            }
+      } else {
+        // Remove all custom styles to revert to default
+        const styleEl = document.getElementById('color-palette-style');
+        if (styleEl) {
+          styleEl.remove();
         }
+      }
     }
     
     function hexToRGB(hex) {
-        hex = hex.replace('#', '');
-        const r = parseInt(hex.substring(0, 2), 16);
-        const g = parseInt(hex.substring(2, 4), 16);
-        const b = parseInt(hex.substring(4, 6), 16);
-        return { r, g, b };
+      hex = hex.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return { r, g, b };
     }
     
     function darkenColor(hex, percent) {
-        hex = hex.replace('#', '');
-        let r = parseInt(hex.substring(0, 2), 16);
-        let g = parseInt(hex.substring(2, 4), 16);
-        let b = parseInt(hex.substring(4, 6), 16);
-        
-        r = Math.floor(r * (1 - percent));
-        g = Math.floor(g * (1 - percent));
-        b = Math.floor(b * (1 - percent));
-        
-        r = Math.max(0, r);
-        g = Math.max(0, g);
-        b = Math.max(0, b);
-        
-        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+      hex = hex.replace('#', '');
+      let r = parseInt(hex.substring(0, 2), 16);
+      let g = parseInt(hex.substring(2, 4), 16);
+      let b = parseInt(hex.substring(4, 6), 16);
+      
+      r = Math.floor(r * (1 - percent));
+      g = Math.floor(g * (1 - percent));
+      b = Math.floor(b * (1 - percent));
+      
+      r = Math.max(0, r);
+      g = Math.max(0, g);
+      b = Math.max(0, b);
+      
+      return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
     }
-})();
+  })();
 </script>
