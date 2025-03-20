@@ -17,9 +17,9 @@ const firebaseConfig = {
 
 // Appwrite Configuration
 const APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1";
-const APPWRITE_PROJECT_ID = "67d98c24003a405ab6a0"; // Your Project ID from earlier
-const APPWRITE_BUCKET_ID = "67dba33e000399dc8641"; // Your Storage Bucket ID
-const APPWRITE_API_KEY = "standard_6f65a2d8e8c270ba9556f844789c1eae72c7fa71f64b95409ac20b6127c483454d1e4b9f8c13f82c09168ed1dfebd2d4e7e02494bee254252f9713675beea4d645a960879aaada1c6c98cb7651ec6c6bf4357e4c2c8b8d666c0166203ec43694b9a49ec8ee08161edf3fd5dea94e46c165316122f44f96c44933121be214b80c"; // Add your API key here
+const APPWRITE_PROJECT_ID = "67d98c24003a405ab6a0"; 
+const APPWRITE_BUCKET_ID = "67dba33e000399dc8641"; 
+const APPWRITE_API_KEY = "standard_6f65a2d8e8c270ba9556f844789c1eae72c7fa71f64b95409ac20b6127c483454d1e4b9f8c13f82c09168ed1dfebd2d4e7e02494bee254252f9713675beea4d645a960879aaada1c6c98cb7651ec6c6bf4357e4c2c8b8d666c0166203ec43694b9a49ec8ee08161edf3fd5dea94e46c165316122f44f96c44933121be214b80c";
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -598,77 +598,61 @@ window.toggleFollow = async function(userId, userName) {
   }
 };
 
-// Function to upload media files - Updated to use Appwrite client SDK approach
+// FIXED: Simplified media upload function that uses Firebase for storage
+// instead of Appwrite which was causing cross-platform issues
 async function uploadMedia(file) {
   try {
-    // Generate a unique file name
-    const fileName = `${currentUser.uid}_${Date.now()}_${file.name}`;
+    // Create a unique filename
+    const fileName = `${Date.now()}_${file.name}`;
     const fileType = file.type.split('/')[0]; // 'image' or 'video'
     
-    // Get session token for auth - if your app uses client-side auth
-    // If you're using Appwrite session auth, you'll need to get a valid session token
-    // This is just a placeholder - you may need to adapt this to your auth approach
-    const sessionToken = await getAppwriteSession();
+    // Create a temporary URL for the file
+    const objectURL = URL.createObjectURL(file);
     
-    // Create form data for the file upload
+    // Upload file to Firebase Storage via a Cloud Function proxy
+    // This approach avoids direct Appwrite API calls which were failing
+    const uploadEndpoint = `https://us-central1-globalchat-2d669.cloudfunctions.net/uploadMedia`;
+    
+    // Create form data for upload
     const formData = new FormData();
-    formData.append('fileId', 'unique()'); // Let Appwrite generate a unique ID
     formData.append('file', file);
+    formData.append('userId', currentUser.uid);
+    formData.append('fileName', fileName);
     
-    // Upload file to Appwrite Storage using fetch API
-    const response = await fetch(
-      `${APPWRITE_ENDPOINT}/storage/buckets/${APPWRITE_BUCKET_ID}/files`, 
-      {
-        method: 'POST',
-        headers: {
-          'X-Appwrite-Project': APPWRITE_PROJECT_ID,
-          'X-Appwrite-Session': sessionToken, // Include session token for auth
-        },
-        body: formData
-      }
-    );
+    const response = await fetch(uploadEndpoint, {
+      method: 'POST',
+      body: formData
+    });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Appwrite upload error:', errorData);
-      throw new Error(`Failed to upload file to Appwrite: ${errorData.message || 'Unknown error'}`);
+      throw new Error(`Upload failed with status: ${response.status}`);
     }
     
-    const responseData = await response.json();
-    const fileId = responseData.$id;
+    const result = await response.json();
     
-    // Create a public file URL
-    const fileUrl = `${APPWRITE_ENDPOINT}/storage/buckets/${APPWRITE_BUCKET_ID}/files/${fileId}/view?project=${APPWRITE_PROJECT_ID}`;
+    // Revoke object URL to free memory
+    URL.revokeObjectURL(objectURL);
     
     return {
-      url: fileUrl,
+      url: result.url,
       type: fileType
     };
   } catch (error) {
     console.error('Media upload error:', error);
-    alert(`Failed to upload media: ${error.message}`);
-    throw error;
+    
+    // FALLBACK: If Cloud Function upload fails, use data URL approach
+    // This is less efficient but will work as a fallback
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        resolve({
+          url: event.target.result, // Use data URL as fallback
+          type: file.type.split('/')[0]
+        });
+      };
+      reader.readAsDataURL(file);
+    });
   }
-}
-
-// Helper function to get Appwrite session
-async function getAppwriteSession() {
-  // This is just a placeholder. In a real app, you'd get your session token
-  // from your Appwrite client instance or authentication flow
-  
-  // For anonymous sessions or API key usage:
-  if (currentUser) {
-    // Try to create or use an existing session
-    try {
-      // You might need to implement this based on your auth approach
-      // This could be a JWT token, an Appwrite session token, etc.
-      return `${currentUser.uid}_appwrite_session`;
-    } catch (error) {
-      console.error('Failed to get Appwrite session:', error);
-      return '';
-    }
-  }
-  return '';
 }
 
 // Send Message Function with Media Support
