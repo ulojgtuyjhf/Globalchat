@@ -1,7 +1,9 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getDatabase, ref, push, set, onChildAdded, onValue, update, get, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+// Removed Firebase Storage import
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -12,6 +14,12 @@ const firebaseConfig = {
   appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
   databaseURL: "https://globalchat-2d669-default-rtdb.firebaseio.com/"
 };
+
+// Appwrite Configuration
+const APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1";
+const APPWRITE_PROJECT_ID = "67d98c24003a405ab6a0"; // Your Project ID from earlier
+const APPWRITE_BUCKET_ID = "67dba33e000399dc8641"; // Your Storage Bucket ID
+const APPWRITE_API_KEY = "standard_6f65a2d8e8c270ba9556f844789c1eae72c7fa71f64b95409ac20b6127c483454d1e4b9f8c13f82c09168ed1dfebd2d4e7e02494bee254252f9713675beea4d645a960879aaada1c6c98cb7651ec6c6bf4357e4c2c8b8d666c0166203ec43694b9a49ec8ee08161edf3fd5dea94e46c165316122f44f96c44933121be214b80c"; // Add your API key here
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -24,10 +32,16 @@ const rateLimitRef = ref(database, 'rateLimit');
 
 const chatContainer = document.getElementById('chatContainer');
 const messageInput = document.getElementById('messageInput');
+const imageInput = document.getElementById('imageInput');
+const videoInput = document.getElementById('videoInput');
+const imageButton = document.getElementById('imageButton');
+const videoButton = document.getElementById('videoButton');
+const mediaPreview = document.getElementById('mediaPreview');
 const sendButton = document.getElementById('sendButton');
 const loadingIndicator = document.getElementById('loadingIndicator');
 
 let currentUser = null;
+let selectedMedia = [];
 let lastMessageTime = 0;
 const followedUsers = new Set();
 let typingTimeout = null;
@@ -38,6 +52,12 @@ let globalRateLimit = Date.now(); // Global rate limit timestamp
 function initApp() {
   // Initialize message input height adjustment
   initMessageInput();
+  
+  // Media upload event listeners
+  imageButton.addEventListener('click', () => imageInput.click());
+  videoButton.addEventListener('click', () => videoInput.click());
+  imageInput.addEventListener('change', handleMediaSelection);
+  videoInput.addEventListener('change', handleMediaSelection);
   
   // Send Button Event Listener
   sendButton.addEventListener('click', () => {
@@ -73,7 +93,8 @@ function initMessageInput() {
     
     // Enable/disable send button based on content
     const hasText = this.value.trim().length > 0;
-    sendButton.disabled = !hasText;
+    const hasMedia = selectedMedia.length > 0;
+    sendButton.disabled = !(hasText || hasMedia);
     
     // Update typing indicator
     updateTypingStatus();
@@ -184,6 +205,123 @@ function listenForRateLimit() {
   });
 }
 
+// Function to handle media selection
+function handleMediaSelection(e) {
+  const files = e.target.files;
+  if (!files.length) return;
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const fileType = file.type.split('/')[0]; // 'image' or 'video'
+    
+    if (selectedMedia.length >= 4) {
+      alert('You can only attach up to 4 media files');
+      break;
+    }
+
+    // Check file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size exceeds 10MB limit');
+      continue;
+    }
+
+    // Create a preview of the selected media
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const previewItem = document.createElement('div');
+      previewItem.className = 'preview-item';
+      
+      if (fileType === 'image') {
+        previewItem.innerHTML = `
+          <img src="${e.target.result}" class="preview-image">
+          <button class="remove-media" data-index="${selectedMedia.length}">×</button>
+        `;
+      } else if (fileType === 'video') {
+        previewItem.innerHTML = `
+          <video src="${e.target.result}" class="preview-video"></video>
+          <button class="remove-media" data-index="${selectedMedia.length}">×</button>
+        `;
+      }
+      
+      mediaPreview.appendChild(previewItem);
+      
+      // Add event listener to remove button
+      const removeButton = previewItem.querySelector('.remove-media');
+      if (removeButton) {
+        removeButton.addEventListener('click', function() {
+          const index = parseInt(this.getAttribute('data-index'));
+          removeMedia(index);
+        });
+      }
+      
+      // Enable send button if there's media
+      sendButton.disabled = false;
+    };
+    
+    reader.readAsDataURL(file);
+    selectedMedia.push({
+      file: file,
+      type: fileType
+    });
+  }
+
+  // Reset the file input
+  e.target.value = '';
+}
+
+// Function to remove selected media
+function removeMedia(index) {
+  selectedMedia.splice(index, 1);
+  updateMediaPreview();
+  
+  // Disable send button if no content
+  if (selectedMedia.length === 0 && messageInput.value.trim() === '') {
+    sendButton.disabled = true;
+  }
+}
+
+// Update media preview after removal
+function updateMediaPreview() {
+  mediaPreview.innerHTML = '';
+  
+  selectedMedia.forEach((media, index) => {
+    const previewItem = document.createElement('div');
+    previewItem.className = 'preview-item';
+    
+    if (media.type === 'image') {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        previewItem.innerHTML = `
+          <img src="${e.target.result}" class="preview-image">
+          <button class="remove-media" data-index="${index}">×</button>
+        `;
+        mediaPreview.appendChild(previewItem);
+        
+        // Add event listener to remove button
+        previewItem.querySelector('.remove-media').addEventListener('click', function() {
+          removeMedia(index);
+        });
+      };
+      reader.readAsDataURL(media.file);
+    } else if (media.type === 'video') {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        previewItem.innerHTML = `
+          <video src="${e.target.result}" class="preview-video"></video>
+          <button class="remove-media" data-index="${index}">×</button>
+        `;
+        mediaPreview.appendChild(previewItem);
+        
+        // Add event listener to remove button
+        previewItem.querySelector('.remove-media').addEventListener('click', function() {
+          removeMedia(index);
+        });
+      };
+      reader.readAsDataURL(media.file);
+    }
+  });
+}
+
 // Geolocation and Flag Service
 async function getCountryFromIP() {
   try {
@@ -196,20 +334,12 @@ async function getCountryFromIP() {
   }
 }
 
-// Format timestamp
+// Format timestamp - Updated to only show time without date or weekday
 function formatTimestamp(timestamp) {
   const date = new Date(timestamp);
-  const now = new Date();
-  const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
-  
-  if (diffInHours < 24) {
-    return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
-  } else if (diffInHours < 48) {
-    return 'Yesterday';
-  } else {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${months[date.getMonth()]} ${date.getDate()}`;
-  }
+  const hours = date.getHours();
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
 }
 
 // Listen for new messages
@@ -238,8 +368,24 @@ function createMessageElement(message, messageId) {
   const isFollowing = followedUsers.has(message.userId);
   const followBtnDisplay = message.userId === currentUser?.uid ? 'none' : 'inline-block';
 
+  // Improved media handling
+  let mediaHTML = '';
+  if (message.media && message.media.length > 0) {
+    mediaHTML = '<div class="media-container">';
+    message.media.forEach(media => {
+      if (media && media.url) {
+        if (media.type === 'image') {
+          mediaHTML += `<img src="${media.url}" class="message-image" onclick="showFullImage('${media.url}')">`;
+        } else if (media.type === 'video') {
+          mediaHTML += `<video src="${media.url}" class="message-video" controls></video>`;
+        }
+      }
+    });
+    mediaHTML += '</div>';
+  }
+
   messageElement.innerHTML = `
-    <img src="${message.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="profile-image" alt="Profile">
+    <img src="${message.photoURL}" class="profile-image" alt="Profile">
     <div class="message-content">
       <div class="message-header">
         <span class="user-name">${message.name}</span>
@@ -253,6 +399,7 @@ function createMessageElement(message, messageId) {
         </button>
       </div>
       <div class="message-text">${message.text || ''}</div>
+      ${mediaHTML}
       <div class="action-buttons">
         <button class="action-button reply-btn">
           <svg viewBox="0 0 24 24">
@@ -273,6 +420,35 @@ function createMessageElement(message, messageId) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
   }
 }
+
+// Show full image in modal
+window.showFullImage = function(url) {
+  const modal = document.createElement('div');
+  modal.style.position = 'fixed';
+  modal.style.top = '0';
+  modal.style.left = '0';
+  modal.style.width = '100%';
+  modal.style.height = '100%';
+  modal.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+  modal.style.display = 'flex';
+  modal.style.alignItems = 'center';
+  modal.style.justifyContent = 'center';
+  modal.style.zIndex = '1000';
+  modal.style.cursor = 'pointer';
+  
+  const img = document.createElement('img');
+  img.src = url;
+  img.style.maxWidth = '90%';
+  img.style.maxHeight = '90%';
+  img.style.objectFit = 'contain';
+  
+  modal.appendChild(img);
+  document.body.appendChild(modal);
+  
+  modal.addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+};
 
 // Authentication State Observer
 onAuthStateChanged(auth, async (user) => {
@@ -337,7 +513,6 @@ function setupPresence(userId) {
     if (snapshot.val() === true) {
       // User is connected
       set(userStatusRef, onlineData);
-      
       
       // Clear presence on disconnect
       onDisconnect(userStatusRef).set({
@@ -423,7 +598,80 @@ window.toggleFollow = async function(userId, userName) {
   }
 };
 
-// Send Message Function (without media support)
+// Function to upload media files - Updated to use Appwrite client SDK approach
+async function uploadMedia(file) {
+  try {
+    // Generate a unique file name
+    const fileName = `${currentUser.uid}_${Date.now()}_${file.name}`;
+    const fileType = file.type.split('/')[0]; // 'image' or 'video'
+    
+    // Get session token for auth - if your app uses client-side auth
+    // If you're using Appwrite session auth, you'll need to get a valid session token
+    // This is just a placeholder - you may need to adapt this to your auth approach
+    const sessionToken = await getAppwriteSession();
+    
+    // Create form data for the file upload
+    const formData = new FormData();
+    formData.append('fileId', 'unique()'); // Let Appwrite generate a unique ID
+    formData.append('file', file);
+    
+    // Upload file to Appwrite Storage using fetch API
+    const response = await fetch(
+      `${APPWRITE_ENDPOINT}/storage/buckets/${APPWRITE_BUCKET_ID}/files`, 
+      {
+        method: 'POST',
+        headers: {
+          'X-Appwrite-Project': APPWRITE_PROJECT_ID,
+          'X-Appwrite-Session': sessionToken, // Include session token for auth
+        },
+        body: formData
+      }
+    );
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Appwrite upload error:', errorData);
+      throw new Error(`Failed to upload file to Appwrite: ${errorData.message || 'Unknown error'}`);
+    }
+    
+    const responseData = await response.json();
+    const fileId = responseData.$id;
+    
+    // Create a public file URL
+    const fileUrl = `${APPWRITE_ENDPOINT}/storage/buckets/${APPWRITE_BUCKET_ID}/files/${fileId}/view?project=${APPWRITE_PROJECT_ID}`;
+    
+    return {
+      url: fileUrl,
+      type: fileType
+    };
+  } catch (error) {
+    console.error('Media upload error:', error);
+    alert(`Failed to upload media: ${error.message}`);
+    throw error;
+  }
+}
+
+// Helper function to get Appwrite session
+async function getAppwriteSession() {
+  // This is just a placeholder. In a real app, you'd get your session token
+  // from your Appwrite client instance or authentication flow
+  
+  // For anonymous sessions or API key usage:
+  if (currentUser) {
+    // Try to create or use an existing session
+    try {
+      // You might need to implement this based on your auth approach
+      // This could be a JWT token, an Appwrite session token, etc.
+      return `${currentUser.uid}_appwrite_session`;
+    } catch (error) {
+      console.error('Failed to get Appwrite session:', error);
+      return '';
+    }
+  }
+  return '';
+}
+
+// Send Message Function with Media Support
 async function sendMessage(parentMessageId = null) {
   if (!currentUser) {
     alert('You must log in to continue');
@@ -432,9 +680,10 @@ async function sendMessage(parentMessageId = null) {
 
   const messageText = messageInput.value.trim();
   const currentTime = Date.now();
+  const hasMedia = selectedMedia.length > 0;
 
   // Check if content exists
-  if (!messageText) return;
+  if (!messageText && !hasMedia) return;
 
   // Check personal rate limit (3 seconds between messages)
   if (currentTime - lastMessageTime < 3000) {
@@ -459,6 +708,15 @@ async function sendMessage(parentMessageId = null) {
     // Clear typing status
     const userTypingRef = ref(database, `typing/${currentUser.uid}`);
     set(userTypingRef, null);
+    
+    // Upload all media files
+    const mediaUrls = [];
+    if (hasMedia) {
+      for (const media of selectedMedia) {
+        const uploadResult = await uploadMedia(media.file);
+        mediaUrls.push(uploadResult);
+      }
+    }
 
     // Create new message
     const newMessageRef = push(chatRef);
@@ -467,6 +725,7 @@ async function sendMessage(parentMessageId = null) {
       name: currentUser.displayName,
       photoURL: currentUser.photoURL,
       text: messageText,
+      media: mediaUrls,
       timestamp: currentTime,
       country: currentUser.country,
       parentMessageId: parentMessageId,
@@ -490,6 +749,8 @@ async function sendMessage(parentMessageId = null) {
     // Reset UI
     messageInput.value = '';
     messageInput.style.height = 'auto';
+    selectedMedia = [];
+    mediaPreview.innerHTML = '';
     sendButton.disabled = true;
     lastMessageTime = currentTime;
     
