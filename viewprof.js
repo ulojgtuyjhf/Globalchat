@@ -1,7 +1,7 @@
 
 // Profile Modal Enhancement
 (function() {
-  // Add modal styles with theme support
+  // Add modal styles with proper theme variables matching chats.html
   const profileModalStyle = document.createElement('style');
   profileModalStyle.textContent = `
     .profile-modal {
@@ -25,9 +25,26 @@
       visibility: visible;
     }
 
-    .profile-content {
+    /* Use specific theme values for each theme */
+    [data-theme="light"] .profile-content {
       background-color: #ffffff;
-      color: #000000;
+      color: #0f1419;
+      border: 1px solid #eff3f4;
+    }
+
+    [data-theme="dim"] .profile-content {
+      background-color: #15202b;
+      color: #ffffff;
+      border: 1px solid #38444d;
+    }
+
+    [data-theme="dark"] .profile-content {
+      background-color: #000000;
+      color: #ffffff;
+      border: 1px solid #2f3336;
+    }
+
+    .profile-content {
       border-radius: 20px 20px 0 0;
       padding: 1.5rem;
       width: 100%;
@@ -39,27 +56,26 @@
       box-shadow: 0 -5px 25px rgba(0,0,0,0.2);
     }
 
-    /* Dark theme support */
-    @media (prefers-color-scheme: dark) {
-      .profile-content {
-        background-color: #22303c;
-        color: #ffffff;
-      }
-    }
-
-    body.dark-theme .profile-content {
-      background-color: #22303c;
-      color: #ffffff;
-    }
-
     .profile-modal.active .profile-content {
       transform: translateY(0);
+    }
+
+    /* Theme-specific drag indicator */
+    [data-theme="light"] .drag-indicator {
+      background: #536471;
+    }
+
+    [data-theme="dim"] .drag-indicator {
+      background: #8899a6;
+    }
+
+    [data-theme="dark"] .drag-indicator {
+      background: #71767b;
     }
 
     .drag-indicator {
       width: 36px;
       height: 5px;
-      background: #8899a6;
       border-radius: 3px;
       margin: 0 auto 15px auto;
       opacity: 0.8;
@@ -77,6 +93,19 @@
       font-weight: 800;
     }
 
+    /* Theme-specific close button */
+    [data-theme="light"] .profile-close {
+      color: #1d9bf0;
+    }
+
+    [data-theme="dim"] .profile-close {
+      color: #1d9bf0;
+    }
+
+    [data-theme="dark"] .profile-close {
+      color: #1d9bf0;
+    }
+
     .profile-close {
       width: 36px;
       height: 36px;
@@ -88,12 +117,20 @@
       align-items: center;
       justify-content: center;
       font-size: 1.2rem;
-      color: #1da1f2;
       transition: background-color 0.2s;
     }
 
-    .profile-close:hover {
-      background-color: rgba(29, 161, 242, 0.1);
+    /* Theme-specific hover states */
+    [data-theme="light"] .profile-close:hover {
+      background-color: rgba(29, 155, 240, 0.1);
+    }
+
+    [data-theme="dim"] .profile-close:hover {
+      background-color: rgba(29, 155, 240, 0.1);
+    }
+
+    [data-theme="dark"] .profile-close:hover {
+      background-color: rgba(29, 155, 240, 0.1);
     }
 
     .profile-body {
@@ -123,12 +160,6 @@
       margin: 0;
     }
 
-    .profile-handle {
-      font-size: 1rem;
-      color: #8899a6;
-      margin: 0;
-    }
-
     .profile-bio {
       line-height: 1.4;
       margin: 1rem 0;
@@ -141,11 +172,26 @@
       margin-top: 0.5rem;
     }
 
+    /* Theme-specific secondary text */
+    [data-theme="light"] .profile-location,
+    [data-theme="light"] .stat-label {
+      color: #536471;
+    }
+
+    [data-theme="dim"] .profile-location,
+    [data-theme="dim"] .stat-label {
+      color: #8899a6;
+    }
+
+    [data-theme="dark"] .profile-location,
+    [data-theme="dark"] .stat-label {
+      color: #71767b;
+    }
+
     .profile-location {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      color: #8899a6;
       font-size: 0.9rem;
     }
 
@@ -156,12 +202,24 @@
       object-fit: cover;
     }
 
+    /* Theme-specific borders */
+    [data-theme="light"] .profile-stats {
+      border-top: 1px solid #eff3f4;
+    }
+
+    [data-theme="dim"] .profile-stats {
+      border-top: 1px solid #38444d;
+    }
+
+    [data-theme="dark"] .profile-stats {
+      border-top: 1px solid #2f3336;
+    }
+
     .profile-stats {
       display: flex;
       gap: 1.5rem;
       margin-top: 1rem;
       padding-top: 1rem;
-      border-top: 1px solid #38444d;
     }
 
     .stat-item {
@@ -175,13 +233,13 @@
     }
 
     .stat-label {
-      color: #8899a6;
       font-size: 0.9rem;
     }
 
+    /* Theme-specific follow button */
     .profile-follow {
       margin-top: 1.5rem;
-      background-color: #1da1f2;
+      background-color: #1d9bf0;
       color: white;
       border: none;
       border-radius: 9999px;
@@ -194,17 +252,25 @@
     }
 
     .profile-follow:hover {
-      background-color: #1a91da;
+      background-color: rgba(29, 155, 240, 0.9);
     }
 
     .profile-follow.followed {
       background-color: transparent;
-      color: #1da1f2;
-      border: 1px solid #1da1f2;
+      color: #1d9bf0;
+      border: 1px solid #1d9bf0;
     }
 
-    .profile-follow.followed:hover {
-      background-color: rgba(29, 161, 242, 0.1);
+    [data-theme="light"] .profile-follow.followed:hover {
+      background-color: rgba(29, 155, 240, 0.1);
+    }
+
+    [data-theme="dim"] .profile-follow.followed:hover {
+      background-color: rgba(29, 155, 240, 0.1);
+    }
+
+    [data-theme="dark"] .profile-follow.followed:hover {
+      background-color: rgba(29, 155, 240, 0.1);
     }
   `;
   document.head.appendChild(profileModalStyle);
@@ -227,7 +293,6 @@
         <img class="profile-avatar" src="" alt="Profile picture">
         <div class="profile-info">
           <h3 class="profile-name"></h3>
-          <p class="profile-handle"></p>
           <p class="profile-bio" id="profileBio">Loading profile information...</p>
           
           <div class="profile-meta">
@@ -263,27 +328,50 @@
   `;
   document.body.appendChild(profileModal);
 
-  // Drag functionality variables
+  // Apply theme from localStorage on load
+  function applyCurrentTheme() {
+    const savedTheme = localStorage.getItem('twitter-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  }
+  
+  // Apply theme initially
+  applyCurrentTheme();
+
+  // Listen for theme changes in localStorage
+  window.addEventListener('storage', function(event) {
+    if (event.key === 'twitter-theme') {
+      document.documentElement.setAttribute('data-theme', event.newValue || 'light');
+    }
+  });
+
+  // Also listen for custom theme change events
+  window.addEventListener('themeChanged', function(event) {
+    if (event.detail && event.detail.theme) {
+      document.documentElement.setAttribute('data-theme', event.detail.theme);
+    }
+  });
+
+  // Drag functionality
   let startY = 0;
   let currentY = 0;
   let isDragging = false;
   const content = profileModal.querySelector('.profile-content');
-  const dragIndicator = profileModal.querySelector('.drag-indicator');
-
-  // Touch event listeners for dragging
-  dragIndicator.addEventListener('touchstart', handleDragStart);
-  dragIndicator.addEventListener('mousedown', handleDragStart);
+  
+  // Make the entire content area draggable
+  content.addEventListener('touchstart', handleDragStart, { passive: true });
+  content.addEventListener('mousedown', handleDragStart);
   
   function handleDragStart(e) {
+    if (e.target.closest('button') || e.target.closest('a')) return;
+    
     startY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
     currentY = startY;
     isDragging = true;
     content.style.transition = 'none';
-    document.addEventListener('touchmove', handleDragMove);
+    document.addEventListener('touchmove', handleDragMove, { passive: false });
     document.addEventListener('mousemove', handleDragMove);
     document.addEventListener('touchend', handleDragEnd);
     document.addEventListener('mouseup', handleDragEnd);
-    e.preventDefault();
   }
   
   function handleDragMove(e) {
@@ -293,8 +381,7 @@
     
     if (delta > 0) {
       content.style.transform = `translateY(${delta}px)`;
-      const opacity = Math.max(0.1, 0.75 - (delta / (window.innerHeight * 2)));
-      profileModal.style.background = `rgba(0,0,0,${opacity})`;
+      e.preventDefault();
     }
   }
   
@@ -311,11 +398,10 @@
     
     content.style.transition = 'transform 0.3s cubic-bezier(0.19, 1, 0.22, 1)';
     
-    if (delta > 80) {
+    if (delta > 50) {
       closeProfileModal();
     } else {
       content.style.transform = 'translateY(0)';
-      profileModal.style.background = 'rgba(0,0,0,0.75)';
       setTimeout(() => { content.style.transition = ''; }, 300);
     }
   }
@@ -326,7 +412,6 @@
     profileModal.style.opacity = '0';
     setTimeout(() => {
       profileModal.classList.remove('active');
-      profileModal.style.background = 'rgba(0,0,0,0.75)';
       content.style.transition = '';
     }, 300);
   }
@@ -449,7 +534,6 @@
       if (!messageElement) return;
       
       // Extract data from message element
-      const messageId = messageElement.getAttribute('data-message-id');
       const userId = messageElement.querySelector('.follow-btn')?.getAttribute('data-user-id');
       const userName = messageElement.querySelector('.user-name')?.textContent || 'User';
       const photoURL = e.target.src;
@@ -461,7 +545,7 @@
         // Set data in profile modal
         document.querySelector('.profile-avatar').src = photoURL;
         document.querySelector('.profile-name').textContent = userName;
-        document.querySelector('.profile-handle').textContent = `@user_${userId.substring(0, 8)}`;
+        document.querySelector('.profile-bio').textContent = "Loading...";
         document.querySelector('.profile-country').textContent = countryCode;
         document.querySelector('.profile-flag').src = flagUrl;
         document.getElementById('profileFollowBtn').setAttribute('data-user-id', userId);
