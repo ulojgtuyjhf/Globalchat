@@ -3,14 +3,14 @@
   // Super comprehensive URL regex that catches virtually any web address format
   const urlRegex = /((?:(?:https?|ftp):\/\/)?(?:www\.)?(?:[a-zA-Z0-9][-a-zA-Z0-9]*[a-zA-Z0-9]\.)+(?:com|org|edu|gov|uk|net|ca|de|jp|fr|au|us|ru|ch|it|nl|se|no|es|io|co|ai|dev|ly|app|me|tv|info|xyz|[a-z]{2,})(?:\/[-a-zA-Z0-9()@:%_\+.~#?&//=]*)?)/gi;
 
-  // CSS for modern link styling and modal popup with dark/light theme support
+  // CSS for modern link styling and modal popup with theme support
   const styles = `
     /* Link styling */
     .chat-link {
-      color: var(--link-color, #1da1f2);
+      color: var(--primary, #1d9bf0);
       text-decoration: none;
       word-break: break-all;
-      border-bottom: 1px dotted var(--link-underline-color, rgba(29, 161, 242, 0.5));
+      border-bottom: 1px dotted rgba(29, 155, 240, 0.5);
       transition: all 0.15s ease;
       cursor: pointer;
       padding: 0 2px;
@@ -18,66 +18,22 @@
       border-radius: 2px;
     }
     .chat-link:hover {
-      color: var(--link-hover-color, #0c7abf);
-      background-color: var(--link-hover-bg, rgba(29, 161, 242, 0.1));
-      border-bottom: 1px solid var(--link-color, #1da1f2);
+      color: var(--primary, #1d9bf0);
+      background-color: var(--hover, rgba(29, 155, 240, 0.1));
+      border-bottom: 1px solid var(--primary, #1d9bf0);
       text-decoration: none;
     }
     
-    /* Theme variables - Light Theme (Default) */
-    :root {
-      --link-color: #1da1f2;
-      --link-hover-color: #0c7abf;
-      --link-underline-color: rgba(29, 161, 242, 0.5);
-      --link-hover-bg: rgba(29, 161, 242, 0.1);
-      --modal-bg: white;
-      --modal-text: #14171a;
-      --modal-secondary-text: #657786;
-      --modal-border: rgba(0, 0, 0, 0.08);
-      --modal-url-bg: #f5f8fa;
-      --button-color: #1da1f2;
-      --button-hover-bg: rgba(29, 161, 242, 0.1);
-      --button-primary-bg: #1da1f2;
-      --button-primary-hover-bg: #1a91da;
-      --button-primary-text: white;
-      --toast-bg: #17bf63;
-      --toast-text: white;
-      --overlay-bg: rgba(0, 0, 0, 0.6);
-      --handle-color: #cfd9de;
-      --handle-hover-color: #1da1f2;
-    }
-    
-    /* Dark Theme Variables */
-    body.dark-mode {
-      --link-color: #1da1f2;
-      --link-hover-color: #4db5f5;
-      --link-underline-color: rgba(29, 161, 242, 0.5);
-      --link-hover-bg: rgba(29, 161, 242, 0.15);
-      --modal-bg: #15202b;
-      --modal-text: #f7f9f9;
-      --modal-secondary-text: #8899a6;
-      --modal-border: rgba(255, 255, 255, 0.1);
-      --modal-url-bg: #1c2732;
-      --button-color: #1da1f2;
-      --button-hover-bg: rgba(29, 161, 242, 0.15);
-      --button-primary-bg: #1da1f2;
-      --button-primary-hover-bg: #1a91da;
-      --button-primary-text: white;
-      --toast-bg: #17bf63;
-      --toast-text: white;
-      --overlay-bg: rgba(0, 0, 0, 0.75);
-      --handle-color: #38444d;
-      --handle-hover-color: #1da1f2;
-    }
-    
-    /* Modal overlay */
+    /* Link confirmation modal */
     .link-confirm-overlay {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: var(--overlay-bg);
+      background-color: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
       z-index: 10000;
       display: flex;
       justify-content: center;
@@ -87,7 +43,8 @@
     
     /* Modal dialog */
     .link-confirm-modal {
-      background-color: var(--modal-bg);
+      background-color: var(--background, #ffffff);
+      color: var(--text, #0f1419);
       border-radius: 16px 16px 0 0;
       box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.2);
       max-width: 500px;
@@ -98,6 +55,8 @@
       touch-action: none;
       transform: translateY(0);
       transition: transform 0.2s ease;
+      border: 1px solid var(--border, #eff3f4);
+      border-bottom: none;
     }
     
     /* Drag handle for modal */
@@ -109,13 +68,15 @@
       width: 40px;
       height: 5px;
       border-radius: 999px;
-      background-color: var(--handle-color);
+      background-color: var(--secondary-text, #536471);
+      opacity: 0.5;
       cursor: grab;
       transition: background-color 0.2s;
     }
     
     .link-confirm-drag-handle:hover {
-      background-color: var(--handle-hover-color);
+      background-color: var(--primary, #1d9bf0);
+      opacity: 0.8;
     }
     
     /* Modal header */
@@ -123,7 +84,7 @@
       padding: 24px 16px 12px;
       display: flex;
       align-items: center;
-      border-bottom: 1px solid var(--modal-border);
+      border-bottom: 1px solid var(--border, #eff3f4);
     }
     
     .link-confirm-logo {
@@ -134,8 +95,8 @@
       align-items: center;
       justify-content: center;
       border-radius: 50%;
-      background-color: var(--button-color);
-      color: var(--button-primary-text);
+      background-color: var(--primary, #1d9bf0);
+      color: white;
       font-weight: 700;
       font-size: 16px;
     }
@@ -143,7 +104,7 @@
     .link-confirm-title {
       font-size: 18px;
       font-weight: 700;
-      color: var(--modal-text);
+      color: var(--text, #0f1419);
     }
     
     /* Modal content */
@@ -153,23 +114,24 @@
     
     .link-confirm-warning {
       margin-bottom: 16px;
-      color: var(--modal-secondary-text);
+      color: var(--secondary-text, #536471);
       font-size: 15px;
       line-height: 1.5;
     }
     
     .link-confirm-url-container {
-      background-color: var(--modal-url-bg);
+      background-color: var(--card-bg, #f7f9f9);
       border-radius: 12px;
       padding: 12px;
       margin-bottom: 16px;
       overflow: hidden;
       word-break: break-all;
+      border: 1px solid var(--border, #eff3f4);
     }
     
     .link-confirm-url {
       font-size: 14px;
-      color: var(--modal-text);
+      color: var(--text, #0f1419);
       line-height: 1.4;
     }
     
@@ -183,8 +145,8 @@
     .link-confirm-btn {
       flex: 1;
       background-color: transparent;
-      border: 1px solid var(--button-color);
-      color: var(--button-color);
+      border: 1px solid var(--primary, #1d9bf0);
+      color: var(--primary, #1d9bf0);
       font-weight: 600;
       font-size: 15px;
       padding: 12px 0;
@@ -194,16 +156,17 @@
     }
     
     .link-confirm-btn:hover {
-      background-color: var(--button-hover-bg);
+      background-color: var(--hover, rgba(29, 155, 240, 0.1));
     }
     
     .link-confirm-btn.primary {
-      background-color: var(--button-primary-bg);
-      color: var(--button-primary-text);
+      background-color: var(--primary, #1d9bf0);
+      color: white;
     }
     
     .link-confirm-btn.primary:hover {
-      background-color: var(--button-primary-hover-bg);
+      background-color: var(--primary, #1d9bf0);
+      opacity: 0.9;
     }
     
     /* Success notification */
@@ -212,8 +175,8 @@
       bottom: 24px;
       left: 50%;
       transform: translateX(-50%);
-      background-color: #1da1f2;
-      color: var(--toast-text);
+      background-color: var(--primary, #1d9bf0);
+      color: white;
       padding: 10px 18px;
       border-radius: 9999px;
       font-size: 14px;
@@ -301,8 +264,7 @@
     processAllMessages();
     
     // Then set up observer for new content
-    const chatContainer = document.getElementById('chatContainer');
-    if (!chatContainer) return;
+    const chatContainer = document.getElementById('chatContainer') || document.body;
     
     // Create new observer if it doesn't exist
     if (!window.linkifyObserver) {
@@ -338,12 +300,14 @@
     let didMove = false;
     let modalHeight = modalElement.offsetHeight;
     
-    // Make entire modal draggable
+    // Make the modal draggable from the handle or the modal itself
     modalElement.addEventListener('mousedown', startDrag);
     modalElement.addEventListener('touchstart', startDrag, { passive: true });
     
     function startDrag(e) {
-      // Only capture touch on the drag handle or any part of the modal
+      // Only start dragging if it's the handle or we're in the modal
+      if (!modalElement.contains(e.target)) return;
+      
       startY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
       startTranslateY = getTranslateY(modalElement);
       isDragging = true;
@@ -436,7 +400,7 @@
     const header = document.createElement('div');
     header.className = 'link-confirm-header';
     header.innerHTML = `
-      <div class="link-confirm-logo">N</div>
+      <div class="link-confirm-logo">L</div>
       <div class="link-confirm-title">Link destination</div>
     `;
     
@@ -510,6 +474,9 @@
     // Add to document
     document.body.appendChild(overlay);
     
+    // Apply current theme to modal
+    applyCurrentThemeToModal(modal, overlay);
+    
     // Enable dragging
     enableDragging(modal, dragHandle, overlay);
     
@@ -527,6 +494,51 @@
         document.removeEventListener('keydown', escHandler);
       }
     });
+  }
+
+  // Apply the current theme to the modal
+  function applyCurrentThemeToModal(modal, overlay) {
+    // Get current theme from HTML attribute or localStorage
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 
+                         localStorage.getItem('twitter-theme') || 
+                         'light';
+    
+    // Apply specific theme styles based on the current theme
+    let overlayBgOpacity = 0.6;
+    
+    if (currentTheme === 'dark') {
+      modal.style.setProperty('--background', '#000000');
+      modal.style.setProperty('--text', '#ffffff');
+      modal.style.setProperty('--secondary-text', '#71767b');
+      modal.style.setProperty('--border', '#2f3336');
+      modal.style.setProperty('--card-bg', '#16181c');
+      overlayBgOpacity = 0.75;
+    } else if (currentTheme === 'dim') {
+      modal.style.setProperty('--background', '#15202b');
+      modal.style.setProperty('--text', '#ffffff');
+      modal.style.setProperty('--secondary-text', '#8899a6');
+      modal.style.setProperty('--border', '#38444d');
+      modal.style.setProperty('--card-bg', '#1e2732');
+      overlayBgOpacity = 0.7;
+    } else {
+      // Light theme (default)
+      modal.style.setProperty('--background', '#ffffff');
+      modal.style.setProperty('--text', '#0f1419');
+      modal.style.setProperty('--secondary-text', '#536471');
+      modal.style.setProperty('--border', '#eff3f4');
+      modal.style.setProperty('--card-bg', '#f7f9f9');
+      overlayBgOpacity = 0.6;
+    }
+    
+    // Set primary color and hover effect from CSS variables
+    const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#1d9bf0';
+    const hoverColor = getComputedStyle(document.documentElement).getPropertyValue('--hover').trim() || 'rgba(29, 155, 240, 0.1)';
+    
+    modal.style.setProperty('--primary', primaryColor);
+    modal.style.setProperty('--hover', hoverColor);
+    
+    // Set overlay background with appropriate opacity based on theme
+    overlay.style.backgroundColor = `rgba(0, 0, 0, ${overlayBgOpacity})`;
   }
 
   // Handle clicks on links
@@ -548,65 +560,50 @@
     });
   }
 
-  // Theme management functions
-  function initializeThemeManagement() {
-    // Check if dark mode is enabled in localStorage
-    const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
-    
-    // Apply theme based on localStorage
-    if (isDarkMode) {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode');
-    }
-    
-    // Find the dark mode toggle switch in settings
-    const darkModeSwitch = document.getElementById('darkModeSwitch');
-    
-    if (darkModeSwitch) {
-      // Set initial state based on the theme
-      if (isDarkMode) {
-        darkModeSwitch.classList.add('active');
-      } else {
-        darkModeSwitch.classList.remove('active');
+  // Listen for theme changes
+  function listenForThemeChanges() {
+    // Listen for theme changes in localStorage
+    window.addEventListener('storage', event => {
+      if (event.key === 'twitter-theme') {
+        // Update CSS variables for any active modals
+        const modals = document.querySelectorAll('.link-confirm-modal');
+        const overlays = document.querySelectorAll('.link-confirm-overlay');
+        
+        if (modals.length > 0) {
+          for (let i = 0; i < modals.length; i++) {
+            applyCurrentThemeToModal(modals[i], overlays[i]);
+          }
+        }
       }
-      
-      // We don't need to add event listener here since it's already handled in the settings page
-      // But we'll observe changes to the switch to keep our script in sync
-      
-      // Create observer for the switch state
-      const switchObserver = new MutationObserver(mutations => {
-        mutations.forEach(mutation => {
-          if (mutation.attributeName === 'class') {
-            const isActive = darkModeSwitch.classList.contains('active');
-            
-            // Update body class to match switch state
-            if (isActive) {
-              document.body.classList.add('dark-mode');
-            } else {
-              document.body.classList.remove('dark-mode');
+    });
+    
+    // Observe changes to the document.documentElement data-theme attribute
+    const themeObserver = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
+        if (mutation.attributeName === 'data-theme') {
+          // Update CSS variables for any active modals
+          const modals = document.querySelectorAll('.link-confirm-modal');
+          const overlays = document.querySelectorAll('.link-confirm-overlay');
+          
+          if (modals.length > 0) {
+            for (let i = 0; i < modals.length; i++) {
+              applyCurrentThemeToModal(modals[i], overlays[i]);
             }
           }
-        });
+        }
       });
-      
-      // Start observing the toggle switch
-      switchObserver.observe(darkModeSwitch, { attributes: true });
-    }
+    });
     
-    // Also listen for localStorage changes (for cross-tab synchronization)
-    window.addEventListener('storage', event => {
-      if (event.key === 'darkMode') {
-        if (event.newValue === 'enabled') {
-          document.body.classList.add('dark-mode');
-          if (darkModeSwitch) {
-            darkModeSwitch.classList.add('active');
-          }
-        } else {
-          document.body.classList.remove('dark-mode');
-          if (darkModeSwitch) {
-            darkModeSwitch.classList.remove('active');
-          }
+    themeObserver.observe(document.documentElement, { attributes: true });
+    
+    // Also listen for custom theme change events
+    window.addEventListener('themeChanged', event => {
+      const modals = document.querySelectorAll('.link-confirm-modal');
+      const overlays = document.querySelectorAll('.link-confirm-overlay');
+      
+      if (modals.length > 0) {
+        for (let i = 0; i < modals.length; i++) {
+          applyCurrentThemeToModal(modals[i], overlays[i]);
         }
       }
     });
@@ -617,19 +614,19 @@
     // Add the CSS
     addStyles();
     
-    // Initialize theme management
-    initializeThemeManagement();
-    
-    // Set up the observer
+    // Set up the observer for chat messages
     observeChat();
     
     // Handle link clicks
     setupLinkHandler();
     
+    // Listen for theme changes
+    listenForThemeChanges();
+    
     // Periodically check for new messages (as a fallback)
     setInterval(processAllMessages, 1000);
     
-    console.log("Link safety dialog initialized with theme support from localStorage");
+    console.log("Link safety dialog initialized with theme support");
   }
 
   // Run the initializer
