@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -50,20 +51,18 @@ html, body {
     border-right: 1px solid var(--border-color);
 }
 
-.header-wrapper {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: var(--bg-primary);
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-color);
+.scrollable-container {
+    height: 100%;
+    overflow-y: auto;
+    position: relative;
 }
 
 .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    padding: 12px 16px;
+    background: var(--bg-primary);
 }
 
 .page-title {
@@ -76,6 +75,80 @@ html, body {
     font-weight: 400;
     color: var(--text-secondary);
     font-size: 13px;
+}
+
+.stories-container {
+    padding: 12px 16px 8px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.stories-container::-webkit-scrollbar {
+    display: none;
+}
+
+.stories-header {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+}
+
+.stories-feed {
+    display: inline-flex;
+    gap: 10px;
+    padding-bottom: 4px;
+}
+
+.story-item {
+    position: relative;
+    width: 110px;
+}
+
+.story-card {
+    width: 110px;
+    height: 170px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.story-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.story-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 5px;
+    text-align: left;
+    padding-left: 2px;
+}
+
+.header-wrapper {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg-primary);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    transition: box-shadow 0.2s ease;
+}
+
+.header-wrapper.sticky {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .twitter-search {
@@ -119,11 +192,6 @@ html, body {
 
 .user-list {
     flex-grow: 1;
-    overflow-y: auto;
-}
-
-.user-list::-webkit-scrollbar {
-    width: 0px;
 }
 
 .user-card {
@@ -281,6 +349,7 @@ html, body {
     transform: translateY(100%);
     transition: transform 0.3s ease;
     position: relative;
+    touch-action: none;  /* For touch dragging support */
 }
 
 .profile-modal.active .profile-content {
@@ -312,6 +381,19 @@ html, body {
     display: flex;
     align-items: center;
     margin-bottom: 20px;
+    padding-top: 10px; /* Add space for drag handle */
+}
+
+.profile-handle {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 5px;
+    background: #ddd;
+    border-radius: 10px;
+    cursor: grab;
 }
 
 .profile-avatar {
@@ -418,6 +500,32 @@ html, body {
     border-radius: 4px;
 }
 
+.story-loading {
+    position: relative;
+    overflow: hidden;
+}
+    
+.story-loading::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -150%;
+    width: 250%;
+    height: 100%;
+    background: linear-gradient(
+        90deg, 
+        transparent 0%,
+        rgba(255, 255, 255, 0.2) 50%,
+        transparent 100%
+    );
+    animation: shimmerEffect 2s infinite linear;
+}
+
+@keyframes shimmerEffect {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
 @media (max-width: 768px) {
     .twitter-container {
         max-width: 100%;
@@ -431,341 +539,562 @@ html, body {
         border-radius: 16px 16px 0 0;
     }
 }
-</style>
+    </style>
 </head>
 <body>
     <div class="twitter-container">
-        <div class="header-wrapper">
+        <div class="scrollable-container" id="scrollContainer">
             <div class="page-header">
                 <h1 class="page-title">Connect</h1>
                 <span id="userCount" class="user-count">-- available</span>
             </div>
-            <div class="twitter-search">
-                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                </svg>
-                <input 
-                    type="text" 
-                    id="userSearchInput" 
-                    placeholder="Search users"
-                >
+            
+            <div class="stories-container" id="storiesContainer">
+                <div class="stories-header">For you</div>
+                <div class="stories-feed" id="storiesFeed">
+                    <!-- Stories will be dynamically populated here -->
+                </div>
             </div>
-        </div>
-        
-        <div id="userList" class="user-list">
-            <!-- Users will be dynamically populated here -->
+            
+            <div class="header-wrapper" id="searchHeader">
+                <div class="twitter-search">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input 
+                        type="text" 
+                        id="userSearchInput" 
+                        placeholder="Search users"
+                    >
+                </div>
+            </div>
+            
+            <div id="userList" class="user-list">
+                <!-- Users will be dynamically populated here -->
+            </div>
         </div>
     </div>
 
-    <!-- Simple Profile Modal -->
+    <!-- Profile Modal -->
     <div id="profileModal" class="profile-modal">
-        <div class="profile-content">
+        <div class="profile-content" id="profileContent">
+            <div class="profile-handle" id="profileHandle"></div>
             <button id="closeButton" class="profile-close">×</button>
-            <div id="profileContent">
+            <div id="profileData">
                 <!-- Profile content will be dynamically populated here -->
             </div>
         </div>
     </div>
 
+    <script>
+    // Initialize Firebase and application
+    document.addEventListener('DOMContentLoaded', function() {
+        initApp();
+    });
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, query, where, getDocs, getDoc, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    async function initApp() {
+        // Import Firebase modules using ES modules
+        const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js");
+        const { getFirestore, collection, query, where, getDocs, getDoc, doc, onSnapshot, setDoc } = 
+            await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+        const { getAuth, onAuthStateChanged } = 
+            await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
 
-  // Firebase Configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
-    authDomain: "globalchat-2d669.firebaseapp.com",
-    projectId: "globalchat-2d669",
-    storageBucket: "globalchat-2d669.firebaseapp.com",
-    messagingSenderId: "178714711978",
-    appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
-    measurementId: "G-LYZP41ZJ46"
-  };
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+            authDomain: "globalchat-2d669.firebaseapp.com",
+            projectId: "globalchat-2d669",
+            storageBucket: "globalchat-2d669.firebaseapp.com",
+            messagingSenderId: "178714711978",
+            appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
+            measurementId: "G-LYZP41ZJ46"
+        };
 
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
 
-  // DOM Elements
-  const userSearchInput = document.getElementById('userSearchInput');
-  const userList = document.getElementById('userList');
-  const userCount = document.getElementById('userCount');
-  const profileModal = document.getElementById('profileModal');
-  const profileContent = document.getElementById('profileContent');
-  const closeButton = document.getElementById('closeButton');
+        // DOM Elements
+        const scrollContainer = document.getElementById('scrollContainer');
+        const searchHeader = document.getElementById('searchHeader');
+        const userSearchInput = document.getElementById('userSearchInput');
+        const userList = document.getElementById('userList');
+        const userCount = document.getElementById('userCount');
+        const profileModal = document.getElementById('profileModal');
+        const profileContent = document.getElementById('profileContent');
+        const profileData = document.getElementById('profileData');
+        const profileHandle = document.getElementById('profileHandle');
+        const closeButton = document.getElementById('closeButton');
+        const storiesContainer = document.getElementById('storiesContainer');
+        const storiesFeed = document.getElementById('storiesFeed');
 
-  // User presence system
-  let currentUserRef;
-  let userStatusRef;
-  let unsubscribePresence;
-  let unsubscribeUsers;
+        // Variables
+        let currentUserRef;
+        let userStatusRef;
+        let unsubscribePresence;
+        let unsubscribeUsers;
+        let searchTimeout;
+        let lastScrollTop = 0;
 
-  // Close modal events
-  closeButton.onclick = () => {
-    profileModal.classList.remove('active');
-    setTimeout(() => {
-      profileContent.innerHTML = '';
-    }, 300);
-  };
-  
-  profileModal.onclick = (e) => {
-    if (e.target === profileModal) {
-      profileModal.classList.remove('active');
-      setTimeout(() => {
-        profileContent.innerHTML = '';
-      }, 300);
-    }
-  };
+        // Handle sticky header behavior
+        function handleScroll() {
+            const scrollTop = scrollContainer.scrollTop;
+            const searchHeaderRect = searchHeader.getBoundingClientRect();
+            const containerRect = scrollContainer.getBoundingClientRect();
+            
+            // Calculate when search should become sticky
+            const headerOffset = searchHeaderRect.top - containerRect.top;
+            
+            if (scrollTop > lastScrollTop) {
+                // Scrolling down
+                if (headerOffset <= 0) {
+                    searchHeader.classList.add('sticky');
+                }
+            } else {
+                // Scrolling up - could add additional behavior here if needed
+            }
+            
+            lastScrollTop = scrollTop;
+        }
 
-  // Setup user presence system
-  async function setupPresence(userId) {
-    if (currentUserRef) {
-      // Clean up previous listeners
-      if (unsubscribePresence) unsubscribePresence();
-    }
-    
-    // Set up user's online status
-    currentUserRef = doc(db, 'users', userId);
-    userStatusRef = doc(db, 'status', userId);
-    
-    // Set user as online
-    try {
-      await setDoc(userStatusRef, {
-        state: 'online',
-        lastChanged: new Date()
-      });
-      
-      // Set up disconnect hook
-      window.addEventListener('beforeunload', async () => {
-        await setDoc(userStatusRef, {
-          state: 'offline',
-          lastChanged: new Date()
+        // Initialize scroll event listener
+        scrollContainer.addEventListener('scroll', handleScroll);
+
+        // Modal Events - Close
+        closeButton.onclick = () => {
+            profileModal.classList.remove('active');
+        };
+        
+        profileModal.onclick = (e) => {
+            if (e.target === profileModal) {
+                profileModal.classList.remove('active');
+            }
+        };
+
+        // Draggable profile modal
+        let isDragging = false;
+        let startY, startTransform;
+
+        profileHandle.addEventListener('mousedown', startDrag);
+        profileHandle.addEventListener('touchstart', startDrag, { passive: true });
+        
+        function startDrag(e) {
+            isDragging = true;
+            document.body.style.cursor = 'grabbing';
+            
+            // Get starting position
+            if (e.type === 'touchstart') {
+                startY = e.touches[0].clientY;
+            } else {
+                startY = e.clientY;
+            }
+            
+            // Get current transform value
+            const transform = window.getComputedStyle(profileContent).transform;
+            const matrix = new DOMMatrix(transform);
+            startTransform = matrix.m42; // Y-axis translation value
+            
+            // Add move and end event listeners
+            document.addEventListener('mousemove', dragMove);
+            document.addEventListener('touchmove', dragMove, { passive: false });
+            document.addEventListener('mouseup', dragEnd);
+            document.addEventListener('touchend', dragEnd);
+        }
+        
+        function dragMove(e) {
+            if (!isDragging) return;
+            
+            // Prevent default to stop scrolling
+            e.preventDefault();
+            
+            let currentY;
+            if (e.type === 'touchmove') {
+                currentY = e.touches[0].clientY;
+            } else {
+                currentY = e.clientY;
+            }
+            
+            // Calculate distance moved
+            const deltaY = currentY - startY;
+            
+            // Only allow dragging down, not up past the original position
+            if (deltaY < 0) return;
+            
+            // Apply new transform
+            profileContent.style.transform = `translateY(${deltaY}px)`;
+        }
+        
+        function dragEnd(e) {
+            if (!isDragging) return;
+            
+            document.body.style.cursor = '';
+            isDragging = false;
+            
+            // Remove event listeners
+            document.removeEventListener('mousemove', dragMove);
+            document.removeEventListener('touchmove', dragMove);
+            document.removeEventListener('mouseup', dragEnd);
+            document.removeEventListener('touchend', dragEnd);
+            
+            // Determine whether to close or reset
+            let finalY;
+            if (e.type === 'touchend') {
+                finalY = e.changedTouches[0].clientY;
+            } else {
+                finalY = e.clientY;
+            }
+            
+            const deltaY = finalY - startY;
+            
+            // If dragged down more than 150px or at high velocity, close modal
+            if (deltaY > 150) {
+                profileModal.classList.remove('active');
+                // Reset transform after animation completes
+                setTimeout(() => {
+                    profileContent.style.transform = '';
+                }, 300);
+            } else {
+                // Reset to original position with animation
+                profileContent.style.transition = 'transform 0.3s ease';
+                profileContent.style.transform = '';
+                
+                // Remove transition after animation completes
+                setTimeout(() => {
+                    profileContent.style.transition = '';
+                }, 300);
+            }
+        }
+
+        // User presence system
+        async function setupPresence(userId) {
+            if (currentUserRef) {
+                // Clean up previous listeners
+                if (unsubscribePresence) unsubscribePresence();
+            }
+            
+            // Set up user's online status
+            currentUserRef = doc(db, 'users', userId);
+            userStatusRef = doc(db, 'status', userId);
+            
+            // Set user as online
+            try {
+                await setDoc(userStatusRef, {
+                    state: 'online',
+                    lastChanged: new Date()
+                });
+                
+                // Set up disconnect hook
+                window.addEventListener('beforeunload', async () => {
+                    await setDoc(userStatusRef, {
+                        state: 'offline',
+                        lastChanged: new Date()
+                    });
+                });
+            } catch (error) {
+                console.error("Error setting up presence:", error);
+            }
+        }
+
+        // Fetch and Display Available Users
+        async function fetchAvailableUsers() {
+            try {
+                const currentUser = auth.currentUser;
+                if (!currentUser) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                // Clean up previous listeners
+                if (unsubscribeUsers) unsubscribeUsers();
+                
+                // Set up real-time listener on users collection
+                const usersRef = collection(db, 'users');
+                unsubscribeUsers = onSnapshot(usersRef, async (snapshot) => {
+                    const statusQuery = collection(db, 'status');
+                    const statusSnapshot = await getDocs(statusQuery);
+                    
+                    // Create a map of user statuses
+                    const userStatuses = {};
+                    statusSnapshot.forEach(doc => {
+                        userStatuses[doc.id] = doc.data().state === 'online';
+                    });
+                    
+                    userList.innerHTML = ''; // Clear existing users
+                    let availableUsers = 0;
+                    
+                    // Include current user
+                    const currentUserData = await getCurrentUserData(currentUser.uid);
+                    const currentUserCard = createUserCard({
+                        ...currentUserData,
+                        isOnline: true
+                    }, true);
+                    userList.appendChild(currentUserCard);
+                    availableUsers++;
+                    
+                    // Filter and display other users
+                    snapshot.forEach((doc) => {
+                        if (doc.id === currentUser.uid) return;
+                        
+                        const userData = doc.data();
+                        
+                        // Filter based on search input
+                        const searchTerm = userSearchInput.value.toLowerCase();
+                        if (searchTerm &&
+                            !userData.username.toLowerCase().includes(searchTerm) &&
+                            !(userData.country || '').toLowerCase().includes(searchTerm))
+                            return;
+                        
+                        const userCard = createUserCard({
+                            ...userData,
+                            uid: doc.id,
+                            isOnline: userStatuses[doc.id] || false
+                        });
+                        userList.appendChild(userCard);
+                        availableUsers++;
+                    });
+                    
+                    userCount.textContent = `${availableUsers - 1} available`;
+                });
+            } catch (error) {
+                console.error("Error fetching users:", error);
+            }
+        }
+
+        // Get Current User Data
+        async function getCurrentUserData(uid) {
+            try {
+                const userDoc = await getDoc(doc(db, 'users', uid));
+                const userData = userDoc.data() || {};
+                return {
+                    uid: uid,
+                    username: auth.currentUser.displayName || 'Current User',
+                    photoURL: auth.currentUser.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png',
+                    country: userData.country || 'us',
+                    youtubeChannel: userData.youtubeChannel || 'My Channel',
+                    bio: userData.bio || 'No bio available',
+                    isOnline: true
+                };
+            } catch (error) {
+                console.error("Error fetching current user:", error);
+                return {
+                    uid: uid,
+                    username: 'Current User',
+                    photoURL: 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png',
+                    country: 'us',
+                    youtubeChannel: 'My Channel',
+                    bio: 'No bio available',
+                    isOnline: true
+                };
+            }
+        }
+
+        // Show Profile Modal
+        async function showProfileModal(userId) {
+            try {
+                profileContent.style.transform = '';
+                const userDoc = await getDoc(doc(db, 'users', userId));
+                const userData = userDoc.data();
+                
+                profileData.innerHTML = `
+                    <div class="profile-header">
+                        <img class="profile-avatar" src="${userData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" alt="${userData.username}">
+                        <div>
+                            <div class="profile-name">${userData.username || 'User'}</div>
+                            <div class="profile-channel">@${userData.youtubeChannel || 'user'}</div>
+                        </div>
+                    </div>
+                    <div class="profile-bio">${userData.bio || 'No bio available'}</div>
+                `;
+                
+                profileModal.classList.add('active');
+            } catch (error) {
+                console.error("Error fetching user profile:", error);
+            }
+        }
+
+        // Create User Card
+        function createUserCard(userData, isCurrentUser = false) {
+            const card = document.createElement('div');
+            card.className = 'user-card';
+            
+            // Truncate bio for preview
+            const bioPreview = userData.bio ? 
+                              (userData.bio.length > 100 ? 
+                                userData.bio.substring(0, 97) + '...' : 
+                                userData.bio) : 
+                              'No bio available';
+            
+            card.innerHTML = `
+                <img 
+                    src="${userData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" 
+                    alt="${userData.username}" 
+                    class="user-avatar"
+                >
+                <div class="user-details">
+                    <div class="name-container">
+                        <div class="user-name">${isCurrentUser ? 'You' : userData.username}</div>
+                        <div class="username">@${userData.youtubeChannel || 'user'}</div>
+                    </div>
+                    <div class="user-bio-preview">${bioPreview}</div>
+                    <div class="user-meta">
+                        <div class="user-location">
+                            ${userData.country ? `<span class="fp fp-${(userData.country || 'us').toLowerCase()}"></span>` : ''}
+                        </div>
+                        <div class="status-container">
+                            <div class="status-dot ${userData.isOnline ? 'online' : 'offline'}"></div>
+                            <div class="status-text">${userData.isOnline ? 'Online' : 'Offline'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add click event to show profile
+            if (!isCurrentUser) {
+                card.addEventListener('click', () => showProfileModal(userData.uid));
+            }
+            
+            return card;
+        }
+
+        // Real-time Search with debounce
+        userSearchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                showSkeletons();
+                setTimeout(() => fetchAvailableUsers(), 300);
+            }, 300);
         });
-      });
-    } catch (error) {
-      console.error("Error setting up presence:", error);
-    }
-  }
 
-  // Fetch and Display Available Users
-  async function fetchAvailableUsers() {
-    try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        window.location.href = 'index.html';
-        return;
-      }
-      
-      // Clean up previous listeners
-      if (unsubscribeUsers) unsubscribeUsers();
-      
-      // Set up real-time listener on users collection
-      const usersRef = collection(db, 'users');
-      unsubscribeUsers = onSnapshot(usersRef, async (snapshot) => {
-        const statusQuery = collection(db, 'status');
-        const statusSnapshot = await getDocs(statusQuery);
+        // Show skeleton loading UI
+        function showSkeletons() {
+            let skeletonHTML = '';
+            
+            for (let i = 0; i < 5; i++) {
+                skeletonHTML += `
+                    
+                <div class="skeleton-user-card">
+                    <div class="skeleton-avatar skeleton"></div>
+                    <div class="skeleton-details">
+                        <div class="skeleton-name skeleton"></div>
+                        <div class="skeleton-youtube skeleton"></div>
+                        <div class="skeleton-bio skeleton"></div>
+                        <div class="skeleton-meta">
+                            <div class="skeleton-meta-item skeleton"></div>
+                            <div class="skeleton-meta-item skeleton"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
         
-        // Create a map of user statuses
-        const userStatuses = {};
-        statusSnapshot.forEach(doc => {
-          userStatuses[doc.id] = doc.data().state === 'online';
-        });
-        
-        userList.innerHTML = ''; // Clear existing users
-        let availableUsers = 0;
-        
-        // Include current user
-        const currentUserData = await getCurrentUserData(currentUser.uid);
-        const currentUserCard = createUserCard({
-          ...currentUserData,
-          isOnline: true
-        }, true);
-        userList.appendChild(currentUserCard);
-        availableUsers++;
-        
-        // Filter and display other users
-        snapshot.forEach((doc) => {
-          if (doc.id === currentUser.uid) return;
-          
-          const userData = doc.data();
-          
-          // Filter based on search input
-          const searchTerm = userSearchInput.value.toLowerCase();
-          if (searchTerm &&
-            !userData.username.toLowerCase().includes(searchTerm) &&
-            !(userData.country || '').toLowerCase().includes(searchTerm))
-            return;
-          
-          const userCard = createUserCard({
-            ...userData,
-            uid: doc.id,
-            isOnline: userStatuses[doc.id] || false
-          });
-          userList.appendChild(userCard);
-          availableUsers++;
-        });
-        
-        userCount.textContent = `${availableUsers - 1} available`;
-      });
-    } catch (error) {
-      console.error("Error fetching users:", error);
+        userList.innerHTML = skeletonHTML;
     }
-  }
 
-  // Get Current User Data
-  async function getCurrentUserData(uid) {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', uid));
-      const userData = userDoc.data() || {};
-      return {
-        uid: uid,
-        username: auth.currentUser.displayName || 'Current User',
-        photoURL: auth.currentUser.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png',
-        country: userData.country || 'us',
-        youtubeChannel: userData.youtubeChannel || 'My Channel',
-        bio: userData.bio || 'No bio available',
-        isOnline: true
-      };
-    } catch (error) {
-      console.error("Error fetching current user:", error);
-      return {
-        uid: uid,
-        username: 'Current User',
-        photoURL: 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png',
-        country: 'us',
-        youtubeChannel: 'My Channel',
-        bio: 'No bio available',
-        isOnline: true
-      };
-    }
-  }
-
-  // Show Profile Modal
-  async function showProfileModal(userId) {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      const userData = userDoc.data();
-      
-      profileContent.innerHTML = `
-        <div class="profile-header">
-          <img class="profile-avatar" src="${userData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" alt="${userData.username}">
-          <div>
-            <div class="profile-name">${userData.username || 'User'}</div>
-            <div class="profile-channel">@${userData.youtubeChannel || 'user'}</div>
-          </div>
-        </div>
-        <div class="profile-bio">${userData.bio || 'No bio available'}</div>
-      `;
-      
-      profileModal.classList.add('active');
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-    }
-  }
-
-  // Create User Card
-  function createUserCard(userData, isCurrentUser = false) {
-    const card = document.createElement('div');
-    card.className = 'user-card';
-    
-    // Truncate bio for preview
-    const bioPreview = userData.bio ? 
-                        (userData.bio.length > 100 ? 
-                          userData.bio.substring(0, 97) + '...' : 
-                          userData.bio) : 
-                        'No bio available';
-    
-    card.innerHTML = `
-      <img 
-        src="${userData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" 
-        alt="${userData.username}" 
-        class="user-avatar"
-      >
-      <div class="user-details">
-        <div class="name-container">
-          <div class="user-name">${isCurrentUser ? 'You' : userData.username}</div>
-          <div class="username">@${userData.youtubeChannel || 'user'}</div>
-        </div>
-        <div class="user-bio-preview">${bioPreview}</div>
-        <div class="user-meta">
-          <div class="user-location">
-            ${userData.country ? `<span class="fp fp-${(userData.country || 'us').toLowerCase()}"></span>` : ''}
-          </div>
-          <div class="status-container">
-            <div class="status-dot ${userData.isOnline ? 'online' : 'offline'}"></div>
-            <div class="status-text">${userData.isOnline ? 'Online' : 'Offline'}</div>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    // Add click event to show profile
-    if (!isCurrentUser) {
-      card.addEventListener('click', () => showProfileModal(userData.uid));
+    // Initialize stories
+    function initStories() {
+        // Show loading skeletons first
+        showStorySkeletons();
+        
+        // Fetch images after delay to show loading state
+        setTimeout(() => {
+            fetchWikipediaImages();
+        }, 1000);
     }
     
-    return card;
-  }
-
-  // Real-time Search with debounce
-  let searchTimeout;
-  userSearchInput.addEventListener('input', () => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-      showSkeletons();
-      setTimeout(() => fetchAvailableUsers(), 300);
-    }, 300);
-  });
-
-  // Show skeleton loading UI
-  function showSkeletons() {
-    let skeletonHTML = '';
-    
-    for (let i = 0; i < 5; i++) {
-      skeletonHTML += `
-        <div class="skeleton-user-card">
-          <div class="skeleton-avatar skeleton"></div>
-          <div class="skeleton-details">
-            <div class="skeleton-name skeleton"></div>
-            <div class="skeleton-youtube skeleton"></div>
-            <div class="skeleton-bio skeleton"></div>
-            <div class="skeleton-meta">
-              <div class="skeleton-meta-item skeleton"></div>
-              <div class="skeleton-meta-item skeleton"></div>
+    // Show story loading skeletons
+    function showStorySkeletons() {
+        storiesFeed.innerHTML = Array(6).fill().map(() => `
+            <div class="story-item">
+                <div class="story-card story-loading"></div>
+                <div class="story-title"></div>
             </div>
-          </div>
-        </div>
-      `;
+        `).join('');
     }
-    
-    userList.innerHTML = skeletonHTML;
-  }
 
-  // Authentication State Listener
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      // Setup user presence
-      setupPresence(user.uid);
-      
-      // Show skeletons before loading
-      showSkeletons();
-      
-      // Initialize users on page load with delay to show loading state
-      setTimeout(() => {
-        fetchAvailableUsers();
-      }, 1000);
-    } else {
-      // Redirect to login if not authenticated
-      window.location.href = 'index.html';
+    // Fetch Wikipedia images
+    async function fetchWikipediaImages() {
+        try {
+            const articles = [];
+            
+            // Fetch random articles to get their images
+            for (let i = 0; i < 10; i++) {
+                try {
+                    const resp = await fetch('https://en.wikipedia.org/api/rest_v1/page/random/summary');
+                    const article = await resp.json();
+                    if (article.thumbnail) {
+                        articles.push({
+                            title: article.title,
+                            thumbnail: article.thumbnail.source
+                        });
+                    }
+                } catch (err) {
+                    console.error('Error fetching article:', err);
+                }
+            }
+            
+            // Render the stories
+            if (articles.length > 0) {
+                renderStories(articles.slice(0, 6));
+            } else {
+                renderPlaceholderStories();
+            }
+        } catch (error) {
+            console.error('Error fetching images:', error);
+            renderPlaceholderStories();
+        }
     }
-  });
 
-  // Make the fetchAvailableUsers function globally available
-  window.fetchAvailableUsers = fetchAvailableUsers;
-</script>
+    // Render stories with actual content
+    function renderStories(articles) {
+        storiesFeed.innerHTML = articles.map(article => {
+            return `
+                <div class="story-item">
+                    <div class="story-card">
+                        <img src="${article.thumbnail}" alt="" class="story-img">
+                    </div>
+                    <div class="story-title">${article.title}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Fallback to placeholder images
+    function renderPlaceholderStories() {
+        storiesFeed.innerHTML = Array(6).fill().map((_, i) => `
+            <div class="story-item">
+                <div class="story-card">
+                    <img src="https://picsum.photos/110/170?random=${i}" alt="" class="story-img">
+                </div>
+                <div class="story-title">Trending ${i+1}</div>
+            </div>
+        `).join('');
+    }
+
+    // Authentication State Listener
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            // Setup user presence
+            setupPresence(user.uid);
+            
+            // Initialize stories
+            initStories();
+            
+            // Show skeletons before loading users
+            showSkeletons();
+            
+            // Initialize users after a delay to show loading state
+            setTimeout(() => {
+                fetchAvailableUsers();
+            }, 1000);
+        } else {
+            // Redirect to login if not authenticated
+            window.location.href = 'index.html';
+        }
+    });
+}
+    </script>
 
 <script>
   // Additional enhancements and loading state management
@@ -1314,209 +1643,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 })();
 </script>
-<script>
 
-
-(function() {
-  // Create and inject the necessary CSS
-  const styleEl = document.createElement('style');
-  styleEl.textContent = `
-    .stories-container {
-      padding: 12px 16px 8px;
-      overflow-x: auto;
-      white-space: nowrap;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-      background: var(--bg-primary);
-      border-bottom: 1px solid var(--border-color);
-    }
-    
-    .stories-container::-webkit-scrollbar {
-      display: none;
-    }
-    
-    .stories-header {
-      font-weight: 700;
-      font-size: 15px;
-      margin-bottom: 10px;
-      color: var(--text-primary);
-    }
-    
-    .stories-feed {
-      display: inline-flex;
-      gap: 10px;
-      padding-bottom: 4px;
-    }
-    
-    .story-item {
-      position: relative;
-      width: 110px;
-    }
-    
-    .story-card {
-      width: 110px;
-      height: 170px;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid var(--border-color);
-      background: var(--bg-secondary);
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-    }
-    
-    .story-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    
-    .story-title {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-primary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-top: 5px;
-      text-align: left;
-      padding-left: 2px;
-    }
-    
-    .story-loading {
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .story-loading::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -150%;
-      width: 250%;
-      height: 100%;
-      background: linear-gradient(
-        90deg, 
-        transparent 0%,
-        rgba(255, 255, 255, 0.2) 50%,
-        transparent 100%
-      );
-      animation: shimmerEffect 2s infinite linear;
-    }
-    
-    @keyframes shimmerEffect {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
-    }
-  `;
-  document.head.appendChild(styleEl);
-
-  // Initialize stories
-  function initStories() {
-    // Create container and loading indicators
-    const storiesContainer = document.createElement('div');
-    storiesContainer.className = 'stories-container';
-    storiesContainer.innerHTML = `
-      <div class="stories-header">For you</div>
-      <div class="stories-feed">
-        ${Array(6).fill().map(() => `
-          <div class="story-item">
-            <div class="story-card story-loading"></div>
-            <div class="story-title"></div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-
-    // Insert above the search input
-    const pageHeader = document.querySelector('.page-header');
-    if (pageHeader && pageHeader.parentNode) {
-      pageHeader.insertAdjacentElement('afterend', storiesContainer);
-    }
-
-    // Fetch images
-    fetchWikipediaImages();
-  }
-
-  // Fetch Wikipedia images
-  async function fetchWikipediaImages() {
-    try {
-      const articles = [];
-      
-      // Fetch random articles to get their images
-      for (let i = 0; i < 10; i++) {
-        try {
-          const resp = await fetch('https://en.wikipedia.org/api/rest_v1/page/random/summary');
-          const article = await resp.json();
-          if (article.thumbnail) {
-            articles.push({
-              title: article.title,
-              thumbnail: article.thumbnail.source
-            });
-          }
-        } catch (err) {
-          console.error('Error fetching article:', err);
-        }
-      }
-      
-      // Render the stories
-      if (articles.length > 0) {
-        renderStories(articles.slice(0, 6));
-      } else {
-        renderPlaceholderStories();
-      }
-    } catch (error) {
-      console.error('Error fetching images:', error);
-      renderPlaceholderStories();
-    }
-  }
-
-  // Render stories with actual content
-  function renderStories(articles) {
-    const storiesContainer = document.querySelector('.stories-container');
-    if (!storiesContainer) return;
-
-    const storiesFeed = storiesContainer.querySelector('.stories-feed');
-    if (!storiesFeed) return;
-    
-    // Create stories HTML
-    storiesFeed.innerHTML = articles.map(article => {
-      return `
-        <div class="story-item">
-          <div class="story-card">
-            <img src="${article.thumbnail}" alt="" class="story-img">
-          </div>
-          <div class="story-title">${article.title}</div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  // Fallback to placeholder images
-  function renderPlaceholderStories() {
-    const storiesContainer = document.querySelector('.stories-container');
-    if (!storiesContainer) return;
-
-    const storiesFeed = storiesContainer.querySelector('.stories-feed');
-    if (!storiesFeed) return;
-    
-    // Use picsum photos as reliable fallback
-    storiesFeed.innerHTML = Array(6).fill().map((_, i) => `
-      <div class="story-item">
-        <div class="story-card">
-          <img src="https://picsum.photos/110/170?random=${i}" alt="" class="story-img">
-        </div>
-        <div class="story-title">Trending ${i+1}</div>
-      </div>
-    `).join('');
-  }
-
-  // Initialize when DOM is loaded
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initStories);
-  } else {
-    initStories();
-  }
-})();
-
-</script>
 </body>
 </html>
