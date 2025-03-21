@@ -1314,5 +1314,209 @@ document.addEventListener('DOMContentLoaded', function() {
 
 })();
 </script>
+<script>
+
+
+(function() {
+  // Create and inject the necessary CSS
+  const styleEl = document.createElement('style');
+  styleEl.textContent = `
+    .stories-container {
+      padding: 12px 16px 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .stories-container::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .stories-header {
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 10px;
+      color: var(--text-primary);
+    }
+    
+    .stories-feed {
+      display: inline-flex;
+      gap: 10px;
+      padding-bottom: 4px;
+    }
+    
+    .story-item {
+      position: relative;
+      width: 110px;
+    }
+    
+    .story-card {
+      width: 110px;
+      height: 170px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .story-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .story-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 5px;
+      text-align: left;
+      padding-left: 2px;
+    }
+    
+    .story-loading {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .story-loading::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -150%;
+      width: 250%;
+      height: 100%;
+      background: linear-gradient(
+        90deg, 
+        transparent 0%,
+        rgba(255, 255, 255, 0.2) 50%,
+        transparent 100%
+      );
+      animation: shimmerEffect 2s infinite linear;
+    }
+    
+    @keyframes shimmerEffect {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+  `;
+  document.head.appendChild(styleEl);
+
+  // Initialize stories
+  function initStories() {
+    // Create container and loading indicators
+    const storiesContainer = document.createElement('div');
+    storiesContainer.className = 'stories-container';
+    storiesContainer.innerHTML = `
+      <div class="stories-header">For you</div>
+      <div class="stories-feed">
+        ${Array(6).fill().map(() => `
+          <div class="story-item">
+            <div class="story-card story-loading"></div>
+            <div class="story-title"></div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    // Insert above the search input
+    const pageHeader = document.querySelector('.page-header');
+    if (pageHeader && pageHeader.parentNode) {
+      pageHeader.insertAdjacentElement('afterend', storiesContainer);
+    }
+
+    // Fetch images
+    fetchWikipediaImages();
+  }
+
+  // Fetch Wikipedia images
+  async function fetchWikipediaImages() {
+    try {
+      const articles = [];
+      
+      // Fetch random articles to get their images
+      for (let i = 0; i < 10; i++) {
+        try {
+          const resp = await fetch('https://en.wikipedia.org/api/rest_v1/page/random/summary');
+          const article = await resp.json();
+          if (article.thumbnail) {
+            articles.push({
+              title: article.title,
+              thumbnail: article.thumbnail.source
+            });
+          }
+        } catch (err) {
+          console.error('Error fetching article:', err);
+        }
+      }
+      
+      // Render the stories
+      if (articles.length > 0) {
+        renderStories(articles.slice(0, 6));
+      } else {
+        renderPlaceholderStories();
+      }
+    } catch (error) {
+      console.error('Error fetching images:', error);
+      renderPlaceholderStories();
+    }
+  }
+
+  // Render stories with actual content
+  function renderStories(articles) {
+    const storiesContainer = document.querySelector('.stories-container');
+    if (!storiesContainer) return;
+
+    const storiesFeed = storiesContainer.querySelector('.stories-feed');
+    if (!storiesFeed) return;
+    
+    // Create stories HTML
+    storiesFeed.innerHTML = articles.map(article => {
+      return `
+        <div class="story-item">
+          <div class="story-card">
+            <img src="${article.thumbnail}" alt="" class="story-img">
+          </div>
+          <div class="story-title">${article.title}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Fallback to placeholder images
+  function renderPlaceholderStories() {
+    const storiesContainer = document.querySelector('.stories-container');
+    if (!storiesContainer) return;
+
+    const storiesFeed = storiesContainer.querySelector('.stories-feed');
+    if (!storiesFeed) return;
+    
+    // Use picsum photos as reliable fallback
+    storiesFeed.innerHTML = Array(6).fill().map((_, i) => `
+      <div class="story-item">
+        <div class="story-card">
+          <img src="https://picsum.photos/110/170?random=${i}" alt="" class="story-img">
+        </div>
+        <div class="story-title">Trending ${i+1}</div>
+      </div>
+    `).join('');
+  }
+
+  // Initialize when DOM is loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initStories);
+  } else {
+    initStories();
+  }
+})();
+
+</script>
 </body>
 </html>
