@@ -246,7 +246,7 @@
                 <iframe src="bookmarks.html" frameborder="0" width="100%" height="100%"></iframe>
             </div>
             <div id="profile-section" class="section-container">
-                <iframe src="profile.html" frameborder="0" width="100%" height="100%"></iframe>
+                <iframe src="profileview.html" frameborder="0" width="100%" height="100%"></iframe>
             </div>
             
             <!-- Loader -->
@@ -370,5 +370,185 @@
             });
         });
     </script>
+  <script>
+  (function() {
+    // RelHalf Theme Integration - Works alongside GlobalChatThemeManager
+    const RelHalfThemeIntegrator = {
+      // Style element ID
+      styleElementId: 'relhalf-theme-integrator-styles',
+      
+      // Initialize integration
+      initialize: function() {
+        this.createStyleElement();
+        this.applyCurrentTheme();
+        this.setupEventListeners();
+        console.log('RelHalf Theme Integrator initialized');
+      },
+      
+      // Create dedicated style element
+      createStyleElement: function() {
+        const existingStyle = document.getElementById(this.styleElementId);
+        if (existingStyle) {
+          existingStyle.remove();
+        }
+        
+        const styleElement = document.createElement('style');
+        styleElement.id = this.styleElementId;
+        styleElement.setAttribute('data-origin', 'relhalf-theme-integrator');
+        document.head.appendChild(styleElement);
+      },
+      
+      // Apply current theme from localStorage
+      applyCurrentTheme: function() {
+        const themeName = localStorage.getItem('twitter-theme') || 'light';
+        this.applyTheme(themeName);
+      },
+      
+      // Apply specified theme
+      applyTheme: function(themeName) {
+        // Default to light theme if invalid theme name
+        const validThemes = ['light', 'dim', 'dark'];
+        const theme = validThemes.includes(themeName) ? themeName : 'light';
+        
+        // Get style element
+        const styleElement = document.getElementById(this.styleElementId);
+        if (!styleElement) {
+          this.createStyleElement();
+          return this.applyTheme(theme); // Retry after creating style element
+        }
+        
+        // Theme-specific CSS
+        const themeCSS = {
+          light: `
+            body { background-color: #ffffff; color: #0f1419; }
+            .sidebar { border-right-color: #eff3f4; }
+            .content { border-right-color: #eff3f4; }
+            .menu-item { color: #0f1419; }
+            .menu-item:hover { background-color: rgba(0, 0, 0, 0.1); }
+            .post-btn { background-color: #1d9bf0; }
+            .post-btn:hover { background-color: #1a8cd8; }
+          `,
+          dim: `
+            body { background-color: #15202b; color: #f7f9f9; }
+            .sidebar { border-right-color: #38444d; }
+            .content { border-right-color: #38444d; }
+            .menu-item { color: #f7f9f9; }
+            .menu-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+            .post-btn { background-color: #1d9bf0; }
+            .post-btn:hover { background-color: #1a8cd8; }
+          `,
+          dark: `
+            body { background-color: #000000; color: #ffffff; }
+            .sidebar { border-right-color: #2f3336; }
+            .content { border-right-color: #2f3336; }
+            .menu-item { color: #ffffff; }
+            .menu-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+            .post-btn { background-color: #1d9bf0; }
+            .post-btn:hover { background-color: #1a8cd8; }
+          `
+        };
+        
+        // Apply custom color if available
+        const savedColorValue = localStorage.getItem('color-value');
+        const savedColorIndex = localStorage.getItem('color-palette');
+        
+        let customColorCSS = '';
+        if (savedColorValue && savedColorIndex !== '0') {
+          const colorObj = this.hexToRGB(savedColorValue);
+          const rgbString = `${colorObj.r}, ${colorObj.g}, ${colorObj.b}`;
+          
+          customColorCSS = `
+            .post-btn { background-color: ${savedColorValue}; }
+            .post-btn:hover { background-color: ${this.darkenColor(savedColorValue, 0.15)}; }
+            .menu-item.active svg { color: ${savedColorValue}; fill: ${savedColorValue}; }
+            .loader svg path, .loader svg circle { fill: ${savedColorValue}; }
+          `;
+        }
+        
+        // Set the CSS content
+        styleElement.textContent = themeCSS[theme] + customColorCSS;
+        console.log('RelHalf Theme Integrator: Applied theme', theme);
+      },
+      
+      // Set up event listeners
+      setupEventListeners: function() {
+        // Listen for localStorage changes (theme)
+        window.addEventListener('storage', (e) => {
+          if (e.key === 'twitter-theme') {
+            this.applyTheme(e.newValue || 'light');
+          }
+          // Handle color changes
+          if (e.key === 'color-value' || e.key === 'color-palette') {
+            this.applyCurrentTheme(); // Reapply theme with new color
+          }
+        });
+        
+        // Listen for custom events from GlobalChatThemeManager
+        window.addEventListener('themeChanged', (e) => {
+          if (e.detail && e.detail.theme) {
+            this.applyTheme(e.detail.theme);
+          }
+        });
+        
+        // Listen for custom color change events
+        window.addEventListener('chatColorChanged', (e) => {
+          this.applyCurrentTheme();
+        });
+        
+        // Check for theme changes periodically
+        this.setupPeriodicCheck();
+      },
+      
+      // Set up periodic check for theme consistency
+      setupPeriodicCheck: function() {
+        let lastKnownTheme = localStorage.getItem('twitter-theme') || 'light';
+        let lastKnownColor = localStorage.getItem('color-value') || '';
+        
+        setInterval(() => {
+          const currentTheme = localStorage.getItem('twitter-theme');
+          const currentColor = localStorage.getItem('color-value');
+          
+          if (currentTheme !== lastKnownTheme || currentColor !== lastKnownColor) {
+            lastKnownTheme = currentTheme || 'light';
+            lastKnownColor = currentColor || '';
+            this.applyCurrentTheme();
+          }
+        }, 3000); // Check every 3 seconds
+      },
+      
+      // Utility: Convert hex to RGB
+      hexToRGB: function(hex) {
+        hex = hex.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        return { r, g, b };
+      },
+      
+      // Utility: Darken color
+      darkenColor: function(hex, percent) {
+        hex = hex.replace('#', '');
+        let r = parseInt(hex.substring(0, 2), 16);
+        let g = parseInt(hex.substring(2, 4), 16);
+        let b = parseInt(hex.substring(4, 6), 16);
+        
+        r = Math.floor(r * (1 - percent));
+        g = Math.floor(g * (1 - percent));
+        b = Math.floor(b * (1 - percent));
+        
+        r = Math.max(0, r);
+        g = Math.max(0, g);
+        b = Math.max(0, b);
+        
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+      }
+    };
+    
+    // Initialize the theme integrator with a slight delay to ensure DOM is ready
+    setTimeout(function() {
+      RelHalfThemeIntegrator.initialize();
+    }, 200);
+  })();
+</script>
 </body>
 </html>
