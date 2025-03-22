@@ -1,49 +1,152 @@
-function _0x1e7f() {
-  const _0x82e1c3 = ['loading', 'textContent', '9SlnMOW', '683469WPsDzf', 'width', 'target', '21pkqBfJ', '14894kFREfe', 'add', 'toggleFollow', 'createElement', 'style', 'remove', '71726gmBErt', 'preventDefault', '2485tuZTQC', '\n\n  @keyframes nano-spin {\n    to { transform: rotate(360deg); }\n  }\n\n  .follow-btn {\n    background-color: #1da1f2;\n    color: white;\n    border: none;\n    border-radius: 9999px;\n    padding: 5px 10px; /* Slightly smaller padding */\n    font-size: 11px; /* Slightly smaller font size */\n    font-weight: bold;\n    cursor: pointer;\n    outline: none;\n    transition: background-color 0.2s, color 0.2s;\n  }\n\n  .follow-btn.followed {\n    background-color: transparent;\n    color: #1da1f2;\n    border: 1px solid #1da1f2;\n  }\n\n  .follow-btn.loading {\n    position: relative;\n    padding-right: 26px !important; /* Adjusted for slightly smaller button */\n    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);\n  }\n\n  .follow-btn.loading span {\n    visibility: hidden;\n  }\n\n  .follow-btn.loading::after {\n    content: \'\';\n    position: absolute;\n    right: 5px; /* Adjusted for slightly smaller button */\n    top: 50%;\n    transform: translateY(-50%);\n    width: 12px; /* Slightly smaller spinner */\n    height: 12px; /* Slightly smaller spinner */\n    border-radius: 50%;\n    border: 2px solid rgba(255, 255, 255, 0.2);\n    border-top: 2px solid #1da1f2;\n    animation: nano-spin 0.8s linear infinite; /* Smooth spin animation */\n    background: transparent;\n    box-shadow: none;\n  }\n\n  .follow-btn.followed.loading::after {\n    border-top-color: #1da1f2;\n  }\n', 'classList', 'match', 'span', '3488xjEMyf', 'appendChild', '12348216GcUFHA', 'getBoundingClientRect', 'Follow', '1004808kSNGhW', 'followed', 'innerHTML', 'height', 'closest', 'contains', '5876848oUCtlI', 'Unfollow', '2kllrNp', 'onclick', 'head', '4330PInCgo', 'getAttribute'];
-  _0x1e7f = function () {
-    return _0x82e1c3;
-  };
-  return _0x1e7f();
-}
-function _0x4206(_0x13260e, _0x5bb9ca) {
-  const _0x1e7f1b = _0x1e7f();
-  return _0x4206 = function (_0x4206aa, _0x5ecd36) {
-    _0x4206aa = _0x4206aa - 0xe2;
-    let _0x36d78e = _0x1e7f1b[_0x4206aa];
-    return _0x36d78e;
-  }, _0x4206(_0x13260e, _0x5bb9ca);
-}
-const _0xcdf5c2 = _0x4206;
-(function (_0x463be6, _0x5f216d) {
-  const _0x1a7bd9 = _0x4206, _0x5d0f8f = _0x463be6();
-  while (!![]) {
+
+function setupFollowButtonEnhancements() {
+  // Create and inject the improved CSS styles
+  const followLoaderStyle = document.createElement('style');
+  followLoaderStyle.textContent = `
+    @keyframes spin-animation {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes pulse-opacity {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+    
+    .follow-btn {
+      background-color: var(--primary, #1d9bf0);
+      color: white;
+      border: none;
+      border-radius: 9999px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      outline: none;
+      transition: background-color 0.2s, color 0.2s, border 0.2s;
+      position: relative;
+    }
+    
+    .follow-btn.followed {
+      background-color: transparent;
+      color: var(--primary, #1d9bf0);
+      border: 1px solid var(--primary, #1d9bf0);
+    }
+    
+    .follow-btn.loading {
+      pointer-events: none;
+    }
+    
+    .follow-btn .spinner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 14px;
+      height: 14px;
+      display: none;
+    }
+    
+    .follow-btn.loading .spinner {
+      display: block;
+    }
+    
+    .follow-btn.loading span {
+      visibility: hidden;
+    }
+    
+    .spinner::after {
+      content: '';
+      box-sizing: border-box;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: var(--primary, #1d9bf0);
+      animation: spin-animation 0.8s linear infinite;
+    }
+    
+    .follow-btn.followed .spinner::after {
+      border: 2px solid rgba(29, 155, 240, 0.2);
+      border-top-color: var(--primary, #1d9bf0);
+    }
+  `;
+  document.head.appendChild(followLoaderStyle);
+
+  // Function to update primary color from localStorage
+  function updatePrimaryColor() {
+    const savedColorValue = localStorage.getItem('color-value');
+    if (savedColorValue) {
+      document.documentElement.style.setProperty('--primary', savedColorValue);
+    }
+  }
+
+  // Initialize primary color
+  updatePrimaryColor();
+
+  // Listen for color changes
+  window.addEventListener('storage', function(event) {
+    if (event.key === 'color-value') {
+      updatePrimaryColor();
+    }
+  });
+
+  // Also listen for the custom event from the theme customizer
+  window.addEventListener('chatColorChanged', function(event) {
+    if (event.detail && event.detail.color) {
+      document.documentElement.style.setProperty('--primary', event.detail.color);
+    }
+  });
+
+  // Handle follow button clicks
+  document.addEventListener('click', async (event) => {
+    const followBtn = event.target.closest('.follow-btn');
+    if (!followBtn) return;
+    
+    // Prevent default behavior
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    
+    // Already loading, don't process multiple clicks
+    if (followBtn.classList.contains('loading')) return;
+    
+    // Add loading state
+    followBtn.classList.add('loading');
+    
+    // Create spinner if it doesn't exist
+    if (!followBtn.querySelector('.spinner')) {
+      const spinner = document.createElement('div');
+      spinner.className = 'spinner';
+      followBtn.appendChild(spinner);
+    }
+    
     try {
-      const _0x14e431 = -parseInt(_0x1a7bd9(0xea)) / 0x1 + -parseInt(_0x1a7bd9(0xfe)) / 0x2 * (-parseInt(_0x1a7bd9(0x106)) / 0x3) + parseInt(_0x1a7bd9(0xf1)) / 0x4 * (-parseInt(_0x1a7bd9(0xec)) / 0x5) + -parseInt(_0x1a7bd9(0xf6)) / 0x6 * (parseInt(_0x1a7bd9(0xe3)) / 0x7) + parseInt(_0x1a7bd9(0xfc)) / 0x8 * (parseInt(_0x1a7bd9(0x105)) / 0x9) + -parseInt(_0x1a7bd9(0x101)) / 0xa * (parseInt(_0x1a7bd9(0xe4)) / 0xb) + parseInt(_0x1a7bd9(0xf3)) / 0xc;
-      if (_0x14e431 === _0x5f216d) break;
-      else _0x5d0f8f['push'](_0x5d0f8f['shift']());
-    } catch (_0x312856) {
-      _0x5d0f8f['push'](_0x5d0f8f['shift']());
+      // Extract and call the toggleFollow function
+      const onclickAttr = followBtn.getAttribute('onclick');
+      const match = onclickAttr.match(/toggleFollow\('(.+)', '(.+)'\)/);
+      
+      if (match) {
+        const [_, userId, username] = match;
+        await window.toggleFollow(userId, username);
+      }
+    } catch (error) {
+      console.error('Follow operation failed:', error);
+    } finally {
+      // Update button state
+      followBtn.classList.remove('loading');
+      
+      // Toggle followed state (if it's not already handled by the original toggleFollow function)
+      // This is a fallback in case the original function doesn't update the UI
+      setTimeout(() => {
+        const currentState = followBtn.classList.contains('followed');
+        if (followBtn.textContent.trim() !== (currentState ? 'Unfollow' : 'Follow')) {
+          followBtn.textContent = currentState ? 'Unfollow' : 'Follow';
+        }
+      }, 100);
     }
-  }
-}(_0x1e7f, 0x61153));
-const followLoaderStyle = document['createElement'](_0xcdf5c2(0xe8));
-followLoaderStyle[_0xcdf5c2(0x104)] = _0xcdf5c2(0xed), document[_0xcdf5c2(0x100)][_0xcdf5c2(0xf2)](followLoaderStyle), document['addEventListener']('click', async _0x438d59 => {
-  const _0x13ca4c = _0xcdf5c2, _0x3f9d36 = _0x438d59[_0x13ca4c(0xe2)][_0x13ca4c(0xfa)]('.follow-btn');
-  if (!_0x3f9d36) return;
-  _0x438d59[_0x13ca4c(0xeb)](), _0x438d59['stopImmediatePropagation']();
-  const _0x4c82b2 = _0x3f9d36[_0x13ca4c(0xf4)]();
-  _0x3f9d36['style']['width'] = _0x4c82b2[_0x13ca4c(0x107)] + 'px', _0x3f9d36[_0x13ca4c(0xe8)][_0x13ca4c(0xf9)] = _0x4c82b2['height'] + 'px', _0x3f9d36[_0x13ca4c(0xee)][_0x13ca4c(0xe5)](_0x13ca4c(0x103));
-  const _0x11b7da = document[_0x13ca4c(0xe7)](_0x13ca4c(0xf0));
-  _0x11b7da[_0x13ca4c(0x104)] = _0x3f9d36[_0x13ca4c(0x104)], _0x3f9d36[_0x13ca4c(0xf8)] = '', _0x3f9d36[_0x13ca4c(0xf2)](_0x11b7da);
-  try {
-    const _0x258f32 = _0x3f9d36[_0x13ca4c(0x102)](_0x13ca4c(0xff)), _0x510f9e = _0x258f32[_0x13ca4c(0xef)](/toggleFollow\('(.+)', '(.+)'\)/);
-    if (_0x510f9e) {
-      const [_0x21b1f6, _0x18cc9a, _0x2bfff2] = _0x510f9e;
-      await window[_0x13ca4c(0xe6)](_0x18cc9a, _0x2bfff2);
-    }
-  } catch (_0xcee651) {
-    alert('Operation failed: ' + _0xcee651['message']);
-  } finally {
-    _0x3f9d36[_0x13ca4c(0xee)][_0x13ca4c(0xe9)](_0x13ca4c(0x103)), _0x3f9d36['style'][_0x13ca4c(0x107)] = '', _0x3f9d36[_0x13ca4c(0xe8)][_0x13ca4c(0xf9)] = '', _0x3f9d36[_0x13ca4c(0xf8)] = _0x3f9d36[_0x13ca4c(0xee)][_0x13ca4c(0xfb)](_0x13ca4c(0xf7)) ? _0x13ca4c(0xfd) : _0x13ca4c(0xf5);
-  }
-}, !![]);
+  }, true);
+}
+
+// Initialize our enhancements
+setupFollowButtonEnhancements();
