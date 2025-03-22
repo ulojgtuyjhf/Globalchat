@@ -1,0 +1,1211 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Full Screen Translator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Chirp", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f7f9fa;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .translator-container {
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 20px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .translator-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .translator-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #14171A;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .translator-title svg {
+      width: 24px;
+      height: 24px;
+      color: #1DA1F2;
+    }
+    
+    .search-box {
+      margin-bottom: 20px;
+      position: relative;
+    }
+    
+    .search-input {
+      width: 100%;
+      border: 1px solid #eee;
+      border-radius: 30px;
+      padding: 12px 20px 12px 45px;
+      font-size: 15px;
+      outline: none;
+      transition: all 0.2s;
+      background: white;
+    }
+    
+    .search-input:focus {
+      border-color: #1DA1F2;
+      box-shadow: 0 0 0 1px rgba(29, 161, 242, 0.3);
+    }
+    
+    .search-icon {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      color: #657786;
+    }
+    
+    .language-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+    
+    .language-card {
+      background: white;
+      border-radius: 12px;
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid #eee;
+      position: relative;
+    }
+    
+    .language-card:hover {
+      background: rgba(29, 161, 242, 0.1);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    .language-card:active {
+      transform: translateY(0);
+      opacity: 0.8;
+    }
+    
+    .language-card.active {
+      background: rgba(29, 161, 242, 0.1);
+      border-color: #1DA1F2;
+    }
+    
+    .language-card.active::after {
+      content: "";
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      background-color: #1DA1F2;
+      border-radius: 50%;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: 12px;
+    }
+    
+    .language-icon {
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .language-name {
+      font-size: 16px;
+      color: #14171A;
+      font-weight: 500;
+    }
+    
+    .original-language-button {
+      background: white;
+      border: 1px solid #eee;
+      border-radius: 12px;
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+      color: #1DA1F2;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      margin-top: auto;
+    }
+    
+    .original-language-button:hover {
+      background: rgba(29, 161, 242, 0.1);
+    }
+    
+    .original-language-button:active {
+      opacity: 0.8;
+    }
+    
+    .original-language-button svg {
+      width: 18px;
+      height: 18px;
+      color: #1DA1F2;
+    }
+    
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background-color: rgba(29, 161, 242, 0.3);
+      transform: scale(0);
+      animation: ripple 0.6s linear;
+      pointer-events: none;
+    }
+    
+    @keyframes ripple {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+    
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.7);
+      z-index: 9998;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s;
+    }
+    
+    .loading-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(29, 161, 242, 0.2);
+      border-radius: 50%;
+      border-top-color: #1DA1F2;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .toast-notification {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 15px;
+      z-index: 10000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .toast-notification.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Hide all Google Translate elements */
+    .goog-te-banner-frame,
+    .goog-te-balloon-frame,
+    #goog-gt-tt,
+    .goog-te-balloon-frame,
+    .goog-tooltip,
+    .goog-tooltip:hover,
+    .goog-text-highlight,
+    .VIpgJd-ZVi9od-l4eHX-hSRGPd,
+    .VIpgJd-ZVi9od-ORHb-OEVmcd,
+    .VIpgJd-ZVi9od-SmfZ-OEVmcd-tJHJj,
+    .goog-te-gadget,
+    .goog-logo-link {
+      display: none !important;
+    }
+
+    .goog-te-menu-frame {
+      box-shadow: none !important;
+    }
+
+    .goog-text-highlight {
+      background-color: transparent !important;
+      box-shadow: none !important;
+    }
+
+    body {
+      top: 0 !important;
+      position: static !important;
+    }
+
+    #google_translate_element {
+      display: none !important;
+    }
+    
+    @media (max-width: 768px) {
+      .translator-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      
+      .language-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="translator-container">
+    <div class="translator-header">
+      <div class="translator-title">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+          <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
+        </svg>
+        Language Translator
+      </div>
+    </div>
+    
+    <div class="search-box">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2"/>
+      </svg>
+      <input type="text" class="search-input" placeholder="Search languages">
+    </div>
+    
+    <div class="language-grid" id="languageGrid">
+      <!-- Language cards will be inserted here by JavaScript -->
+    </div>
+    
+    <button class="original-language-button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 10h18M3 14h18M5 18l6-12M13 18l6-12"/>
+      </svg>
+      Restore Original Language
+    </button>
+  </div>
+  
+  <div class="loading-overlay">
+    <div class="loading-spinner"></div>
+  </div>
+  
+  <div class="toast-notification">Translation complete</div>
+  
+  <div id="google_translate_element" style="display: none;"></div>
+
+  <script>
+    class FullScreenTranslator {
+      constructor() {
+        this.currentLanguage = 'en';
+        this.originalLanguage = document.documentElement.lang || 'en';
+        this.languages = {
+          'en': { name: 'English', icon: '🇬🇧' },
+          'es': { name: 'Español', icon: '🇪🇸' },
+          'fr': { name: 'Français', icon: '🇫🇷' },
+          'de': { name: 'Deutsch', icon: '🇩🇪' },
+          'it': { name: 'Italiano', icon: '🇮🇹' },
+          'pt': { name: 'Português', icon: '🇵🇹' },
+          'ru': { name: 'Русский', icon: '🇷🇺' },
+          'ja': { name: '日本語', icon: '🇯🇵' },
+          'ko': { name: '한국어', icon: '🇰🇷' },
+          'zh': { name: '中文', icon: '🇨🇳' },
+          'ar': { name: 'العربية', icon: '🇸🇦' },
+          'hi': { name: 'हिन्दी', icon: '🇮🇳' },
+          'sw': { name: 'Kiswahili', icon: '🇰🇪' },
+          'zu': { name: 'isiZulu', icon: '🇿🇦' },
+          'xh': { name: 'isiXhosa', icon: '🇿🇦' },
+          'af': { name: 'Afrikaans', icon: '🇿🇦' },
+          'st': { name: 'Sesotho', icon: '🇿🇦' },
+          'tn': { name: 'Setswana', icon: '🇿🇦' },
+          'ts': { name: 'Xitsonga', icon: '🇿🇦' },
+          've': { name: 'Tshivenda', icon: '🇿🇦' },
+          'nr': { name: 'isiNdebele', icon: '🇿🇦' },
+          'ms': { name: 'Bahasa Melayu', icon: '🇲🇾' },
+          'vi': { name: 'Tiếng Việt', icon: '🇻🇳' },
+          'th': { name: 'ภาษาไทย', icon: '🇹🇭' },
+          'tr': { name: 'Türkçe', icon: '🇹🇷' },
+          'pl': { name: 'Polski', icon: '🇵🇱' },
+          'uk': { name: 'Українська', icon: '🇺🇦' },
+          'he': { name: 'עברית', icon: '🇮🇱' },
+          'fa': { name: 'فارسی', icon: '🇮🇷' },
+          'bn': { name: 'বাংলা', icon: '🇧🇩' },
+          'ta': { name: 'தமிழ்', icon: '🇮🇳' },
+          'te': { name: 'తెలుగు', icon: '🇮🇳' },
+          'ml': { name: 'മലയാളം', icon: '🇮🇳' },
+          'kn': { name: 'ಕನ್ನಡ', icon: '🇮🇳' },
+          'mr': { name: 'मराठी', icon: '🇮🇳' },
+          'gu': { name: 'ગુજરાતી', icon: '🇮🇳' },
+          'pa': { name: 'ਪੰਜਾਬੀ', icon: '🇮🇳' },
+          'ur': { name: 'اردو', icon: '🇵🇰' },
+          'id': { name: 'Bahasa Indonesia', icon: '🇮🇩' },
+          'am': { name: 'አማርኛ', icon: '🇪🇹' },
+          'ig': { name: 'Igbo', icon: '🇳🇬' },
+          'yo': { name: 'Yorùbá', icon: '🇳🇬' },
+          'ha': { name: 'Hausa', icon: '🇳🇬' },
+          'el': { name: 'Ελληνικά', icon: '🇬🇷' },
+          'cs': { name: 'Čeština', icon: '🇨🇿' },
+          'hu': { name: 'Magyar', icon: '🇭🇺' },
+          'ro': { name: 'Română', icon: '🇷🇴' },
+          'bg': { name: 'Български', icon: '🇧🇬' },
+          'sv': { name: 'Svenska', icon: '🇸🇪' },
+          'no': { name: 'Norsk', icon: '🇳🇴' },
+          'fi': { name: 'Suomi', icon: '🇫🇮' },
+          'da': { name: 'Dansk', icon: '🇩🇰' },
+          'sk': { name: 'Slovenčina', icon: '🇸🇰' },
+          'sl': { name: 'Slovenščina', icon: '🇸🇮' },
+          'sr': { name: 'Српски', icon: '🇷🇸' },
+          'hr': { name: 'Hrvatski', icon: '🇭🇷' },
+          'lt': { name: 'Lietuvių', icon: '🇱🇹' },
+          'lv': { name: 'Latviešu', icon: '🇱🇻' },
+          'et': { name: 'Eesti', icon: '🇪🇪' },
+          'ga': { name: 'Gaeilge', icon: '🇮🇪' },
+          'cy': { name: 'Cymraeg', icon: '🏴󠁧󠁢󠁷󠁬󠁳󠁿' },
+          'mt': { name: 'Malti', icon: '🇲🇹' },
+          'is': { name: 'Íslenska', icon: '🇮🇸' },
+          'sq': { name: 'Shqip', icon: '🇦🇱' },
+          'mk': { name: 'Македонски', icon: '🇲🇰' }
+        };
+        
+        this.translationInitialized = false;
+        this.isLoading = false;
+        this.translationComplete = false;
+        
+        this.init();
+      }
+      
+      init() {
+        this.renderLanguageCards();
+        this.addEventListeners();
+        this.initializeTranslation();
+        this.loadGoogleTranslateScript();
+        
+        // Set up elements
+        this.loadingOverlay = document.querySelector('.loading-overlay');
+        this.toastNotification = document.querySelector('.toast-notification');
+        
+        // Add ripple effect
+        this.addRippleEffect();
+        
+        // Auto-detect user's preferred language
+        const browserLanguage = navigator.language || navigator.userLanguage;
+        const languageCode = browserLanguage.split('-')[0];
+        
+        // Use saved preference over browser language
+        const savedLanguage = localStorage.getItem('preferredLanguage');
+        if (savedLanguage) {
+          // We'll apply this after Google Translate is initialized
+          setTimeout(() => {
+            if (savedLanguage !== this.originalLanguage) {
+              this.changeLanguage(savedLanguage);
+            }
+          }, 1000);
+        } else if (languageCode !== this.originalLanguage && this.languages[languageCode]) {
+          // If user's browser language differs from page language and we support it,
+          // offer to translate (after a short delay to let the page load)
+          setTimeout(() => {
+            this.showToast(`Would you like to translate to ${this.languages[languageCode].name}?`, 5000);
+          }, 2000);
+        }
+        
+        // Hide Google elements
+        this.hideGoogleElements();
+      }
+      
+      renderLanguageCards() {
+        const languageGrid = document.getElementById('languageGrid');
+        languageGrid.innerHTML = '';
+        
+        Object.entries(this.languages).forEach(([code, lang]) => {
+          const card = document.createElement('div');
+          card.className = `language-card${code === this.currentLanguage ? ' active' : ''}`;
+          card.dataset.code = code;
+          card.innerHTML = `
+            <span class="language-icon">${lang.icon}</span>
+            <span class="language-name">${lang.name}</span>
+          `;
+          card.addEventListener('click', () => this.changeLanguage(code));
+          languageGrid.appendChild(card);
+        });
+      }
+      
+      addEventListeners() {
+        // Search functionality
+        const searchInput = document.querySelector('.search-input');
+        searchInput.addEventListener('input', (e) => {
+          const searchTerm = e.target.value.toLowerCase();
+          const cards = document.querySelectorAll('.language-card');
+          
+          cards.forEach(card => {
+            const languageName = card.querySelector('.language-name').textContent.toLowerCase();
+            const code = card.dataset.code;
+            
+            if (languageName.includes(searchTerm) || code.includes(searchTerm)) {
+              card.style.display = 'flex';
+            } else {
+              card.style.display = 'none';
+            }
+          });
+        });
+        
+        // Original language button
+        const originalButton = document.querySelector('.original-language-button');
+        originalButton.addEventListener('click', () => this.resetToOriginal());
+        
+        // Hide Google elements on DOM loaded
+        document.addEventListener('DOMContentLoaded', () => {
+          this.hideGoogleElements();
+        });
+        
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden && this.translationComplete && this.currentLanguage !== this.originalLanguage) {
+            // Re-apply translation if page becomes visible again
+            this.applyTranslation(this.currentLanguage);
+          }
+        });
+      }
+      
+      addRippleEffect() {
+        const buttons = document.querySelectorAll('.language-card, .original-language-button');
+        
+        buttons.forEach(button => {
+          button.addEventListener('click', function(e) {
+            const rect = this.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const ripple = document.createElement('span');
+            ripple.className = 'ripple';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            
+            this.appendChild(ripple);
+            
+            setTimeout(() => {
+              ripple.remove();
+            }, 600);
+          });
+        });
+      }
+      
+      initializeTranslation() {
+        // Create and add Google Translate element
+        const googleElement = document.getElementById('google_translate_element');
+        
+        // Define Google Translate Element initialization function
+        window.googleTranslateElementInit = () => {
+          new google.translate.TranslateElement({
+            pageLanguage: this.originalLanguage,
+            includedLanguages: Object.keys(this.languages).join(','),
+            layout: google.translate.TranslateElement.InlineLayout.NONE,
+            autoDisplay: false
+          }, 'google_translate_element');
+          
+          // Add event listener for when translation is finished
+          this.addTranslationCompletionDetection();
+          this.translationInitialized = true;
+          
+          // Load saved language preference after initialization
+          const savedLanguage = localStorage.getItem('preferredLanguage');
+          if (savedLanguage && savedLanguage !== this.originalLanguage) {
+            setTimeout(() => {
+              this.changeLanguage(savedLanguage);
+            }, 500);
+          }
+        };
+      }
+      
+      addTranslationCompletionDetection() {
+        // Set up translation progress detection using MutationObserver
+        const translationObserver = new MutationObserver((mutations) => {
+          // Check for specific translation-related DOM changes
+          const translatedElements = document.querySelectorAll('.translated');
+          
+          if (translatedElements.length > 0 || 
+              document.documentElement.classList.contains('translated-ltr') || 
+              document.documentElement.classList.contains('translated-rtl')) {
+            if (this.isLoading) {
+              setTimeout(() => {
+                this.hideLoading();
+                this.showToast(`Translated to ${this.languages[this.currentLanguage].name}`);
+                this.translationComplete = true;
+              }, 500); // Small delay to ensure translation has settled
+            }
+          }
+        });
+        
+        // Start observing the document for translation changes
+        translationObserver.observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['class']
+        });
+      }
+      
+      loadGoogleTranslateScript() {
+        if (document.querySelector('script[src*="translate.google.com/translate_a/element.js"]')) {
+          return; // Already loaded
+        }
+        
+        const script = document.createElement('script');
+        script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+        script.async = true;
+        script.onerror = () => {
+          this.hideLoading();
+          this.showToast('Failed to load translation service. Please try again.');
+        };
+        document.head.appendChild(script);
+      }
+      
+      hideGoogleElements() {
+        const googleElements = document.querySelectorAll('.VIpgJd-ZVi9od-l4eHX-hSRGPd, .goog-te-banner-frame, .goog-te-menu-frame');
+        googleElements.forEach(element => {
+          element.style.display = 'none';
+        });
+        document.body.style.top = '0px';
+      }
+      
+      showLoading() {
+        this.isLoading = true;
+        this.translationComplete = false;
+        this.loadingOverlay.classList.add('active');
+      }
+      
+      hideLoading() {
+        this.isLoading = false;
+        this.loadingOverlay.classList.remove('active');
+      }
+      
+      showToast(message, duration = 3000) {
+        this.toastNotification.textContent = message;
+        this.toastNotification.classList.add('active');
+        
+        setTimeout(() => {
+          this.toastNotification.classList.remove('active');
+        }, duration);
+      }
+      
+      changeLanguage(languageCode) {
+        if (this.isLoading || languageCode === this.currentLanguage) return;
+        
+        this.showLoading();
+        
+        // Update selection in the language grid
+        document.querySelectorAll('.language-card').forEach(card => {
+          card.classList.toggle('active', card.dataset.code === languageCode);
+        });
+        
+        this.currentLanguage = languageCode;
+        localStorage.setItem('preferredLanguage', languageCode);
+
+        // Apply translation
+        this.applyTranslation(languageCode);
+        
+        // Set a timeout to ensure loading state is removed even if translation doesn't complete
+        setTimeout(() => {
+          if (this.isLoading) {
+            this.hideLoading();
+          }
+        }, 5000);
+      }
+      
+      applyTranslation(languageCode) {
+        // Force initialization if not already done
+        if (!window.google || !window.google.translate) {
+          this.loadGoogleTranslateScript();
+          setTimeout(() => this.applyTranslation(languageCode), 1000);
+          return;
+        }
+        
+        // Direct API access for better reliability
+        if (window.google && window.google.translate) {
+          const select = document.querySelector('.goog-te-combo');
+          if (select) {
+            select.value = languageCode;
+            
+            // Trigger change event
+            const event = new Event('change', {
+              bubbles: true,
+              cancelable: true,
+            });
+            select.dispatchEvent(event);
+            
+            // Also trigger click for better compatibility
+            setTimeout(() => {
+              const event = new MouseEvent('click', {
+                bubbles: true,
+                cancelable: true,
+                view: window
+              });
+              select.dispatchEvent(event);
+            }, 100);
+          }
+        }
+      }
+      
+      resetToOriginal() {
+        if (this.isLoading) return;
+        
+        this.showLoading();
+        
+        // Reset to original language
+        if (window.google && window.google.translate) {
+          // Try to find the iframe and restore original content
+          const iframe = document.querySelector('iframe.goog-te-menu-frame');
+          if (iframe) {
+            try {
+              const restoreElement = iframe.contentDocument.querySelector('a.goog-te-menu2-item[id*="restore"]');
+              if (restoreElement) {
+                restoreElement.click();
+              } else {
+                // Alternative method
+                const domain = window.location.hostname;
+                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=${domain}; path=/;`;
+                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=.${domain}; path=/;`;
+              }
+            } catch (e) {
+              // If iframe access fails due to CORS, use cookie approach
+              const domain = window.location.hostname;
+              document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=${domain}; path=/;`;
+              document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=.${domain}; path=/;`;
+            }
+          } else {
+            // Try direct DOM manipulation
+            document.documentElement.classList.remove('translated-ltr', 'translated-rtl');
+            document.body.classList.remove('translated-ltr', 'translated-rtl');
+            
+            // Reset all translated elements
+            const translated = document.querySelectorAll('.translated');
+            translated.forEach(el => {
+              el.classList.remove('translated');
+            });
+            
+            // Clear cookies
+            const domain = window.location.hostname;
+            document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=${domain}; path=/;`;
+            document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=.${domain}; path=/;`;
+          }
+        }
+
+        this.currentLanguage = this.originalLanguage;
+        localStorage.removeItem('preferredLanguage');
+
+        document.querySelectorAll('.language-card').forEach(card => {
+          card.classList.toggle('active', card.dataset.code === this.originalLanguage);
+        });
+
+        // Hide loading and show toast
+        
+        setTimeout(() => {
+          if (this.isLoading) {
+            this.hideLoading();
+            this.showToast('Restored to original language');
+          }
+        }, 2000);
+      }
+    }
+
+    // Initialize the translator when the DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+      new FullScreenTranslator();
+    });
+
+    // If DOM is already loaded, initialize immediately
+    if (document.readyState === 'interactive' || document.readyState === 'complete') {
+      new FullScreenTranslator();
+    }
+  </script>
+  <script>
+  (function() {
+    // Apply color palette on load
+    applyColorPalette();
+    
+    // Listen for changes in localStorage
+    window.addEventListener('storage', function(event) {
+      if (event.key === 'color-value' || event.key === 'color-palette') {
+        applyColorPalette();
+      }
+    });
+    
+    // Function to apply the color palette from localStorage
+    function applyColorPalette() {
+      const savedColorValue = localStorage.getItem('color-value');
+      const savedColorIndex = localStorage.getItem('color-palette');
+      
+      // Only apply if we have a valid color and it's not the default blue
+      if (savedColorValue && savedColorIndex !== '0') {
+        // Convert hex to RGB
+        const colorObj = hexToRGB(savedColorValue);
+        const rgbString = `${colorObj.r}, ${colorObj.g}, ${colorObj.b}`;
+        
+        // Create style element for all overrides
+        let styleEl = document.getElementById('color-palette-translator');
+        if (!styleEl) {
+          styleEl = document.createElement('style');
+          styleEl.id = 'color-palette-translator';
+          document.head.appendChild(styleEl);
+        }
+        
+        // Apply to all blue elements in the translator app
+        styleEl.textContent = `
+          /* Replace Twitter blue with custom color */
+          .translator-title svg,
+          .search-input:focus,
+          .language-card.active,
+          .language-card:hover,
+          .language-card.active::after,
+          .language-name,
+          .original-language-button,
+          .original-language-button svg,
+          .original-language-button:hover,
+          .loading-spinner,
+          .language-card.active {
+            color: ${savedColorValue} !important;
+          }
+          
+          .search-input:focus {
+            border-color: ${savedColorValue} !important;
+            box-shadow: 0 0 0 1px rgba(${rgbString}, 0.3) !important;
+          }
+          
+          .language-card.active {
+            border-color: ${savedColorValue} !important;
+          }
+          
+          .language-card.active::after {
+            background-color: ${savedColorValue} !important;
+          }
+          
+          .language-card:hover {
+            background: rgba(${rgbString}, 0.1) !important;
+          }
+          
+          .language-card.active {
+            background: rgba(${rgbString}, 0.1) !important;
+          }
+          
+          .original-language-button {
+            color: ${savedColorValue} !important;
+          }
+          
+          .original-language-button svg {
+            color: ${savedColorValue} !important;
+          }
+          
+          .original-language-button:hover {
+            background: rgba(${rgbString}, 0.1) !important;
+          }
+          
+          .loading-spinner {
+            border-color: rgba(${rgbString}, 0.2) !important;
+            border-top-color: ${savedColorValue} !important;
+          }
+          
+          .ripple {
+            background-color: rgba(${rgbString}, 0.3) !important;
+          }
+        `;
+      } else {
+        // Remove all custom styles to revert to default
+        const styleEl = document.getElementById('color-palette-translator');
+        if (styleEl) {
+          styleEl.remove();
+        }
+      }
+    }
+    
+    // Helper function: Convert hex color to RGB object
+    function hexToRGB(hex) {
+      hex = hex.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return { r, g, b };
+    }
+  })();
+</script>
+<script>
+(function() {
+  // Translator Theme Manager - Isolated implementation
+  const TranslatorThemeManager = {
+    // Theme configuration with namespace isolation
+    themeConfig: {
+      light: {
+        '--tr-primary-color': '#4a90e2',
+        '--tr-primary-light': 'rgba(74, 144, 226, 0.1)',
+        '--tr-primary-dark': '#357abd',
+        '--tr-text-primary': '#14171A',
+        '--tr-text-secondary': '#657786',
+        '--tr-background-light': '#f7f9fa',
+        '--tr-background-white': '#ffffff',
+        '--tr-border-light': '#eee',
+        '--tr-box-shadow': '0 4px 10px rgba(0, 0, 0, 0.05)'
+      },
+      dim: {
+        '--tr-primary-color': '#4a90e2',
+        '--tr-primary-light': 'rgba(74, 144, 226, 0.1)',
+        '--tr-primary-dark': '#357abd',
+        '--tr-text-primary': '#f1f1f1',
+        '--tr-text-secondary': '#8899a6',
+        '--tr-background-light': '#15202b',
+        '--tr-background-white': '#192734',
+        '--tr-border-light': '#38444d',
+        '--tr-box-shadow': '0 4px 10px rgba(0, 0, 0, 0.2)'
+      },
+      dark: {
+        '--tr-primary-color': '#4a90e2',
+        '--tr-primary-light': 'rgba(74, 144, 226, 0.1)',
+        '--tr-primary-dark': '#357abd',
+        '--tr-text-primary': '#ffffff',
+        '--tr-text-secondary': '#8899a6',
+        '--tr-background-light': '#000000',
+        '--tr-background-white': '#16181c',
+        '--tr-border-light': '#2f3336',
+        '--tr-box-shadow': '0 4px 10px rgba(0, 0, 0, 0.3)'
+      }
+    },
+
+    // Unique style element ID to avoid conflicts
+    styleElementId: 'translator-theme-manager-styles',
+
+    // Initialize the theme manager
+    initialize: function() {
+      this.createStyleElement();
+      this.applyCurrentTheme();
+      this.setupEventListeners();
+      this.applyCustomColor();
+      
+      // Log successful initialization
+      console.log('Translator Theme Manager initialized');
+    },
+
+    // Create dedicated style element
+    createStyleElement: function() {
+      // Remove existing style element if present
+      const existingStyle = document.getElementById(this.styleElementId);
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+
+      // Create new style element
+      const styleElement = document.createElement('style');
+      styleElement.id = this.styleElementId;
+      styleElement.setAttribute('data-origin', 'translator-theme-manager');
+      document.head.appendChild(styleElement);
+    },
+
+    // Apply current theme based on localStorage
+    applyCurrentTheme: function() {
+      const themeName = localStorage.getItem('twitter-theme') || 'light';
+      this.applyTheme(themeName);
+    },
+
+    // Apply specified theme
+    applyTheme: function(themeName) {
+      // Default to light theme if invalid theme name
+      const validThemes = ['light', 'dim', 'dark'];
+      const theme = validThemes.includes(themeName) ? themeName : 'light';
+
+      // Get theme configuration
+      const themeVars = this.themeConfig[theme] || this.themeConfig.light;
+
+      // Get style element
+      const styleElement = document.getElementById(this.styleElementId);
+      if (!styleElement) {
+        this.createStyleElement();
+        return this.applyTheme(theme); // Retry after creating style element
+      }
+
+      // Generate CSS with theme variables
+      let css = '';
+
+      // Add CSS variables
+      css += ':root {\n';
+      Object.entries(themeVars).forEach(([key, value]) => {
+        css += `  ${key}: ${value};\n`;
+      });
+      css += '}\n\n';
+
+      // Add translator-specific styles
+      css += `
+        /* Translator Theme Manager Styles */
+        body {
+          background-color: var(--tr-background-light);
+          color: var(--tr-text-primary);
+        }
+        
+        .translator-container {
+          background-color: var(--tr-background-light);
+        }
+        
+        .translator-header {
+          border-bottom-color: var(--tr-border-light);
+        }
+        
+        .translator-title {
+          color: var(--tr-text-primary);
+        }
+        
+        .translator-title svg {
+          color: var(--tr-primary-color);
+        }
+        
+        .search-box {
+          color: var(--tr-text-primary);
+        }
+        
+        .search-input {
+          border-color: var(--tr-border-light);
+          color: var(--tr-text-primary);
+          background: var(--tr-background-white);
+        }
+        
+        .search-input::placeholder {
+          color: var(--tr-text-secondary);
+        }
+        
+        .search-input:focus {
+          border-color: var(--tr-primary-color);
+          box-shadow: 0 0 0 1px var(--tr-primary-light);
+        }
+        
+        .search-icon {
+          color: var(--tr-text-secondary);
+        }
+        
+        .language-card {
+          background: var(--tr-background-white);
+          border-color: var(--tr-border-light);
+          box-shadow: var(--tr-box-shadow);
+        }
+        
+        .language-card:hover {
+          background: var(--tr-primary-light);
+        }
+        
+        .language-card.active {
+          background: var(--tr-primary-light);
+          border-color: var(--tr-primary-color);
+        }
+        
+        .language-card.active::after {
+          background-color: var(--tr-primary-color);
+        }
+        
+        .language-name {
+          color: var(--tr-text-primary);
+        }
+        
+        .original-language-button {
+          background: var(--tr-background-white);
+          border-color: var(--tr-border-light);
+          color: var(--tr-primary-color);
+        }
+        
+        .original-language-button:hover {
+          background: var(--tr-primary-light);
+        }
+        
+        .original-language-button svg {
+          color: var(--tr-primary-color);
+        }
+        
+        .loading-overlay {
+          background: rgba(var(--tr-background-white-rgb, 255, 255, 255), 0.7);
+        }
+        
+        .loading-spinner {
+          border-color: rgba(var(--tr-primary-color-rgb, 74, 144, 226), 0.2);
+          border-top-color: var(--tr-primary-color);
+        }
+        
+        .toast-notification {
+          background: rgba(var(--tr-text-primary-rgb, 20, 23, 26), 0.8);
+          color: var(--tr-background-white);
+        }
+        
+        .ripple {
+          background-color: var(--tr-primary-light);
+        }
+      `;
+
+      // Set the CSS content
+      styleElement.textContent = css;
+
+      // Apply custom color if set
+      this.applyCustomColor();
+
+      // Log successful theme application
+      console.log('Translator Theme Manager: Applied theme', theme);
+    },
+    
+    // Apply custom color from localStorage
+    applyCustomColor: function() {
+      const savedColorValue = localStorage.getItem('color-value');
+      const savedColorIndex = localStorage.getItem('color-palette');
+      
+      if (savedColorValue && savedColorIndex !== '0') {
+        // Convert hex to RGB
+        const colorObj = this.hexToRGB(savedColorValue);
+        const rgbString = `${colorObj.r}, ${colorObj.g}, ${colorObj.b}`;
+        
+        // Create or get the custom color style element
+        let colorStyleEl = document.getElementById('translator-custom-color');
+        if (!colorStyleEl) {
+          colorStyleEl = document.createElement('style');
+          colorStyleEl.id = 'translator-custom-color';
+          document.head.appendChild(colorStyleEl);
+        }
+        
+        // Set custom color CSS
+        colorStyleEl.textContent = `
+          :root {
+            --tr-primary-color: ${savedColorValue} !important;
+            --tr-primary-light: rgba(${rgbString}, 0.1) !important;
+            --tr-primary-dark: ${this.darkenColor(savedColorValue, 0.15)} !important;
+            --tr-primary-color-rgb: ${rgbString} !important;
+          }
+        `;
+      } else {
+        // Remove custom color styles
+        const colorStyleEl = document.getElementById('translator-custom-color');
+        if (colorStyleEl) {
+          colorStyleEl.remove();
+        }
+      }
+    },
+    
+    // Helper: Convert hex color to RGB
+    hexToRGB: function(hex) {
+      hex = hex.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return { r, g, b };
+    },
+    
+    // Helper: Darken a color by percentage
+    darkenColor: function(hex, percent) {
+      hex = hex.replace('#', '');
+      let r = parseInt(hex.substring(0, 2), 16);
+      let g = parseInt(hex.substring(2, 4), 16);
+      let b = parseInt(hex.substring(4, 6), 16);
+      
+      r = Math.floor(r * (1 - percent));
+      g = Math.floor(g * (1 - percent));
+      b = Math.floor(b * (1 - percent));
+      
+      r = Math.max(0, r);
+      g = Math.max(0, g);
+      b = Math.max(0, b);
+      
+      return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    },
+
+    // Set up event listeners
+    setupEventListeners: function() {
+      // Listen for localStorage changes
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'twitter-theme') {
+          this.applyTheme(e.newValue || 'light');
+        }
+        if (e.key === 'color-value' || e.key === 'color-palette') {
+          this.applyCustomColor();
+        }
+      });
+
+      // Periodic check for theme consistency
+      this.setupPeriodicCheck();
+    },
+
+    // Set up periodic check for theme and color consistency
+    setupPeriodicCheck: function() {
+      let lastKnownTheme = localStorage.getItem('twitter-theme') || 'light';
+      let lastKnownColor = localStorage.getItem('color-value');
+      let lastKnownColorIndex = localStorage.getItem('color-palette');
+
+      setInterval(() => {
+        // Check for theme changes
+        const currentTheme = localStorage.getItem('twitter-theme');
+        if (currentTheme !== lastKnownTheme) {
+          lastKnownTheme = currentTheme || 'light';
+          this.applyTheme(lastKnownTheme);
+        }
+        
+        // Check for color changes
+        const currentColor = localStorage.getItem('color-value');
+        const currentColorIndex = localStorage.getItem('color-palette');
+        if (currentColor !== lastKnownColor || currentColorIndex !== lastKnownColorIndex) {
+          lastKnownColor = currentColor;
+          lastKnownColorIndex = currentColorIndex;
+          this.applyCustomColor();
+        }
+      }, 3000); // Check every 3 seconds
+    }
+  };
+
+  // Initialize the theme manager when DOM is loaded
+  function initializeTranslatorThemeManager() {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        TranslatorThemeManager.initialize();
+      });
+    } else {
+      // DOM is already ready
+      TranslatorThemeManager.initialize();
+    }
+  }
+
+  // Trigger initialization with safe delay
+  setTimeout(initializeTranslatorThemeManager, 100);
+})();
+</script>
+</body>
+</html>
