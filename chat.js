@@ -48,8 +48,17 @@ let typingTimeout = null;
 const typingUsers = new Map();
 let globalRateLimit = Date.now(); // Global rate limit timestamp
 
+// New variables for optimized message storage
+const MAX_FIREBASE_MESSAGES = 4; // Store only 4 messages in Firebase
+const LOCAL_STORAGE_MESSAGES_KEY = 'localMessages';
+const LOCAL_STORAGE_CONVERSATION_STATUS_KEY = 'conversationStatus';
+let conversationStatus = {};
+
 // Initialize app
 function initApp() {
+  // Load conversation status from local storage
+  loadConversationStatus();
+  
   // Initialize message input height adjustment
   initMessageInput();
   
@@ -77,11 +86,72 @@ function initApp() {
   // Listen for typing indicators
   listenForTypingIndicators();
   
-  // Listen for messages
+  // Load messages from local storage first
+  loadLocalMessages();
+  
+  // Then listen for new messages from Firebase
   listenForMessages();
   
   // Listen for global rate limit
   listenForRateLimit();
+}
+
+// Load conversation status from local storage
+function loadConversationStatus() {
+  try {
+    const storedStatus = localStorage.getItem(LOCAL_STORAGE_CONVERSATION_STATUS_KEY);
+    if (storedStatus) {
+      conversationStatus = JSON.parse(storedStatus);
+    }
+  } catch (error) {
+    console.error('Error loading conversation status:', error);
+    conversationStatus = {};
+  }
+}
+
+// Save conversation status to local storage
+function saveConversationStatus() {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_CONVERSATION_STATUS_KEY, JSON.stringify(conversationStatus));
+  } catch (error) {
+    console.error('Error saving conversation status:', error);
+  }
+}
+
+// Load messages from local storage
+function loadLocalMessages() {
+  try {
+    const localMessages = localStorage.getItem(LOCAL_STORAGE_MESSAGES_KEY);
+    if (localMessages) {
+      const messages = JSON.parse(localMessages);
+      messages.forEach(message => {
+        if (!document.querySelector(`[data-message-id="${message.id}"]`)) {
+          createMessageElement(message, message.id);
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error loading local messages:', error);
+  }
+}
+
+// Save message to local storage
+function saveMessageToLocalStorage(message, messageId) {
+  try {
+    const localMessages = localStorage.getItem(LOCAL_STORAGE_MESSAGES_KEY);
+    let messages = localMessages ? JSON.parse(localMessages) : [];
+    
+    // Add the message ID to the message object
+    const messageWithId = { ...message, id: messageId };
+    
+    // Add new message to the array
+    messages.push(messageWithId);
+    
+    // Store in local storage
+    localStorage.setItem(LOCAL_STORAGE_MESSAGES_KEY, JSON.stringify(messages));
+  } catch (error) {
+    console.error('Error saving message to local storage:', error);
+  }
 }
 
 // Initialize message input with typing indicator
@@ -344,7 +414,10 @@ function formatTimestamp(timestamp) {
 
 // Listen for new messages
 function listenForMessages() {
-  onChildAdded(chatRef, (snapshot) => {
+  // Set a limit on the number of messages to fetch from Firebase
+  const messagesQuery = ref(database, 'messages');
+  
+  onChildAdded(messagesQuery, (snapshot) => {
     const message = snapshot.val();
     const messageId = snapshot.key;
     
@@ -353,7 +426,11 @@ function listenForMessages() {
       return;
     }
     
+    // Create the message element
     createMessageElement(message, messageId);
+    
+    // Save message to local storage for future retrieval
+    saveMessageToLocalStorage(message, messageId);
   });
 }
 
@@ -367,6 +444,9 @@ function createMessageElement(message, messageId) {
   const messageTime = formatTimestamp(message.timestamp);
   const isFollowing = followedUsers.has(message.userId);
   const followBtnDisplay = message.userId === currentUser?.uid ? 'none' : 'inline-block';
+  
+  // Check if conversation is marked as "full" (followed)
+  const isConversationFull = conversationStatus[message.userId] === 'full';
 
   // Improved media handling
   let mediaHTML = '';
@@ -391,11 +471,11 @@ function createMessageElement(message, messageId) {
         <span class="user-name">${message.name}</span>
         <img src="${flagUrl}" class="country-flag" alt="Flag" onerror="this.src='default-flag.png'">
         <span class="message-time">${messageTime}</span>
-        <button class="follow-btn ${isFollowing ? 'followed' : ''}" 
+        <button class="follow-btn ${isFollowing || isConversationFull ? 'followed' : ''}" 
           data-user-id="${message.userId}" 
           onclick="toggleFollow('${message.userId}', '${message.name}')"
           style="display: ${followBtnDisplay}">
-          ${isFollowing ? 'Following' : 'Follow'}
+          ${isFollowing || isConversationFull ? 'Following' : 'Follow'}
         </button>
       </div>
       <div class="message-text">${message.text || ''}</div>
@@ -538,7 +618,13 @@ async function fetchFollowedUsers() {
     followSnapshot.docs.forEach(doc => {
       const followedUserId = doc.data().followedUserId;
       followedUsers.add(followedUserId);
+      
+      // Mark this conversation as "full" in local storage
+      conversationStatus[followedUserId] = 'full';
     });
+    
+    // Save updated conversation status
+    saveConversationStatus();
 
     updateFollowButtons();
   } catch (error) {
@@ -550,11 +636,13 @@ async function fetchFollowedUsers() {
 function updateFollowButtons() {
   document.querySelectorAll('.follow-btn').forEach(btn => {
     const userId = btn.getAttribute('data-user-id');
+    const isFollowed = followedUsers.has(userId) || conversationStatus[userId] === 'full';
+    
     if (userId === currentUser?.uid) {
       btn.style.display = 'none'; // Hide follow button for own messages
     } else {
-      btn.textContent = followedUsers.has(userId) ? 'Following' : 'Follow';
-      btn.classList.toggle('followed', followedUsers.has(userId));
+      btn.textContent = isFollowed ? 'Following' : 'Follow';
+      btn.classList.toggle('followed', isFollowed);
     }
   });
 }
@@ -584,12 +672,20 @@ window.toggleFollow = async function(userId, userName) {
         timestamp: Date.now()
       });
       followedUsers.add(userId);
+      
+      // Mark conversation as "full" in local storage
+      conversationStatus[userId] = 'full';
+      saveConversationStatus();
     } else {
       // Unfollow the user
       followSnapshot.docs.forEach(async (followDoc) => {
         await deleteDoc(doc(db, 'follows', followDoc.id));
       });
       followedUsers.delete(userId);
+      
+      // Remove "full" status
+      delete conversationStatus[userId];
+      saveConversationStatus();
     }
 
     updateFollowButtons();
@@ -655,6 +751,35 @@ async function uploadMedia(file) {
   }
 }
 
+// Manage messages in Firebase (limit to MAX_FIREBASE_MESSAGES)
+async function manageFirebaseMessages() {
+  try {
+    const messagesRef = ref(database, 'messages');
+    const snapshot = await get(messagesRef);
+    
+    if (snapshot.exists()) {
+      const messages = snapshot.val();
+      const messageEntries = Object.entries(messages);
+      
+      // If we have more than MAX_FIREBASE_MESSAGES, remove the oldest ones
+      if (messageEntries.length > MAX_FIREBASE_MESSAGES) {
+        // Sort by timestamp (oldest first)
+        messageEntries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+        
+        // Keep only the newest MAX_FIREBASE_MESSAGES
+        const messagesToRemove = messageEntries.slice(0, messageEntries.length - MAX_FIREBASE_MESSAGES);
+        
+        // Remove the oldest messages
+        for (const [messageId] of messagesToRemove) {
+          await set(ref(database, `messages/${messageId}`), null);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error managing Firebase messages:', error);
+  }
+}
+
 // Send Message Function with Media Support
 async function sendMessage(parentMessageId = null) {
   if (!currentUser) {
@@ -716,8 +841,21 @@ async function sendMessage(parentMessageId = null) {
       replyCount: 0
     };
 
+    // Check if this conversation should be marked as "full"
+    const conversationPartnerId = parentMessageId ? null : null; // For direct replies
+    if (conversationPartnerId && conversationStatus[conversationPartnerId] === 'full') {
+      // This is a reply in a "full" conversation, inherit the status
+      messageData.fullConversation = true;
+    }
+
     // Add message to database
     await set(newMessageRef, messageData);
+    
+    // Save message to local storage
+    saveMessageToLocalStorage(messageData, newMessageRef.key);
+    
+    // Manage Firebase messages (keep only MAX_FIREBASE_MESSAGES)
+    await manageFirebaseMessages();
     
     // Update parent message reply count if this is a reply
     if (parentMessageId) {
