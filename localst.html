@@ -1466,3 +1466,285 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 </script>
+
+<script>
+
+(function() {
+  // LocalStorage Dashboard Theme Manager
+  const LocalStorageThemeManager = {
+    // Theme configuration with appropriate colors for the dashboard
+    themeConfig: {
+      light: {
+        '--twitter-blue': '#1DA1F2',
+        '--twitter-blue-hover': '#1a91da',
+        '--twitter-blue-light': '#8ED0F9',
+        '--twitter-black': '#14171A',
+        '--twitter-dark-gray': '#657786',
+        '--twitter-light-gray': '#AAB8C2',
+        '--twitter-extra-light-gray': '#E1E8ED',
+        '--twitter-background': '#F5F8FA',
+        '--twitter-white': '#FFFFFF',
+        '--positive-green': '#17BF63',
+        '--negative-red': '#E0245E',
+        '--card-shadow': '0 2px 10px rgba(0, 0, 0, 0.05)',
+        '--card-hover-shadow': '0 5px 15px rgba(0, 0, 0, 0.1)'
+      },
+      dim: {
+        '--twitter-blue': '#1DA1F2',
+        '--twitter-blue-hover': '#1a91da',
+        '--twitter-blue-light': '#1A91DA',
+        '--twitter-black': '#f1f1f1',
+        '--twitter-dark-gray': '#8899a6',
+        '--twitter-light-gray': '#6A7884',
+        '--twitter-extra-light-gray': '#38444d',
+        '--twitter-background': '#15202b',
+        '--twitter-white': '#192734',
+        '--positive-green': '#17BF63',
+        '--negative-red': '#E0245E',
+        '--card-shadow': '0 2px 10px rgba(0, 0, 0, 0.2)',
+        '--card-hover-shadow': '0 5px 15px rgba(0, 0, 0, 0.3)'
+      },
+      dark: {
+        '--twitter-blue': '#1DA1F2',
+        '--twitter-blue-hover': '#1a91da',
+        '--twitter-blue-light': '#1A91DA',
+        '--twitter-black': '#ffffff',
+        '--twitter-dark-gray': '#8899a6',
+        '--twitter-light-gray': '#6A7884',
+        '--twitter-extra-light-gray': '#2f3336',
+        '--twitter-background': '#000000',
+        '--twitter-white': '#16181c',
+        '--positive-green': '#17BF63',
+        '--negative-red': '#E0245E',
+        '--card-shadow': '0 2px 10px rgba(0, 0, 0, 0.3)',
+        '--card-hover-shadow': '0 5px 15px rgba(0, 0, 0, 0.4)'
+      }
+    },
+    
+    // Unique style element ID
+    styleElementId: 'localstorage-dashboard-theme-styles',
+    
+    // Initialize the theme manager
+    initialize: function() {
+      this.createStyleElement();
+      this.applyCurrentTheme();
+      this.setupEventListeners();
+      console.log('LocalStorage Dashboard Theme Manager initialized');
+    },
+    
+    // Create dedicated style element
+    createStyleElement: function() {
+      const existingStyle = document.getElementById(this.styleElementId);
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+      
+      const styleElement = document.createElement('style');
+      styleElement.id = this.styleElementId;
+      styleElement.setAttribute('data-origin', 'localstorage-dashboard-theme-manager');
+      document.head.appendChild(styleElement);
+    },
+    
+    // Apply current theme based on localStorage
+    applyCurrentTheme: function() {
+      const themeName = localStorage.getItem('twitter-theme') || 'light';
+      this.applyTheme(themeName);
+    },
+    
+    // Apply specified theme
+    applyTheme: function(themeName) {
+      // Default to light theme if invalid theme name
+      const validThemes = ['light', 'dim', 'dark'];
+      const theme = validThemes.includes(themeName) ? themeName : 'light';
+      
+      // Get theme configuration
+      const themeVars = this.themeConfig[theme] || this.themeConfig.light;
+      
+      // Get style element
+      const styleElement = document.getElementById(this.styleElementId);
+      if (!styleElement) {
+        this.createStyleElement();
+        return this.applyTheme(theme); // Retry after creating style element
+      }
+      
+      // Generate CSS with theme variables
+      let css = '';
+      
+      // Add CSS variables
+      css += ':root {\n';
+      Object.entries(themeVars).forEach(([key, value]) => {
+        css += ` ${key}: ${value};\n`;
+      });
+      css += '}\n\n';
+      
+      // Add theme-specific overrides for dashboard elements
+      if (theme === 'dim' || theme === 'dark') {
+        css += `
+        /* Dashboard Theme Overrides for Dark Modes */
+        body {
+          background-color: var(--twitter-background);
+          color: var(--twitter-black);
+        }
+
+        .container {
+          background-color: var(--twitter-background);
+        }
+
+        .header {
+          border-bottom-color: var(--twitter-extra-light-gray);
+        }
+
+        .stat-card {
+          background-color: var(--twitter-white);
+          border-color: var(--twitter-extra-light-gray);
+          color: var(--twitter-black);
+        }
+
+        .card-title {
+          color: var(--twitter-dark-gray);
+        }
+
+        .stat-value {
+          color: var(--twitter-black);
+        }
+
+        .storage-details, .chart-container {
+          background-color: var(--twitter-white);
+          border-color: var(--twitter-extra-light-gray);
+        }
+
+        .storage-table th {
+          background-color: var(--twitter-background);
+          color: var(--twitter-black);
+          border-bottom-color: var(--twitter-extra-light-gray);
+        }
+
+        .storage-table td {
+          border-bottom-color: var(--twitter-extra-light-gray);
+          color: var(--twitter-black);
+        }
+
+        .storage-table tbody tr:hover {
+          background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .key-column {
+          color: var(--twitter-blue);
+        }
+
+        .size-column {
+          color: var(--twitter-dark-gray);
+        }
+
+        .json-viewer {
+          background-color: rgba(0, 0, 0, 0.2);
+          border-color: var(--twitter-extra-light-gray);
+          color: var(--twitter-light-gray);
+        }
+
+        .chart-label {
+          fill: var(--twitter-dark-gray);
+        }
+
+        .chart-grid-line, .chart-axis {
+          stroke: var(--twitter-extra-light-gray);
+        }
+
+        .action-btn {
+          background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .action-btn:hover {
+          background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .chart-tab:not(.active) {
+          color: var(--twitter-dark-gray);
+        }
+
+        .chart-tab:not(.active):hover {
+          background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .date-display {
+          color: var(--twitter-dark-gray);
+        }
+
+        .storage-footer {
+          color: var(--twitter-dark-gray);
+          border-top-color: var(--twitter-extra-light-gray);
+        }
+
+        .loading {
+          background-color: rgba(0, 0, 0, 0.7);
+        }
+        `;
+      }
+      
+      // Set the CSS content
+      styleElement.textContent = css;
+      
+      // Add a class to the body for theme identification
+      document.body.classList.remove('theme-light', 'theme-dim', 'theme-dark');
+      document.body.classList.add(`theme-${theme}`);
+      
+      console.log('LocalStorage Dashboard Theme Manager: Applied theme', theme);
+    },
+    
+    // Set up event listeners
+    setupEventListeners: function() {
+      // Listen for localStorage changes
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'twitter-theme') {
+          this.applyTheme(e.newValue || 'light');
+        }
+      });
+      
+      // Periodic theme check to ensure consistency
+      this.setupPeriodicCheck();
+    },
+    
+    // Set up periodic check for theme consistency
+    setupPeriodicCheck: function() {
+      let lastKnownTheme = localStorage.getItem('twitter-theme') || 'light';
+      
+      setInterval(() => {
+        const currentTheme = localStorage.getItem('twitter-theme');
+        if (currentTheme !== lastKnownTheme) {
+          lastKnownTheme = currentTheme || 'light';
+          this.applyTheme(lastKnownTheme);
+        }
+      }, 3000); // Check every 3 seconds
+    },
+    
+    // Utility function to toggle between themes (for testing)
+    toggleTheme: function() {
+      const currentTheme = localStorage.getItem('twitter-theme') || 'light';
+      const themes = ['light', 'dim', 'dark'];
+      const currentIndex = themes.indexOf(currentTheme);
+      const nextIndex = (currentIndex + 1) % themes.length;
+      const nextTheme = themes[nextIndex];
+      
+      localStorage.setItem('twitter-theme', nextTheme);
+      this.applyTheme(nextTheme);
+      return nextTheme;
+    }
+  };
+  
+  // Initialize the theme manager when DOM is loaded
+  function initializeThemeManager() {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        LocalStorageThemeManager.initialize();
+      });
+    } else {
+      // DOM is already ready
+      LocalStorageThemeManager.initialize();
+    }
+  }
+  
+  // Start the theme manager
+  initializeThemeManager();
+})();
+
+</script>
