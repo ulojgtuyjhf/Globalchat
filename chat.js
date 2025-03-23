@@ -3,7 +3,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getDatabase, ref, push, set, onChildAdded, onValue, update, get, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-// Removed Firebase Storage import
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -49,10 +48,11 @@ const typingUsers = new Map();
 let globalRateLimit = Date.now(); // Global rate limit timestamp
 
 // New variables for optimized message storage
-const MAX_FIREBASE_MESSAGES = 4; // Store only 4 messages in Firebase
+const MAX_FIREBASE_MESSAGES = 5; // Store first 5 messages in Firebase
 const LOCAL_STORAGE_MESSAGES_KEY = 'localMessages';
 const LOCAL_STORAGE_CONVERSATION_STATUS_KEY = 'conversationStatus';
 let conversationStatus = {};
+let activeReplySectionId = null; // Track which reply section is open
 
 // Initialize app
 function initApp() {
@@ -94,6 +94,152 @@ function initApp() {
   
   // Listen for global rate limit
   listenForRateLimit();
+  
+  // Add support for GIFs
+  initGifSupport();
+}
+
+// Initialize GIF support
+function initGifSupport() {
+  // Create GIF button
+  const gifButton = document.createElement('button');
+  gifButton.id = 'gifButton';
+  gifButton.className = 'media-button';
+  gifButton.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 10.5V8.8h-4.4v6.4h1.7v-2h2v-1.7h-2v-1H19zm-7.3-1.7h1.7v6.4h-1.7V8.8zm-3.6 1.6c.4 0 .9.2 1.2.5l1.2-1C9.9 9.2 9 8.8 8.1 8.8c-1.8 0-3.2 1.4-3.2 3.2s1.4 3.2 3.2 3.2c1 0 1.8-.4 2.4-1.1v-2.5H7.7v1.2h1.2v.6c-.2.1-.5.2-.8.2-.9 0-1.6-.7-1.6-1.6 0-.8.7-1.6 1.6-1.6z"/></svg>';
+  gifButton.title = 'Add GIF';
+  
+  // Insert GIF button after image button
+  const buttonContainer = imageButton.parentElement;
+  buttonContainer.insertBefore(gifButton, videoButton);
+  
+  // GIF button click event
+  gifButton.addEventListener('click', openGifSelector);
+}
+
+// Open GIF selector
+function openGifSelector() {
+  // Create a simple GIF picker modal
+  const modal = document.createElement('div');
+  modal.className = 'gif-modal';
+  modal.style.position = 'fixed';
+  modal.style.top = '0';
+  modal.style.left = '0';
+  modal.style.width = '100%';
+  modal.style.height = '100%';
+  modal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+  modal.style.zIndex = '1000';
+  modal.style.display = 'flex';
+  modal.style.flexDirection = 'column';
+  modal.style.alignItems = 'center';
+  modal.style.justifyContent = 'center';
+  
+  // Add search input and results container
+  modal.innerHTML = `
+    <div style="width: 90%; max-width: 600px; background: #15202b; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; color: white;">Select a GIF</h3>
+        <button id="closeGifModal" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">×</button>
+      </div>
+      <input type="text" id="gifSearch" placeholder="Search GIFs..." style="padding: 10px; border-radius: 20px; border: none; background: #253341; color: white;">
+      <div id="gifResults" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 400px; overflow-y: auto;"></div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Close modal event
+  document.getElementById('closeGifModal').addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+  
+  // Search input event
+  const searchInput = document.getElementById('gifSearch');
+  searchInput.focus();
+  
+  let searchTimeout;
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      searchGifs(searchInput.value);
+    }, 500);
+  });
+  
+  // Load trending GIFs initially
+  searchGifs('trending');
+  
+  // Function to search GIFs using Tenor API
+  async function searchGifs(query) {
+    const resultsContainer = document.getElementById('gifResults');
+    resultsContainer.innerHTML = '<div style="grid-column: span 3; text-align: center; color: white;">Loading GIFs...</div>';
+    
+    try {
+      // Using a proxy to handle the API request
+      const response = await fetch(`https://g.tenor.com/v1/search?q=${encodeURIComponent(query)}&key=LIVDSRZULELA&limit=15`);
+      const data = await response.json();
+      
+      resultsContainer.innerHTML = '';
+      
+      if (data.results && data.results.length > 0) {
+        data.results.forEach(gif => {
+          const gifItem = document.createElement('div');
+          gifItem.style.cursor = 'pointer';
+          gifItem.style.borderRadius = '8px';
+          gifItem.style.overflow = 'hidden';
+          
+          const gifImg = document.createElement('img');
+          gifImg.src = gif.media[0].tinygif.url;
+          gifImg.style.width = '100%';
+          gifImg.style.height = 'auto';
+          
+          gifItem.appendChild(gifImg);
+          resultsContainer.appendChild(gifItem);
+          
+          // Click event to select this GIF
+          gifItem.addEventListener('click', () => {
+            // Add the GIF to selected media
+            addGifToSelectedMedia(gif.media[0].gif.url);
+            document.body.removeChild(modal);
+          });
+        });
+      } else {
+        resultsContainer.innerHTML = '<div style="grid-column: span 3; text-align: center; color: white;">No GIFs found</div>';
+      }
+    } catch (error) {
+      console.error('Error fetching GIFs:', error);
+      resultsContainer.innerHTML = '<div style="grid-column: span 3; text-align: center; color: white;">Error loading GIFs</div>';
+    }
+  }
+}
+
+// Add GIF to selected media
+function addGifToSelectedMedia(gifUrl) {
+  // Create a preview of the selected GIF
+  const previewItem = document.createElement('div');
+  previewItem.className = 'preview-item';
+  
+  previewItem.innerHTML = `
+    <img src="${gifUrl}" class="preview-image">
+    <button class="remove-media" data-index="${selectedMedia.length}">×</button>
+  `;
+  
+  mediaPreview.appendChild(previewItem);
+  
+  // Add event listener to remove button
+  const removeButton = previewItem.querySelector('.remove-media');
+  removeButton.addEventListener('click', function() {
+    const index = parseInt(this.getAttribute('data-index'));
+    removeMedia(index);
+  });
+  
+  // Add GIF to selected media
+  selectedMedia.push({
+    type: 'image',
+    isGif: true,
+    url: gifUrl
+  });
+  
+  // Enable send button
+  sendButton.disabled = false;
 }
 
 // Load conversation status from local storage
@@ -358,7 +504,19 @@ function updateMediaPreview() {
     const previewItem = document.createElement('div');
     previewItem.className = 'preview-item';
     
-    if (media.type === 'image') {
+    if (media.isGif) {
+      // For GIFs that were added directly
+      previewItem.innerHTML = `
+        <img src="${media.url}" class="preview-image">
+        <button class="remove-media" data-index="${index}">×</button>
+      `;
+      mediaPreview.appendChild(previewItem);
+      
+      // Add event listener to remove button
+      previewItem.querySelector('.remove-media').addEventListener('click', function() {
+        removeMedia(index);
+      });
+    } else if (media.type === 'image') {
       const reader = new FileReader();
       reader.onload = function(e) {
         previewItem.innerHTML = `
@@ -481,12 +639,23 @@ function createMessageElement(message, messageId) {
       <div class="message-text">${message.text || ''}</div>
       ${mediaHTML}
       <div class="action-buttons">
-        <button class="action-button reply-btn">
-          <svg viewBox="0 0 24 24">
-            <path d="M14.046 2.242l-4.148-.01h-.002c-4.374 0-7.8 3.427-7.8 7.802 0 4.098 3.186 7.206 7.465 7.37v3.828a.85.85 0 0 0 .12.403.744.744 0 0 0 1.034.229c.264-.168 6.473-4.14 8.088-5.506 1.902-1.61 3.04-3.97 3.043-6.312v-.017c-.006-4.367-3.43-7.787-7.8-7.788zm3.787 12.972c-1.134.96-4.862 3.405-6.772 4.643V16.67a.75.75 0 0 0-.75-.75h-.396c-3.66 0-6.318-2.476-6.318-5.886 0-3.534 2.768-6.302 6.3-6.302l4.147.01h.002c3.532 0 6.3 2.766 6.302 6.296-.003 1.91-.942 3.844-2.514 5.176z"></path>
+        <button class="action-button reply-btn" onclick="toggleReplySection('${messageId}')">
+          <svg viewBox="0 0 24 24" width="18" height="18">
+            <path fill="currentColor" d="M14.046 2.242l-4.148-.01h-.002c-4.374 0-7.8 3.427-7.8 7.802 0 4.098 3.186 7.206 7.465 7.37v3.828a.85.85 0 0 0 .12.403.744.744 0 0 0 1.034.229c.264-.168 6.473-4.14 8.088-5.506 1.902-1.61 3.04-3.97 3.043-6.312v-.017c-.006-4.367-3.43-7.787-7.8-7.788zm3.787 12.972c-1.134.96-4.862 3.405-6.772 4.643V16.67a.75.75 0 0 0-.75-.75h-.396c-3.66 0-6.318-2.476-6.318-5.886 0-3.534 2.768-6.302 6.3-6.302l4.147.01h.002c3.532 0 6.3 2.766 6.302 6.296-.003 1.91-.942 3.844-2.514 5.176z"></path>
           </svg>
-          ${message.replyCount || 0}
+          <span class="reply-count">${message.replyCount || 0}</span>
         </button>
+      </div>
+      <div class="reply-section" id="reply-section-${messageId}" style="display: none;">
+        <div class="reply-messages" id="reply-messages-${messageId}"></div>
+        <div class="reply-input-container">
+          <textarea class="reply-input" id="reply-input-${messageId}" placeholder="Reply to this message..."></textarea>
+          <button class="reply-send-btn" onclick="sendReply('${messageId}')">
+            <svg viewBox="0 0 24 24" width="18" height="18">
+              <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   `;
@@ -494,12 +663,242 @@ function createMessageElement(message, messageId) {
   // Append message to chat container
   chatContainer.appendChild(messageElement);
   
+  // Set up reply input behavior
+  const replyInput = document.getElementById(`reply-input-${messageId}`);
+  if (replyInput) {
+    replyInput.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+    });
+    
+    replyInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendReply(messageId);
+      }
+    });
+  }
+  
   // Scroll to bottom if near bottom
   const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 200;
   if (isNearBottom) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
   }
 }
+
+// Toggle reply section visibility
+window.toggleReplySection = function(messageId) {
+  const replySection = document.getElementById(`reply-section-${messageId}`);
+  
+  // If this section is already active, just toggle it
+  if (messageId === activeReplySectionId) {
+    const isVisible = replySection.style.display !== 'none';
+    replySection.style.display = isVisible ? 'none' : 'block';
+    
+    if (!isVisible) {
+      // Focus the input when opening
+      setTimeout(() => {
+        document.getElementById(`reply-input-${messageId}`).focus();
+      }, 100);
+    } else {
+      // Clear active section if we're closing it
+      activeReplySectionId = null;
+    }
+    return;
+  }
+  
+  // Close any previously open reply section
+  if (activeReplySectionId) {
+    const activeSection = document.getElementById(`reply-section-${activeReplySectionId}`);
+    if (activeSection) {
+      activeSection.style.display = 'none';
+    }
+  }
+  
+  // Open this reply section
+  replySection.style.display = 'block';
+  activeReplySectionId = messageId;
+  
+  // Focus the reply input
+  setTimeout(() => {
+    document.getElementById(`reply-input-${messageId}`).focus();
+  }, 100);
+  
+  // Load replies for this message
+  loadReplies(messageId);
+};
+
+// Load replies for a message
+function loadReplies(parentMessageId) {
+  // Get the replies container
+  const repliesContainer = document.getElementById(`reply-messages-${parentMessageId}`);
+  repliesContainer.innerHTML = '<div class="loading-replies">Loading replies...</div>';
+  
+  // Query for replies in Firebase
+  const repliesRef = ref(database, 'replies');
+  const parentRef = ref(database, `messages/${parentMessageId}`);
+  
+  // First check if parent message exists
+  get(parentRef).then((snapshot) => {
+    if (!snapshot.exists()) {
+      repliesContainer.innerHTML = '<div class="no-replies">This message no longer exists</div>';
+      return;
+    }
+    
+    
+      // Now get replies
+      get(repliesRef).then((snapshot) => {
+        repliesContainer.innerHTML = '';
+        
+        if (snapshot.exists()) {
+          const replies = snapshot.val();
+          let hasReplies = false;
+          
+          // Filter replies for this parent message
+          Object.entries(replies).forEach(([replyId, reply]) => {
+            if (reply.parentMessageId === parentMessageId) {
+              hasReplies = true;
+              createReplyElement(reply, replyId, repliesContainer);
+            }
+          });
+          
+          if (!hasReplies) {
+            repliesContainer.innerHTML = '<div class="no-replies">No replies yet</div>';
+          }
+        } else {
+          repliesContainer.innerHTML = '<div class="no-replies">No replies yet</div>';
+        }
+      }).catch((error) => {
+        console.error('Error fetching replies:', error);
+        repliesContainer.innerHTML = '<div class="no-replies">Error loading replies</div>';
+      });
+    }).catch((error) => {
+      console.error('Error checking parent message:', error);
+      repliesContainer.innerHTML = '<div class="no-replies">Error loading message</div>';
+    });
+}
+
+// Create a reply element
+function createReplyElement(reply, replyId, container) {
+  const replyElement = document.createElement('div');
+  replyElement.classList.add('reply-message');
+  replyElement.setAttribute('data-reply-id', replyId);
+  
+  const messageTime = formatTimestamp(reply.timestamp);
+  
+  // Media handling for replies
+  let mediaHTML = '';
+  if (reply.media && reply.media.length > 0) {
+    mediaHTML = '<div class="reply-media-container">';
+    reply.media.forEach(media => {
+      if (media && media.url) {
+        if (media.type === 'image') {
+          mediaHTML += `<img src="${media.url}" class="reply-image" onclick="showFullImage('${media.url}')">`;
+        } else if (media.type === 'video') {
+          mediaHTML += `<video src="${media.url}" class="reply-video" controls></video>`;
+        }
+      }
+    });
+    mediaHTML += '</div>';
+  }
+  
+  replyElement.innerHTML = `
+    <div class="reply-header">
+      <span class="reply-user-name">${reply.name}</span>
+      <span class="reply-time">${messageTime}</span>
+    </div>
+    <div class="reply-text">${reply.text || ''}</div>
+    ${mediaHTML}
+  `;
+  
+  container.appendChild(replyElement);
+}
+
+// Send a reply to a message
+window.sendReply = function(parentMessageId) {
+  if (!currentUser) {
+    alert('You must log in to reply');
+    return;
+  }
+  
+  const replyInput = document.getElementById(`reply-input-${parentMessageId}`);
+  const replyText = replyInput.value.trim();
+  
+  if (!replyText) {
+    return; // Don't send empty replies
+  }
+  
+  // Current time
+  const currentTime = Date.now();
+  
+  // Check personal rate limit (3 seconds between messages)
+  if (currentTime - lastMessageTime < 3000) {
+    alert('Please wait a few seconds before sending another message');
+    return;
+  }
+  
+  try {
+    // Show loading indicator
+    loadingIndicator.style.display = 'flex';
+    
+    // Create new reply
+    const repliesRef = ref(database, 'replies');
+    const newReplyRef = push(repliesRef);
+    const replyData = {
+      userId: currentUser.uid,
+      name: currentUser.displayName,
+      photoURL: currentUser.photoURL,
+      text: replyText,
+      timestamp: currentTime,
+      parentMessageId: parentMessageId
+    };
+    
+    // Add reply to database
+    set(newReplyRef, replyData).then(() => {
+      // Clear reply input
+      replyInput.value = '';
+      replyInput.style.height = 'auto';
+      
+      // Update the reply count on the parent message
+      const parentMessageRef = ref(database, `messages/${parentMessageId}`);
+      get(parentMessageRef).then((snapshot) => {
+        if (snapshot.exists()) {
+          const currentCount = snapshot.val().replyCount || 0;
+          update(parentMessageRef, {
+            replyCount: currentCount + 1
+          });
+          
+          // Update the UI
+          const replyCountElement = document.querySelector(`[data-message-id="${parentMessageId}"] .reply-count`);
+          if (replyCountElement) {
+            replyCountElement.textContent = currentCount + 1;
+          }
+        }
+      });
+      
+      // Create the reply element
+      const repliesContainer = document.getElementById(`reply-messages-${parentMessageId}`);
+      if (repliesContainer.querySelector('.no-replies')) {
+        repliesContainer.innerHTML = ''; // Clear "No replies yet" message
+      }
+      createReplyElement(replyData, newReplyRef.key, repliesContainer);
+      
+      // Set last message time
+      lastMessageTime = currentTime;
+      
+    }).catch((error) => {
+      console.error('Error sending reply:', error);
+      alert('Failed to send reply. Please try again.');
+    }).finally(() => {
+      loadingIndicator.style.display = 'none';
+    });
+    
+  } catch (error) {
+    console.error('Error sending reply:', error);
+    alert('Failed to send reply. Please try again.');
+    loadingIndicator.style.display = 'none';
+  }
+};
 
 // Show full image in modal
 window.showFullImage = function(url) {
@@ -694,10 +1093,17 @@ window.toggleFollow = async function(userId, userName) {
   }
 };
 
-// FIXED: Simplified media upload function that uses Firebase for storage
-// instead of Appwrite which was causing cross-platform issues
+// Simplified media upload function that uses Firebase for storage
 async function uploadMedia(file) {
   try {
+    // If the media is already a URL (like a GIF), just return it
+    if (typeof file === 'string' || file.url) {
+      return {
+        url: file.url || file,
+        type: 'image'
+      };
+    }
+    
     // Create a unique filename
     const fileName = `${Date.now()}_${file.name}`;
     const fileType = file.type.split('/')[0]; // 'image' or 'video'
@@ -706,7 +1112,6 @@ async function uploadMedia(file) {
     const objectURL = URL.createObjectURL(file);
     
     // Upload file to Firebase Storage via a Cloud Function proxy
-    // This approach avoids direct Appwrite API calls which were failing
     const uploadEndpoint = `https://us-central1-globalchat-2d669.cloudfunctions.net/uploadMedia`;
     
     // Create form data for upload
@@ -822,8 +1227,17 @@ async function sendMessage(parentMessageId = null) {
     const mediaUrls = [];
     if (hasMedia) {
       for (const media of selectedMedia) {
-        const uploadResult = await uploadMedia(media.file);
-        mediaUrls.push(uploadResult);
+        if (media.isGif) {
+          // GIFs are already URLs, no need to upload
+          mediaUrls.push({
+            url: media.url,
+            type: 'image',
+            isGif: true
+          });
+        } else {
+          const uploadResult = await uploadMedia(media.file);
+          mediaUrls.push(uploadResult);
+        }
       }
     }
 
@@ -883,6 +1297,188 @@ async function sendMessage(parentMessageId = null) {
     loadingIndicator.style.display = 'none';
   }
 }
+
+// Add CSS for Twitter-like styling
+function addTwitterStyleCSS() {
+  const style = document.createElement('style');
+  style.textContent = `
+    /* Twitter-like styling */
+    
+    
+    .action-buttons {
+      display: flex;
+      margin-top: 4px;
+    }
+    
+    .action-button {
+      display: flex;
+      align-items: center;
+      background: none;
+      border: none;
+      color: #8899a6;
+      cursor: pointer;
+      padding: 5px 8px;
+      border-radius: 20px;
+      transition: color 0.2s, background-color 0.2s;
+    }
+    
+    .action-button svg {
+      width: 18px;
+      height: 18px;
+      margin-right: 6px;
+    }
+    
+    .action-button:hover {
+      color: #1da1f2;
+      background-color: rgba(29, 161, 242, 0.1);
+    }
+    
+    .reply-section {
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 16px;
+      background-color: rgba(255, 255, 255, 0.03);
+    }
+    
+    .reply-messages {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-bottom: 8px;
+    }
+    
+    .reply-message {
+      padding: 8px;
+      border-bottom: 1px solid #38444d;
+    }
+    
+    .reply-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    
+    .reply-user-name {
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    
+    .reply-time {
+      color: #8899a6;
+      font-size: 14px;
+    }
+    
+    .reply-text {
+      margin-bottom: 4px;
+    }
+    
+    .reply-media-container {
+      margin-top: 4px;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    .reply-image, .reply-video {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 12px;
+    }
+    
+    .reply-input-container {
+      display: flex;
+      align-items: center;
+      background-color: #192734;
+      border-radius: 20px;
+      padding: 8px 12px;
+    }
+    
+    .reply-input {
+      flex: 1;
+      background: none;
+      border: none;
+      color: white;
+      resize: none;
+      outline: none;
+      min-height: 20px;
+      max-height: 100px;
+    }
+    
+    .reply-send-btn {
+      background: none;
+      border: none;
+      color: #1da1f2;
+      cursor: pointer;
+    }
+    
+    .reply-send-btn svg {
+      fill: #1da1f2;
+    }
+    
+    .no-replies {
+      text-align: center;
+      color: #8899a6;
+      padding: 12px;
+    }
+    
+    .loading-replies {
+      text-align: center;
+      color: #8899a6;
+      padding: 12px;
+    }
+    
+    /* Make the chat interface responsive */
+    @media (max-width: 768px) {
+      .profile-image {
+        width: 40px;
+        height: 40px;
+      }
+      
+      .media-container {
+        grid-template-columns: 1fr;
+      }
+      
+      .message-image, .message-video {
+        max-height: 250px;
+      }
+    }
+    
+    /* GIF modal styling */
+    .gif-modal {
+      animation: fadeIn 0.2s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    #gifResults {
+      scrollbar-width: thin;
+      scrollbar-color: #38444d transparent;
+    }
+    
+    #gifResults::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    #gifResults::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    #gifResults::-webkit-scrollbar-thumb {
+      background-color: #38444d;
+      border-radius: 4px;
+    }
+    
+    .reply-count {
+      margin-left: 4px;
+    }
+  `;
+  
+  document.head.appendChild(style);
+}
+
+// Add the Twitter-like styling
+addTwitterStyleCSS();
 
 // Initialize the app
 initApp();
