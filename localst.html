@@ -1748,3 +1748,170 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 
 </script>
+<script>
+ 
+(function() {
+  // Initialize color palette for localStorage dashboard
+  applyColorPalette();
+  
+  // Listen for changes in localStorage
+  window.addEventListener('storage', function(event) {
+    if (event.key === 'color-value' || event.key === 'color-palette') {
+      applyColorPalette();
+    }
+  });
+  
+  // Listen for custom events
+  window.addEventListener('dashboardColorChanged', function(event) {
+    applyColorPalette();
+  });
+  
+  function applyColorPalette() {
+    const savedColorValue = localStorage.getItem('color-value');
+    const savedColorIndex = localStorage.getItem('color-palette');
+    
+    // Only apply if we have a valid color and it's not the default blue
+    if (savedColorValue && savedColorIndex !== '0') {
+      // Convert hex to RGB
+      const colorObj = hexToRGB(savedColorValue);
+      const rgbString = `${colorObj.r}, ${colorObj.g}, ${colorObj.b}`;
+      
+      // Create style element for all overrides
+      let styleEl = document.getElementById('dashboard-color-palette-style');
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'dashboard-color-palette-style';
+        document.head.appendChild(styleEl);
+      }
+      
+      // Apply to all dashboard elements that use the twitter blue color
+      styleEl.textContent = `
+        /* Override Twitter Blue variables */
+        :root {
+          --twitter-blue: ${savedColorValue} !important;
+          --twitter-blue-hover: ${darkenColor(savedColorValue, 0.1)} !important;
+          --twitter-blue-light: ${lightenColor(savedColorValue, 0.3)} !important;
+        }
+        
+        /* Card top border on hover */
+        .stat-card::after {
+          background: ${savedColorValue} !important;
+        }
+        
+        /* Card icons */
+        .card-icon {
+          background-color: ${savedColorValue} !important;
+          box-shadow: 0 4px 10px rgba(${rgbString}, 0.25) !important;
+        }
+        
+        /* Refresh button */
+        .refresh-btn {
+          background-color: ${savedColorValue} !important;
+          box-shadow: 0 2px 5px rgba(${rgbString}, 0.2) !important;
+        }
+        .refresh-btn:hover {
+          background-color: ${darkenColor(savedColorValue, 0.1)} !important;
+          box-shadow: 0 4px 8px rgba(${rgbString}, 0.3) !important;
+        }
+        
+        /* Chart elements */
+        .chart-line {
+          stroke: ${savedColorValue} !important;
+        }
+        .chart-dot {
+          fill: ${savedColorValue} !important;
+        }
+        .chart-area {
+          fill: url(#area-gradient) !important;
+        }
+        .chart-tab.active {
+          background-color: ${savedColorValue} !important;
+          box-shadow: 0 2px 5px rgba(${rgbString}, 0.2) !important;
+        }
+        
+        /* Key column in storage table */
+        .key-column {
+          color: ${savedColorValue} !important;
+        }
+        
+        /* Spinner in loading overlay */
+        .spinner {
+          border-top-color: ${savedColorValue} !important;
+          border-color: rgba(${rgbString}, 0.2) !important;
+        }
+        
+        /* Update area gradient for chart */
+        #area-gradient stop:first-child {
+          stop-color: ${savedColorValue} !important;
+        }
+      `;
+      
+      // Update the gradient definition
+      updateGradientColors(savedColorValue);
+    } else {
+      // Remove all custom styles to revert to default
+      const styleEl = document.getElementById('dashboard-color-palette-style');
+      if (styleEl) {
+        styleEl.remove();
+      }
+    }
+  }
+  
+  function updateGradientColors(color) {
+    // Find the gradient definition and update its colors
+    const gradientEl = document.querySelector('linearGradient#area-gradient');
+    if (gradientEl) {
+      const stops = gradientEl.querySelectorAll('stop');
+      if (stops.length >= 2) {
+        stops[0].setAttribute('stop-color', color);
+        stops[0].setAttribute('stop-opacity', '0.5');
+        stops[1].setAttribute('stop-color', color);
+        stops[1].setAttribute('stop-opacity', '0.1');
+      }
+    }
+  }
+  
+  function hexToRGB(hex) {
+    hex = hex.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return { r, g, b };
+  }
+  
+  function darkenColor(hex, percent) {
+    hex = hex.replace('#', '');
+    let r = parseInt(hex.substring(0, 2), 16);
+    let g = parseInt(hex.substring(2, 4), 16);
+    let b = parseInt(hex.substring(4, 6), 16);
+    
+    r = Math.floor(r * (1 - percent));
+    g = Math.floor(g * (1 - percent));
+    b = Math.floor(b * (1 - percent));
+    
+    r = Math.max(0, r);
+    g = Math.max(0, g);
+    b = Math.max(0, b);
+    
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  }
+  
+  function lightenColor(hex, percent) {
+    hex = hex.replace('#', '');
+    let r = parseInt(hex.substring(0, 2), 16);
+    let g = parseInt(hex.substring(2, 4), 16);
+    let b = parseInt(hex.substring(4, 6), 16);
+    
+    r = Math.floor(r + (255 - r) * percent);
+    g = Math.floor(g + (255 - g) * percent);
+    b = Math.floor(b + (255 - b) * percent);
+    
+    r = Math.min(255, r);
+    g = Math.min(255, g);
+    b = Math.min(255, b);
+    
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  }
+})();
+
+</script>
