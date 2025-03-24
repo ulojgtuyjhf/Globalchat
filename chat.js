@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -51,13 +50,18 @@ let globalRateLimit = Date.now(); // Global rate limit timestamp
 const MAX_FIREBASE_MESSAGES = 5; // Store first 5 messages in Firebase
 const LOCAL_STORAGE_MESSAGES_KEY = 'localMessages';
 const LOCAL_STORAGE_CONVERSATION_STATUS_KEY = 'conversationStatus';
+const LOCAL_STORAGE_LIKES_KEY = 'messageLikes';
 let conversationStatus = {};
 let activeReplySectionId = null; // Track which reply section is open
+let messageLikes = {}; // Track liked messages
 
 // Initialize app
 function initApp() {
   // Load conversation status from local storage
   loadConversationStatus();
+  
+  // Load liked messages
+  loadLikedMessages();
   
   // Initialize message input height adjustment
   initMessageInput();
@@ -97,6 +101,13 @@ function initApp() {
   
   // Add support for GIFs
   initGifSupport();
+  
+  // Add event listener for closing reply sections when clicking outside
+  document.addEventListener('click', (e) => {
+    if (activeReplySectionId && !e.target.closest('.reply-section') && !e.target.closest('.reply-btn')) {
+      closeReplySection();
+    }
+  });
 }
 
 // Initialize GIF support
@@ -261,6 +272,28 @@ function saveConversationStatus() {
     localStorage.setItem(LOCAL_STORAGE_CONVERSATION_STATUS_KEY, JSON.stringify(conversationStatus));
   } catch (error) {
     console.error('Error saving conversation status:', error);
+  }
+}
+
+// Load liked messages from local storage
+function loadLikedMessages() {
+  try {
+    const storedLikes = localStorage.getItem(LOCAL_STORAGE_LIKES_KEY);
+    if (storedLikes) {
+      messageLikes = JSON.parse(storedLikes);
+    }
+  } catch (error) {
+    console.error('Error loading liked messages:', error);
+    messageLikes = {};
+  }
+}
+
+// Save liked messages to local storage
+function saveLikedMessages() {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_LIKES_KEY, JSON.stringify(messageLikes));
+  } catch (error) {
+    console.error('Error saving liked messages:', error);
   }
 }
 
@@ -622,6 +655,9 @@ function createMessageElement(message, messageId) {
     mediaHTML += '</div>';
   }
 
+  // Check if message is liked by current user
+  const isLiked = messageLikes[messageId] || false;
+  
   messageElement.innerHTML = `
     <img src="${message.photoURL}" class="profile-image" alt="Profile">
     <div class="message-content">
@@ -639,6 +675,12 @@ function createMessageElement(message, messageId) {
       <div class="message-text">${message.text || ''}</div>
       ${mediaHTML}
       <div class="action-buttons">
+        <button class="action-button like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${messageId}')">
+          <svg viewBox="0 0 24 24" width="18" height="18">
+            <path fill="${isLiked ? '#f91880' : 'currentColor'}" d="${isLiked ? 'M16.697 5.5c-1.222-.06-2.679.51-3.89 2.16l-.805 1.09-.806-1.09C9.984 6.01 8.526 5.44 7.304 5.5c-1.243.07-2.349.78-2.91 1.91-.552 1.12-.633 2.78.479 4.82 1.074 1.97 3.257 4.27 7.129 6.61 3.87-2.34 6.052-4.64 7.126-6.61 1.111-2.04 1.03-3.7.477-4.82-.561-1.13-1.666-1.84-2.908-1.91zm4.187 7.69c-1.351 2.48-4.001 5.12-8.379 7.67l-.503.3-.504-.3c-4.379-2.55-7.029-5.19-8.382-7.67-1.36-2.5-1.41-4.86-.514-6.67.887-1.79 2.647-2.91 4.601-3.01 1.651-.09 3.368.56 4.798 2.01 1.429-1.45 3.146-2.1 4.796-2.01 1.954.1 3.714 1.22 4.601 3.01.896 1.81.846 4.17-.514 6.67z' : 'M16.697 5.5c-1.222-.06-2.679.51-3.89 2.16l-.805 1.09-.806-1.09C9.984 6.01 8.526 5.44 7.304 5.5c-1.243.07-2.349.78-2.91 1.91-.552 1.12-.633 2.78.479 4.82 1.074 1.97 3.257 4.27 7.129 6.61 3.87-2.34 6.052-4.64 7.126-6.61 1.111-2.04 1.03-3.7.477-4.82-.561-1.13-1.666-1.84-2.908-1.91zm4.187 7.69c-1.351 2.48-4.001 5.12-8.379 7.67l-.503.3-.504-.3c-4.379-2.55-7.029-5.19-8.382-7.67-1.36-2.5-1.41-4.86-.514-6.67.887-1.79 2.647-2.91 4.601-3.01 1.651-.09 3.368.56 4.798 2.01 1.429-1.45 3.146-2.1 4.796-2.01 1.954.1 3.714 1.22 4.601 3.01.896 1.81.846 4.17-.514 6.67z'}"></path>
+          </svg>
+          <span class="like-count">${message.likeCount || 0}</span>
+        </button>
         <button class="action-button reply-btn" onclick="toggleReplySection('${messageId}')">
           <svg viewBox="0 0 24 24" width="18" height="18">
             <path fill="currentColor" d="M14.046 2.242l-4.148-.01h-.002c-4.374 0-7.8 3.427-7.8 7.802 0 4.098 3.186 7.206 7.465 7.37v3.828a.85.85 0 0 0 .12.403.744.744 0 0 0 1.034.229c.264-.168 6.473-4.14 8.088-5.506 1.902-1.61 3.04-3.97 3.043-6.312v-.017c-.006-4.367-3.43-7.787-7.8-7.788zm3.787 12.972c-1.134.96-4.862 3.405-6.772 4.643V16.67a.75.75 0 0 0-.75-.75h-.396c-3.66 0-6.318-2.476-6.318-5.886 0-3.534 2.768-6.302 6.3-6.302l4.147.01h.002c3.532 0 6.3 2.766 6.302 6.296-.003 1.91-.942 3.844-2.514 5.176z"></path>
@@ -646,38 +688,11 @@ function createMessageElement(message, messageId) {
           <span class="reply-count">${message.replyCount || 0}</span>
         </button>
       </div>
-      <div class="reply-section" id="reply-section-${messageId}" style="display: none;">
-        <div class="reply-messages" id="reply-messages-${messageId}"></div>
-        <div class="reply-input-container">
-          <textarea class="reply-input" id="reply-input-${messageId}" placeholder="Reply to this message..."></textarea>
-          <button class="reply-send-btn" onclick="sendReply('${messageId}')">
-            <svg viewBox="0 0 24 24" width="18" height="18">
-              <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
-            </svg>
-          </button>
-        </div>
-      </div>
     </div>
   `;
 
   // Append message to chat container
   chatContainer.appendChild(messageElement);
-  
-  // Set up reply input behavior
-  const replyInput = document.getElementById(`reply-input-${messageId}`);
-  if (replyInput) {
-    replyInput.addEventListener('input', function() {
-      this.style.height = 'auto';
-      this.style.height = (this.scrollHeight) + 'px';
-    });
-    
-    replyInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendReply(messageId);
-      }
-    });
-  }
   
   // Scroll to bottom if near bottom
   const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 200;
@@ -686,52 +701,279 @@ function createMessageElement(message, messageId) {
   }
 }
 
-// Toggle reply section visibility
-window.toggleReplySection = function(messageId) {
-  const replySection = document.getElementById(`reply-section-${messageId}`);
-  
-  // If this section is already active, just toggle it
-  if (messageId === activeReplySectionId) {
-    const isVisible = replySection.style.display !== 'none';
-    replySection.style.display = isVisible ? 'none' : 'block';
+// Toggle like on a message
+window.toggleLike = async function(messageId) {
+  if (!currentUser) {
+    alert('Please log in to like messages');
+    return;
+  }
+
+  try {
+    // Check if we already liked this message
+    const isLiked = messageLikes[messageId] || false;
     
-    if (!isVisible) {
-      // Focus the input when opening
-      setTimeout(() => {
-        document.getElementById(`reply-input-${messageId}`).focus();
-      }, 100);
-    } else {
-      // Clear active section if we're closing it
-      activeReplySectionId = null;
+    // Update local storage first for instant feedback
+    messageLikes[messageId] = !isLiked;
+    saveLikedMessages();
+    
+    // Update the UI
+    const likeButton = document.querySelector(`[data-message-id="${messageId}"] .like-btn`);
+    const likeCountElement = document.querySelector(`[data-message-id="${messageId}"] .like-count`);
+    
+    if (likeButton && likeCountElement) {
+      const currentCount = parseInt(likeCountElement.textContent) || 0;
+      const newCount = isLiked ? currentCount - 1 : currentCount + 1;
+      
+      likeButton.classList.toggle('liked', !isLiked);
+      likeCountElement.textContent = newCount;
+      
+      // Update the heart icon color
+      const heartPath = likeButton.querySelector('path');
+      if (heartPath) {
+        heartPath.setAttribute('fill', !isLiked ? '#f91880' : 'currentColor');
+        heartPath.setAttribute('d', !isLiked ? 
+          'M16.697 5.5c-1.222-.06-2.679.51-3.89 2.16l-.805 1.09-.806-1.09C9.984 6.01 8.526 5.44 7.304 5.5c-1.243.07-2.349.78-2.91 1.91-.552 1.12-.633 2.78.479 4.82 1.074 1.97 3.257 4.27 7.129 6.61 3.87-2.34 6.052-4.64 7.126-6.61 1.111-2.04 1.03-3.7.477-4.82-.561-1.13-1.666-1.84-2.908-1.91zm4.187 7.69c-1.351 2.48-4.001 5.12-8.379 7.67l-.503.3-.504-.3c-4.379-2.55-7.029-5.19-8.382-7.67-1.36-2.5-1.41-4.86-.514-6.67.887-1.79 2.647-2.91 4.601-3.01 1.651-.09 3.368.56 4.798 2.01 1.429-1.45 3.146-2.1 4.796-2.01 1.954.1 3.714 1.22 4.601 3.01.896 1.81.846 4.17-.514 6.67z' : 
+          'M12 21.638h-.014C9.403 21.59 1.95 14.856 1.95 8.478c0-3.064 2.525-5.754 5.403-5.754 2.29 0 3.83 1.58 4.646 2.73.814-1.148 2.354-2.73 4.645-2.73 2.88 0 5.404 2.69 5.404 5.755 0 6.376-7.454 13.11-10.037 13.157H12z');
+      }
     }
+    
+    // Update the like count in Firebase
+    const messageRef = ref(database, `messages/${messageId}`);
+    const snapshot = await get(messageRef);
+    
+    if (snapshot.exists()) {
+      const currentLikeCount = snapshot.val().likeCount || 0;
+      const newLikeCount = isLiked ? currentLikeCount - 1 : currentLikeCount + 1;
+      
+      await update(messageRef, {
+        likeCount: newLikeCount
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error toggling like:', error);
+    // Revert the UI change if there was an error
+    const isLiked = messageLikes[messageId] || false;
+    messageLikes[messageId] = isLiked;
+    saveLikedMessages();
+    
+    const likeButton = document.querySelector(`[data-message-id="${messageId}"] .like-btn`);
+    if (likeButton) {
+      likeButton.classList.toggle('liked', isLiked);
+    }
+  }
+};
+
+// Show reply section (slides up from bottom)
+window.toggleReplySection = function(messageId) {
+  // If this is already the active section, close it
+  if (messageId === activeReplySectionId) {
+    closeReplySection();
     return;
   }
   
-  // Close any previously open reply section
+  // Close any existing reply section
   if (activeReplySectionId) {
-    const activeSection = document.getElementById(`reply-section-${activeReplySectionId}`);
-    if (activeSection) {
-      activeSection.style.display = 'none';
-    }
+    closeReplySection();
   }
   
-  // Open this reply section
-  replySection.style.display = 'block';
+  // Create the reply section container if it doesn't exist
+  let replySection = document.getElementById(`reply-section-${messageId}`);
+  
+  if (!replySection) {
+    replySection = document.createElement('div');
+    replySection.id = `reply-section-${messageId}`;
+    replySection.className = 'reply-section';
+    replySection.style.position = 'fixed';
+    replySection.style.bottom = '0';
+    replySection.style.left = '0';
+    replySection.style.right = '0';
+    replySection.style.height = '60vh';
+    replySection.style.backgroundColor = '#15202b';
+    replySection.style.borderTopLeftRadius = '16px';
+    replySection.style.borderTopRightRadius = '16px';
+    replySection.style.boxShadow = '0 -5px 15px rgba(0, 0, 0, 0.3)';
+    replySection.style.zIndex = '1000';
+    replySection.style.transform = 'translateY(100%)';
+    replySection.style.transition = 'transform 0.3s ease-out';
+    replySection.style.padding = '15px';
+    replySection.style.display = 'flex';
+    replySection.style.flexDirection = 'column';
+    
+    // Create header with close button
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+    header.style.marginBottom = '15px';
+    
+    const title = document.createElement('h3');
+    title.textContent = 'Replies';
+    title.style.margin = '0';
+    title.style.color = 'white';
+    
+    const closeButton = document.createElement('button');
+    closeButton.innerHTML = '&times;';
+    closeButton.style.background = 'none';
+    closeButton.style.border = 'none';
+    closeButton.style.color = 'white';
+    closeButton.style.fontSize = '24px';
+    closeButton.style.cursor = 'pointer';
+    closeButton.addEventListener('click', closeReplySection);
+    
+    header.appendChild(title);
+    header.appendChild(closeButton);
+    
+    // Create replies container
+    const repliesContainer = document.createElement('div');
+    repliesContainer.id = `reply-messages-${messageId}`;
+    repliesContainer.style.flex = '1';
+    repliesContainer.style.overflowY = 'auto';
+    repliesContainer.style.marginBottom = '15px';
+    
+    // Create input container
+    const inputContainer = document.createElement('div');
+    inputContainer.style.display = 'flex';
+    inputContainer.style.alignItems = 'center';
+    inputContainer.style.backgroundColor = '#253341';
+    inputContainer.style.borderRadius = '20px';
+    inputContainer.style.padding = '8px 15px';
+    
+    const replyInput = document.createElement('textarea');
+    replyInput.id = `reply-input-${messageId}`;
+    replyInput.className = 'reply-input';
+    replyInput.placeholder = 'Write a reply...';
+    replyInput.style.flex = '1';
+    replyInput.style.background = 'none';
+    replyInput.style.border = 'none';
+    replyInput.style.color = 'white';
+    replyInput.style.resize = 'none';
+    replyInput.style.outline = 'none';
+    replyInput.style.minHeight = '40px';
+    replyInput.style.maxHeight = '100px';
+    
+    // Handle input height adjustment
+    replyInput.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+    });
+    
+    // Handle Enter key to send
+    replyInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendReply(messageId);
+      }
+    });
+    
+    const sendButton = document.createElement('button');
+    sendButton.className = 'reply-send-btn';
+    sendButton.innerHTML = `
+      <svg viewBox="0 0 24 24" width="24" height="24">
+        <path fill="#1da1f2" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+      </svg>
+    `;
+    sendButton.style.background = 'none';
+    sendButton.style.border = 'none';
+    sendButton.style.marginLeft = '10px';
+    sendButton.style.cursor = 'pointer';
+    sendButton.addEventListener('click', () => sendReply(messageId));
+    
+    inputContainer.appendChild(replyInput);
+    inputContainer.appendChild(sendButton);
+    
+    // Add drag handle for closing
+    const dragHandle = document.createElement('div');
+    dragHandle.style.width = '50px';
+    dragHandle.style.height = '5px';
+    dragHandle.style.backgroundColor = '#38444d';
+    dragHandle.style.borderRadius = '5px';
+    dragHandle.style.margin = '0 auto 15px auto';
+    dragHandle.style.cursor = 'grab';
+    
+    // Add touch events for swipe to close
+    let startY = 0;
+    let currentY = 0;
+    
+    dragHandle.addEventListener('touchstart', (e) => {
+      startY = e.touches[0].clientY;
+      currentY = startY;
+    });
+    
+    dragHandle.addEventListener('touchmove', (e) => {
+      const y = e.touches[0].clientY;
+      const diff = y - currentY;
+      currentY = y;
+      
+      if (diff > 0) { // Only allow dragging down
+        const newY = Math.min(100, replySection.offsetTop + diff);
+        replySection.style.transform = `translateY(${newY}px)`;
+      }
+    });
+    
+    dragHandle.addEventListener('touchend', () => {
+      if (currentY - startY > 50) {
+        closeReplySection();
+      } else {
+        replySection.style.transform = 'translateY(0)';
+      }
+    });
+    
+    // Add all elements to the reply section
+    replySection.appendChild(dragHandle);
+    replySection.appendChild(header);
+    replySection.appendChild(repliesContainer);
+    replySection.appendChild(inputContainer);
+    
+    // Add to document
+    document.body.appendChild(replySection);
+  }
+  
+  // Set as active section
   activeReplySectionId = messageId;
   
-  // Focus the reply input
+  // Show the reply section with animation
   setTimeout(() => {
-    document.getElementById(`reply-input-${messageId}`).focus();
-  }, 100);
+    replySection.style.transform = 'translateY(0)';
+  }, 10);
   
   // Load replies for this message
   loadReplies(messageId);
+  
+  // Focus the input
+  setTimeout(() => {
+    const replyInput = document.getElementById(`reply-input-${messageId}`);
+    if (replyInput) {
+      replyInput.focus();
+    }
+  }, 300);
 };
+
+// Close the active reply section
+function closeReplySection() {
+  if (!activeReplySectionId) return;
+  
+  const replySection = document.getElementById(`reply-section-${activeReplySectionId}`);
+  if (replySection) {
+    replySection.style.transform = 'translateY(100%)';
+    
+    // Remove after animation completes
+    setTimeout(() => {
+      if (replySection.parentNode) {
+        replySection.parentNode.removeChild(replySection);
+      }
+    }, 300);
+  }
+  
+  activeReplySectionId = null;
+}
 
 // Load replies for a message
 function loadReplies(parentMessageId) {
   // Get the replies container
   const repliesContainer = document.getElementById(`reply-messages-${parentMessageId}`);
+  if (!repliesContainer) return;
+  
   repliesContainer.innerHTML = '<div class="loading-replies">Loading replies...</div>';
   
   // Query for replies in Firebase
@@ -745,37 +987,41 @@ function loadReplies(parentMessageId) {
       return;
     }
     
-    
-      // Now get replies
-      get(repliesRef).then((snapshot) => {
-        repliesContainer.innerHTML = '';
+    // Now get replies
+    get(repliesRef).then((snapshot) => {
+      repliesContainer.innerHTML = '';
+      
+      if (snapshot.exists()) {
+        const replies = snapshot.val();
+        let hasReplies = false;
         
-        if (snapshot.exists()) {
-          const replies = snapshot.val();
-          let hasReplies = false;
-          
-          // Filter replies for this parent message
-          Object.entries(replies).forEach(([replyId, reply]) => {
-            if (reply.parentMessageId === parentMessageId) {
-              hasReplies = true;
-              createReplyElement(reply, replyId, repliesContainer);
-            }
-          });
-          
-          if (!hasReplies) {
-            repliesContainer.innerHTML = '<div class="no-replies">No replies yet</div>';
+        // Filter replies for this parent message
+        Object.entries(replies).forEach(([replyId, reply]) => {
+          if (reply.parentMessageId === parentMessageId) {
+            hasReplies = true;
+            createReplyElement(reply, replyId, repliesContainer);
           }
-        } else {
+        });
+        
+        if (!hasReplies) {
           repliesContainer.innerHTML = '<div class="no-replies">No replies yet</div>';
         }
-      }).catch((error) => {
-        console.error('Error fetching replies:', error);
-        repliesContainer.innerHTML = '<div class="no-replies">Error loading replies</div>';
-      });
+      } else {
+        repliesContainer.innerHTML = '<div class="no-replies">No replies yet</div>';
+      }
+      
+      // Scroll to bottom
+      setTimeout(() => {
+        repliesContainer.scrollTop = repliesContainer.scrollHeight;
+      }, 100);
     }).catch((error) => {
-      console.error('Error checking parent message:', error);
-      repliesContainer.innerHTML = '<div class="no-replies">Error loading message</div>';
+      console.error('Error fetching replies:', error);
+      repliesContainer.innerHTML = '<div class="no-replies">Error loading replies</div>';
     });
+  }).catch((error) => {
+    console.error('Error checking parent message:', error);
+    repliesContainer.innerHTML = '<div class="no-replies">Error loading message</div>';
+  });
 }
 
 // Create a reply element
@@ -804,6 +1050,7 @@ function createReplyElement(reply, replyId, container) {
   
   replyElement.innerHTML = `
     <div class="reply-header">
+      <img src="${reply.photoURL}" class="reply-profile-image">
       <span class="reply-user-name">${reply.name}</span>
       <span class="reply-time">${messageTime}</span>
     </div>
@@ -882,6 +1129,11 @@ window.sendReply = function(parentMessageId) {
         repliesContainer.innerHTML = ''; // Clear "No replies yet" message
       }
       createReplyElement(replyData, newReplyRef.key, repliesContainer);
+      
+      // Scroll to bottom
+      setTimeout(() => {
+        repliesContainer.scrollTop = repliesContainer.scrollHeight;
+      }, 100);
       
       // Set last message time
       lastMessageTime = currentTime;
@@ -1252,7 +1504,8 @@ async function sendMessage(parentMessageId = null) {
       timestamp: currentTime,
       country: currentUser.country,
       parentMessageId: parentMessageId,
-      replyCount: 0
+      replyCount: 0,
+      likeCount: 0
     };
 
     // Check if this conversation should be marked as "full"
@@ -1302,9 +1555,20 @@ async function sendMessage(parentMessageId = null) {
 function addTwitterStyleCSS() {
   const style = document.createElement('style');
   style.textContent = `
-    /* Twitter-like styling */
     
     
+    .profile-image {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      margin-right: 12px;
+      object-fit: cover;
+    }
+    
+   
+   
+    
+    /* Action buttons (like, reply) */
     .action-buttons {
       display: flex;
       margin-top: 4px;
@@ -1319,7 +1583,6 @@ function addTwitterStyleCSS() {
       cursor: pointer;
       padding: 5px 8px;
       border-radius: 20px;
-      transition: color 0.2s, background-color 0.2s;
     }
     
     .action-button svg {
@@ -1328,26 +1591,43 @@ function addTwitterStyleCSS() {
       margin-right: 6px;
     }
     
-    .action-button:hover {
-      color: #1da1f2;
-      background-color: rgba(29, 161, 242, 0.1);
+    /* Like button */
+    .like-btn.liked {
+      color: #f91880;
     }
     
+    .like-count, .reply-count {
+      margin-left: 4px;
+      font-size: 14px;
+    }
+    
+    /* Reply section */
     .reply-section {
-      margin-top: 8px;
-      padding: 8px;
-      border-radius: 16px;
-      background-color: rgba(255, 255, 255, 0.03);
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60vh;
+      background-color: #15202b;
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
+      box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      transform: translateY(100%);
+      transition: transform 0.3s ease-out;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
     }
     
     .reply-messages {
-      max-height: 300px;
+      flex: 1;
       overflow-y: auto;
-      margin-bottom: 8px;
+      margin-bottom: 15px;
     }
     
     .reply-message {
-      padding: 8px;
+      padding: 12px 16px;
       border-bottom: 1px solid #38444d;
     }
     
@@ -1357,75 +1637,37 @@ function addTwitterStyleCSS() {
       margin-bottom: 4px;
     }
     
-    .reply-user-name {
-      font-weight: bold;
+    .reply-profile-image {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
       margin-right: 8px;
-    }
-    
-    .reply-time {
-      color: #8899a6;
-      font-size: 14px;
-    }
-    
-    .reply-text {
-      margin-bottom: 4px;
-    }
-    
-    .reply-media-container {
-      margin-top: 4px;
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    
-    .reply-image, .reply-video {
-      max-width: 100%;
-      max-height: 200px;
-      border-radius: 12px;
+      object-fit: cover;
     }
     
     .reply-input-container {
       display: flex;
       align-items: center;
-      background-color: #192734;
+      background-color: #253341;
       border-radius: 20px;
-      padding: 8px 12px;
+      padding: 8px 15px;
     }
     
-    .reply-input {
-      flex: 1;
-      background: none;
-      border: none;
-      color: white;
-      resize: none;
-      outline: none;
-      min-height: 20px;
-      max-height: 100px;
+    /* Loading indicator */
+    #loadingIndicator {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
     }
     
-    .reply-send-btn {
-      background: none;
-      border: none;
-      color: #1da1f2;
-      cursor: pointer;
-    }
-    
-    .reply-send-btn svg {
-      fill: #1da1f2;
-    }
-    
-    .no-replies {
-      text-align: center;
-      color: #8899a6;
-      padding: 12px;
-    }
-    
-    .loading-replies {
-      text-align: center;
-      color: #8899a6;
-      padding: 12px;
-    }
-    
-    /* Make the chat interface responsive */
+    /* Responsive adjustments */
     @media (max-width: 768px) {
       .profile-image {
         width: 40px;
@@ -1435,45 +1677,8 @@ function addTwitterStyleCSS() {
       .media-container {
         grid-template-columns: 1fr;
       }
-      
-      .message-image, .message-video {
-        max-height: 250px;
-      }
-    }
-    
-    /* GIF modal styling */
-    .gif-modal {
-      animation: fadeIn 0.2s ease-in-out;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    
-    #gifResults {
-      scrollbar-width: thin;
-      scrollbar-color: #38444d transparent;
-    }
-    
-    #gifResults::-webkit-scrollbar {
-      width: 8px;
-    }
-    
-    #gifResults::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    
-    #gifResults::-webkit-scrollbar-thumb {
-      background-color: #38444d;
-      border-radius: 4px;
-    }
-    
-    .reply-count {
-      margin-left: 4px;
     }
   `;
-  
   document.head.appendChild(style);
 }
 
