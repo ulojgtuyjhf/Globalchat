@@ -76,10 +76,7 @@
         box-shadow: var(--reply-box-shadow) !important;
       }
 
-      .reply-input {
-        background-color: var(--reply-bg) !important;
-        color: var(--reply-text) !important;
-      }
+      
 
       .reply-input::placeholder {
         color: var(--reply-placeholder) !important;
