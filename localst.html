@@ -1915,3 +1915,57 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 
 </script>
+<script>
+// Font size synchronization script
+(function() {
+    // Function to apply font size from localStorage
+    function applyFontSize() {
+        const size = localStorage.getItem('font-size') || '1';
+        document.body.style.fontSize = size + 'rem';
+        
+        // Add scaling to different elements if needed
+        const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+        const paragraphs = document.querySelectorAll('p');
+        const buttons = document.querySelectorAll('button');
+        const inputs = document.querySelectorAll('input');
+        
+        headings.forEach(heading => {
+            const currentSize = window.getComputedStyle(heading).fontSize;
+            const baseSize = parseFloat(currentSize) / 16; // convert to rem
+            heading.style.fontSize = (baseSize * parseFloat(size)) + 'rem';
+        });
+        
+        paragraphs.forEach(p => {
+            p.style.fontSize = size + 'rem';
+        });
+        
+        buttons.forEach(button => {
+            button.style.fontSize = (parseFloat(size) * 0.9) + 'rem';
+        });
+        
+        inputs.forEach(input => {
+            input.style.fontSize = size + 'rem';
+        });
+    }
+    
+    // Apply immediately
+    applyFontSize();
+    
+    // Listen for changes
+    window.addEventListener('storage', function(event) {
+        if (event.key === 'font-size') {
+            applyFontSize();
+        }
+    });
+    
+    // Check every second for changes (backup method)
+    setInterval(function() {
+        const currentSize = document.body.style.fontSize;
+        const savedSize = localStorage.getItem('font-size') || '1';
+        
+        if (currentSize !== savedSize + 'rem') {
+            applyFontSize();
+        }
+    }, 1000);
+})();
+</script>

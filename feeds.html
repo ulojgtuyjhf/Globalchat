@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -21,7 +22,6 @@
             max-width: 1200px;
             margin: 0 auto;
             display: flex;
-            padding: 20px;
         }
 
         .feed-container {
@@ -53,7 +53,6 @@
             padding: 15px;
             cursor: pointer;
             font-weight: bold;
-            color: #657786;
         }
 
         .tab.active {
@@ -86,7 +85,12 @@
         .article-summary {
             margin-bottom: 15px;
             line-height: 1.5;
-            color: #657786;
+            max-height: 100px;
+            overflow: hidden;
+        }
+
+        .article-summary.expanded {
+            max-height: none;
         }
 
         .article-image {
@@ -102,6 +106,16 @@
             justify-content: space-between;
             color: #657786;
             font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .show-more-btn {
+            color: #1da1f2;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 5px;
+            display: inline-block;
         }
 
         .trending-title {
@@ -130,10 +144,49 @@
             font-size: 14px;
         }
 
-        .show-more {
-            color: #1da1f2;
-            cursor: pointer;
-            font-weight: bold;
+        .loading {
+            padding: 20px;
+            text-align: center;
+            color: #657786;
+        }
+
+        .shimmer {
+            background: linear-gradient(90deg, #f5f8fa 0%, #e1e8ed 50%, #f5f8fa 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        .loading-article {
+            padding: 20px;
+            border-bottom: 1px solid #e1e8ed;
+        }
+
+        .loading-title {
+            height: 24px;
+            width: 70%;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .loading-summary {
+            height: 80px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+
+        .loading-image {
+            height: 200px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
         }
 
         @media (max-width: 768px) {
@@ -142,7 +195,10 @@
             }
 
             .trending-container {
-                display: none;
+                height: auto;
+                border-top: 1px solid #e1e8ed;
+                border-bottom: 1px solid #e1e8ed;
+                margin-bottom: 20px;
             }
 
             .feed-container {
@@ -155,13 +211,23 @@
     <div class="container">
         <div class="feed-container">
             <div class="tabs">
-                <div class="tab active" data-category="general">General</div>
+                <div class="tab active" data-category="general">For You</div>
                 <div class="tab" data-category="technology">Technology</div>
                 <div class="tab" data-category="science">Science</div>
                 <div class="tab" data-category="health">Health</div>
             </div>
             <div class="feed" id="feed">
                 <!-- Articles will be loaded here -->
+                <div class="loading-article">
+                    <div class="loading-title shimmer"></div>
+                    <div class="loading-summary shimmer"></div>
+                    <div class="loading-image shimmer"></div>
+                </div>
+                <div class="loading-article">
+                    <div class="loading-title shimmer"></div>
+                    <div class="loading-summary shimmer"></div>
+                    <div class="loading-image shimmer"></div>
+                </div>
             </div>
         </div>
         <div class="trending-container" id="trending">
@@ -173,6 +239,15 @@
     <script>
         // Tab functionality
         const tabs = document.querySelectorAll('.tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                loadFeed(tab.dataset.category);
+            });
+        });
+
+        // Wikipedia API integration
         const feed = document.getElementById('feed');
         const trending = document.getElementById('trending');
 
@@ -185,7 +260,7 @@
         };
 
         // Trending topics across categories
-        const trendingTopics = [
+        let trendingTopics = [
             { topic: 'Artificial_intelligence', category: 'Technology' },
             { topic: 'Climate_change', category: 'Science' },
             { topic: 'COVID-19', category: 'Health' },
@@ -198,30 +273,50 @@
             { topic: 'Cybersecurity', category: 'Technology' }
         ];
 
+        // Randomize topics and trending
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Randomize all topic categories
+        for (const category in categoryTopics) {
+            categoryTopics[category] = shuffleArray([...categoryTopics[category]]);
+        }
+
+        // Randomize trending topics
+        trendingTopics = shuffleArray([...trendingTopics]);
+
         // Load initial feed
         loadFeed('general');
         loadTrending();
 
-        // Tab click event
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                loadFeed(tab.dataset.category);
-            });
-        });
-
-        // Function to load feed by category
+        // Function to display articles by category
         function loadFeed(category) {
-            feed.innerHTML = '<div class="loading">Loading articles...</div>';
+            // Show loading state
+            feed.innerHTML = `
+                <div class="loading-article">
+                    <div class="loading-title shimmer"></div>
+                    <div class="loading-summary shimmer"></div>
+                    <div class="loading-image shimmer"></div>
+                </div>
+                <div class="loading-article">
+                    <div class="loading-title shimmer"></div>
+                    <div class="loading-summary shimmer"></div>
+                    <div class="loading-image shimmer"></div>
+                </div>
+            `;
 
             const topics = categoryTopics[category];
-            const shuffledTopics = shuffleArray(topics); // Randomize topics
-
+            
             // Fetch articles for each topic
-            Promise.all(shuffledTopics.map(topic => fetchWikipediaSummary(topic)))
+            Promise.all(topics.map(topic => fetchWikipediaSummary(topic)))
                 .then(results => {
                     feed.innerHTML = ''; // Clear loading state
+                    
                     results.forEach(result => {
                         if (result) {
                             createArticle(result);
@@ -234,21 +329,20 @@
                 });
         }
 
-        // Function to load trending topics
+        // Load trending topics
         function loadTrending() {
             trending.innerHTML = '<div class="trending-title">Trending Topics</div>';
-            const shuffledTrending = shuffleArray(trendingTopics); // Randomize trending topics
-
-            shuffledTrending.forEach(item => {
+            
+            trendingTopics.forEach(item => {
                 const topicDisplay = item.topic.replace(/_/g, ' ');
-
+                
                 const trendingItem = document.createElement('div');
                 trendingItem.className = 'trending-item';
                 trendingItem.innerHTML = `
                     <div class="trending-topic">${topicDisplay}</div>
                     <div class="trending-category">${item.category}</div>
                 `;
-
+                
                 trendingItem.addEventListener('click', () => {
                     fetchWikipediaSummary(item.topic)
                         .then(result => {
@@ -256,7 +350,7 @@
                                 // Clear feed and show just this article
                                 feed.innerHTML = '';
                                 createArticle(result);
-
+                                
                                 // Highlight the corresponding tab
                                 const category = item.category.toLowerCase();
                                 tabs.forEach(tab => {
@@ -268,15 +362,15 @@
                             }
                         });
                 });
-
+                
                 trending.appendChild(trendingItem);
             });
         }
 
-        // Function to fetch Wikipedia summary
+        // Fetch data from Wikipedia API
         function fetchWikipediaSummary(topic) {
             const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topic)}`;
-
+            
             return fetch(url)
                 .then(response => {
                     if (!response.ok) {
@@ -288,7 +382,8 @@
                     return {
                         title: data.title,
                         extract: data.extract,
-                        thumbnail: data.thumbnail ? data.thumbnail.source : null
+                        thumbnail: data.thumbnail ? data.thumbnail.source : null,
+                        url: data.content_urls ? data.content_urls.desktop.page : null
                     };
                 })
                 .catch(error => {
@@ -297,68 +392,78 @@
                 });
         }
 
-        // Function to create article element
+        // Create article element with show more/less functionality
         function createArticle(data) {
             const article = document.createElement('div');
             article.className = 'article';
-
+            
             // Random time (within last 24 hours)
             const hours = Math.floor(Math.random() * 24);
             const timeString = hours === 0 ? 'Just now' : `${hours}h ago`;
-
-            // Truncate summary for "Show more" functionality
-            const summary = data.extract;
-            const truncatedSummary = summary.length > 200 ? summary.slice(0, 200) + '...' : summary;
-
+            
+            // Create a truncated version for summary
+            const needsShowMore = data.extract.length > 200;
+            
             let html = `
                 <div class="article-title">${data.title}</div>
-                <div class="article-summary">${truncatedSummary}</div>
+                <div class="article-summary">${data.extract}</div>
             `;
-
-            if (summary.length > 200) {
-                html += `<div class="show-more" onclick="toggleSummary(this)">Show more</div>`;
+            
+            if (needsShowMore) {
+                html += `<div class="show-more-btn">Show more</div>`;
             }
-
+            
             if (data.thumbnail) {
                 html += `<img class="article-image" src="${data.thumbnail}" alt="${data.title}">`;
             }
-
+            
             html += `
                 <div class="article-meta">
                     <span>${timeString}</span>
                     <span>${Math.floor(Math.random() * 1000) + 100} readers</span>
                 </div>
             `;
-
+            
             article.innerHTML = html;
+            
+            // Add show more/less functionality
+            if (needsShowMore) {
+                const summaryElement = article.querySelector('.article-summary');
+                const showMoreBtn = article.querySelector('.show-more-btn');
+                
+                showMoreBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent article click
+                    
+                    if (summaryElement.classList.contains('expanded')) {
+                        summaryElement.classList.remove('expanded');
+                        showMoreBtn.textContent = 'Show more';
+                    } else {
+                        summaryElement.classList.add('expanded');
+                        showMoreBtn.textContent = 'Show less';
+                    }
+                });
+            }
+            
             feed.appendChild(article);
         }
 
-        // Function to toggle "Show more" and "Show less"
-        function toggleSummary(element) {
-            const summary = element.previousElementSibling;
-            if (element.textContent === 'Show more') {
-                summary.textContent = summary.dataset.fullText;
-                element.textContent = 'Show less';
-            } else {
-                summary.textContent = summary.dataset.fullText.slice(0, 200) + '...';
-                element.textContent = 'Show more';
-            }
-        }
-
-        // Function to shuffle array (randomize topics)
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
-        }
-
-        // Auto-refresh trending topics every 30 seconds
+        // Auto refresh and randomize content every minute
         setInterval(() => {
+            // Shuffle topics in each category
+            for (const category in categoryTopics) {
+                categoryTopics[category] = shuffleArray([...categoryTopics[category]]);
+            }
+            
+            // Shuffle trending topics
+            trendingTopics = shuffleArray([...trendingTopics]);
+            
+            // Reload current tab
+            const activeTab = document.querySelector('.tab.active');
+            loadFeed(activeTab.dataset.category);
+            
+            // Reload trending
             loadTrending();
-        }, 30000);
+        }, 60000);
     </script>
 </body>
 </html>
