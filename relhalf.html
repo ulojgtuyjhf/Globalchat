@@ -1,17 +1,17 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Social Media Interface</title>
-     <style>
+    <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
+        
         /* Prevent scrolling */
         html, body {
             overflow: hidden;
@@ -24,6 +24,7 @@
             color: #0f1419;
             height: 100vh;
             overflow: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .container {
@@ -40,6 +41,7 @@
             flex-direction: column;
             border-right: 1px solid #eff3f4;
             height: 100%;
+            transition: border-color 0.3s ease;
         }
 
         /* Logo styles */
@@ -84,7 +86,7 @@
             font-size: 18px;
             font-weight: 400;
             cursor: pointer;
-            transition: background-color 0.2s ease;
+            transition: background-color 0.2s ease, color 0.2s ease;
         }
 
         .menu-item:hover {
@@ -99,6 +101,7 @@
             margin-right: 20px;
             width: 24px;
             height: 24px;
+            transition: fill 0.3s ease, color 0.3s ease;
         }
 
         .post-btn {
@@ -112,6 +115,7 @@
             margin: 15px 0;
             cursor: pointer;
             transition: background-color 0.2s ease;
+            width: 90%;
         }
 
         .post-btn:hover {
@@ -129,21 +133,30 @@
             min-width: 0;
             height: 100%;
             border-right: 1px solid #eff3f4;
+            transition: border-color 0.3s ease;
         }
 
         .widgets {
             width: 350px;
             height: 100%;
+            transition: opacity 0.3s ease;
+        }
+
+        .widgets.hidden {
+            display: none;
         }
 
         .section-container {
             width: 100%;
             height: 100%;
             display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         .section-container.active {
             display: block;
+            opacity: 1;
         }
 
         .loader {
@@ -221,14 +234,12 @@
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0.5" width="24" height="24">
   <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm-3 12H7c-.55 0-1-.45-1-1s.45-1 1-1h10c.55 0 1 .45 1 1s-.45 1-1 1zm0-4H7c-.55 0-1-.45-1-1s.45-1 1-1h10c.55 0 1 .45 1 1s-.45 1-1 1zm0-4H7c-.55 0-1-.45-1-1s.45-1 1-1h10c.55 0 1 .45 1 1s-.45 1-1 1z" />
 </svg>
-</svg>
                     <span>chat</span>
                 </a>
                 <a href="#" class="menu-item" data-section="explore-section"><svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 122.88 122.88">
   <title>compass</title>
   <path fill="currentColor" d="M61.44,0A61.46,61.46,0,1,1,18,18,61.21,61.21,0,0,1,61.44,0ZM77,57.42l-7.23,4.11a7.56,7.56,0,0,1-.25,1.57,8,8,0,0,1-9.75,5.63,8.19,8.19,0,0,1-1.58-.61l-7.66,4.36L81.43,95.23,77,57.42ZM46.55,65.88l7.37-4.19A7.86,7.86,0,0,1,54.16,59a8,8,0,0,1,9.75-5.63,8.28,8.28,0,0,1,2.55,1.2L73,50.82,42.14,28.07l4.41,37.81ZM95.36,27.52a48,48,0,1,0,14,33.92,47.82,47.82,0,0,0-14-33.92Z" />
 </svg>
-
                     <span>updates</span>
                 </a>
                 <a href="#" class="menu-item" data-section="notifications-section">
@@ -313,15 +324,11 @@
             const sections = document.querySelectorAll('.section-container');
             const contentLoader = document.getElementById('content-loader');
             const logo = document.getElementById('home-logo');
+            const widgetsSection = document.querySelector('.widgets');
             
-            // Add logo click handler to return to home
-            logo.addEventListener('click', function() {
-                switchToSection('home-section');
-            });
-            
-            // Track loaded sections to avoid reloading
-            const loadedSections = {
-                'home-section': false,
+            // Optimized section loading with cache
+            const sectionCache = {
+                'home-section': true, // Home is preloaded
                 'explore-section': false,
                 'notifications-section': false,
                 'messages-section': false,
@@ -329,81 +336,82 @@
                 'profile-section': false
             };
             
-            // Set home section as loaded
-            loadedSections['home-section'] = true;
-            
-            // Load a section only the first time it's accessed
-            function loadSection(sectionId) {
-                if (!loadedSections[sectionId]) {
-                    try {
-                        // Mark section as loaded - this happens before the actual load
-                        // to prevent multiple load attempts on errors
-                        loadedSections[sectionId] = true;
-                        
-                        // Show loader while section initializes
-                        contentLoader.style.display = 'block';
-                        
-                        // On first load, initialize the section
-                        const section = document.getElementById(sectionId);
-                        const iframe = section.querySelector('iframe');
-                        
-                        iframe.onload = function() {
-                            // Hide loader when iframe is loaded
-                            contentLoader.style.display = 'none';
-                        };
-                        
-                        iframe.onerror = function() {
-                            // Handle load error
-                            console.error(`Failed to load content for ${sectionId}`);
-                            contentLoader.style.display = 'none';
-                            alert("Error loading content. Please try again later.");
-                            
-                            // Fall back to home section
-                            switchToSection('home-section');
-                        };
-                        
-                        // Add additional error handling with timeout
-                        setTimeout(function() {
-                            if (contentLoader.style.display === 'block') {
-                                // Still loading after timeout - probably an error
-                                contentLoader.style.display = 'none';
-                            }
-                        }, 5000);
-                    } catch (error) {
-                        console.error("Error initializing section:", error);
-                        contentLoader.style.display = 'none';
-                    }
-                } else {
-                    // Section already loaded, just show it
-                    contentLoader.style.display = 'none';
-                }
+            // Function to preload all iframes (but not activate them)
+            function preloadIframes() {
+                document.querySelectorAll('.section-container iframe').forEach(iframe => {
+                    iframe.setAttribute('loading', 'lazy');
+                    iframe.setAttribute('importance', 'low');
+                });
             }
             
-            // Switch to a section
+            // Improved section switching with error handling
             function switchToSection(sectionId) {
-                // Hide all sections
+                // Hide all sections first
                 sections.forEach(section => {
                     section.classList.remove('active');
                 });
                 
-                // Show selected section
-                const selectedSection = document.getElementById(sectionId);
-                selectedSection.classList.add('active');
+                // Show loader
+                contentLoader.style.display = 'block';
                 
-                // Load content if first visit
-                loadSection(sectionId);
-                
-                // Update menu
+                // Update menu items
                 menuItems.forEach(item => {
-                    if (item.getAttribute('data-section') === sectionId) {
-                        item.classList.add('active');
-                    } else {
-                        item.classList.remove('active');
-                    }
+                    item.classList.toggle('active', item.getAttribute('data-section') === sectionId);
                 });
+                
+                // Handle widgets visibility
+                if (sectionId === 'notifications-section') {
+                    widgetsSection.classList.add('hidden');
+                } else {
+                    widgetsSection.classList.remove('hidden');
+                }
+                
+                // Get the target section
+                const targetSection = document.getElementById(sectionId);
+                
+                // Show the section after a brief delay for smoother transition
+                setTimeout(() => {
+                    targetSection.classList.add('active');
+                    
+                    // Load content if not already loaded
+                    if (!sectionCache[sectionId]) {
+                        const iframe = targetSection.querySelector('iframe');
+                        
+                        // Set up error handling
+                        iframe.onerror = () => {
+                            console.error(`Failed to load ${sectionId}`);
+                            contentLoader.style.display = 'none';
+                            alert('Failed to load content. Please try again.');
+                            switchToSection('home-section');
+                        };
+                        
+                        // Reload the iframe (forces fresh load if previously failed)
+                        iframe.src = iframe.src;
+                        
+                        iframe.onload = () => {
+                            sectionCache[sectionId] = true;
+                            contentLoader.style.display = 'none';
+                        };
+                        
+                        // Fallback timeout
+                        setTimeout(() => {
+                            if (contentLoader.style.display === 'block') {
+                                contentLoader.style.display = 'none';
+                                if (!sectionCache[sectionId]) {
+                                    console.warn(`Timeout loading ${sectionId}`);
+                                }
+                            }
+                        }, 5000);
+                    } else {
+                        // Content already loaded, just hide loader
+                        contentLoader.style.display = 'none';
+                    }
+                }, 50);
             }
             
-            // Add click handlers to menu items
+            // Event listeners
+            logo.addEventListener('click', () => switchToSection('home-section'));
+            
             menuItems.forEach(item => {
                 item.addEventListener('click', function(e) {
                     e.preventDefault();
@@ -411,417 +419,306 @@
                     switchToSection(sectionId);
                 });
             });
+            
+            // Preload iframes after initial render
+            setTimeout(preloadIframes, 1000);
+            
+            // Initialize widgets iframe
+            const widgetsFrame = document.getElementById('widgets-frame');
+            const widgetsLoader = document.getElementById('widgets-loader');
+            
+            widgetsLoader.style.display = 'block';
+            widgetsFrame.onload = () => widgetsLoader.style.display = 'none';
+            widgetsFrame.onerror = () => {
+                widgetsLoader.style.display = 'none';
+                console.error('Failed to load widgets');
+            };
         });
     </script>
-  <script>
-  (function() {
-    // RelHalf Theme Integration - Works alongside GlobalChatThemeManager
-    const RelHalfThemeIntegrator = {
-      // Style element ID
-      styleElementId: 'relhalf-theme-integrator-styles',
-      
-      // Initialize integration
-      initialize: function() {
-        this.createStyleElement();
-        this.applyCurrentTheme();
-        this.setupEventListeners();
-        console.log('RelHalf Theme Integrator initialized');
-      },
-      
-      // Create dedicated style element
-      createStyleElement: function() {
-        const existingStyle = document.getElementById(this.styleElementId);
-        if (existingStyle) {
-          existingStyle.remove();
-        }
-        
-        const styleElement = document.createElement('style');
-        styleElement.id = this.styleElementId;
-        styleElement.setAttribute('data-origin', 'relhalf-theme-integrator');
-        document.head.appendChild(styleElement);
-      },
-      
-      // Apply current theme from localStorage
-      applyCurrentTheme: function() {
-        const themeName = localStorage.getItem('twitter-theme') || 'light';
-        this.applyTheme(themeName);
-      },
-      
-      // Apply specified theme
-      applyTheme: function(themeName) {
-        // Default to light theme if invalid theme name
-        const validThemes = ['light', 'dim', 'dark'];
-        const theme = validThemes.includes(themeName) ? themeName : 'light';
-        
-        // Get style element
-        const styleElement = document.getElementById(this.styleElementId);
-        if (!styleElement) {
-          this.createStyleElement();
-          return this.applyTheme(theme); // Retry after creating style element
-        }
-        
-        // Theme-specific CSS
-        const themeCSS = {
-          light: `
-            body { background-color: #ffffff; color: #0f1419; }
-            .sidebar { border-right-color: #eff3f4; }
-            .content { border-right-color: #eff3f4; }
-            .menu-item { color: #0f1419; }
-            .menu-item:hover { background-color: rgba(0, 0, 0, 0.1); }
-            .post-btn { background-color: #1d9bf0; }
-            .post-btn:hover { background-color: #1a8cd8; }
-          `,
-          dim: `
-            body { background-color: #15202b; color: #f7f9f9; }
-            .sidebar { border-right-color: #38444d; }
-            .content { border-right-color: #38444d; }
-            .menu-item { color: #f7f9f9; }
-            .menu-item:hover { background-color: rgba(255, 255, 255, 0.1); }
-            .post-btn { background-color: #1d9bf0; }
-            .post-btn:hover { background-color: #1a8cd8; }
-          `,
-          dark: `
-            body { background-color: #000000; color: #ffffff; }
-            .sidebar { border-right-color: #2f3336; }
-            .content { border-right-color: #2f3336; }
-            .menu-item { color: #ffffff; }
-            .menu-item:hover { background-color: rgba(255, 255, 255, 0.1); }
-            .post-btn { background-color: #1d9bf0; }
-            .post-btn:hover { background-color: #1a8cd8; }
-          `
-        };
-        
-        // Apply custom color if available
-        const savedColorValue = localStorage.getItem('color-value');
-        const savedColorIndex = localStorage.getItem('color-palette');
-        
-        let customColorCSS = '';
-        if (savedColorValue && savedColorIndex !== '0') {
-          const colorObj = this.hexToRGB(savedColorValue);
-          const rgbString = `${colorObj.r}, ${colorObj.g}, ${colorObj.b}`;
-          
-          customColorCSS = `
-            .post-btn { background-color: ${savedColorValue}; }
-            .post-btn:hover { background-color: ${this.darkenColor(savedColorValue, 0.15)}; }
-            .menu-item.active svg { color: ${savedColorValue}; fill: ${savedColorValue}; }
-            .loader svg path, .loader svg circle { fill: ${savedColorValue}; }
-          `;
-        }
-        
-        // Set the CSS content
-        styleElement.textContent = themeCSS[theme] + customColorCSS;
-        console.log('RelHalf Theme Integrator: Applied theme', theme);
-      },
-      
-      // Set up event listeners
-      setupEventListeners: function() {
-        // Listen for localStorage changes (theme)
-        window.addEventListener('storage', (e) => {
-          if (e.key === 'twitter-theme') {
-            this.applyTheme(e.newValue || 'light');
-          }
-          // Handle color changes
-          if (e.key === 'color-value' || e.key === 'color-palette') {
-            this.applyCurrentTheme(); // Reapply theme with new color
-          }
-        });
-        
-        // Listen for custom events from GlobalChatThemeManager
-        window.addEventListener('themeChanged', (e) => {
-          if (e.detail && e.detail.theme) {
-            this.applyTheme(e.detail.theme);
-          }
-        });
-        
-        // Listen for custom color change events
-        window.addEventListener('chatColorChanged', (e) => {
-          this.applyCurrentTheme();
-        });
-        
-        // Check for theme changes periodically
-        this.setupPeriodicCheck();
-      },
-      
-      // Set up periodic check for theme consistency
-      setupPeriodicCheck: function() {
-        let lastKnownTheme = localStorage.getItem('twitter-theme') || 'light';
-        let lastKnownColor = localStorage.getItem('color-value') || '';
-        
-        setInterval(() => {
-          const currentTheme = localStorage.getItem('twitter-theme');
-          const currentColor = localStorage.getItem('color-value');
-          
-          if (currentTheme !== lastKnownTheme || currentColor !== lastKnownColor) {
-            lastKnownTheme = currentTheme || 'light';
-            lastKnownColor = currentColor || '';
-            this.applyCurrentTheme();
-          }
-        }, 3000); // Check every 3 seconds
-      },
-      
-      // Utility: Convert hex to RGB
-      hexToRGB: function(hex) {
-        hex = hex.replace('#', '');
-        const r = parseInt(hex.substring(0, 2), 16);
-        const g = parseInt(hex.substring(2, 4), 16);
-        const b = parseInt(hex.substring(4, 6), 16);
-        return { r, g, b };
-      },
-      
-      // Utility: Darken color
-      darkenColor: function(hex, percent) {
-        hex = hex.replace('#', '');
-        let r = parseInt(hex.substring(0, 2), 16);
-        let g = parseInt(hex.substring(2, 4), 16);
-        let b = parseInt(hex.substring(4, 6), 16);
-        
-        r = Math.floor(r * (1 - percent));
-        g = Math.floor(g * (1 - percent));
-        b = Math.floor(b * (1 - percent));
-        
-        r = Math.max(0, r);
-        g = Math.max(0, g);
-        b = Math.max(0, b);
-        
-        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-      }
-    };
     
-    // Initialize the theme integrator with a slight delay to ensure DOM is ready
-    setTimeout(function() {
-      RelHalfThemeIntegrator.initialize();
-    }, 200);
-  })();
-</script>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const postBtn = document.querySelector('.post-btn');
-    
-    // Create modal elements
-    const modal = document.createElement('div');
-    modal.className = 'tweet-compose-modal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.4);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        opacity: 0;
-        transition: opacity 0.2s ease;
-    `;
-    
-    const modalContent = document.createElement('div');
-    modalContent.className = 'tweet-compose-content';
-    modalContent.style.cssText = `
-        background: white;
-        border-radius: 16px;
-        width: 600px;
-        max-width: 90%;
-        height: auto;
-        max-height: 90vh;
-        overflow: hidden;
-        position: relative;
-        transform: translateY(20px);
-        transition: transform 0.2s ease;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-    `;
-    
-    // Create close button (X)
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'tweet-compose-close';
-    closeBtn.innerHTML = '×';
-    closeBtn.style.cssText = `
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        background: transparent;
-        border: none;
-        font-size: 20px;
-        font-weight: bold;
-        cursor: pointer;
-        z-index: 1001;
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #536471;
-    `;
-    
-    // Create loader with Twitter-style animation
-    const loader = document.createElement('div');
-    loader.className = 'tweet-compose-loader';
-    loader.style.cssText = `
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 150px;
-        padding: 20px;
-    `;
-    
-    loader.innerHTML = `
-        <svg width="30" height="30" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" fill="#e6e7e8"/>
-            <path d="M12 22c5.523 0 10-4.477 10-10h-3c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7V2C6.477 2 2 6.477 2 12s4.477 10 10 10z" fill="#1d9bf0">
-                <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
-            </path>
-        </svg>
-    `;
-    
-    // Create iframe container
-    const iframeContainer = document.createElement('div');
-    iframeContainer.className = 'tweet-compose-iframe';
-    iframeContainer.style.cssText = `
-        width: 100%;
-        height: 400px;
-        display: none;
-        position: relative;
-    `;
-    
-    // Create the iframe
-    const iframe = document.createElement('iframe');
-    iframe.src = 'chats.html';
-    iframe.style.cssText = `
-        width: 100%;
-        height: 100%;
-        border: none;
-    `;
-    
-    // Assemble the modal
-    iframeContainer.appendChild(iframe);
-    modalContent.appendChild(closeBtn);
-    modalContent.appendChild(loader);
-    modalContent.appendChild(iframeContainer);
-    modal.appendChild(modalContent);
-    document.body.appendChild(modal);
-    
-    // Function to open modal
-    function openModal() {
-      document.body.style.overflow = 'hidden'; // Prevent background scrolling
-      modal.style.display = 'flex';
-      
-      // Force reflow
-      void modal.offsetWidth;
-      
-      // Animate in
-      modal.style.opacity = '1';
-      modalContent.style.transform = 'translateY(0)';
-      
-      // Show content after loader
-      setTimeout(() => {
-        loader.style.display = 'none';
-        iframeContainer.style.display = 'block';
-        
-        // Adjust iframe height to fit content (if possible)
-        try {
-          iframe.onload = function() {
-            try {
-              const iframeHeight = iframe.contentWindow.document.body.scrollHeight;
-              const maxHeight = window.innerHeight * 0.7; // Max 70% of viewport
-              iframeContainer.style.height = Math.min(iframeHeight, maxHeight) + 'px';
-            } catch (e) {
-              // If cross-origin issues prevent access, use default height
-              console.log('Using default iframe height');
+    <script>
+        // Enhanced Theme Integration
+        (function() {
+            const themeStyles = {
+                light: `
+                    body { background-color: #ffffff; color: #0f1419; }
+                    .sidebar { border-right-color: #eff3f4; }
+                    .content { border-right-color: #eff3f4; }
+                    .menu-item { color: #0f1419; }
+                    .menu-item:hover { background-color: rgba(0, 0, 0, 0.1); }
+                `,
+                dim: `
+                    body { background-color: #15202b; color: #f7f9f9; }
+                    .sidebar { border-right-color: #38444d; }
+                    .content { border-right-color: #38444d; }
+                    .menu-item { color: #f7f9f9; }
+                    .menu-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+                `,
+                dark: `
+                    body { background-color: #000000; color: #ffffff; }
+                    .sidebar { border-right-color: #2f3336; }
+                    .content { border-right-color: #2f3336; }
+                    .menu-item { color: #ffffff; }
+                    .menu-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+                `
+            };
+            
+            function applyTheme(themeName) {
+                const theme = ['light', 'dim', 'dark'].includes(themeName) ? themeName : 'light';
+                const styleId = 'dynamic-theme-styles';
+                
+                let styleElement = document.getElementById(styleId);
+                if (!styleElement) {
+                    styleElement = document.createElement('style');
+                    styleElement.id = styleId;
+                    document.head.appendChild(styleElement);
+                }
+                
+                // Get custom color if available
+                const savedColor = localStorage.getItem('color-value');
+                const colorIndex = localStorage.getItem('color-palette');
+                
+                let customStyles = '';
+                if (savedColor && colorIndex !== '0') {
+                    customStyles = `
+                        .post-btn { background-color: ${savedColor}; }
+                        .post-btn:hover { background-color: ${darkenColor(savedColor, 0.15)}; }
+                        .menu-item.active svg { color: ${savedColor}; }
+                        .loader svg path { fill: ${savedColor}; }
+                    `;
+                }
+                
+                styleElement.textContent = themeStyles[theme] + customStyles;
             }
-          };
-        } catch (e) {
-          console.log('Error setting iframe dimensions');
-        }
-      }, 800);
-    }
+            
+            function darkenColor(hex, percent) {
+                hex = hex.replace('#', '');
+                const r = Math.floor(parseInt(hex.substring(0, 2), 16) * (1 - percent));
+                const g = Math.floor(parseInt(hex.substring(2, 4), 16) * (1 - percent));
+                const b = Math.floor(parseInt(hex.substring(4, 6), 16) * (1 - percent));
+                
+                return `#${Math.max(0, r).toString(16).padStart(2, '0')}${Math.max(0, g).toString(16).padStart(2, '0')}${Math.max(0, b).toString(16).padStart(2, '0')}`;
+            }
+            
+            // Initialize theme
+            applyTheme(localStorage.getItem('twitter-theme') || 'light');
+            
+            // Listen for theme changes
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'twitter-theme' || e.key === 'color-value' || e.key === 'color-palette') {
+                    applyTheme(localStorage.getItem('twitter-theme') || 'light');
+                }
+            });
+            
+            // Check for theme changes periodically
+            let lastTheme = localStorage.getItem('twitter-theme');
+            setInterval(() => {
+                const currentTheme = localStorage.getItem('twitter-theme');
+                if (currentTheme !== lastTheme) {
+                    lastTheme = currentTheme;
+                    applyTheme(currentTheme || 'light');
+                }
+            }, 1000);
+        })();
+    </script>
     
-    // Function to close modal
-    function closeModal() {
-      modal.style.opacity = '0';
-      modalContent.style.transform = 'translateY(20px)';
-      
-      setTimeout(() => {
-        modal.style.display = 'none';
-        loader.style.display = 'flex';
-        iframeContainer.style.display = 'none';
-        document.body.style.overflow = ''; // Restore scrolling
-      }, 200);
-    }
+    <script>
+        // Optimized Post Modal
+        document.addEventListener('DOMContentLoaded', function() {
+            const postBtn = document.querySelector('.post-btn');
+            
+            // Create modal only when needed
+            let modal = null;
+            
+            function createModal() {
+                if (modal) return modal;
+                
+                modal = document.createElement('div');
+                modal.className = 'post-modal';
+                modal.innerHTML = `
+                    <div class="post-modal-overlay"></div>
+                    <div class="post-modal-content">
+                        <button class="post-modal-close">&times;</button>
+                        <div class="post-modal-loader">
+                            <svg viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10" fill="none" stroke="#e6e7e8" stroke-width="2"/>
+                                <path d="M12 22c5.523 0 10-4.477 10-10h-3" fill="none" stroke="#1d9bf0" stroke-width="2">
+                                    <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
+                                </path>
+                            </svg>
+                        </div>
+                        <iframe class="post-modal-iframe" src="chats.html" frameborder="0"></iframe>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Styles
+                const style = document.createElement('style');
+                style.textContent = `
+                    .post-modal {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        z-index: 1000;
+                        display: none;
+                        justify-content: center;
+                        align-items: center;
+                        opacity: 0;
+                        transition: opacity 0.2s ease;
+                    }
+                    .post-modal-overlay {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background-color: rgba(0, 0, 0, 0.4);
+                    }
+                    .post-modal-content {
+                        position: relative;
+                        background: white;
+                        border-radius: 16px;
+                        width: 600px;
+                        max-width: 90vw;
+                        height: 400px;
+                        max-height: 90vh;
+                        overflow: hidden;
+                        transform: translateY(20px);
+                        transition: transform 0.2s ease;
+                        z-index: 1001;
+                    }
+                    .post-modal-close {
+                        position: absolute;
+                        top: 8px;
+                        left: 8px;
+                        background: transparent;
+                        border: none;
+                        font-size: 20px;
+                        font-weight: bold;
+                        cursor: pointer;
+                        z-index: 1002;
+                        width: 34px;
+                        height: 34px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: #536471;
+                    }
+                    .post-modal-loader {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100%;
+                    }
+                    .post-modal-iframe {
+                        width: 100%;
+                        height: 100%;
+                        display: none;
+                    }
+                `;
+                document.head.appendChild(style);
+                
+                return modal;
+            }
+            
+            function openModal() {
+                const modal = createModal();
+                const iframe = modal.querySelector('.post-modal-iframe');
+                const loader = modal.querySelector('.post-modal-loader');
+                
+                document.body.style.overflow = 'hidden';
+                modal.style.display = 'flex';
+                
+                // Force reflow
+                void modal.offsetWidth;
+                
+                // Animate in
+                modal.style.opacity = '1';
+                modal.querySelector('.post-modal-content').style.transform = 'translateY(0)';
+                
+                // Show content after brief delay
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                    iframe.style.display = 'block';
+                    
+                    // Reset iframe source to ensure fresh load
+                    iframe.src = 'chats.html';
+                }, 500);
+            }
+            
+            function closeModal() {
+                if (!modal) return;
+                
+                modal.style.opacity = '0';
+                modal.querySelector('.post-modal-content').style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    const loader = modal.querySelector('.post-modal-loader');
+                    const iframe = modal.querySelector('.post-modal-iframe');
+                    
+                    loader.style.display = 'flex';
+                    iframe.style.display = 'none';
+                    document.body.style.overflow = '';
+                }, 200);
+            }
+            
+            // Event listeners
+            postBtn.addEventListener('click', openModal);
+            
+            // Delegate events since modal is created dynamically
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.post-modal-close') || 
+                    (modal && e.target === modal.querySelector('.post-modal-overlay'))) {
+                    closeModal();
+                }
+            });
+            
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+                    closeModal();
+                }
+            });
+        });
+    </script>
     
-    // Event listeners
-    postBtn.addEventListener('click', openModal);
-    closeBtn.addEventListener('click', closeModal);
-    
-    // Close when clicking outside
-    modal.addEventListener('click', function(e) {
-      if (e.target === modal) closeModal();
-    });
-    
-    // Handle escape key
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && modal.style.display === 'flex') closeModal();
-    });
-    
-    // Handle iframe errors by retrying
-    iframe.addEventListener('error', function() {
-      this.src = 'chats.html'; // Retry loading
-    });
-  });
-</script>
-<script>
-  // Font size synchronization script
-  (function() {
-    // Function to apply font size from localStorage
-    function applyFontSize() {
-      const size = localStorage.getItem('font-size') || '1';
-      document.body.style.fontSize = size + 'rem';
-      
-      // Add scaling to different elements if needed
-      const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
-      const paragraphs = document.querySelectorAll('p');
-      const buttons = document.querySelectorAll('button');
-      const inputs = document.querySelectorAll('input');
-      
-      headings.forEach(heading => {
-        const currentSize = window.getComputedStyle(heading).fontSize;
-        const baseSize = parseFloat(currentSize) / 16; // convert to rem
-        heading.style.fontSize = (baseSize * parseFloat(size)) + 'rem';
-      });
-      
-      paragraphs.forEach(p => {
-        p.style.fontSize = size + 'rem';
-      });
-      
-      buttons.forEach(button => {
-        button.style.fontSize = (parseFloat(size) * 0.9) + 'rem';
-      });
-      
-      inputs.forEach(input => {
-        input.style.fontSize = size + 'rem';
-      });
-    }
-    
-    // Apply immediately
-    applyFontSize();
-    
-    // Listen for changes
-    window.addEventListener('storage', function(event) {
-      if (event.key === 'font-size') {
-        applyFontSize();
-      }
-    });
-    
-    // Check every second for changes (backup method)
-    setInterval(function() {
-      const currentSize = document.body.style.fontSize;
-      const savedSize = localStorage.getItem('font-size') || '1';
-      
-      if (currentSize !== savedSize + 'rem') {
-        applyFontSize();
-      }
-    }, 1000);
-  })();
-</script>
+    <script>
+        // Font size synchronization with optimization
+        (function() {
+            const FONT_SIZE_KEY = 'font-size';
+            let currentSize = localStorage.getItem(FONT_SIZE_KEY) || '1';
+            
+            function applyFontSize(size = currentSize) {
+                try {
+                    document.body.style.fontSize = size + 'rem';
+                    currentSize = size;
+                } catch (e) {
+                    console.error('Error applying font size:', e);
+                }
+            }
+            
+            // Apply immediately
+            applyFontSize();
+            
+            // Listen for changes
+            window.addEventListener('storage', function(e) {
+                if (e.key === FONT_SIZE_KEY && e.newValue !== currentSize) {
+                    applyFontSize(e.newValue);
+                }
+            });
+            
+            // Fallback polling (less frequent)
+            setInterval(() => {
+                const savedSize = localStorage.getItem(FONT_SIZE_KEY);
+                if (savedSize && savedSize !== currentSize) {
+                    applyFontSize(savedSize);
+                }
+            }, 2000);
+        })();
+    </script>
 </body>
 </html>
