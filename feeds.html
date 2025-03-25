@@ -657,5 +657,162 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
     </script>
+    <script>
+// Theme Integration for Feeds.html
+(function() {
+    // Theme configuration
+    const ThemeManager = {
+        // Initialize theme manager
+        init: function() {
+            this.createStyleElement();
+            this.applyCurrentTheme();
+            this.setupEventListeners();
+            console.log('Feeds Theme Manager initialized');
+        },
+        
+        // Create dedicated style element
+        createStyleElement: function() {
+            const existingStyle = document.getElementById('feeds-theme-styles');
+            if (existingStyle) existingStyle.remove();
+            
+            const styleElement = document.createElement('style');
+            styleElement.id = 'feeds-theme-styles';
+            document.head.appendChild(styleElement);
+            return styleElement;
+        },
+        
+        // Apply current theme from localStorage
+        applyCurrentTheme: function() {
+            const themeName = localStorage.getItem('twitter-theme') || 'light';
+            this.applyTheme(themeName);
+        },
+        
+        // Apply specified theme
+        applyTheme: function(themeName) {
+            const validThemes = ['light', 'dim', 'dark'];
+            const theme = validThemes.includes(themeName) ? themeName : 'light';
+            const styleElement = document.getElementById('feeds-theme-styles') || this.createStyleElement();
+            
+            // Theme-specific CSS variables
+            const themeCSS = {
+                light: `
+                    :root {
+                        --white: #ffffff;
+                        --light-gray: #f0f0f0;
+                        --border-color: #e1e8ed;
+                        --text-primary: #14171a;
+                        --accent-blue: #1da1f2;
+                        --overlay-bg: rgba(0, 0, 0, 0.9);
+                    }
+                    body {
+                        background-color: var(--white);
+                        color: var(--text-primary);
+                    }
+                    .tab:hover {
+                        background-color: rgba(0, 0, 0, 0.05);
+                    }
+                    .article-card:hover {
+                        background-color: rgba(0, 0, 0, 0.03);
+                    }
+                `,
+                dim: `
+                    :root {
+                        --white: #15202b;
+                        --light-gray: #192734;
+                        --border-color: #38444d;
+                        --text-primary: #f7f9f9;
+                        --accent-blue: #1da1f2;
+                        --overlay-bg: rgba(0, 0, 0, 0.9);
+                    }
+                    body {
+                        background-color: var(--white);
+                        color: var(--text-primary);
+                    }
+                    .tab:hover {
+                        background-color: rgba(255, 255, 255, 0.05);
+                    }
+                    .article-card:hover {
+                        background-color: rgba(255, 255, 255, 0.03);
+                    }
+                    .article-text p {
+                        color: #8b98a5;
+                    }
+                    .skeleton {
+                        background: linear-gradient(to right, #192734 0%, #22303c 50%, #192734 100%);
+                    }
+                `,
+                dark: `
+                    :root {
+                        --white: #000000;
+                        --light-gray: #16181c;
+                        --border-color: #2f3336;
+                        --text-primary: #ffffff;
+                        --accent-blue: #1da1f2;
+                        --overlay-bg: rgba(0, 0, 0, 0.9);
+                    }
+                    body {
+                        background-color: var(--white);
+                        color: var(--text-primary);
+                    }
+                    .tab:hover {
+                        background-color: rgba(255, 255, 255, 0.05);
+                    }
+                    .article-card:hover {
+                        background-color: rgba(255, 255, 255, 0.03);
+                    }
+                    .article-text p {
+                        color: #71767b;
+                    }
+                    .skeleton {
+                        background: linear-gradient(to right, #16181c 0%, #1e2022 50%, #16181c 100%);
+                    }
+                `
+            };
+            
+            // Apply custom accent color if available
+            const savedColorValue = localStorage.getItem('color-value');
+            const savedColorIndex = localStorage.getItem('color-palette');
+            
+            let customColorCSS = '';
+            if (savedColorValue && savedColorIndex !== '0') {
+                customColorCSS = `
+                    .tab.active {
+                        color: ${savedColorValue};
+                    }
+                    .tab.active::after {
+                        background: ${savedColorValue};
+                    }
+                    .loading-more svg {
+                        fill: ${savedColorValue};
+                    }
+                `;
+            }
+            
+            // Set the CSS content
+            styleElement.textContent = themeCSS[theme] + customColorCSS;
+        },
+        
+        // Set up event listeners for theme changes
+        setupEventListeners: function() {
+            // Listen for localStorage changes
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'twitter-theme' || e.key === 'color-value' || e.key === 'color-palette') {
+                    this.applyCurrentTheme();
+                }
+            });
+            
+            // Check for theme changes periodically (fallback)
+            setInterval(() => {
+                this.applyCurrentTheme();
+            }, 3000);
+        }
+    };
+    
+    // Initialize with slight delay to ensure DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => ThemeManager.init(), 100);
+    });
+})();
+</script>
 </body>
 </html>
