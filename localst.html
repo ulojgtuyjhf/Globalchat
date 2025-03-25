@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalStorage Manager</title>
+    <style>
+        :root {
+            --primary: #e74c3c; /* Light red as requested */
+            --primary-hover: #c0392b;
+            --primary-light: #fadbd8;
+            --text: #333;
+            --text-light: #666;
+            --text-lighter: #999;
+            --bg: #fff;
+            --bg-light: #f5f5f5;
+            --border: #e0e0e0;
+            --positive: #27ae60;
+            --negative: #e74c3c;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --transition: all 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            font-size: 16px;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: var(--primary);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--bg-light);
+        }
+
+        .btn-danger {
+            background-color: var(--negative);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .stat-title {
+            font-size: 14px;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+
+        .stat-icon {
+            width: 36px;
+            height: 36px;
+            background-color: var(--primary-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .stat-change {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .stat-change.positive {
+            color: var(--positive);
+        }
+
+        .stat-change.negative {
+            color: var(--negative);
+        }
+
+        .storage-section {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .section-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--text);
+            background-color: var(--bg-light);
+        }
+
+        tr:hover {
+            background-color: var(--bg-light);
+        }
+
+        .key-cell {
+            font-weight: 500;
+            color: var(--primary);
+            word-break: break-word;
+        }
+
+        .value-cell {
+            word-break: break-word;
+            max-width: 400px;
+        }
+
+        .size-cell {
+            text-align: right;
+            color: var(--text-light);
+        }
+
+        .json-viewer {
+            background-color: var(--bg-light);
+            padding: 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            max-height: 150px;
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+            color: var(--text-light);
+            font-size: 13px;
+        }
+
+        /* Loading indicator */
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255,255,255,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--primary-light);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .section-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .btn {
+                flex: 1;
+                text-align: center;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 15px;
+            }
+            
+            .stat-card {
+                padding: 15px;
+            }
+            
+            th, td {
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+            
+            .section-title {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>LocalStorage Manager</h1>
+            <button class="btn btn-primary" id="refreshBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 4v6h-6"></path>
+                    <path d="M1 20v-6h6"></path>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path>
+                    <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"></path>
+                </svg>
+                Refresh
+            </button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">Total Items</span>
+                    <div class="stat-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-value" id="totalItemsValue">0</div>
+                <div class="stat-change" id="itemsChange">Loading...</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">Storage Used</span>
+                    <div class="stat-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-value" id="storageUsedValue">0 KB</div>
+                <div class="stat-change" id="storageChange">0% of capacity</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">Last Updated</span>
+                    <div class="stat-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-value" id="lastUpdatedValue">--:--</div>
+                <div class="stat-change" id="lastUpdatedChange">Just now</div>
+            </div>
+        </div>
+
+        <div class="storage-section">
+            <div class="section-header">
+                <div class="section-title">Storage Contents</div>
+                <div class="section-actions">
+                    <button class="btn btn-outline" id="exportBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Export
+                    </button>
+                    <button class="btn btn-danger" id="clearBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        Clear All
+                    </button>
+                </div>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Key</th>
+                        <th>Value</th>
+                        <th class="size-cell">Size</th>
+                    </tr>
+                </thead>
+                <tbody id="storageTableBody">
+                    <!-- Data will be inserted here -->
+                </tbody>
+            </table>
+            
+            <div class="footer">
+                <div id="totalItemsCount">Total: 0 items</div>
+                <div id="totalStorageSize">Size: 0 KB</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+       document.addEventListener('DOMContentLoaded', function() {
+  // DOM Elements
+  const refreshBtn = document.getElementById('refreshBtn');
+  const totalItemsValue = document.getElementById('totalItemsValue');
+  const itemsChange = document.getElementById('itemsChange');
+  const storageUsedValue = document.getElementById('storageUsedValue');
+  const storageChange = document.getElementById('storageChange');
+  const lastUpdatedValue = document.getElementById('lastUpdatedValue');
+  const lastUpdatedChange = document.getElementById('lastUpdatedChange');
+  const storageTableBody = document.getElementById('storageTableBody');
+  const totalItemsCount = document.getElementById('totalItemsCount');
+  const totalStorageSize = document.getElementById('totalStorageSize');
+  const exportBtn = document.getElementById('exportBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  
+  // Configuration
+  const config = {
+    maxItemsToDisplay: 200, // Hard limit for displayed items
+    valueDisplayLimit: 200, // Max characters to show for values
+    skipKeys: ['_', 'debug', 'undefined'] // Keys to skip
+  };
+  
+  // State
+  let lastUpdateTime = null;
+  let previousItemCount = 0;
+  let currentData = {
+    items: [],
+    totalSize: 0
+  };
+  
+  // Initialize
+  loadStorageData();
+  updateLastUpdated();
+  
+  // Event listeners
+  refreshBtn.addEventListener('click', function() {
+    showLoading();
+    setTimeout(() => {
+      loadStorageData();
+      updateLastUpdated();
+      hideLoading();
+    }, 100);
+  });
+  
+  exportBtn.addEventListener('click', exportStorage);
+  clearBtn.addEventListener('click', confirmClearStorage);
+  
+  // Main function to load storage data
+  function loadStorageData() {
+    const startTime = performance.now();
+    let totalSize = 0;
+    const items = [];
+    
+    // Clear existing rows
+    storageTableBody.innerHTML = '';
+    
+    // Process localStorage items efficiently
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      
+      // Skip unwanted keys
+      if (config.skipKeys.some(skip => key.startsWith(skip))) {
+        continue;
+      }
+      
+      const value = localStorage.getItem(key);
+      const size = value ? value.length : 0; // Approximate size
+      totalSize += size;
+      
+      if (items.length < config.maxItemsToDisplay) {
+        items.push({
+          key,
+          value,
+          size
+        });
+      }
+    }
+    
+    // Store current data
+    currentData = {
+      items,
+      totalSize
+    };
+    
+    // Update UI
+    updateStatistics(items.length, totalSize);
+    renderTableRows(items);
+    
+    console.log(`Loaded ${items.length} items (${formatSize(totalSize)}) in ${(performance.now() - startTime).toFixed(1)}ms`);
+  }
+  
+  function renderTableRows(items) {
+    const fragment = document.createDocumentFragment();
+    
+    items.forEach(item => {
+      const row = document.createElement('tr');
+      let displayValue = item.value;
+      
+      // Simple value truncation without JSON parsing
+      if (displayValue && displayValue.length > config.valueDisplayLimit) {
+        displayValue = displayValue.substring(0, config.valueDisplayLimit) + '... [truncated]';
+      }
+      
+      row.innerHTML = `
+                <td class="key-cell">${escapeHtml(item.key)}</td>
+                <td class="value-cell">${escapeHtml(displayValue)}</td>
+                <td class="size-cell">${formatSize(item.size)}</td>
+            `;
+      
+      fragment.appendChild(row);
+    });
+    
+    storageTableBody.appendChild(fragment);
+    
+    // Add warning if we hit the limit
+    if (currentData.items.length > config.maxItemsToDisplay) {
+      const warningRow = document.createElement('tr');
+      warningRow.innerHTML = `
+                <td colspan="3" style="text-align: center; color: var(--negative); padding: 16px;">
+                    Showing first ${config.maxItemsToDisplay} items (${currentData.items.length - config.maxItemsToDisplay} more not displayed)
+                </td>
+            `;
+      storageTableBody.appendChild(warningRow);
+    }
+  }
+  
+  function updateStatistics(itemCount, totalSize) {
+    totalItemsValue.textContent = itemCount;
+    storageUsedValue.textContent = formatSize(totalSize);
+    
+    const percentageUsed = Math.min(Math.round((totalSize / (5 * 1024 * 1024)) * 100), 100);
+    storageChange.textContent = `${percentageUsed}% of capacity`;
+    
+    if (previousItemCount > 0) {
+      const diff = itemCount - previousItemCount;
+      if (diff > 0) {
+        itemsChange.textContent = `+${diff} since last refresh`;
+        itemsChange.className = 'stat-change positive';
+      } else if (diff < 0) {
+        itemsChange.textContent = `${diff} since last refresh`;
+        itemsChange.className = 'stat-change negative';
+      } else {
+        itemsChange.textContent = `No change since last refresh`;
+        itemsChange.className = 'stat-change';
+      }
+    }
+    
+    previousItemCount = itemCount;
+    totalItemsCount.textContent = `Total: ${itemCount} items`;
+    totalStorageSize.textContent = `Size: ${formatSize(totalSize)}`;
+  }
+  
+  function updateLastUpdated() {
+    const now = new Date();
+    lastUpdateTime = now;
+    
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateStr = now.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    
+    lastUpdatedValue.textContent = timeStr;
+    lastUpdatedChange.textContent = `Updated at ${timeStr} on ${dateStr}`;
+  }
+  
+  function exportStorage() {
+    try {
+      const data = {};
+      
+      // Export only the visible items
+      currentData.items.forEach(item => {
+        data[item.key] = item.value; // Export raw value without parsing
+      });
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `localstorage_export_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    } catch (error) {
+      alert('Error exporting data: ' + error.message);
+    }
+  }
+  
+  function confirmClearStorage() {
+    if (confirm('Are you sure you want to clear ALL localStorage data? This cannot be undone.')) {
+      showLoading();
+      setTimeout(() => {
+        localStorage.clear();
+        currentData = { items: [], totalSize: 0 };
+        updateStatistics(0, 0);
+        storageTableBody.innerHTML = '';
+        updateLastUpdated();
+        hideLoading();
+      }, 100);
+    }
+  }
+  
+  // Utility functions
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+  
+  function escapeHtml(unsafe) {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+  
+  function showLoading() {
+    loadingOverlay.style.display = 'flex';
+  }
+  
+  function hideLoading() {
+    loadingOverlay.style.display = 'none';
+  }
+});
+    </script>
+
+    <!-- Theme support (simplified) -->
+    <script>
+        (function() {
+            // Apply theme based on localStorage
+            function applyTheme() {
+                const theme = localStorage.getItem('theme') || 'light';
+                document.documentElement.setAttribute('data-theme', theme);
+            }
+            
+            // Initialize
+            applyTheme();
+            
+            // Listen for theme changes
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'theme') {
+                    applyTheme();
+                }
+            });
+        })();
+    </script>
+
+    <!-- Color palette support (simplified) -->
+    <script>
+        (function() {
+            // Apply color from localStorage
+            function applyColor() {
+                const color = localStorage.getItem('color-value') || '#e74c3c';
+                document.documentElement.style.setProperty('--primary', color);
+                document.documentElement.style.setProperty('--primary-hover', darkenColor(color, 0.1));
+                document.documentElement.style.setProperty('--primary-light', lightenColor(color, 0.9));
+            }
+            
+            // Helper functions
+            function darkenColor(hex, percent) {
+                hex = hex.replace('#', '');
+                const r = Math.floor(parseInt(hex.substring(0, 2), 16) * (1 - percent);
+                const g = Math.floor(parseInt(hex.substring(2, 4), 16) * (1 - percent);
+                const b = Math.floor(parseInt(hex.substring(4, 6), 16) * (1 - percent);
+                return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
+            }
+            
+            function lightenColor(hex, percent) {
+                hex = hex.replace('#', '');
+                const r = Math.floor(parseInt(hex.substring(0, 2), 16) + (255 - parseInt(hex.substring(0, 2), 16)) * percent;
+                const g = Math.floor(parseInt(hex.substring(2, 4), 16) + (255 - parseInt(hex.substring(2, 4), 16)) * percent;
+                const b = Math.floor(parseInt(hex.substring(4, 6), 16) + (255 - parseInt(hex.substring(4, 6), 16)) * percent;
+                return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
+            }
+            
+            // Initialize
+            applyColor();
+            
+            // Listen for color changes
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'color-value') {
+                    applyColor();
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
