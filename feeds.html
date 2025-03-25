@@ -1,469 +1,661 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>News Feed</title>
+    <title>Modern News Feed</title>
     <style>
+        :root {
+            --white: #ffffff;
+            --light-gray: #f0f0f0;
+            --border-color: #e1e8ed;
+            --text-primary: #14171a;
+            --accent-blue: #1da1f2;
+            --overlay-bg: rgba(0, 0, 0, 0.9);
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-
+        
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .skeleton {
+            background: linear-gradient(to right, #f0f0f0 0%, #e0e0e0 50%, #f0f0f0 100%);
+            background-size: 1000px 100%;
+            animation: shimmer 1.5s infinite linear;
+        }
+        
         body {
-            background-color: #ffffff;
-            color: #14171a;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--white);
+            color: var(--text-primary);
+            line-height: 1.6;
         }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+        
+        .tabs-container {
             display: flex;
-        }
-
-        .feed-container {
-            flex: 3;
-            border-right: 1px solid #e1e8ed;
-        }
-
-        .trending-container {
-            flex: 1;
-            padding: 20px;
-            height: 100vh;
-            overflow-y: auto;
+            overflow-x: auto;
+            background: var(--white);
+            border-bottom: 1px solid var(--border-color);
             position: sticky;
             top: 0;
+            z-index: 100;
+            padding: 0 20px;
+            scrollbar-width: none;
         }
-
-        .tabs {
-            display: flex;
-            border-bottom: 1px solid #e1e8ed;
-            position: sticky;
-            top: 0;
-            background-color: #ffffff;
-            z-index: 10;
+        
+        .tabs-container::-webkit-scrollbar {
+            display: none;
         }
-
+        
         .tab {
-            flex: 1;
-            text-align: center;
-            padding: 15px;
+            padding: 15px 20px;
             cursor: pointer;
-            font-weight: bold;
+            white-space: nowrap;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
         }
-
+        
+        .tab:hover {
+            background-color: var(--light-gray);
+        }
+        
         .tab.active {
-            color: #1da1f2;
-            border-bottom: 2px solid #1da1f2;
+            color: var(--accent-blue);
         }
-
-        .feed {
-            display: flex;
-            flex-direction: column;
+        
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 20px;
+            right: 20px;
+            height: 2px;
+            background: var(--accent-blue);
+            animation: underline 0.3s ease-out;
         }
-
-        .article {
+        
+        @keyframes underline {
+            from { transform: scaleX(0); }
+            to { transform: scaleX(1); }
+        }
+        
+        .feed-container {
+            max-width: 720px;
+            margin: 0 auto;
             padding: 20px;
-            border-bottom: 1px solid #e1e8ed;
+        }
+        
+        .article-card {
+            display: flex;
+            align-items: flex-start;
+            padding: 25px 0;
+            border-bottom: 1px solid var(--border-color);
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.2s ease;
+            animation: fadeIn 0.5s ease-out forwards;
+            opacity: 0;
         }
-
-        .article:hover {
-            background-color: #f5f8fa;
+        
+        .article-card:hover {
+            background-color: var(--light-gray);
         }
-
-        .article-title {
-            font-size: 18px;
-            font-weight: bold;
+        
+        .article-text {
+            flex: 3;
+            padding-right: 25px;
+        }
+        
+        .article-text h2 {
+            font-size: 22px;
             margin-bottom: 10px;
+            line-height: 1.3;
         }
-
-        .article-summary {
+        
+        .article-text p {
+            color: #555;
+            font-size: 16px;
             margin-bottom: 15px;
-            line-height: 1.5;
-            max-height: 100px;
-            overflow: hidden;
         }
-
-        .article-summary.expanded {
-            max-height: none;
-        }
-
+        
         .article-image {
-            width: 100%;
-            max-height: 250px;
+            flex: 1;
+            width: 150px;
+            height: 150px;
             object-fit: cover;
-            border-radius: 10px;
-            margin-bottom: 15px;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
         }
-
+        
+        .article-card:hover .article-image {
+            transform: scale(1.03);
+        }
+        
+        .skeleton-card {
+            display: flex;
+            padding: 25px 0;
+            border-bottom: 1px solid var(--border-color);
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .skeleton-text {
+            flex: 3;
+            margin-right: 25px;
+        }
+        
+        .skeleton-image {
+            flex: 1;
+            width: 150px;
+            height: 150px;
+            background: var(--light-gray);
+            border-radius: 8px;
+        }
+        
+        .skeleton-line {
+            height: 15px;
+            margin-bottom: 15px;
+            background: var(--light-gray);
+            border-radius: 4px;
+        }
+        
+        .full-article-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--overlay-bg);
+            display: none;
+            flex-direction: column;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            overflow-y: auto;
+        }
+        
+        .full-article-header {
+            position: sticky;
+            top: 0;
+            background: var(--overlay-bg);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            z-index: 1001;
+        }
+        
+        .back-button {
+            color: var(--white);
+            font-size: 24px;
+            margin-right: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        
+        .back-button svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+        
+        .full-article-content {
+            background: var(--white);
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            border-radius: 12px 12px 0 0;
+            padding: 30px 40px;
+            flex-grow: 1;
+        }
+        
+        .full-article-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .close-button {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 30px;
+            cursor: pointer;
+            color: var(--text-primary);
+            background: rgba(255,255,255,0.8);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .close-button:hover {
+            background: var(--white);
+            transform: scale(1.1);
+        }
+        
         .article-meta {
             display: flex;
-            justify-content: space-between;
-            color: #657786;
+            align-items: center;
+            margin-bottom: 20px;
             font-size: 14px;
-            margin-top: 10px;
+            color: #666;
         }
-
-        .show-more-btn {
-            color: #1da1f2;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 5px;
-            display: inline-block;
+        
+        .article-date {
+            margin-right: 15px;
         }
-
-        .trending-title {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-
-        .trending-item {
-            padding: 15px 0;
-            border-bottom: 1px solid #e1e8ed;
-            cursor: pointer;
-        }
-
-        .trending-item:hover {
-            color: #1da1f2;
-        }
-
-        .trending-topic {
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .trending-category {
-            color: #657786;
-            font-size: 14px;
-        }
-
-        .loading {
-            padding: 20px;
+        
+        .loading-more {
             text-align: center;
-            color: #657786;
-        }
-
-        .shimmer {
-            background: linear-gradient(90deg, #f5f8fa 0%, #e1e8ed 50%, #f5f8fa 100%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-        }
-
-        .loading-article {
             padding: 20px;
-            border-bottom: 1px solid #e1e8ed;
-        }
-
-        .loading-title {
-            height: 24px;
-            width: 70%;
-            margin-bottom: 10px;
-            border-radius: 4px;
-        }
-
-        .loading-summary {
-            height: 80px;
-            margin-bottom: 15px;
-            border-radius: 4px;
-        }
-
-        .loading-image {
-            height: 200px;
-            margin-bottom: 15px;
-            border-radius: 10px;
-        }
-
-        @keyframes shimmer {
-            0% {
-                background-position: -200% 0;
-            }
-            100% {
-                background-position: 200% 0;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                flex-direction: column;
-            }
-
-            .trending-container {
-                height: auto;
-                border-top: 1px solid #e1e8ed;
-                border-bottom: 1px solid #e1e8ed;
-                margin-bottom: 20px;
-            }
-
-            .feed-container {
-                border-right: none;
-            }
+            color: var(--accent-blue);
+            font-weight: 500;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="feed-container">
-            <div class="tabs">
-                <div class="tab active" data-category="general">For You</div>
-                <div class="tab" data-category="technology">Technology</div>
-                <div class="tab" data-category="science">Science</div>
-                <div class="tab" data-category="health">Health</div>
+    <div class="tabs-container" id="tabsContainer"></div>
+    <div class="feed-container" id="feedContainer"></div>
+    <div class="full-article-overlay" id="fullArticleOverlay">
+        <div class="full-article-header">
+            <div class="back-button" id="backButton">
+                <svg viewBox="0 0 24 24">
+                    <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                </svg>
             </div>
-            <div class="feed" id="feed">
-                <!-- Articles will be loaded here -->
-                <div class="loading-article">
-                    <div class="loading-title shimmer"></div>
-                    <div class="loading-summary shimmer"></div>
-                    <div class="loading-image shimmer"></div>
-                </div>
-                <div class="loading-article">
-                    <div class="loading-title shimmer"></div>
-                    <div class="loading-summary shimmer"></div>
-                    <div class="loading-image shimmer"></div>
-                </div>
-            </div>
+            <div style="color: white; font-weight: 500;">Back to feed</div>
         </div>
-        <div class="trending-container" id="trending">
-            <div class="trending-title">Trending Topics</div>
-            <!-- Trending topics will be loaded here -->
-        </div>
+        <div class="full-article-content" id="fullArticleContent"></div>
     </div>
 
     <script>
-        // Tab functionality
-        const tabs = document.querySelectorAll('.tab');
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                loadFeed(tab.dataset.category);
-            });
-        });
-
-        // Wikipedia API integration
-        const feed = document.getElementById('feed');
-        const trending = document.getElementById('trending');
-
-        // Category to topics mapping
-        const categoryTopics = {
-            general: ['Current_events', 'World_news', 'Politics', 'Economics', 'Entertainment', 'Sports'],
-            technology: ['Artificial_intelligence', 'Blockchain', 'Quantum_computing', 'Robotics', 'Virtual_reality', 'Cybersecurity'],
-            science: ['Space_exploration', 'Physics', 'Astronomy', 'Biology', 'Chemistry', 'Environmental_science'],
-            health: ['Medical_research', 'Nutrition', 'Mental_health', 'Diseases', 'Vaccines', 'Public_health']
-        };
-
-        // Trending topics across categories
-        let trendingTopics = [
-            { topic: 'Artificial_intelligence', category: 'Technology' },
-            { topic: 'Climate_change', category: 'Science' },
-            { topic: 'COVID-19', category: 'Health' },
-            { topic: 'Cryptocurrency', category: 'Technology' },
-            { topic: 'Space_exploration', category: 'Science' },
-            { topic: 'Quantum_computing', category: 'Technology' },
-            { topic: 'Renewable_energy', category: 'Science' },
-            { topic: 'Mental_health', category: 'Health' },
-            { topic: 'Global_politics', category: 'General' },
-            { topic: 'Cybersecurity', category: 'Technology' }
+class ProfessionalNewsFeed {
+    constructor() {
+        // Expanded categories with additional options for diversity
+        this.categories = [
+            'Tech', 'Science', 'Innovation', 
+            'Global News', 'Health', 'Environment',
+            'Business', 'Politics', 'Culture',
+            'History', 'Sports', 'Entertainment'
         ];
-
-        // Randomize topics and trending
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
+        
+        // Expanded topics list including more varied subjects
+        this.allTopics = [
+            'Artificial Intelligence', 'Space Exploration', 
+            'Quantum Computing', 'Climate Change', 
+            'Medical Research', 'Renewable Energy',
+            'Blockchain', '5G Technology', 'COVID-19',
+            'Mars Exploration', 'Cybersecurity', 'Nanotechnology',
+            'Machine Learning', 'Virtual Reality', 'Augmented Reality',
+            'Autonomous Vehicles', 'CRISPR', 'Neural Networks',
+            'Internet of Things', 'Edge Computing', 'Smart Cities',
+            'Renaissance Art', 'Ancient History', 'Modern Politics',
+            'Global Economy', 'Olympic Games', 'Film Industry'
+        ];
+        
+        this.currentCategory = this.categories[0];
+        this.isLoading = false;
+        this.displayedArticles = new Set(); // Prevent duplicates
+        this.currentTopics = [];
+        this.skeletonCount = 8;
+        this.pageSize = 8; // Number of articles per batch
+        this.currentPage = 0;
+        
+        this.initializeTabs();
+        this.loadArticles();
+        this.setupEventListeners();
+    }
+    
+    shuffleArray(array) {
+        // Fisher-Yates shuffle algorithm
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
         }
+        return array;
+    }
+    
+    initializeTabs() {
+        const tabsContainer = document.getElementById('tabsContainer');
+        tabsContainer.innerHTML = ''; // Clear previous tabs if any
+        const shuffledCategories = this.shuffleArray([...this.categories]);
+        
+        shuffledCategories.forEach((category, index) => {
+            const tab = document.createElement('div');
+            tab.className = `tab ${index === 0 ? 'active' : ''}`;
+            tab.textContent = category;
+            tab.dataset.category = category;
+            tab.addEventListener('click', () => this.handleTabClick(category, tab));
+            tabsContainer.appendChild(tab);
+        });
+    }
 
-        // Randomize all topic categories
-        for (const category in categoryTopics) {
-            categoryTopics[category] = shuffleArray([...categoryTopics[category]]);
+    handleTabClick(category, clickedTab) {
+        this.currentCategory = category;
+        this.currentPage = 0;
+        this.displayedArticles.clear();
+        
+        // Update active tab UI
+        document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+        clickedTab.classList.add('active');
+        
+        // Load new topics for the selected category
+        this.currentTopics = this.getTopicsForCategory(category);
+        this.loadArticles();
+    }
+    
+    getTopicsForCategory(category) {
+        // Mapping of category to related topics; if not found, use allTopics
+        const categoryMap = {
+            'Tech': ['Artificial Intelligence', 'Quantum Computing', 'Blockchain', 
+                     '5G Technology', 'Machine Learning', 'Virtual Reality'],
+            'Science': ['Space Exploration', 'CRISPR', 'Nanotechnology',
+                        'Neural Networks', 'Medical Research'],
+            'Health': ['COVID-19', 'Medical Research', 'CRISPR', 'Vaccines'],
+            'Environment': ['Climate Change', 'Renewable Energy', 'Sustainability'],
+            'History': ['Ancient History', 'Renaissance Art', 'Modern Politics'],
+            'Sports': ['Olympic Games', 'Global Economy', 'Film Industry'], // example topics
+            'Entertainment': ['Film Industry', 'Virtual Reality', 'Augmented Reality']
+            // Additional mappings can be added here
+        };
+        
+        return this.shuffleArray([... (categoryMap[category] || this.allTopics)]);
+    }
+    
+    loadArticles() {
+        const feedContainer = document.getElementById('feedContainer');
+        feedContainer.innerHTML = '';
+        this.showSkeletonLoaders();
+        
+        // Reset topics on a new category selection if on page 0
+        if (this.currentPage === 0) {
+            this.currentTopics = this.getTopicsForCategory(this.currentCategory);
         }
-
-        // Randomize trending topics
-        trendingTopics = shuffleArray([...trendingTopics]);
-
-        // Load initial feed
-        loadFeed('general');
-        loadTrending();
-
-        // Function to display articles by category
-        function loadFeed(category) {
-            // Show loading state
-            feed.innerHTML = `
-                <div class="loading-article">
-                    <div class="loading-title shimmer"></div>
-                    <div class="loading-summary shimmer"></div>
-                    <div class="loading-image shimmer"></div>
+        
+        // Fetch articles after skeleton display
+        this.fetchArticles(true);
+    }
+    
+    showSkeletonLoaders() {
+        const feedContainer = document.getElementById('feedContainer');
+        feedContainer.innerHTML = '';
+        
+        for (let i = 0; i < this.skeletonCount; i++) {
+            const skeleton = document.createElement('div');
+            skeleton.className = 'skeleton-card';
+            skeleton.style.animationDelay = `${i * 0.1}s`;
+            skeleton.innerHTML = `
+                <div class="skeleton-text">
+                    <div class="skeleton skeleton-line" style="width: ${70 + Math.random() * 20}%"></div>
+                    <div class="skeleton skeleton-line" style="width: ${80 + Math.random() * 15}%"></div>
+                    <div class="skeleton skeleton-line" style="width: ${50 + Math.random() * 30}%"></div>
+                    <div class="skeleton skeleton-line" style="width: ${30 + Math.random() * 20}%"></div>
                 </div>
-                <div class="loading-article">
-                    <div class="loading-title shimmer"></div>
-                    <div class="loading-summary shimmer"></div>
-                    <div class="loading-image shimmer"></div>
-                </div>
+                <div class="skeleton skeleton-image"></div>
             `;
-
-            const topics = categoryTopics[category];
-            
-            // Fetch articles for each topic
-            Promise.all(topics.map(topic => fetchWikipediaSummary(topic)))
-                .then(results => {
-                    feed.innerHTML = ''; // Clear loading state
-                    
-                    results.forEach(result => {
-                        if (result) {
-                            createArticle(result);
-                        }
-                    });
-                })
-                .catch(error => {
-                    console.error('Error loading feed:', error);
-                    feed.innerHTML = '<div class="loading">Error loading articles. Please try again.</div>';
-                });
+            feedContainer.appendChild(skeleton);
         }
-
-        // Load trending topics
-        function loadTrending() {
-            trending.innerHTML = '<div class="trending-title">Trending Topics</div>';
-            
-            trendingTopics.forEach(item => {
-                const topicDisplay = item.topic.replace(/_/g, ' ');
-                
-                const trendingItem = document.createElement('div');
-                trendingItem.className = 'trending-item';
-                trendingItem.innerHTML = `
-                    <div class="trending-topic">${topicDisplay}</div>
-                    <div class="trending-category">${item.category}</div>
-                `;
-                
-                trendingItem.addEventListener('click', () => {
-                    fetchWikipediaSummary(item.topic)
-                        .then(result => {
-                            if (result) {
-                                // Clear feed and show just this article
-                                feed.innerHTML = '';
-                                createArticle(result);
-                                
-                                // Highlight the corresponding tab
-                                const category = item.category.toLowerCase();
-                                tabs.forEach(tab => {
-                                    tab.classList.remove('active');
-                                    if (tab.dataset.category === category) {
-                                        tab.classList.add('active');
-                                    }
-                                });
-                            }
-                        });
-                });
-                
-                trending.appendChild(trendingItem);
-            });
+    }
+    
+    async fetchArticles(initialLoad = false) {
+        if (this.isLoading) return;
+        this.isLoading = true;
+        
+        const feedContainer = document.getElementById('feedContainer');
+        if (!initialLoad) {
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.className = 'loading-more';
+            loadingIndicator.innerHTML = `
+                <div class="skeleton-line" style="width: 120px; margin: 0 auto; height: 20px;"></div>
+            `;
+            feedContainer.appendChild(loadingIndicator);
         }
-
-        // Fetch data from Wikipedia API
-        function fetchWikipediaSummary(topic) {
-            const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topic)}`;
+        
+        try {
+            const startIdx = this.currentPage * this.pageSize;
+            const topicsFromList = this.currentTopics.slice(startIdx, startIdx + this.pageSize);
+            const countFromList = topicsFromList.length;
+            const remainingCount = this.pageSize - countFromList;
             
-            return fetch(url)
+            // Fetch articles for topics in the current category
+            const articlePromisesFromList = topicsFromList.map(topic => 
+                Promise.race([
+                    fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topic)}`),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000))
+                ])
                 .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
+                    if (!response.ok) throw new Error('Network response was not ok');
                     return response.json();
                 })
-                .then(data => {
-                    return {
-                        title: data.title,
-                        extract: data.extract,
-                        thumbnail: data.thumbnail ? data.thumbnail.source : null,
-                        url: data.content_urls ? data.content_urls.desktop.page : null
-                    };
+                .catch(error => {
+                    console.error(`Failed to fetch ${topic}:`, error);
+                    return null;
+                })
+            );
+            
+            // For any missing articles, use the random summary API
+            const articlePromisesRandom = Array.from({length: remainingCount}, () =>
+                Promise.race([
+                    fetch(`https://en.wikipedia.org/api/rest_v1/page/random/summary`),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000))
+                ])
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
                 })
                 .catch(error => {
-                    console.error(`Error fetching Wikipedia summary for ${topic}:`, error);
+                    console.error('Failed to fetch random article:', error);
                     return null;
-                });
+                })
+            );
+            
+            const articlePromises = [...articlePromisesFromList, ...articlePromisesRandom];
+            const articles = await Promise.all(articlePromises);
+            const validArticles = articles.filter(article =>
+                article &&
+                !this.displayedArticles.has(article.title) &&
+                (!article.thumbnail || (article.thumbnail && !article.thumbnail.source.includes('Disambiguation')))
+            );
+            
+            // Remove loading indicators and skeletons
+            if (!initialLoad) {
+                const loadingIndicator = feedContainer.querySelector('.loading-more');
+                if (loadingIndicator) feedContainer.removeChild(loadingIndicator);
+            }
+            if (initialLoad) feedContainer.innerHTML = '';
+            
+            // Render articles with staggered animation
+            validArticles.forEach((article, index) => {
+                this.displayedArticles.add(article.title);
+                this.renderArticle(article, index);
+            });
+            
+            this.currentPage++;
+            // Refresh topics when near exhaustion for seamless infinite scrolling
+            if (this.currentPage * this.pageSize >= this.currentTopics.length - 2) {
+                this.currentTopics = this.getTopicsForCategory(this.currentCategory);
+                this.currentPage = 0;
+            }
+        } catch (error) {
+            console.error('Error fetching articles:', error);
+            this.showErrorState();
+        } finally {
+            this.isLoading = false;
         }
-
-        // Create article element with show more/less functionality
-        function createArticle(data) {
-            const article = document.createElement('div');
-            article.className = 'article';
-            
-            // Random time (within last 24 hours)
-            const hours = Math.floor(Math.random() * 24);
-            const timeString = hours === 0 ? 'Just now' : `${hours}h ago`;
-            
-            // Create a truncated version for summary
-            const needsShowMore = data.extract.length > 200;
-            
-            let html = `
-                <div class="article-title">${data.title}</div>
-                <div class="article-summary">${data.extract}</div>
-            `;
-            
-            if (needsShowMore) {
-                html += `<div class="show-more-btn">Show more</div>`;
-            }
-            
-            if (data.thumbnail) {
-                html += `<img class="article-image" src="${data.thumbnail}" alt="${data.title}">`;
-            }
-            
-            html += `
+    }
+    
+    showNoMoreArticles() {
+        const feedContainer = document.getElementById('feedContainer');
+        const endMarker = document.createElement('div');
+        endMarker.className = 'loading-more';
+        endMarker.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#1da1f2">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                <path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm1-8h-2V7h2v2z"/>
+            </svg>
+            <p style="margin-top: 8px;">You've reached the end</p>
+        `;
+        feedContainer.appendChild(endMarker);
+    }
+    
+    showErrorState() {
+        const feedContainer = document.getElementById('feedContainer');
+        const errorMsg = document.createElement('div');
+        errorMsg.className = 'loading-more';
+        errorMsg.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#ff4444">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+            <p style="margin-top: 8px;">Failed to load articles. Try again</p>
+        `;
+        feedContainer.appendChild(errorMsg);
+    }
+    
+    renderArticle(article, index) {
+        const feedContainer = document.getElementById('feedContainer');
+        const articleCard = document.createElement('div');
+        articleCard.className = 'article-card';
+        articleCard.style.animationDelay = `${index * 0.15}s`;
+        
+        let dateElement = '';
+        if (article.timestamp) {
+            const date = new Date(article.timestamp);
+            dateElement = `
                 <div class="article-meta">
-                    <span>${timeString}</span>
-                    <span>${Math.floor(Math.random() * 1000) + 100} readers</span>
+                    <span class="article-date">${date.toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                    })}</span>
                 </div>
             `;
-            
-            article.innerHTML = html;
-            
-            // Add show more/less functionality
-            if (needsShowMore) {
-                const summaryElement = article.querySelector('.article-summary');
-                const showMoreBtn = article.querySelector('.show-more-btn');
-                
-                showMoreBtn.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Prevent article click
-                    
-                    if (summaryElement.classList.contains('expanded')) {
-                        summaryElement.classList.remove('expanded');
-                        showMoreBtn.textContent = 'Show more';
-                    } else {
-                        summaryElement.classList.add('expanded');
-                        showMoreBtn.textContent = 'Show less';
-                    }
-                });
-            }
-            
-            feed.appendChild(article);
         }
-
-        // Auto refresh and randomize content every minute
-        setInterval(() => {
-            // Shuffle topics in each category
-            for (const category in categoryTopics) {
-                categoryTopics[category] = shuffleArray([...categoryTopics[category]]);
+        
+        articleCard.innerHTML = `
+            <div class="article-text">
+                ${dateElement}
+                <h2>${article.title}</h2>
+                <p>${article.extract.substring(0, 200)}${article.extract.length > 200 ? '...' : ''}</p>
+            </div>
+            ${article.thumbnail ? 
+                `<img src="${article.thumbnail.source}" alt="${article.title}" 
+                     class="article-image" 
+                     loading="lazy"
+                     onerror="this.onerror=null;this.className='skeleton skeleton-image'">` : 
+                `<div class="skeleton skeleton-image"></div>`
             }
-            
-            // Shuffle trending topics
-            trendingTopics = shuffleArray([...trendingTopics]);
-            
-            // Reload current tab
-            const activeTab = document.querySelector('.tab.active');
-            loadFeed(activeTab.dataset.category);
-            
-            // Reload trending
-            loadTrending();
-        }, 60000);
+        `;
+        
+        // On click, show the full article directly on your platform
+        articleCard.addEventListener('click', () => this.showFullArticle(article));
+        feedContainer.appendChild(articleCard);
+    }
+    
+    showFullArticle(article) {
+        const overlay = document.getElementById('fullArticleOverlay');
+        const content = document.getElementById('fullArticleContent');
+        
+        let dateElement = '';
+        if (article.timestamp) {
+            const date = new Date(article.timestamp);
+            dateElement = `
+                <div class="article-meta">
+                    <span class="article-date">${date.toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    })}</span>
+                </div>
+            `;
+        }
+        
+        // Build full article view without any external links and ensure its own scroll
+        content.innerHTML = `
+            <span class="close-button" id="closeButton">&times;</span>
+            <h1>${article.title}</h1>
+            ${dateElement}
+            ${article.thumbnail ? 
+                `<img src="${article.thumbnail.source}" alt="${article.title}" 
+                     class="full-article-image"
+                     loading="eager">` : ''
+            }
+            <div class="article-body">
+                ${article.extract}
+                ${article.description ? `<p class="article-description">${article.description}</p>` : ''}
+            </div>
+        `;
+        
+        // Show overlay and disable background scroll
+        overlay.style.display = 'flex';
+        setTimeout(() => overlay.style.opacity = '1', 10);
+        overlay.scrollTo(0, 0);
+        document.body.style.overflow = 'hidden';
+    }
+    
+    setupEventListeners() {
+        let isScrolling;
+        window.addEventListener('scroll', () => {
+            clearTimeout(isScrolling);
+            isScrolling = setTimeout(() => {
+                const scrollPosition = window.innerHeight + window.scrollY;
+                const documentHeight = document.body.offsetHeight;
+                if (scrollPosition >= documentHeight - 400 && !this.isLoading) {
+                    this.fetchArticles();
+                }
+            }, 100);
+        }, { passive: true });
+        
+        document.getElementById('backButton').addEventListener('click', () => this.closeArticleOverlay());
+        
+        document.getElementById('fullArticleOverlay').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('fullArticleOverlay')) {
+                this.closeArticleOverlay();
+            }
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.closeArticleOverlay();
+            }
+        });
+    }
+    
+    closeArticleOverlay() {
+        const overlay = document.getElementById('fullArticleOverlay');
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            document.body.style.overflow = ''; // Re-enable background scrolling
+        }, 300);
+    }
+}
+
+// Initialize after DOM content is loaded with performance optimization
+document.addEventListener('DOMContentLoaded', () => {
+    if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(() => new ProfessionalNewsFeed(), { timeout: 1000 });
+    } else {
+        setTimeout(() => new ProfessionalNewsFeed(), 300);
+    }
+});
     </script>
 </body>
 </html>
