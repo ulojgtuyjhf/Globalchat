@@ -960,170 +960,170 @@ body {
     </div>
 
 <script>
-// Optimized LocalStorage Dashboard Script
-document.addEventListener('DOMContentLoaded', function() {
-    // Cache DOM elements
-    const elements = {
-        refreshBtn: document.getElementById('refreshBtn'),
-        currentDate: document.getElementById('currentDate'),
-        totalMessagesValue: document.getElementById('totalMessagesValue'),
-        messagesChange: document.getElementById('messagesChange'),
-        storageUsedValue: document.getElementById('storageUsedValue'),
-        storageChange: document.getElementById('storageChange'),
-        conversationStatusValue: document.getElementById('conversationStatusValue'),
-        conversationChange: document.getElementById('conversationChange'),
-        storageTableBody: document.getElementById('storageTableBody'),
-        totalItems: document.getElementById('totalItems'),
-        totalSize: document.getElementById('totalSize'),
-        exportBtn: document.getElementById('exportBtn'),
-        clearBtn: document.getElementById('clearBtn'),
-        chartTabs: document.querySelectorAll('.chart-tab'),
-        activityChart: document.getElementById('activityChart'),
-        loadingOverlay: document.getElementById('loadingOverlay')
-    };
 
-    // Constants
+
+document.addEventListener('DOMContentLoaded', function() {
+    // DOM Elements
+    const refreshBtn = document.getElementById('refreshBtn');
+    const currentDateEl = document.getElementById('currentDate');
+    const totalMessagesEl = document.getElementById('totalMessagesValue');
+    const messagesChangeEl = document.getElementById('messagesChange');
+    const storageUsedEl = document.getElementById('storageUsedValue');
+    const storageChangeEl = document.getElementById('storageChange');
+    const conversationStatusEl = document.getElementById('conversationStatusValue');
+    const conversationChangeEl = document.getElementById('conversationChange');
+    const storageTableBody = document.getElementById('storageTableBody');
+    const totalItemsEl = document.getElementById('totalItems');
+    const totalSizeEl = document.getElementById('totalSize');
+    const exportBtn = document.getElementById('exportBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const chartTabs = document.querySelectorAll('.chart-tab');
+    const activityChart = document.getElementById('activityChart');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    
+    // Constants and Variables
     const LOCAL_STORAGE_MESSAGES_KEY = 'localMessages';
     const LOCAL_STORAGE_CONVERSATION_STATUS_KEY = 'conversationStatus';
-    const STORAGE_LIMIT = 5 * 1024 * 1024; // 5MB in bytes
-    
-    // State variables
     let previousMessagesCount = 0;
-    let currentChartPeriod = 'day';
-    const activityData = {
-        day: Array(24).fill(0),
-        week: Array(7).fill(0),
-        month: Array(30).fill(0)
+    let activityData = {
+        day: [],
+        week: [],
+        month: []
     };
+    let currentChartPeriod = 'day';
     
     // Initialize the dashboard
     initDashboard();
     
     // Functions
     function initDashboard() {
+        // Set current date
         updateCurrentDate();
+        
+        // Initial data load
         loadLocalStorageData();
+        
+        // Set up event listeners
         setupEventListeners();
+        
+        // Process message activity data
         processMessageActivity();
+        
+        // Initialize chart
         updateActivityChart(currentChartPeriod);
         
+        // Hide loading overlay
         setTimeout(() => {
-            elements.loadingOverlay.style.display = 'none';
+            loadingOverlay.style.display = 'none';
         }, 800);
     }
     
     function updateCurrentDate() {
         const now = new Date();
-        elements.currentDate.textContent = now.toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-        });
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        currentDateEl.textContent = now.toLocaleDateString('en-US', options);
     }
     
     function setupEventListeners() {
-        // Use event delegation for chart tabs
-        elements.activityChart.closest('.chart-container').addEventListener('click', function(e) {
-            const tab = e.target.closest('.chart-tab');
-            if (tab) {
-                const period = tab.dataset.period;
-                elements.chartTabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                currentChartPeriod = period;
-                updateActivityChart(period);
-            }
+        // Refresh button
+        refreshBtn.addEventListener('click', function() {
+            showLoading();
+            setTimeout(() => {
+                loadLocalStorageData();
+                processMessageActivity();
+                updateActivityChart(currentChartPeriod);
+                hideLoading();
+            }, 500);
         });
         
-        elements.refreshBtn.addEventListener('click', refreshData);
-        elements.exportBtn.addEventListener('click', exportLocalStorage);
-        elements.clearBtn.addEventListener('click', confirmClearStorage);
-    }
-    
-    function refreshData() {
-        showLoading();
-        setTimeout(() => {
-            loadLocalStorageData();
-            processMessageActivity();
-            updateActivityChart(currentChartPeriod);
-            hideLoading();
-        }, 500);
+        // Chart tabs
+        chartTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                const period = this.getAttribute('data-period');
+                chartTabs.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                currentChartPeriod = period;
+                updateActivityChart(period);
+            });
+        });
+        
+        // Export button
+        exportBtn.addEventListener('click', exportLocalStorage);
+        
+        // Clear button
+        clearBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear all local storage data? This action cannot be undone.')) {
+                clearLocalStorage();
+            }
+        });
     }
     
     function loadLocalStorageData() {
         try {
             let totalSize = 0;
             let itemCount = 0;
-            const fragment = document.createDocumentFragment();
             
-            // Process localStorage items in batches
-            const keys = Object.keys(localStorage);
-            const batchSize = 20;
-            let batchIndex = 0;
+            // Clear existing table rows
+            storageTableBody.innerHTML = '';
             
-            function processBatch() {
-                const batchEnd = Math.min(batchIndex + batchSize, keys.length);
+            // Loop through all localStorage items
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                const size = new Blob([value]).size;
+                totalSize += size;
+                itemCount++;
                 
-                for (; batchIndex < batchEnd; batchIndex++) {
-                    const key = keys[batchIndex];
-                    const value = localStorage.getItem(key);
-                    const size = value ? new Blob([value]).size : 0;
-                    
-                    totalSize += size;
-                    itemCount++;
-                    
-                    const row = createStorageTableRow(key, value, size);
-                    fragment.appendChild(row);
+                // Create table row
+                const row = document.createElement('tr');
+                
+                // Format value for display
+                let displayValue = value;
+                try {
+                    const parsedValue = JSON.parse(value);
+                    if (typeof parsedValue === 'object') {
+                        displayValue = `<div class="json-viewer">${formatJSON(parsedValue)}</div>`;
+                    }
+                } catch (e) {
+                    // Not valid JSON, display as is
                 }
                 
-                if (batchIndex < keys.length) {
-                    requestIdleCallback(processBatch);
-                } else {
-                    // Final batch processed
-                    elements.storageTableBody.innerHTML = '';
-                    elements.storageTableBody.appendChild(fragment);
-                    
-                    elements.totalItems.textContent = `Total items: ${itemCount}`;
-                    elements.totalSize.textContent = `Total size: ${formatSize(totalSize)}`;
-                    updateDashboardMetrics(totalSize);
-                }
+                row.innerHTML = `
+                    <td class="key-column">${key}</td>
+                    <td class="value-column">${displayValue}</td>
+                    <td class="size-column">${formatSize(size)}</td>
+                `;
+                
+                storageTableBody.appendChild(row);
             }
             
-            processBatch();
+            // Update summary statistics
+            totalItemsEl.textContent = `Total items: ${itemCount}`;
+            totalSizeEl.textContent = `Total size: ${formatSize(totalSize)}`;
+            
+            // Update dashboard metrics
+            updateDashboardMetrics(totalSize);
             
         } catch (error) {
             console.error('Error loading localStorage data:', error);
         }
     }
     
-    function createStorageTableRow(key, value, size) {
-        const row = document.createElement('tr');
-        let displayValue = value;
-        
-        try {
-            const parsedValue = JSON.parse(value);
-            if (typeof parsedValue === 'object') {
-                displayValue = `<div class="json-viewer">${formatJSON(parsedValue)}</div>`;
-            }
-        } catch (e) {
-            // Not valid JSON, display as is
-        }
-        
-        row.innerHTML = `
-            <td class="key-column">${escapeHTML(key)}</td>
-            <td class="value-column">${displayValue}</td>
-            <td class="size-column">${formatSize(size)}</td>
-        `;
-        
-        return row;
-    }
-    
     function processMessageActivity() {
         try {
+            // Get messages data
             const localMessagesStr = localStorage.getItem(LOCAL_STORAGE_MESSAGES_KEY);
             const messages = localMessagesStr ? JSON.parse(localMessagesStr) : [];
             
-            if (!messages.length) return;
+            if (!messages.length) {
+                // If no messages, use fallback data
+                activityData = {
+                    day: Array(24).fill(0),
+                    week: Array(7).fill(0),
+                    month: Array(30).fill(0)
+                };
+                return;
+            }
             
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -1132,34 +1132,29 @@ document.addEventListener('DOMContentLoaded', function() {
             const oneMonthAgo = new Date(today);
             oneMonthAgo.setDate(today.getDate() - 30);
             
-            // Reset activity data
-            activityData.day.fill(0);
-            activityData.week.fill(0);
-            activityData.month.fill(0);
+            // Initialize data arrays
+            const dayData = Array(24).fill(0);
+            const weekData = Array(7).fill(0);
+            const monthData = Array(30).fill(0);
             
-            // Process messages in batches
-            const batchSize = 50;
-            let batchIndex = 0;
-            
-            function processMessageBatch() {
-                const batchEnd = Math.min(batchIndex + batchSize, messages.length);
-                
-                for (; batchIndex < batchEnd; batchIndex++) {
-                    const message = messages[batchIndex];
+            // Process each message
+            messages.forEach(message => {
+                try {
                     const timestamp = message.timestamp ? new Date(message.timestamp) : null;
-                    if (!timestamp) continue;
+                    
+                    if (!timestamp) return;
                     
                     // Today's data (by hour)
                     if (timestamp >= today) {
                         const hour = timestamp.getHours();
-                        activityData.day[hour]++;
+                        dayData[hour]++;
                     }
                     
                     // Week data (by day)
                     if (timestamp >= oneWeekAgo) {
                         const dayDiff = Math.floor((timestamp - oneWeekAgo) / (1000 * 60 * 60 * 24));
                         if (dayDiff >= 0 && dayDiff < 7) {
-                            activityData.week[dayDiff]++;
+                            weekData[dayDiff]++;
                         }
                     }
                     
@@ -1167,20 +1162,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (timestamp >= oneMonthAgo) {
                         const dayDiff = Math.floor((timestamp - oneMonthAgo) / (1000 * 60 * 60 * 24));
                         if (dayDiff >= 0 && dayDiff < 30) {
-                            activityData.month[dayDiff]++;
+                            monthData[dayDiff]++;
                         }
                     }
+                } catch (e) {
+                    console.error('Error processing message:', e);
                 }
-                
-                if (batchIndex < messages.length) {
-                    requestIdleCallback(processMessageBatch);
-                }
-            }
+            });
             
-            processMessageBatch();
+            activityData = {
+                day: dayData,
+                week: weekData,
+                month: monthData
+            };
             
         } catch (error) {
             console.error('Error processing message activity:', error);
+            // Fallback to empty data
+            activityData = {
+                day: Array(24).fill(0),
+                week: Array(7).fill(0),
+                month: Array(30).fill(0)
+            };
         }
     }
     
@@ -1195,94 +1198,152 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update total messages
         const messagesCount = messages.length;
-        elements.totalMessagesValue.textContent = messagesCount;
+        totalMessagesEl.textContent = messagesCount;
         
         // Update messages change
         const difference = messagesCount - previousMessagesCount;
-        updateChangeIndicator(elements.messagesChange, difference, 'messages');
-        
-        // Update storage used
-        elements.storageUsedValue.textContent = formatSize(totalSize);
-        const percentageUsed = Math.round((totalSize / STORAGE_LIMIT) * 100);
-        elements.storageChange.innerHTML = `<span>${percentageUsed}% of total capacity</span>`;
-        
-        if (percentageUsed > 80) {
-            elements.storageChange.classList.add('negative');
-            elements.storageChange.classList.remove('positive');
-        } else {
-            elements.storageChange.classList.remove('negative');
-            elements.storageChange.classList.add('positive');
-        }
-        
-        // Update conversation status
-        const activeConversations = Object.keys(conversationStatus).filter(key => 
-            conversationStatus[key] === 'full').length;
-            
-        elements.conversationStatusValue.textContent = activeConversations > 0 ? 'Active' : 'Inactive';
-        elements.conversationChange.innerHTML = `<span>${activeConversations} active conversations</span>`;
-        
-        // Save previous count for next comparison
-        previousMessagesCount = messagesCount;
-    }
-    
-    function updateChangeIndicator(element, difference, type) {
         if (previousMessagesCount > 0) {
             if (difference > 0) {
-                element.classList.add('positive');
-                element.classList.remove('negative');
-                element.innerHTML = `
+                messagesChangeEl.classList.add('positive');
+                messagesChangeEl.classList.remove('negative');
+                messagesChangeEl.innerHTML = `
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="18 15 12 9 6 15"></polyline>
                     </svg>
                     <span>+${difference} from yesterday</span>
                 `;
             } else if (difference < 0) {
-                element.classList.add('negative');
-                element.classList.remove('positive');
-                element.innerHTML = `
+                messagesChangeEl.classList.add('negative');
+                messagesChangeEl.classList.remove('positive');
+                messagesChangeEl.innerHTML = `
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                     <span>${difference} from yesterday</span>
                 `;
             } else {
-                element.classList.remove('positive', 'negative');
-                element.innerHTML = `<span>No change from yesterday</span>`;
+                messagesChangeEl.classList.remove('positive');
+                messagesChangeEl.classList.remove('negative');
+                messagesChangeEl.innerHTML = `
+                    <span>No change from yesterday</span>
+                `;
             }
         } else {
-            element.innerHTML = type === 'messages' 
-                ? `<span>First day of tracking</span>`
-                : `<span>No previous data</span>`;
+            messagesChangeEl.innerHTML = `<span>First day of tracking</span>`;
+        }
+        
+        // Update storage used
+        storageUsedEl.textContent = formatSize(totalSize);
+        
+        // Calculate percentage of storage used (5MB limit for most browsers)
+        const storageLimit = 5 * 1024 * 1024; // 5MB in bytes
+        const percentageUsed = Math.round((totalSize / storageLimit) * 100);
+        
+        storageChangeEl.innerHTML = `
+            <span>${percentageUsed}% of total capacity</span>
+        `;
+        
+        if (percentageUsed > 80) {
+            storageChangeEl.classList.add('negative');
+            storageChangeEl.classList.remove('positive');
+        } else {
+            storageChangeEl.classList.remove('negative');
+            storageChangeEl.classList.add('positive');
+        }
+        
+        // Update conversation status
+        const activeConversations = Object.keys(conversationStatus).filter(key => 
+            conversationStatus[key] === 'full').length;
+            
+        conversationStatusEl.textContent = activeConversations > 0 ? 'Active' : 'Inactive';
+        conversationChangeEl.innerHTML = `<span>${activeConversations} active conversations</span>`;
+        
+        // Save previous count for next comparison
+        previousMessagesCount = messagesCount;
+    }
+    
+    function formatSize(bytes) {
+        if (bytes < 1024) {
+            return bytes + ' bytes';
+        } else if (bytes < 1024 * 1024) {
+            return (bytes / 1024).toFixed(2) + ' KB';
+        } else {
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+    }
+    
+    function formatJSON(obj) {
+        try {
+            // Replace HTML special characters to prevent XSS
+            const stringified = JSON.stringify(obj, null, 2)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+                
+            // Add syntax highlighting
+            return stringified
+                .replace(/"([^"]+)":/g, '<span style="color: #F92672;">"$1"</span>:')
+                .replace(/"([^"]+)"/g, '<span style="color: #A6E22E;">"$1"</span>')
+                .replace(/\b(true|false|null)\b/g, '<span style="color: #66D9EF;">$1</span>')
+                .replace(/\b(\d+(\.\d+)?)\b/g, '<span style="color: #AE81FF;">$1</span>');
+        } catch (e) {
+            return String(obj).replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
         }
     }
     
     function updateActivityChart(period) {
         const data = activityData[period];
-        const svg = elements.activityChart.querySelector('svg');
+        const svg = activityChart.querySelector('svg');
         
         // Clear previous data
-        svg.querySelectorAll('.chart-line, .chart-area, .chart-dot').forEach(el => el.remove());
+        const previousPath = svg.querySelector('.chart-line');
+        const previousArea = svg.querySelector('.chart-area');
+        const previousDots = svg.querySelectorAll('.chart-dot');
         
-        // Update X-axis labels based on period
-        const xLabels = svg.querySelectorAll('.chart-label:not(:first-child)');
-        const labels = getChartLabels(period);
-        xLabels.forEach((label, i) => {
-            if (labels[i]) label.textContent = labels[i];
-        });
+        if (previousPath) previousPath.remove();
+        if (previousArea) previousArea.remove();
+        previousDots.forEach(dot => dot.remove());
         
-        // Generate chart data
+        // SVG dimensions
         const width = 800;
         const height = 200;
         const padding = { top: 20, right: 20, bottom: 40, left: 50 };
         const chartWidth = width - padding.left - padding.right;
         const chartHeight = height - padding.top - padding.bottom;
-        const maxValue = Math.max(...data, 1);
+        
+        // Scale the data
+        const maxValue = Math.max(...data, 1); // Ensure non-zero max value
         const xStep = chartWidth / (data.length - 1);
         
-        // Generate path data
+        // Generate path for line chart
         let pathD = '';
         let areaD = '';
-        const dots = [];
+        
+        // Update X-axis labels based on period
+        const xLabels = svg.querySelectorAll('.chart-label:not(:first-child)');
+        if (period === 'day') {
+            xLabels[0].textContent = '12 AM';
+            xLabels[1].textContent = '6 AM';
+            xLabels[2].textContent = '12 PM';
+            xLabels[3].textContent = '6 PM';
+            xLabels[4].textContent = '11 PM';
+        } else if (period === 'week') {
+            xLabels[0].textContent = 'Mon';
+            xLabels[1].textContent = 'Wed';
+            xLabels[2].textContent = 'Fri';
+            xLabels[3].textContent = 'Sat';
+            xLabels[4].textContent = 'Sun';
+        } else if (period === 'month') {
+            xLabels[0].textContent = 'Week 1';
+            xLabels[1].textContent = 'Week 2';
+            xLabels[2].textContent = 'Week 3';
+            xLabels[3].textContent = 'Week 4';
+            xLabels[4].textContent = 'Week 5';
+        }
         
         data.forEach((value, index) => {
             const x = padding.left + xStep * index;
@@ -1296,137 +1357,89 @@ document.addEventListener('DOMContentLoaded', function() {
                 areaD += ` L ${x} ${y}`;
             }
             
-            dots.push({ x, y, value });
+            // Add dot for data point
+            const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            dot.setAttribute('class', 'chart-dot');
+            dot.setAttribute('cx', x);
+            dot.setAttribute('cy', y);
+            dot.setAttribute('r', 4);
+            
+            // Add tooltip functionality
+            dot.setAttribute('data-value', value);
+            dot.addEventListener('mouseover', function(e) {
+                const tooltip = document.createElement('div');
+                tooltip.className = 'chart-tooltip';
+                tooltip.textContent = `Value: ${value}`;
+                tooltip.style.position = 'absolute';
+                tooltip.style.left = `${e.pageX + 10}px`;
+                tooltip.style.top = `${e.pageY - 30}px`;
+                tooltip.style.backgroundColor = 'rgba(0,0,0,0.8)';
+                tooltip.style.color = 'white';
+                tooltip.style.padding = '5px 10px';
+                tooltip.style.borderRadius = '4px';
+                tooltip.style.fontSize = '12px';
+                tooltip.style.zIndex = '1000';
+                document.body.appendChild(tooltip);
+                
+                this.setAttribute('r', '6');
+            });
+            
+            dot.addEventListener('mouseout', function() {
+                const tooltip = document.querySelector('.chart-tooltip');
+                if (tooltip) tooltip.remove();
+                this.setAttribute('r', '4');
+            });
+            
+            svg.appendChild(dot);
         });
         
         // Complete area path
         areaD += ` L ${padding.left + chartWidth} ${padding.top + chartHeight} Z`;
         
         // Create path elements
-        const area = createSvgElement('path', { class: 'chart-area', d: areaD });
-        const path = createSvgElement('path', { class: 'chart-line', d: pathD });
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('class', 'chart-line');
+        path.setAttribute('d', pathD);
         
+        const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        area.setAttribute('class', 'chart-area');
+        area.setAttribute('d', areaD);
+        
+        // Add to SVG
         svg.appendChild(area);
         svg.appendChild(path);
-        
-        // Add dots with event listeners
-        dots.forEach(dot => {
-            const dotEl = createSvgElement('circle', {
-                class: 'chart-dot',
-                cx: dot.x,
-                cy: dot.y,
-                r: 4,
-                'data-value': dot.value
-            });
-            
-            dotEl.addEventListener('mouseover', handleDotMouseOver);
-            dotEl.addEventListener('mouseout', handleDotMouseOut);
-            
-            svg.appendChild(dotEl);
-        });
-    }
-    
-    function getChartLabels(period) {
-        switch (period) {
-            case 'day': return ['12 AM', '6 AM', '12 PM', '6 PM', '11 PM'];
-            case 'week': return ['Mon', 'Wed', 'Fri', 'Sat', 'Sun'];
-            case 'month': return ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'];
-            default: return [];
-        }
-    }
-    
-    function createSvgElement(tag, attributes) {
-        const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
-        Object.entries(attributes).forEach(([key, value]) => {
-            el.setAttribute(key, value);
-        });
-        return el;
-    }
-    
-    function handleDotMouseOver(e) {
-        const value = e.target.getAttribute('data-value');
-        const tooltip = document.createElement('div');
-        tooltip.className = 'chart-tooltip';
-        tooltip.textContent = `Value: ${value}`;
-        document.body.appendChild(tooltip);
-        
-        const updatePosition = () => {
-            const rect = e.target.getBoundingClientRect();
-            tooltip.style.left = `${rect.left + window.scrollX}px`;
-            tooltip.style.top = `${rect.top + window.scrollY - 30}px`;
-        };
-        
-        updatePosition();
-        e.target.setAttribute('r', '6');
-        
-        // Cleanup on mouseout
-        const onMouseOut = () => {
-            tooltip.remove();
-            e.target.setAttribute('r', '4');
-            e.target.removeEventListener('mouseout', onMouseOut);
-        };
-        
-        e.target.addEventListener('mouseout', onMouseOut);
-    }
-    
-    function handleDotMouseOut(e) {
-        const tooltip = document.querySelector('.chart-tooltip');
-        if (tooltip) tooltip.remove();
-        e.target.setAttribute('r', '4');
     }
     
     function exportLocalStorage() {
         try {
             const data = {};
-            const keys = Object.keys(localStorage);
-            
-            // Process in batches to avoid blocking UI
-            const batchSize = 50;
-            let batchIndex = 0;
-            
-            function processExportBatch() {
-                const batchEnd = Math.min(batchIndex + batchSize, keys.length);
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
                 
-                for (; batchIndex < batchEnd; batchIndex++) {
-                    const key = keys[batchIndex];
-                    const value = localStorage.getItem(key);
-                    
-                    try {
-                        data[key] = JSON.parse(value);
-                    } catch (e) {
-                        data[key] = value;
-                    }
-                }
-                
-                if (batchIndex < keys.length) {
-                    requestIdleCallback(processExportBatch);
-                } else {
-                    // Final batch processed
-                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `localStorage_export_${new Date().toISOString().slice(0,10)}.json`;
-                    a.click();
-                    
-                    setTimeout(() => {
-                        URL.revokeObjectURL(url);
-                    }, 100);
+                try {
+                    // Try to parse JSON
+                    data[key] = JSON.parse(value);
+                } catch (e) {
+                    // If not JSON, store as string
+                    data[key] = value;
                 }
             }
             
-            processExportBatch();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
             
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `localStorage_export_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+            }, 100);
         } catch (error) {
             console.error('Error exporting localStorage:', error);
             alert('Failed to export localStorage data');
-        }
-    }
-    
-    function confirmClearStorage() {
-        if (confirm('Are you sure you want to clear all local storage data? This action cannot be undone.')) {
-            clearLocalStorage();
         }
     }
     
@@ -1444,40 +1457,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function showLoading() {
-        elements.loadingOverlay.style.display = 'flex';
+        loadingOverlay.style.display = 'flex';
     }
     
     function hideLoading() {
-        elements.loadingOverlay.style.display = 'none';
-    }
-    
-    function formatSize(bytes) {
-        if (bytes < 1024) return `${bytes} bytes`;
-        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
-        return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-    }
-    
-    function formatJSON(obj) {
-        try {
-            const stringified = JSON.stringify(obj, null, 2);
-            return escapeHTML(stringified)
-                .replace(/"([^"]+)":/g, '<span style="color: #F92672;">"$1"</span>:')
-                .replace(/"([^"]+)"/g, '<span style="color: #A6E22E;">"$1"</span>')
-                .replace(/\b(true|false|null)\b/g, '<span style="color: #66D9EF;">$1</span>')
-                .replace(/\b(\d+(\.\d+)?)\b/g, '<span style="color: #AE81FF;">$1</span>');
-        } catch (e) {
-            return escapeHTML(String(obj));
-        }
-    }
-    
-    function escapeHTML(str) {
-        return str.replace(/&/g, '&amp;')
-                 .replace(/</g, '&lt;')
-                 .replace(/>/g, '&gt;')
-                 .replace(/"/g, '&quot;')
-                 .replace(/'/g, '&#39;');
+        loadingOverlay.style.display = 'none';
     }
 });
+
 </script>
 
 <script>
