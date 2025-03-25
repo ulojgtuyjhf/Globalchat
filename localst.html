@@ -961,97 +961,88 @@ body {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // DOM Elements
-    const refreshBtn = document.getElementById('refreshBtn');
-    const currentDateEl = document.getElementById('currentDate');
-    const totalMessagesEl = document.getElementById('totalMessagesValue');
-    const messagesChangeEl = document.getElementById('messagesChange');
-    const storageUsedEl = document.getElementById('storageUsedValue');
-    const storageChangeEl = document.getElementById('storageChange');
-    const conversationStatusEl = document.getElementById('conversationStatusValue');
-    const conversationChangeEl = document.getElementById('conversationChange');
-    const storageTableBody = document.getElementById('storageTableBody');
-    const totalItemsEl = document.getElementById('totalItems');
-    const totalSizeEl = document.getElementById('totalSize');
-    const exportBtn = document.getElementById('exportBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const chartTabs = document.querySelectorAll('.chart-tab');
-    const activityChart = document.getElementById('activityChart');
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    
-    // Constants
-    const LOCAL_STORAGE_MESSAGES_KEY = 'localMessages';
-    const LOCAL_STORAGE_CONVERSATION_STATUS_KEY = 'conversationStatus';
-    const STORAGE_LIMIT = 5 * 1024 * 1024; // 5MB in bytes
-    
-    // Variables
-    let previousMessagesCount = 0;
-    let currentChartPeriod = 'day';
-    let activityData = {
-        day: Array(24).fill(0),
-        week: Array(7).fill(0),
-        month: Array(30).fill(0)
+    // DOM Cache
+    const dom = {
+        date: document.getElementById('currentDate'),
+        messages: document.getElementById('totalMessagesValue'),
+        messagesChange: document.getElementById('messagesChange'),
+        storageUsed: document.getElementById('storageUsedValue'),
+        storageChange: document.getElementById('storageChange'),
+        status: document.getElementById('conversationStatusValue'),
+        statusChange: document.getElementById('conversationChange'),
+        tableBody: document.getElementById('storageTableBody'),
+        totalItems: document.getElementById('totalItems'),
+        totalSize: document.getElementById('totalSize'),
+        refreshBtn: document.getElementById('refreshBtn'),
+        exportBtn: document.getElementById('exportBtn'),
+        clearBtn: document.getElementById('clearBtn'),
+        chartTabs: document.querySelectorAll('.chart-tab'),
+        chartSvg: document.querySelector('#activityChart svg'),
+        loading: document.getElementById('loadingOverlay')
     };
-    
-    // Initialize the dashboard
+
+    // Constants
+    const STORAGE_LIMIT = 5 * 1024 * 1024; // 5MB
+    const MSG_KEY = 'localMessages';
+    const CONV_KEY = 'conversationStatus';
+
+    // State
+    let prevMsgCount = 0;
+    let currentPeriod = 'day';
+    let chartData = generateSampleData(); // Initialize with sample data
+
+    // Initialize
     initDashboard();
-    
-    // Functions
+
     function initDashboard() {
-        updateCurrentDate();
-        loadLocalStorageData();
-        setupEventListeners();
-        updateActivityChart(currentChartPeriod);
-        
-        // Hide loading overlay after a short delay for better UX
-        setTimeout(hideLoading, 300);
+        updateDate();
+        loadStorage();
+        setupEvents();
+        renderChart();
+        setTimeout(hideLoading, 200);
     }
-    
-    function updateCurrentDate() {
+
+    function updateDate() {
         const now = new Date();
-        currentDateEl.textContent = now.toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
+        dom.date.textContent = now.toLocaleDateString('en-US', { 
+            weekday: 'short', 
+            month: 'short', 
             day: 'numeric' 
         });
     }
-    
-    function setupEventListeners() {
-        refreshBtn.addEventListener('click', refreshDashboard);
-        
-        chartTabs.forEach(tab => {
-            tab.addEventListener('click', function() {
-                currentChartPeriod = this.dataset.period;
-                chartTabs.forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
-                updateActivityChart(currentChartPeriod);
-            });
+
+    function setupEvents() {
+        dom.refreshBtn.onclick = refreshDashboard;
+        dom.exportBtn.onclick = exportStorage;
+        dom.clearBtn.onclick = confirmClear;
+
+        dom.chartTabs.forEach(tab => {
+            tab.onclick = function() {
+                currentPeriod = this.dataset.period;
+                dom.chartTabs.forEach(t => t.classList.toggle('active', t === this));
+                renderChart();
+            };
         });
-        
-        exportBtn.addEventListener('click', exportLocalStorage);
-        clearBtn.addEventListener('click', confirmClearLocalStorage);
     }
-    
+
     function refreshDashboard() {
         showLoading();
         setTimeout(() => {
-            loadLocalStorageData();
-            updateActivityChart(currentChartPeriod);
+            loadStorage();
+            updateChartData(); // Regenerate chart data
+            renderChart();
             hideLoading();
-        }, 300);
+        }, 150);
     }
-    
-    function loadLocalStorageData() {
+
+    function loadStorage() {
         let totalSize = 0;
         let itemCount = 0;
         
-        // Clear existing table rows efficiently
-        while (storageTableBody.firstChild) {
-            storageTableBody.removeChild(storageTableBody.firstChild);
-        }
+        // Fast table clearing
+        dom.tableBody.innerHTML = '';
         
-        // Process localStorage items
+        // Process storage
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (!key) continue;
@@ -1059,247 +1050,196 @@ document.addEventListener('DOMContentLoaded', function() {
             const value = localStorage.getItem(key);
             if (!value) continue;
             
-            const size = value.length * 2; // Approximate byte size (2 bytes per char)
+            const size = value.length * 2; // Approximate size
             totalSize += size;
             itemCount++;
             
-            createStorageTableRow(key, value, size);
+            addTableRow(key, value, size);
         }
         
-        // Update summary and metrics
-        totalItemsEl.textContent = `Total items: ${itemCount}`;
-        totalSizeEl.textContent = `Total size: ${formatSize(totalSize)}`;
-        updateDashboardMetrics(totalSize);
+        // Update UI
+        dom.totalItems.textContent = `Items: ${itemCount}`;
+        dom.totalSize.textContent = `Size: ${formatSize(totalSize)}`;
+        updateMetrics(totalSize);
     }
-    
-    function createStorageTableRow(key, value, size) {
+
+    function addTableRow(key, value, size) {
         const row = document.createElement('tr');
-        const displayValue = formatValueForDisplay(value);
-        
         row.innerHTML = `
-            <td class="key-column">${escapeHtml(key)}</td>
-            <td class="value-column">${displayValue}</td>
+            <td class="key-column">${key}</td>
+            <td class="value-column">${value.length > 100 ? value.substring(0, 100) + '...' : value}</td>
             <td class="size-column">${formatSize(size)}</td>
         `;
-        
-        storageTableBody.appendChild(row);
+        dom.tableBody.appendChild(row);
     }
-    
-    function formatValueForDisplay(value) {
-        try {
-            const parsed = JSON.parse(value);
-            if (parsed && typeof parsed === 'object') {
-                return `<div class="json-viewer">${escapeHtml(JSON.stringify(parsed, null, 2))}</div>`;
-            }
-        } catch (e) {
-            // Not JSON, display as plain text
-        }
-        return escapeHtml(value);
-    }
-    
-    function updateDashboardMetrics(totalSize) {
-        // Update messages count
-        const messages = getLocalStorageData(LOCAL_STORAGE_MESSAGES_KEY, []);
-        const messagesCount = messages.length;
-        totalMessagesEl.textContent = messagesCount;
-        updateMessagesChange(messagesCount);
+
+    function updateMetrics(totalSize) {
+        // Messages count
+        const messages = localStorage.getItem(MSG_KEY) || '';
+        const msgCount = messages.split('||').filter(Boolean).length;
         
-        // Update storage usage
-        storageUsedEl.textContent = formatSize(totalSize);
-        updateStoragePercentage(totalSize);
+        dom.messages.textContent = msgCount;
+        updateMsgChange(msgCount);
         
-        // Update conversation status
-        const conversationStatus = getLocalStorageData(LOCAL_STORAGE_CONVERSATION_STATUS_KEY, {});
-        updateConversationStatus(conversationStatus);
+        // Storage usage
+        dom.storageUsed.textContent = formatSize(totalSize);
+        updateStoragePercent(totalSize);
         
-        // Save for next comparison
-        previousMessagesCount = messagesCount;
+        // Conversation status
+        const convStatus = localStorage.getItem(CONV_KEY) || '';
+        const activeConvs = convStatus.split('full').length - 1;
+        
+        dom.status.textContent = activeConvs > 0 ? 'Active' : 'Inactive';
+        dom.statusChange.innerHTML = `<span>${activeConvs} active</span>`;
+        
+        prevMsgCount = msgCount;
     }
-    
-    function getLocalStorageData(key, defaultValue) {
-        try {
-            const data = localStorage.getItem(key);
-            return data ? JSON.parse(data) : defaultValue;
-        } catch (e) {
-            return defaultValue;
-        }
-    }
-    
-    function updateMessagesChange(currentCount) {
-        if (previousMessagesCount === 0) {
-            messagesChangeEl.innerHTML = `<span>First day of tracking</span>`;
+
+    function updateMsgChange(current) {
+        if (prevMsgCount === 0) {
+            dom.messagesChange.innerHTML = `<span>New tracking</span>`;
             return;
         }
         
-        const difference = currentCount - previousMessagesCount;
-        if (difference > 0) {
-            messagesChangeEl.className = 'stat-change positive';
-            messagesChangeEl.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="18 15 12 9 6 15"></polyline>
-                </svg>
-                <span>+${difference} from yesterday</span>
-            `;
-        } else if (difference < 0) {
-            messagesChangeEl.className = 'stat-change negative';
-            messagesChangeEl.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-                <span>${difference} from yesterday</span>
-            `;
-        } else {
-            messagesChangeEl.className = 'stat-change';
-            messagesChangeEl.innerHTML = `<span>No change from yesterday</span>`;
-        }
-    }
-    
-    function updateStoragePercentage(totalSize) {
-        const percentageUsed = Math.round((totalSize / STORAGE_LIMIT) * 100);
-        storageChangeEl.innerHTML = `<span>${percentageUsed}% of total capacity</span>`;
-        storageChangeEl.className = percentageUsed > 80 ? 'stat-change negative' : 'stat-change positive';
-    }
-    
-    function updateConversationStatus(statusData) {
-        const activeConversations = Object.values(statusData).filter(status => status === 'full').length;
-        conversationStatusEl.textContent = activeConversations > 0 ? 'Active' : 'Inactive';
-        conversationChangeEl.innerHTML = `<span>${activeConversations} active conversations</span>`;
-    }
-    
-    function updateActivityChart(period) {
-        const svg = activityChart.querySelector('svg');
-        const data = activityData[period];
-        const maxValue = Math.max(...data, 1);
+        const diff = current - prevMsgCount;
+        const isPositive = diff > 0;
         
-        // Clear previous chart elements
-        ['chart-line', 'chart-area', 'chart-dot'].forEach(className => {
-            const elements = svg.querySelectorAll(`.${className}`);
-            elements.forEach(el => el.remove());
+        dom.messagesChange.className = isPositive ? 'stat-change positive' : 'stat-change negative';
+        dom.messagesChange.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 24 24">
+                <polyline points="${isPositive ? '18 15 12 9 6 15' : '6 9 12 15 18 9'}"></polyline>
+            </svg>
+            <span>${isPositive ? '+' : ''}${diff}</span>
+        `;
+    }
+
+    function updateStoragePercent(size) {
+        const percent = Math.round((size / STORAGE_LIMIT) * 100);
+        dom.storageChange.innerHTML = `<span>${percent}% used</span>`;
+        dom.storageChange.className = percent > 80 ? 'stat-change negative' : 'stat-change positive';
+    }
+
+    function generateSampleData() {
+        // Generate realistic sample data for the chart
+        return {
+            day: Array.from({length: 24}, (_, i) => 
+                Math.round(Math.random() * 20 + (i > 8 && i < 18 ? 30 : 10))),
+            week: Array.from({length: 7}, (_, i) => 
+                Math.round(Math.random() * 30 + (i < 5 ? 50 : 20))),
+            month: Array.from({length: 30}, (_, i) => 
+                Math.round(Math.random() * 40 + (i % 7 < 5 ? 60 : 30)))
+        };
+    }
+
+    function updateChartData() {
+        // Update chart data based on actual storage
+        const messages = localStorage.getItem(MSG_KEY) || '';
+        const msgTimestamps = messages.split('||').filter(Boolean).map(m => {
+            const parts = m.split('|');
+            return parts.length > 1 ? parseInt(parts[1]) || Date.now() : Date.now();
         });
+
+        const now = Date.now();
+        const oneDay = 24 * 60 * 60 * 1000;
         
-        // Update X-axis labels based on period
-        const xLabels = Array.from(svg.querySelectorAll('.chart-label')).slice(1);
-        if (period === 'day') {
-            xLabels[0].textContent = '12 AM';
-            xLabels[1].textContent = '6 AM';
-            xLabels[2].textContent = '12 PM';
-            xLabels[3].textContent = '6 PM';
-            xLabels[4].textContent = '11 PM';
-        } else if (period === 'week') {
-            xLabels[0].textContent = 'Mon';
-            xLabels[1].textContent = 'Wed';
-            xLabels[2].textContent = 'Fri';
-            xLabels[3].textContent = 'Sat';
-            xLabels[4].textContent = 'Sun';
-        } else if (period === 'month') {
-            xLabels[0].textContent = 'Week 1';
-            xLabels[1].textContent = 'Week 2';
-            xLabels[2].textContent = 'Week 3';
-            xLabels[3].textContent = 'Week 4';
-            xLabels[4].textContent = 'Week 5';
-        }
-        
-        // Generate path data
-        const pathD = generatePathData(data, maxValue);
-        const areaD = generateAreaData(data, maxValue);
-        
-        // Create and append SVG elements
-        svg.appendChild(createAreaElement(areaD));
-        svg.appendChild(createLineElement(pathD));
-        createDataPoints(svg, data, maxValue);
+        // Reset data
+        chartData = {
+            day: Array(24).fill(0),
+            week: Array(7).fill(0),
+            month: Array(30).fill(0)
+        };
+
+        // Process each message timestamp
+        msgTimestamps.forEach(timestamp => {
+            const date = new Date(timestamp);
+            const hoursAgo = (now - timestamp) / (60 * 60 * 1000);
+            const daysAgo = (now - timestamp) / oneDay;
+
+            // Today's data
+            if (hoursAgo < 24) {
+                const hour = date.getHours();
+                chartData.day[hour]++;
+            }
+
+            // This week's data
+            if (daysAgo < 7) {
+                const day = date.getDay(); // 0 (Sun) to 6 (Sat)
+                chartData.week[day]++;
+            }
+
+            // This month's data
+            if (daysAgo < 30) {
+                const day = Math.floor(daysAgo);
+                if (day >= 0 && day < 30) {
+                    chartData.month[day]++;
+                }
+            }
+        });
     }
-    
-    function generatePathData(data, maxValue) {
-        const width = 800;
-        const height = 200;
-        const padding = { left: 50, top: 20, bottom: 40 };
-        const chartHeight = height - padding.top - padding.bottom;
-        const xStep = (width - padding.left - 20) / (data.length - 1);
+
+    function renderChart() {
+        // Clear previous chart elements
+        ['chart-line', 'chart-area', 'chart-dot'].forEach(cls => {
+            const el = dom.chartSvg.querySelector(`.${cls}`);
+            if (el) el.remove();
+        });
+
+        const data = chartData[currentPeriod];
+        const max = Math.max(...data, 1);
+        const path = generateChartPath(data, max);
         
-        return data.map((value, i) => {
-            const x = padding.left + xStep * i;
-            const y = padding.top + chartHeight - (value / maxValue) * chartHeight;
-            return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-        }).join(' ');
+        // Create and append new path
+        const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        pathEl.setAttribute('class', 'chart-line');
+        pathEl.setAttribute('d', path);
+        dom.chartSvg.appendChild(pathEl);
+
+        // Add dots for data points
+        data.forEach((value, i) => {
+            if (value > 0) {
+                const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                dot.setAttribute('class', 'chart-dot');
+                dot.setAttribute('cx', 50 + (i * (700 / (data.length - 1))));
+                dot.setAttribute('cy', 20 + (160 - (value / max) * 160));
+                dot.setAttribute('r', '4');
+                dot.setAttribute('data-value', value);
+                
+                // Simple tooltip
+                dot.addEventListener('mouseover', function() {
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'chart-tooltip';
+                    tooltip.textContent = value;
+                    tooltip.style.left = `${this.getBoundingClientRect().left}px`;
+                    tooltip.style.top = `${this.getBoundingClientRect().top - 30}px`;
+                    document.body.appendChild(tooltip);
+                    this.setAttribute('r', '6');
+                });
+                
+                dot.addEventListener('mouseout', function() {
+                    const tooltip = document.querySelector('.chart-tooltip');
+                    if (tooltip) tooltip.remove();
+                    this.setAttribute('r', '4');
+                });
+                
+                dom.chartSvg.appendChild(dot);
+            }
+        });
     }
-    
-    function generateAreaData(data, maxValue) {
-        const width = 800;
-        const height = 200;
-        const padding = { left: 50, top: 20, bottom: 40 };
-        const chartHeight = height - padding.top - padding.bottom;
-        const xStep = (width - padding.left - 20) / (data.length - 1);
-        
-        const points = data.map((value, i) => {
-            const x = padding.left + xStep * i;
-            const y = padding.top + chartHeight - (value / maxValue) * chartHeight;
-            return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-        }).join(' ');
-        
-        return `${points} L ${padding.left + (data.length - 1) * xStep} ${padding.top + chartHeight} L ${padding.left} ${padding.top + chartHeight} Z`;
-    }
-    
-    function createLineElement(pathD) {
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('class', 'chart-line');
-        path.setAttribute('d', pathD);
-        return path;
-    }
-    
-    function createAreaElement(areaD) {
-        const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        area.setAttribute('class', 'chart-area');
-        area.setAttribute('d', areaD);
-        return area;
-    }
-    
-    function createDataPoints(svg, data, maxValue) {
-        const width = 800;
-        const height = 200;
-        const padding = { left: 50, top: 20, bottom: 40 };
-        const chartHeight = height - padding.top - padding.bottom;
-        const xStep = (width - padding.left - 20) / (data.length - 1);
+
+    function generateChartPath(data, max) {
+        let path = '';
+        const step = 700 / (data.length - 1);
         
         data.forEach((value, i) => {
-            if (value === 0) return;
-            
-            const x = padding.left + xStep * i;
-            const y = padding.top + chartHeight - (value / maxValue) * chartHeight;
-            
-            const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            dot.setAttribute('class', 'chart-dot');
-            dot.setAttribute('cx', x);
-            dot.setAttribute('cy', y);
-            dot.setAttribute('r', 4);
-            dot.setAttribute('data-value', value);
-            
-            dot.addEventListener('mouseover', handleDotMouseOver);
-            dot.addEventListener('mouseout', handleDotMouseOut);
-            
-            svg.appendChild(dot);
+            const x = 50 + (i * step);
+            const y = 20 + (160 - (value / max) * 160);
+            path += `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
         });
-    }
-    
-    function handleDotMouseOver(e) {
-        const tooltip = document.createElement('div');
-        tooltip.className = 'chart-tooltip';
-        tooltip.textContent = `Value: ${this.dataset.value}`;
-        document.body.appendChild(tooltip);
         
-        const position = this.getBoundingClientRect();
-        tooltip.style.left = `${position.left + window.scrollX}px`;
-        tooltip.style.top = `${position.top + window.scrollY - 30}px`;
-        
-        this.setAttribute('r', 6);
+        return path;
     }
-    
-    function handleDotMouseOut() {
-        const tooltip = document.querySelector('.chart-tooltip');
-        if (tooltip) tooltip.remove();
-        this.setAttribute('r', 4);
-    }
-    
-    function exportLocalStorage() {
+
+    function exportStorage() {
         try {
             const data = {};
             for (let i = 0; i < localStorage.length; i++) {
@@ -1307,62 +1247,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (key) data[key] = localStorage.getItem(key);
             }
             
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify(data)], {type: 'text/plain'});
             const url = URL.createObjectURL(blob);
             
             const a = document.createElement('a');
             a.href = url;
-            a.download = `localStorage_export_${new Date().toISOString().slice(0,10)}.json`;
+            a.download = 'storage_export.txt';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             
-            setTimeout(() => URL.revokeObjectURL(url), 100);
-        } catch (error) {
-            console.error('Export failed:', error);
-            alert('Failed to export localStorage data');
+            setTimeout(() => URL.revokeObjectURL(url), 50);
+        } catch (e) {
+            alert('Export failed');
         }
     }
-    
-    function confirmClearLocalStorage() {
-        if (confirm('Are you sure you want to clear all local storage data? This cannot be undone.')) {
-            clearLocalStorage();
-        }
-    }
-    
-    function clearLocalStorage() {
-        try {
+
+    function confirmClear() {
+        if (confirm('Clear all storage?')) {
             localStorage.clear();
-            loadLocalStorageData();
-            updateActivityChart(currentChartPeriod);
-            alert('LocalStorage cleared successfully');
-        } catch (error) {
-            console.error('Clear failed:', error);
-            alert('Failed to clear localStorage');
+            loadStorage();
+            updateChartData();
+            renderChart();
         }
     }
-    
+
     function formatSize(bytes) {
-        if (bytes < 1024) return `${bytes} bytes`;
-        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
-        return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+        return bytes < 1024 ? bytes + 'B' :
+               bytes < 1048576 ? (bytes/1024).toFixed(1) + 'KB' :
+               (bytes/1048576).toFixed(1) + 'MB';
     }
-    
-    function escapeHtml(unsafe) {
-        return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
-    
+
     function showLoading() {
-        loadingOverlay.style.display = 'flex';
+        dom.loading.style.display = 'flex';
     }
-    
+
     function hideLoading() {
-        loadingOverlay.style.display = 'none';
+        dom.loading.style.display = 'none';
     }
 });
 </script>
