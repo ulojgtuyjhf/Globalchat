@@ -2035,3 +2035,38 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 </script>
+<script>
+// Function to check for media-only messages and add "Untitled" text
+function handleMediaOnlyMessages() {
+  document.querySelectorAll('.message').forEach(message => {
+    const hasMedia = message.querySelector('.media-container');
+    const hasText = message.querySelector('.message-text').textContent.trim() !== '';
+    
+    // If message has media but no text
+    if (hasMedia && !hasText) {
+      const textElement = message.querySelector('.message-text');
+      textElement.textContent = 'Untitled';
+      textElement.style.fontSize = '1.5rem';
+      textElement.style.fontWeight = 'bold';
+      textElement.style.color = 'var(--text-primary)';
+    }
+  });
+}
+
+// Observe chat container for new messages
+const chatObserver = new MutationObserver((mutations) => {
+  handleMediaOnlyMessages();
+});
+
+// Start observing the chat container
+const chatContainer = document.getElementById('chatContainer');
+if (chatContainer) {
+  chatObserver.observe(chatContainer, {
+    childList: true,
+    subtree: true
+  });
+}
+
+// Also run once when the page loads
+document.addEventListener('DOMContentLoaded', handleMediaOnlyMessages);
+</script>
