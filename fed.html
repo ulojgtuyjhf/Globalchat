@@ -724,5 +724,195 @@
     fetchArticles();
   });
 </script>
+<script>
+  // Theme and Color Customization Integration for NewsPortal
+  document.addEventListener('DOMContentLoaded', function() {
+    // Define theme variables that match the chats.html structure
+    const themeVariables = {
+      light: {
+        '--bg-color': '#ffffff',
+        '--card-bg': '#ffffff',
+        '--text-color': '#0f1419',
+        '--shadow-color': 'rgba(0, 0, 0, 0.08)',
+        '--chip-bg': '#f0f2f5',
+        '--chip-hover': '#e4e6eb',
+        '--chip-active': '#1da1f2',
+        '--search-bg': '#f0f2f5',
+        '--suggestion-bg': '#f8f9fa',
+        '--input-bg': '#f0f2f5',
+        '--input-text': '#0f1419',
+        '--input-focus-bg': '#ffffff',
+        '--search-assistant-text': '#1da1f2',
+        '--search-assistant-bg': 'rgba(29, 161, 242, 0.1)'
+      },
+      dim: {
+        '--bg-color': '#15202b',
+        '--card-bg': '#1e2732',
+        '--text-color': '#ffffff',
+        '--shadow-color': 'rgba(0, 0, 0, 0.3)',
+        '--chip-bg': '#1e2732',
+        '--chip-hover': '#38444d',
+        '--chip-active': '#1da1f2',
+        '--search-bg': '#1e2732',
+        '--suggestion-bg': '#38444d',
+        '--input-bg': '#1e2732',
+        '--input-text': '#ffffff',
+        '--input-focus-bg': '#38444d',
+        '--search-assistant-text': '#1da1f2',
+        '--search-assistant-bg': 'rgba(29, 161, 242, 0.2)'
+      },
+      dark: {
+        '--bg-color': '#000000',
+        '--card-bg': '#16181c',
+        '--text-color': '#ffffff',
+        '--shadow-color': 'rgba(0, 0, 0, 0.5)',
+        '--chip-bg': '#16181c',
+        '--chip-hover': '#2f3336',
+        '--chip-active': '#1da1f2',
+        '--search-bg': '#16181c',
+        '--suggestion-bg': '#2f3336',
+        '--input-bg': '#16181c',
+        '--input-text': '#ffffff',
+        '--input-focus-bg': '#2f3336',
+        '--search-assistant-text': '#1da1f2',
+        '--search-assistant-bg': 'rgba(29, 161, 242, 0.3)'
+      }
+    };
+    
+    // Apply the theme to the document
+    function applyTheme(theme) {
+      const root = document.documentElement;
+      const variables = themeVariables[theme] || themeVariables.light;
+      
+      // Apply all theme variables
+      Object.entries(variables).forEach(([key, value]) => {
+        root.style.setProperty(key, value);
+      });
+      
+      // Special handling for glossy gradient based on theme
+      if (theme === 'light') {
+        root.style.setProperty('--glossy-gradient',
+          'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 50%)');
+      } else {
+        root.style.setProperty('--glossy-gradient',
+          'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)');
+      }
+      
+      // Update search input and assistant
+      const searchInput = document.getElementById('searchInput');
+      const searchAssistant = document.querySelector('.search-assistant');
+      
+      if (searchInput) {
+        searchInput.style.setProperty('color', variables['--input-text']);
+        searchInput.style.setProperty('background-color', variables['--input-bg']);
+        searchInput.style.setProperty('--placeholder-color', `${variables['--input-text']}80`);
+      }
+      
+      if (searchAssistant) {
+        searchAssistant.style.setProperty('color', variables['--search-assistant-text']);
+        searchAssistant.style.setProperty('background-color', variables['--search-assistant-bg']);
+      }
+    }
+    
+    // Apply color palette to branding elements
+    function applyColorPalette(color) {
+      const root = document.documentElement;
+      
+      // Apply primary color to various elements
+      root.style.setProperty('--primary-color', color);
+      
+      // Update active chip color to match the palette
+      root.style.setProperty('--chip-active', color);
+      
+      // Update hover states with the new color
+      root.style.setProperty('--chip-hover', lightenColor(color, 20));
+      
+      // Apply to search assistant
+      const searchAssistant = document.querySelector('.search-assistant');
+      if (searchAssistant) {
+        searchAssistant.style.color = color;
+        searchAssistant.style.background = `${color}20`; // 20% opacity
+      }
+      
+      // Apply to loading spinner
+      const spinner = document.querySelector('.spinner');
+      if (spinner) {
+        spinner.style.borderTopColor = color;
+      }
+      
+      // Apply to empty state icon
+      const emptyStateIcon = document.querySelector('.empty-state i');
+      if (emptyStateIcon) {
+        emptyStateIcon.style.color = color;
+      }
+      
+      // Apply focus color to search input
+      const styleTag = document.getElementById('dynamic-input-styles') || document.createElement('style');
+      styleTag.id = 'dynamic-input-styles';
+      styleTag.textContent = `
+            #searchInput:focus {
+                box-shadow: 0 0 0 2px ${color};
+            }
+            .search-assistant {
+                color: ${color} !important;
+                background: ${color}20 !important;
+            }
+        `;
+      document.head.appendChild(styleTag);
+    }
+    
+    // Helper function to lighten colors
+    function lightenColor(color, percent) {
+      const num = parseInt(color.replace('#', ''), 16);
+      const amt = Math.round(2.55 * percent);
+      const R = (num >> 16) + amt;
+      const G = (num >> 8 & 0x00FF) + amt;
+      const B = (num & 0x0000FF) + amt;
+      
+      return `#${(
+            0x1000000 +
+            (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+            (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+            (B < 255 ? (B < 1 ? 0 : B) : 255)
+        ).toString(16).slice(1)}`;
+    }
+    
+    // Initialize theme from localStorage or default to light
+    function initializeTheme() {
+      const savedTheme = localStorage.getItem('twitter-theme') || 'light';
+      applyTheme(savedTheme);
+    }
+    
+    // Initialize color palette from localStorage or default to #1da1f2
+    function initializeColorPalette() {
+      const savedColor = localStorage.getItem('color-value') || '#1da1f2';
+      applyColorPalette(savedColor);
+    }
+    
+    // Listen for theme changes from other pages
+    window.addEventListener('storage', function(event) {
+      if (event.key === 'twitter-theme') {
+        applyTheme(event.newValue);
+      }
+      if (event.key === 'color-value') {
+        applyColorPalette(event.newValue);
+      }
+    });
+    
+    // Listen for custom theme change events (from within the same page)
+    window.addEventListener('themeChanged', function(event) {
+      applyTheme(event.detail.theme);
+    });
+    
+    // Listen for custom color change events (from within the same page)
+    window.addEventListener('chatColorChanged', function(event) {
+      applyColorPalette(event.detail.color);
+    });
+    
+    // Initialize everything when the page loads
+    initializeTheme();
+    initializeColorPalette();
+  });
+</script>
 </body>
 </html>
