@@ -1713,375 +1713,551 @@ body {
     }, 1000);
   })();
 </script>
+
+
 <script>
-// This script should be added after your existing script
 document.addEventListener('DOMContentLoaded', function() {
-  // Wait for chat container to be available
-  const chatContainer = document.getElementById('chatContainer');
-  
-  if (!chatContainer) return;
-  
-  // Use event delegation to handle clicks on messages
-  chatContainer.addEventListener('click', function(e) {
-    // Check if click is on profile image (let that work normally)
-    if (e.target.closest('.profile-image')) {
-      return;
+    // ======================
+    // 1. THEME SYSTEM INTEGRATION
+    // ======================
+    const themes = {
+        light: {
+            '--background': '#ffffff',
+            '--text': '#0f1419',
+            '--secondary-text': '#536471',
+            '--border': '#eff3f4',
+            '--primary': '#1d9bf0',
+            '--hover': 'rgba(29, 155, 240, 0.1)',
+            '--card-bg': '#f7f9f9',
+            '--modal-bg': '#ffffff',
+            '--modal-header': '#f7f9f9',
+            '--modal-text': '#0f1419',
+            '--modal-border': '#eff3f4',
+            '--modal-shadow': '0 8px 30px rgba(0, 0, 0, 0.12)',
+            '--glossy-overlay': 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 50%)'
+        },
+        dim: {
+            '--background': '#15202b',
+            '--text': '#ffffff',
+            '--secondary-text': '#8899a6',
+            '--border': '#38444d',
+            '--primary': '#1d9bf0',
+            '--hover': 'rgba(29, 155, 240, 0.1)',
+            '--card-bg': '#1e2732',
+            '--modal-bg': '#1e2732',
+            '--modal-header': '#15202b',
+            '--modal-text': '#ffffff',
+            '--modal-border': '#38444d',
+            '--modal-shadow': '0 8px 30px rgba(0, 0, 0, 0.3)',
+            '--glossy-overlay': 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)'
+        },
+        dark: {
+            '--background': '#000000',
+            '--text': '#ffffff',
+            '--secondary-text': '#71767b',
+            '--border': '#2f3336',
+            '--primary': '#1d9bf0',
+            '--hover': 'rgba(29, 155, 240, 0.1)',
+            '--card-bg': '#16181c',
+            '--modal-bg': '#16181c',
+            '--modal-header': '#000000',
+            '--modal-text': '#ffffff',
+            '--modal-border': '#2f3336',
+            '--modal-shadow': '0 8px 30px rgba(0, 0, 0, 0.5)',
+            '--glossy-overlay': 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)'
+        }
+    };
+
+    // Apply theme to document
+    function applyTheme(theme) {
+        const themeSettings = themes[theme] || themes.light;
+        const root = document.documentElement;
+        
+        Object.entries(themeSettings).forEach(([key, value]) => {
+            root.style.setProperty(key, value);
+        });
+        
+        // Update any existing modals
+        document.querySelectorAll('.full-message-modal').forEach(modal => {
+            modal.style.backgroundColor = themeSettings['--modal-bg'];
+            const header = modal.querySelector('.modal-header');
+            if (header) header.style.backgroundColor = themeSettings['--modal-header'];
+        });
     }
-    
-    // Check if click is on a message element
-    const messageElement = e.target.closest('.message');
-    if (!messageElement) return;
-    
-    // Prevent default behavior for all other elements
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Show full message modal
-    showFullMessageModal(messageElement);
-  });
+
+    // Apply color palette
+    function applyColorPalette(color) {
+        document.documentElement.style.setProperty('--primary', color);
+        document.documentElement.style.setProperty('--hover', `${color}20`);
+        
+        // Update any existing modals
+        document.querySelectorAll('.follow-btn').forEach(btn => {
+            btn.style.color = color;
+            btn.style.borderColor = color;
+        });
+    }
+
+    // Initialize theme system
+    function initThemeSystem() {
+        const savedTheme = localStorage.getItem('twitter-theme') || 'light';
+        const savedColor = localStorage.getItem('color-value') || '#1d9bf0';
+        
+        applyTheme(savedTheme);
+        applyColorPalette(savedColor);
+        
+        // Event listeners for cross-tab synchronization
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'twitter-theme') applyTheme(e.newValue);
+            if (e.key === 'color-value') applyColorPalette(e.newValue);
+        });
+        
+        window.addEventListener('themeChanged', (e) => applyTheme(e.detail.theme));
+        window.addEventListener('chatColorChanged', (e) => applyColorPalette(e.detail.color));
+    }
+
+    // ======================
+    // 2. ENHANCED MODAL SYSTEM
+    // ======================
+    function setupModalSystem() {
+        const chatContainer = document.getElementById('chatContainer');
+        if (!chatContainer) return;
+
+        chatContainer.addEventListener('click', function(e) {
+            if (e.target.closest('.profile-image')) return;
+            const messageElement = e.target.closest('.message');
+            if (!messageElement) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            showFullMessageModal(messageElement);
+        });
+    }
+
+    function showFullMessageModal(messageElement) {
+        const messageClone = messageElement.cloneNode(true);
+        const currentTheme = localStorage.getItem('twitter-theme') || 'light';
+        const themeSettings = themes[currentTheme];
+        
+        // Create modal container with glass effect
+        const modal = document.createElement('div');
+        modal.className = 'full-message-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: ${themeSettings['--modal-bg']};
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+        `;
+        
+        // Add glossy overlay effect
+        const glossyOverlay = document.createElement('div');
+        glossyOverlay.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: ${themeSettings['--glossy-overlay']};
+            z-index: 1;
+        `;
+        modal.appendChild(glossyOverlay);
+
+        // Create header with professional styling
+        const header = document.createElement('div');
+        header.className = 'modal-header';
+        header.style.cssText = `
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid ${themeSettings['--modal-border']};
+            position: sticky;
+            top: 0;
+            background-color: ${themeSettings['--modal-header']};
+            z-index: 10;
+            backdrop-filter: blur(10px);
+        `;
+        
+        // Back button with smooth hover effect
+        const backButton = document.createElement('button');
+        backButton.className = 'modal-back-button';
+        backButton.innerHTML = `
+            <svg viewBox="0 0 24 24" width="24" height="24">
+                <path fill="${themeSettings['--text']}" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path>
+            </svg>
+        `;
+        backButton.style.cssText = `
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        
+        backButton.addEventListener('mouseenter', () => {
+            backButton.style.backgroundColor = themeSettings['--hover'];
+            backButton.style.transform = 'translateX(-2px)';
+        });
+        
+        backButton.addEventListener('mouseleave', () => {
+            backButton.style.backgroundColor = 'transparent';
+            backButton.style.transform = 'translateX(0)';
+        });
+
+        // Profile section with enhanced layout
+        const profileSection = document.createElement('div');
+        profileSection.style.cssText = `
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+            margin-left: 16px;
+            overflow: hidden;
+        `;
+        
+        // Clone and style profile elements
+        const profileImage = messageClone.querySelector('.profile-image');
+        const userName = messageClone.querySelector('.user-name');
+        const countryFlag = messageClone.querySelector('.country-flag');
+        const messageTime = messageClone.querySelector('.message-time');
+        
+        if (profileImage) {
+            const headerProfileImage = profileImage.cloneNode(true);
+            headerProfileImage.style.cssText = `
+                width: 40px;
+                height: 40px;
+                margin-right: 12px;
+                border-radius: 50%;
+                object-fit: cover;
+                transition: transform 0.2s ease;
+            `;
+            headerProfileImage.addEventListener('mouseenter', () => {
+                headerProfileImage.style.transform = 'scale(1.05)';
+            });
+            headerProfileImage.addEventListener('mouseleave', () => {
+                headerProfileImage.style.transform = 'scale(1)';
+            });
+            profileSection.appendChild(headerProfileImage);
+        }
+        
+        if (userName && countryFlag && messageTime) {
+            const profileInfo = document.createElement('div');
+            profileInfo.style.cssText = `
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            `;
+            
+            const nameContainer = document.createElement('div');
+            nameContainer.style.cssText = `
+                display: flex;
+                align-items: center;
+                overflow: hidden;
+            `;
+            
+            const nameClone = userName.cloneNode(true);
+            nameClone.style.cssText = `
+                font-weight: 700;
+                color: ${themeSettings['--text']};
+                font-size: 16px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            `;
+            
+            const flagClone = countryFlag.cloneNode(true);
+            flagClone.style.cssText = `
+                margin-left: 8px;
+                flex-shrink: 0;
+                width: 18px;
+                height: 14px;
+                border-radius: 2px;
+            `;
+            
+            nameContainer.appendChild(nameClone);
+            nameContainer.appendChild(flagClone);
+            
+            const timeClone = messageTime.cloneNode(true);
+            timeClone.style.cssText = `
+                font-size: 14px;
+                color: ${themeSettings['--secondary-text']};
+                margin-top: 2px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            `;
+            
+            profileInfo.appendChild(nameContainer);
+            profileInfo.appendChild(timeClone);
+            profileSection.appendChild(profileInfo);
+        }
+        
+        // Follow button with dynamic color
+        const followButton = messageClone.querySelector('.follow-btn');
+        if (followButton) {
+            followButton.style.cssText = `
+                margin-left: 12px;
+                background-color: transparent;
+                color: var(--primary);
+                border: 1px solid var(--primary);
+                border-radius: 9999px;
+                padding: 6px 16px;
+                font-size: 14px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+                flex-shrink: 0;
+            `;
+            
+            followButton.addEventListener('mouseenter', () => {
+                followButton.style.backgroundColor = `${getComputedStyle(document.documentElement).getPropertyValue('--primary')}20`;
+            });
+            
+            followButton.addEventListener('mouseleave', () => {
+                if (!followButton.classList.contains('followed')) {
+                    followButton.style.backgroundColor = 'transparent';
+                }
+            });
+        }
+        
+        header.appendChild(backButton);
+        header.appendChild(profileSection);
+        if (followButton) header.appendChild(followButton);
+        
+        // Content container with perfect scrolling
+        const contentContainer = document.createElement('div');
+        contentContainer.style.cssText = `
+            padding: 20px;
+            max-width: 680px;
+            width: 100%;
+            margin: 0 auto;
+            flex-grow: 1;
+            overflow-y: auto;
+            position: relative;
+            scroll-behavior: smooth;
+        `;
+        
+        // Remove original message header
+        const messageHeader = messageClone.querySelector('.message-header');
+        if (messageHeader) messageHeader.remove();
+        
+        // Enhanced media container
+        const mediaContainer = messageClone.querySelector('.media-container');
+        if (mediaContainer) {
+            mediaContainer.style.cssText = `
+                max-width: 100%;
+                margin-bottom: 24px;
+                border-radius: 16px;
+                overflow: hidden;
+                position: relative;
+            `;
+            
+            // Add glossy overlay to media
+            const mediaGloss = document.createElement('div');
+            mediaGloss.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                background: ${themeSettings['--glossy-overlay']};
+                z-index: 1;
+            `;
+            mediaContainer.appendChild(mediaGloss);
+            
+            const images = mediaContainer.querySelectorAll('.message-image');
+            images.forEach(img => {
+                img.style.cssText = `
+                    width: 100%;
+                    max-height: 75vh;
+                    object-fit: contain;
+                    display: block;
+                    border-radius: 16px;
+                `;
+            });
+            
+            contentContainer.appendChild(mediaContainer);
+        }
+        
+        // Enhanced text styling
+        const messageText = messageClone.querySelector('.message-text');
+        if (messageText) {
+            messageText.style.cssText = `
+                font-size: 17px;
+                line-height: 1.6;
+                color: ${themeSettings['--text']};
+                margin-bottom: 24px;
+                white-space: pre-wrap;
+                word-break: break-word;
+            `;
+            contentContainer.appendChild(messageText);
+        }
+        
+        // Sticky action buttons with professional effects
+        const actionButtonsContainer = document.createElement('div');
+        actionButtonsContainer.style.cssText = `
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: ${themeSettings['--modal-header']};
+            border-top: 1px solid ${themeSettings['--modal-border']};
+            padding: 12px 20px;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+        `;
+        
+        const actionButtons = messageClone.querySelector('.action-buttons');
+        if (actionButtons) {
+            actionButtons.style.cssText = `
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+                max-width: 680px;
+            `;
+            
+            // Style all action buttons
+            actionButtons.querySelectorAll('.action-button').forEach(button => {
+                button.style.cssText = `
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: none;
+                    border: none;
+                    color: ${themeSettings['--secondary-text']};
+                    padding: 8px;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                `;
+                
+                button.addEventListener('mouseenter', () => {
+                    button.style.color = `var(--primary)`;
+                    button.style.backgroundColor = themeSettings['--hover'];
+                });
+                
+                button.addEventListener('mouseleave', () => {
+                    button.style.color = themeSettings['--secondary-text'];
+                    button.style.backgroundColor = 'transparent';
+                });
+            });
+            
+            actionButtonsContainer.appendChild(actionButtons);
+        }
+        
+        // Assemble modal
+        modal.appendChild(header);
+        modal.appendChild(contentContainer);
+        modal.appendChild(actionButtonsContainer);
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+        
+        // Animate in
+        setTimeout(() => {
+            modal.style.opacity = '1';
+            modal.style.transform = 'translateY(0)';
+        }, 10);
+        
+        // Close modal function with smooth animation
+        function closeModal() {
+            modal.style.opacity = '0';
+            modal.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                document.body.removeChild(modal);
+                document.body.style.overflow = '';
+            }, 300);
+        }
+        
+        // Back button click
+        backButton.addEventListener('click', function(e) {
+            e.stopPropagation();
+            closeModal();
+        });
+        
+        // Escape key to close
+        document.addEventListener('keydown', function handleEscape(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+                document.removeEventListener('keydown', handleEscape);
+            }
+        });
+        
+        // Click outside to close (with elegant detection)
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+    }
+
+    // ======================
+    // 3. INITIALIZATION
+    // ======================
+    function initialize() {
+        initThemeSystem();
+        setupModalSystem();
+        
+        // Add dynamic styles for consistent theming
+        const style = document.createElement('style');
+        style.textContent = `
+            .full-message-modal {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            }
+            .full-message-modal .profile-image {
+                cursor: pointer;
+                transition: transform 0.2s ease;
+            }
+            .full-message-modal .user-name {
+                font-weight: 700;
+                color: var(--text);
+            }
+            .full-message-modal .country-flag {
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            }
+            .full-message-modal .follow-btn {
+                transition: all 0.2s ease;
+            }
+            .full-message-modal .follow-btn.followed {
+                background-color: var(--primary) !important;
+                color: white !important;
+                border-color: transparent !important;
+            }
+            .full-message-modal .action-button {
+                transition: all 0.2s ease;
+            }
+            .full-message-modal .message-image {
+                transition: transform 0.3s ease;
+            }
+            .full-message-modal .message-image:hover {
+                transform: scale(1.02);
+            }
+            @media (max-width: 680px) {
+                .full-message-modal .action-buttons {
+                    padding: 0 16px;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Start everything
+    initialize();
 });
-
-// Function to show full message in modal
-function showFullMessageModal(messageElement) {
-  // Clone the message element to use in modal
-  const messageClone = messageElement.cloneNode(true);
-  const messageId = messageElement.getAttribute('data-message-id');
-  
-  // Create modal container
-  const modal = document.createElement('div');
-  modal.className = 'full-message-modal';
-  modal.style.position = 'fixed';
-  modal.style.top = '0';
-  modal.style.left = '0';
-  modal.style.width = '100%';
-  modal.style.height = '100%';
-  modal.style.backgroundColor = 'white';
-  modal.style.display = 'flex';
-  modal.style.flexDirection = 'column';
-  modal.style.zIndex = '1000';
-  modal.style.overflowY = 'auto';
-  modal.style.opacity = '0';
-  modal.style.transform = 'translateX(100%)';
-  modal.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-  
-  // Create header with back button and follow button
-  const header = document.createElement('div');
-  header.style.display = 'flex';
-  header.style.justifyContent = 'space-between';
-  header.style.alignItems = 'center';
-  header.style.padding = '20px';
-  header.style.borderBottom = '1px solid #f0f0f0';
-  header.style.position = 'sticky';
-  header.style.top = '0';
-  header.style.backgroundColor = 'white';
-  header.style.zIndex = '10';
-  
-  // Create back button
-  const backButton = document.createElement('button');
-  backButton.className = 'modal-back-button';
-  backButton.innerHTML = `
-    <svg viewBox="0 0 24 24" width="24" height="24">
-      <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path>
-    </svg>
-  `;
-  backButton.style.background = 'none';
-  backButton.style.border = 'none';
-  backButton.style.cursor = 'pointer';
-  backButton.style.padding = '8px';
-  backButton.style.borderRadius = '50%';
-  backButton.style.transition = 'background-color 0.2s';
-  
-  backButton.addEventListener('mouseenter', () => {
-    backButton.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
-  });
-  
-  backButton.addEventListener('mouseleave', () => {
-    backButton.style.backgroundColor = 'transparent';
-  });
-  
-  // Move follow button to header
-  const followButton = messageClone.querySelector('.follow-btn');
-  if (followButton) {
-    followButton.style.marginLeft = '0';
-    followButton.style.marginRight = '10px';
-  }
-  
-  // Build header
-  header.appendChild(backButton);
-  
-  // Create profile section for header
-  const profileSection = document.createElement('div');
-  profileSection.style.display = 'flex';
-  profileSection.style.alignItems = 'center';
-  profileSection.style.flexGrow = '1';
-  profileSection.style.marginLeft = '20px';
-  
-  // Get profile elements from message
-  const profileImage = messageClone.querySelector('.profile-image');
-  const userName = messageClone.querySelector('.user-name');
-  const countryFlag = messageClone.querySelector('.country-flag');
-  const messageTime = messageClone.querySelector('.message-time');
-  
-  // Clone profile elements for header
-  if (profileImage) {
-    const headerProfileImage = profileImage.cloneNode(true);
-    headerProfileImage.style.width = '40px';
-    headerProfileImage.style.height = '40px';
-    headerProfileImage.style.marginRight = '12px';
-    profileSection.appendChild(headerProfileImage);
-  }
-  
-  if (userName && countryFlag && messageTime) {
-    const profileInfo = document.createElement('div');
-    
-    const nameAndFlag = document.createElement('div');
-    nameAndFlag.style.display = 'flex';
-    nameAndFlag.style.alignItems = 'center';
-    nameAndFlag.appendChild(userName.cloneNode(true));
-    
-    const flagClone = countryFlag.cloneNode(true);
-    flagClone.style.marginLeft = '8px';
-    nameAndFlag.appendChild(flagClone);
-    
-    const timeClone = messageTime.cloneNode(true);
-    timeClone.style.fontSize = '0.9rem';
-    timeClone.style.color = '#666';
-    timeClone.style.marginTop = '2px';
-    
-    profileInfo.appendChild(nameAndFlag);
-    profileInfo.appendChild(timeClone);
-    profileSection.appendChild(profileInfo);
-  }
-  
-  header.appendChild(profileSection);
-  
-  // Add follow button to header if it exists
-  if (followButton) {
-    header.appendChild(followButton);
-  }
-  
-  // Create content container
-  const contentContainer = document.createElement('div');
-  contentContainer.style.padding = '20px';
-  contentContainer.style.maxWidth = '680px';
-  contentContainer.style.width = '100%';
-  contentContainer.style.margin = '0 auto';
-  contentContainer.style.flexGrow = '1';
-  
-  // Process the message clone for content area
-  messageClone.style.width = '100%';
-  messageClone.style.padding = '0';
-  messageClone.style.border = 'none';
-  messageClone.style.background = 'none';
-  
-  // Remove header elements we've already used
-  const messageHeader = messageClone.querySelector('.message-header');
-  if (messageHeader) {
-    messageHeader.remove();
-  }
-  
-  // Move media container to top if it exists
-  const mediaContainer = messageClone.querySelector('.media-container');
-  const messageText = messageClone.querySelector('.message-text');
-  
-  if (mediaContainer) {
-    // Style media container for modal
-    mediaContainer.style.maxWidth = '100%';
-    mediaContainer.style.marginBottom = '24px';
-    mediaContainer.style.gridColumn = '1 / -1';
-    
-    // Make images larger
-    const images = mediaContainer.querySelectorAll('.message-image');
-    images.forEach(img => {
-      img.style.maxHeight = 'none';
-      img.style.maxWidth = '100%';
-      img.style.width = 'auto';
-      img.style.height = 'auto';
-      img.style.borderRadius = '8px';
-    });
-    
-    // Move media container to top of content
-    contentContainer.appendChild(mediaContainer);
-  }
-  
-  // Style and add text content
-  if (messageText) {
-    messageText.style.fontSize = '1.2rem';
-    messageText.style.lineHeight = '1.6';
-    messageText.style.color = '#333';
-    messageText.style.marginBottom = '24px';
-    contentContainer.appendChild(messageText);
-  }
-  
-  // Style and add action buttons at bottom
-  const actionButtons = messageClone.querySelector('.action-buttons');
-  if (actionButtons) {
-    actionButtons.style.justifyContent = 'flex-end';
-    actionButtons.style.marginTop = '24px';
-    actionButtons.style.paddingTop = '24px';
-    actionButtons.style.borderTop = '1px solid #f0f0f0';
-    contentContainer.appendChild(actionButtons);
-  }
-  
-  // Add elements to modal
-  modal.appendChild(header);
-  modal.appendChild(contentContainer);
-  
-  // Add modal to body
-  document.body.appendChild(modal);
-  
-  // Disable scrolling on body when modal is open
-  document.body.style.overflow = 'hidden';
-  
-  // Trigger animation
-  setTimeout(() => {
-    modal.style.opacity = '1';
-    modal.style.transform = 'translateX(0)';
-  }, 10);
-  
-  // Close modal when clicking back button
-  backButton.addEventListener('click', function(e) {
-    e.stopPropagation();
-    closeModal();
-  });
-  
-  // Close modal when clicking outside content (disabled for this version)
-  // modal.addEventListener('click', function(e) {
-  //   if (e.target === modal) {
-  //     closeModal();
-  //   }
-  // });
-  
-  // Function to close modal with animation
-  function closeModal() {
-    modal.style.opacity = '0';
-    modal.style.transform = 'translateX(100%)';
-    setTimeout(() => {
-      document.body.removeChild(modal);
-      document.body.style.overflow = '';
-    }, 300);
-  }
-  
-  // Close modal with Escape key
-  document.addEventListener('keydown', function handleEscape(e) {
-    if (e.key === 'Escape') {
-      closeModal();
-      document.removeEventListener('keydown', handleEscape);
-    }
-  });
-}
-
-// Add some CSS for the modal
-const style = document.createElement('style');
-style.textContent = `
-  .full-message-modal {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
-  
-  .full-message-modal .profile-image {
-    cursor: pointer;
-    transition: transform 0.2s;
-  }
-  
-  .full-message-modal .profile-image:hover {
-    transform: scale(1.03);
-  }
-  
-  .full-message-modal .user-name {
-    font-weight: 600;
-    color: #333;
-    font-size: 1rem;
-  }
-  
-  .full-message-modal .country-flag {
-    width: 18px;
-    height: 14px;
-    border-radius: 2px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  }
-  
-  .full-message-modal .follow-btn {
-    margin-left: 10px;
-    background-color: transparent;
-    color: #4a90e2;
-    border: 1px solid #4a90e2;
-    border-radius: 9999px;
-    padding: 5px 12px;
-    font-size: 0.8rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  
-  .full-message-modal .follow-btn:hover {
-    background-color: rgba(74, 144, 226, 0.1);
-  }
-  
-  .full-message-modal .follow-btn.followed {
-    background-color: #4a90e2;
-    color: white;
-  }
-  
-  .full-message-modal .action-button {
-    color: #666;
-    transition: color 0.2s;
-  }
-  
-  .full-message-modal .action-button:hover {
-    color: #4a90e2;
-  }
-  
-  .full-message-modal .media-container {
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  
-  .full-message-modal .message-image {
-    cursor: default;
-    width: 100%;
-    max-height: 75vh;
-    object-fit: contain;
-  }
-  
-  .full-message-modal .message-video {
-    width: 100%;
-    max-height: 75vh;
-  }
-`;
-document.head.appendChild(style);
-</script>
-<script>
-// Function to check for media-only messages and add "Untitled" text
-function handleMediaOnlyMessages() {
-  document.querySelectorAll('.message').forEach(message => {
-    const hasMedia = message.querySelector('.media-container');
-    const hasText = message.querySelector('.message-text').textContent.trim() !== '';
-    
-    // If message has media but no text
-    if (hasMedia && !hasText) {
-      const textElement = message.querySelector('.message-text');
-      textElement.textContent = 'Untitled';
-      textElement.style.fontSize = '1.5rem';
-      textElement.style.fontWeight = 'bold';
-      textElement.style.color = 'var(--text-primary)';
-    }
-  });
-}
-
-// Observe chat container for new messages
-const chatObserver = new MutationObserver((mutations) => {
-  handleMediaOnlyMessages();
-});
-
-// Start observing the chat container
-const chatContainer = document.getElementById('chatContainer');
-if (chatContainer) {
-  chatObserver.observe(chatContainer, {
-    childList: true,
-    subtree: true
-  });
-}
-
-// Also run once when the page loads
-document.addEventListener('DOMContentLoaded', handleMediaOnlyMessages);
 </script>
