@@ -2356,3 +2356,46 @@ document.addEventListener('DOMContentLoaded', function() {
     TwitterModalSystem.init();
 });
 </script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+  // Function to redirect clicks to the main text area
+  function redirectClicksToTextArea(event) {
+    // Check if the click is inside a message
+    const messageElement = event.target.closest('.message');
+    if (!messageElement) return;
+    
+    // Check if the click is ALREADY on the text area (prevent infinite loop)
+    const isClickingTextArea = event.target.closest('.message-text');
+    if (isClickingTextArea) return;
+    
+    // Check if the click is on the follow button (let it work normally)
+    const isFollowButton = event.target.closest('.follow-btn');
+    if (isFollowButton) return;
+    
+    // Find the main text area inside this message
+    const textArea = messageElement.querySelector('.message-text');
+    if (!textArea) return;
+    
+    // STOP the original click (prevent image zoom, button actions, etc.)
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    
+    // Simulate a new click ONLY on the text area
+    const fakeClickEvent = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      target: textArea,
+      currentTarget: textArea
+    });
+    
+    // Trigger the fake click on the text area
+    textArea.dispatchEvent(fakeClickEvent);
+  }
+  
+  // Capture ALL clicks at the document level (BEFORE other handlers)
+  document.addEventListener('click', redirectClicksToTextArea, true);
+});
+</script>
