@@ -1904,7 +1904,6 @@
   })();
 </script>
 
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // ======================
@@ -1926,7 +1925,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 '--modal-text': '#0f1419',
                 '--modal-border': '#eff3f4',
                 '--modal-shadow': '0 8px 30px rgba(0, 0, 0, 0.12)',
-                '--glossy-overlay': 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 50%)'
+                '--skeleton-bg': 'rgba(0, 0, 0, 0.05)',
+                '--skeleton-highlight': 'rgba(0, 0, 0, 0.08)'
             },
             dim: {
                 '--background': '#15202b',
@@ -1941,7 +1941,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 '--modal-text': '#ffffff',
                 '--modal-border': '#38444d',
                 '--modal-shadow': '0 8px 30px rgba(0, 0, 0, 0.3)',
-                '--glossy-overlay': 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)'
+                '--skeleton-bg': 'rgba(255, 255, 255, 0.05)',
+                '--skeleton-highlight': 'rgba(255, 255, 255, 0.08)'
             },
             dark: {
                 '--background': '#000000',
@@ -1956,7 +1957,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 '--modal-text': '#ffffff',
                 '--modal-border': '#2f3336',
                 '--modal-shadow': '0 8px 30px rgba(0, 0, 0, 0.5)',
-                '--glossy-overlay': 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)'
+                '--skeleton-bg': 'rgba(255, 255, 255, 0.05)',
+                '--skeleton-highlight': 'rgba(255, 255, 255, 0.08)'
             }
         };
 
@@ -1970,466 +1972,482 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        function applyColorPalette(color) {
-            document.documentElement.style.setProperty('--primary', color);
-            document.documentElement.style.setProperty('--hover', `${color}20`);
-        }
-
-        function initThemeSystem() {
-            const savedTheme = localStorage.getItem('twitter-theme') || 'light';
-            const savedColor = localStorage.getItem('color-value') || '#1d9bf0';
+        function createSkeletonLoader(currentTheme) {
+            const themeSettings = themes[currentTheme] || themes.light;
             
-            applyTheme(savedTheme);
-            applyColorPalette(savedColor);
-        }
-
-        function showLoadingAnimation() {
-            const loader = document.createElement('div');
-            loader.id = 'twitter-modal-loader';
-            loader.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background-color: rgba(0, 0, 0, 0.5);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 9999;
-                opacity: 0;
-                transition: opacity 0.3s ease;
-            `;
-            
-            const spinner = document.createElement('div');
-            spinner.style.cssText = `
-                width: 48px;
-                height: 48px;
-                border: 4px solid rgba(255, 255, 255, 0.3);
-                border-radius: 50%;
-                border-top-color: #1d9bf0;
-                animation: twitterSpin 1s ease-in-out infinite;
-            `;
-            
-            loader.appendChild(spinner);
-            document.body.appendChild(loader);
-            
-            // Add spin animation
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes twitterSpin {
-                    to { transform: rotate(360deg); }
-                }
-            `;
-            document.head.appendChild(style);
-            
-            // Fade in
-            setTimeout(() => {
-                loader.style.opacity = '1';
-            }, 10);
-            
-            return loader;
-        }
-
-        function removeLoadingAnimation(loader) {
-            if (loader) {
-                loader.style.opacity = '0';
-                setTimeout(() => {
-                    if (loader.parentNode) {
-                        loader.parentNode.removeChild(loader);
-                    }
-                }, 300);
-            }
-        }
-
-        function showFullMessageModal(messageElement) {
-            // Show loading animation
-            const loader = showLoadingAnimation();
-            
-            // Clone the message element for modal content
-            const messageClone = messageElement.cloneNode(true);
-            const currentTheme = localStorage.getItem('twitter-theme') || 'light';
-            const themeSettings = themes[currentTheme];
-            
-            // Create modal container with slide-in animation
-            const modal = document.createElement('div');
-            modal.className = 'twitter-full-message-modal';
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                right: -100%;
-                width: 100%;
-                max-width: 600px;
-                height: 100%;
-                background-color: ${themeSettings['--modal-bg']};
-                display: flex;
-                flex-direction: column;
-                z-index: 1000;
-                overflow: hidden;
-                box-shadow: ${themeSettings['--modal-shadow']};
-                transition: right 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-            `;
-            
-            // Add glossy overlay effect
-            const glossyOverlay = document.createElement('div');
-            glossyOverlay.style.cssText = `
+            const skeleton = document.createElement('div');
+            skeleton.className = 'twitter-modal-skeleton';
+            skeleton.style.cssText = `
                 position: absolute;
                 top: 0;
                 left: 0;
                 width: 100%;
                 height: 100%;
-                pointer-events: none;
-                background: ${themeSettings['--glossy-overlay']};
-                z-index: 1;
-            `;
-            modal.appendChild(glossyOverlay);
-
-            // Create header with professional styling
-            const header = document.createElement('div');
-            header.className = 'twitter-modal-header';
-            header.style.cssText = `
+                z-index: 2;
+                background-color: ${themeSettings['--modal-bg']};
                 display: flex;
-                justify-content: space-between;
-                align-items: center;
+                flex-direction: column;
+            `;
+            
+            // Header skeleton
+            const headerSkeleton = document.createElement('div');
+            headerSkeleton.style.cssText = `
                 padding: 16px 20px;
+                display: flex;
+                align-items: center;
                 border-bottom: 1px solid ${themeSettings['--modal-border']};
-                position: sticky;
-                top: 0;
                 background-color: ${themeSettings['--modal-header']};
-                z-index: 10;
-                backdrop-filter: blur(10px);
             `;
             
-            // Back button with smooth hover effect
-            const backButton = document.createElement('button');
-            backButton.className = 'twitter-modal-back-button';
-            backButton.innerHTML = `
-                <svg viewBox="0 0 24 24" width="24" height="24">
-                    <path fill="${themeSettings['--text']}" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path>
-                </svg>
-            `;
-            backButton.style.cssText = `
-                background: none;
-                border: none;
-                cursor: pointer;
-                padding: 8px;
+            const backButtonSkeleton = document.createElement('div');
+            backButtonSkeleton.style.cssText = `
+                width: 24px;
+                height: 24px;
                 border-radius: 50%;
-                transition: all 0.2s ease;
-                display: flex;
-                align-items: center;
-                justify-content: center;
+                background-color: ${themeSettings['--skeleton-bg']};
             `;
             
-            backButton.addEventListener('mouseenter', () => {
-                backButton.style.backgroundColor = themeSettings['--hover'];
-                backButton.style.transform = 'translateX(-2px)';
-            });
-            
-            backButton.addEventListener('mouseleave', () => {
-                backButton.style.backgroundColor = 'transparent';
-                backButton.style.transform = 'translateX(0)';
-            });
-
-            // Profile section with enhanced layout
-            const profileSection = document.createElement('div');
-            profileSection.style.cssText = `
+            const profileSkeleton = document.createElement('div');
+            profileSkeleton.style.cssText = `
                 display: flex;
                 align-items: center;
-                flex-grow: 1;
                 margin-left: 16px;
+                flex-grow: 1;
+            `;
+            
+            const avatarSkeleton = document.createElement('div');
+            avatarSkeleton.style.cssText = `
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                margin-right: 12px;
+                background-color: ${themeSettings['--skeleton-bg']};
+            `;
+            
+            const nameSkeleton = document.createElement('div');
+            nameSkeleton.style.cssText = `
+                display: flex;
+                flex-direction: column;
+                flex-grow: 1;
+            `;
+            
+            const usernameSkeleton = document.createElement('div');
+            usernameSkeleton.style.cssText = `
+                width: 120px;
+                height: 16px;
+                border-radius: 4px;
+                margin-bottom: 6px;
+                background-color: ${themeSettings['--skeleton-bg']};
+            `;
+            
+            const timeSkeleton = document.createElement('div');
+            timeSkeleton.style.cssText = `
+                width: 80px;
+                height: 12px;
+                border-radius: 4px;
+                background-color: ${themeSettings['--skeleton-bg']};
+            `;
+            
+            nameSkeleton.appendChild(usernameSkeleton);
+            nameSkeleton.appendChild(timeSkeleton);
+            profileSkeleton.appendChild(avatarSkeleton);
+            profileSkeleton.appendChild(nameSkeleton);
+            headerSkeleton.appendChild(backButtonSkeleton);
+            headerSkeleton.appendChild(profileSkeleton);
+            
+            // Content skeleton
+            const contentSkeleton = document.createElement('div');
+            contentSkeleton.style.cssText = `
+                padding: 20px;
+                flex-grow: 1;
+            `;
+            
+            // Text lines
+            for (let i = 0; i < 5; i++) {
+                const line = document.createElement('div');
+                line.style.cssText = `
+                    height: 16px;
+                    border-radius: 4px;
+                    background-color: ${themeSettings['--skeleton-bg']};
+                    margin-bottom: 12px;
+                    width: ${i % 2 === 0 ? '100%' : '80%'};
+                `;
+                contentSkeleton.appendChild(line);
+            }
+            
+            // Media placeholder
+            const mediaSkeleton = document.createElement('div');
+            mediaSkeleton.style.cssText = `
+                height: 300px;
+                border-radius: 16px;
+                background-color: ${themeSettings['--skeleton-bg']};
+                margin-top: 20px;
+            `;
+            contentSkeleton.appendChild(mediaSkeleton);
+            
+            // Action buttons skeleton
+            const actionsSkeleton = document.createElement('div');
+            actionsSkeleton.style.cssText = `
+                display: flex;
+                justify-content: space-around;
+                padding: 16px 20px;
+                border-top: 1px solid ${themeSettings['--modal-border']};
+                background-color: ${themeSettings['--modal-header']};
+            `;
+            
+            for (let i = 0; i < 4; i++) {
+                const button = document.createElement('div');
+                button.style.cssText = `
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    background-color: ${themeSettings['--skeleton-bg']};
+                `;
+                actionsSkeleton.appendChild(button);
+            }
+            
+            skeleton.appendChild(headerSkeleton);
+            skeleton.appendChild(contentSkeleton);
+            skeleton.appendChild(actionsSkeleton);
+            
+            // Add shimmer animation
+            const shimmer = document.createElement('div');
+            shimmer.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(
+                    90deg,
+                    transparent,
+                    ${themeSettings['--skeleton-highlight']},
+                    transparent
+                );
+                animation: twitterShimmer 1.5s infinite;
+            `;
+            skeleton.appendChild(shimmer);
+            
+            return skeleton;
+        }
+
+        function showFullMessageModal(messageElement) {
+            const currentTheme = localStorage.getItem('twitter-theme') || 'light';
+            
+            // Create modal container
+            const modal = document.createElement('div');
+            modal.className = 'twitter-full-message-modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: ${themes[currentTheme]['--modal-bg']};
+                display: flex;
+                flex-direction: column;
+                z-index: 1000;
                 overflow: hidden;
             `;
             
-            // Clone and style profile elements
-            const profileImage = messageClone.querySelector('.profile-image');
-            const userName = messageClone.querySelector('.user-name');
-            const countryFlag = messageClone.querySelector('.country-flag');
-            const messageTime = messageClone.querySelector('.message-time');
+            // Add skeleton loader
+            const skeleton = createSkeletonLoader(currentTheme);
+            modal.appendChild(skeleton);
             
-            if (profileImage) {
-                const headerProfileImage = profileImage.cloneNode(true);
-                headerProfileImage.style.cssText = `
-                    width: 40px;
-                    height: 40px;
-                    margin-right: 12px;
-                    border-radius: 50%;
-                    object-fit: cover;
-                    transition: transform 0.2s ease;
-                `;
-                headerProfileImage.addEventListener('mouseenter', () => {
-                    headerProfileImage.style.transform = 'scale(1.05)';
-                });
-                headerProfileImage.addEventListener('mouseleave', () => {
-                    headerProfileImage.style.transform = 'scale(1)';
-                });
-                profileSection.appendChild(headerProfileImage);
-            }
-            
-            if (userName && countryFlag && messageTime) {
-                const profileInfo = document.createElement('div');
-                profileInfo.style.cssText = `
-                    display: flex;
-                    flex-direction: column;
-                    overflow: hidden;
-                `;
-                
-                const nameContainer = document.createElement('div');
-                nameContainer.style.cssText = `
-                    display: flex;
-                    align-items: center;
-                    overflow: hidden;
-                `;
-                
-                const nameClone = userName.cloneNode(true);
-                nameClone.style.cssText = `
-                    font-weight: 700;
-                    color: ${themeSettings['--text']};
-                    font-size: 16px;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                `;
-                
-                const flagClone = countryFlag.cloneNode(true);
-                flagClone.style.cssText = `
-                    margin-left: 8px;
-                    flex-shrink: 0;
-                    width: 18px;
-                    height: 14px;
-                    border-radius: 2px;
-                `;
-                
-                nameContainer.appendChild(nameClone);
-                nameContainer.appendChild(flagClone);
-                
-                const timeClone = messageTime.cloneNode(true);
-                timeClone.style.cssText = `
-                    font-size: 14px;
-                    color: ${themeSettings['--secondary-text']};
-                    margin-top: 2px;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                `;
-                
-                profileInfo.appendChild(nameContainer);
-                profileInfo.appendChild(timeClone);
-                profileSection.appendChild(profileInfo);
-            }
-            
-            // Follow button with dynamic color
-            const followButton = messageClone.querySelector('.follow-btn');
-            if (followButton) {
-                followButton.style.cssText = `
-                    margin-left: 12px;
-                    background-color: transparent;
-                    color: var(--primary);
-                    border: 1px solid var(--primary);
-                    border-radius: 9999px;
-                    padding: 6px 16px;
-                    font-size: 14px;
-                    font-weight: 700;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    white-space: nowrap;
-                    flex-shrink: 0;
-                `;
-                
-                followButton.addEventListener('mouseenter', () => {
-                    followButton.style.backgroundColor = `${getComputedStyle(document.documentElement).getPropertyValue('--primary')}20`;
-                });
-                
-                followButton.addEventListener('mouseleave', () => {
-                    if (!followButton.classList.contains('followed')) {
-                        followButton.style.backgroundColor = 'transparent';
-                    }
-                });
-            }
-            
-            header.appendChild(backButton);
-            header.appendChild(profileSection);
-            if (followButton) header.appendChild(followButton);
-            
-            // Content container with perfect scrolling
-            const contentContainer = document.createElement('div');
-            contentContainer.className = 'twitter-modal-content';
-            contentContainer.style.cssText = `
-                padding: 20px;
-                width: 100%;
-                margin: 0 auto;
-                flex-grow: 1;
-                overflow-y: auto;
-                position: relative;
-                scroll-behavior: smooth;
-            `;
-            
-            // Remove original message header
-            const messageHeader = messageClone.querySelector('.message-header');
-            if (messageHeader) messageHeader.remove();
-            
-            // Enhanced media container
-            const mediaContainer = messageClone.querySelector('.media-container');
-            if (mediaContainer) {
-                mediaContainer.style.cssText = `
-                    max-width: 100%;
-                    margin-bottom: 24px;
-                    border-radius: 16px;
-                    overflow: hidden;
-                    position: relative;
-                `;
-                
-                // Add glossy overlay to media
-                const mediaGloss = document.createElement('div');
-                mediaGloss.style.cssText = `
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    pointer-events: none;
-                    background: ${themeSettings['--glossy-overlay']};
-                    z-index: 1;
-                `;
-                mediaContainer.appendChild(mediaGloss);
-                
-                const images = mediaContainer.querySelectorAll('.message-image');
-                images.forEach(img => {
-                    img.style.cssText = `
-                        width: 100%;
-                        max-height: 75vh;
-                        object-fit: contain;
-                        display: block;
-                        border-radius: 16px;
-                        transition: transform 0.3s ease;
-                    `;
-                    
-                    img.addEventListener('mouseenter', () => {
-                        img.style.transform = 'scale(1.02)';
-                    });
-                    
-                    img.addEventListener('mouseleave', () => {
-                        img.style.transform = 'scale(1)';
-                    });
-                });
-                
-                contentContainer.appendChild(mediaContainer);
-            }
-            
-            // Enhanced text styling
-            const messageText = messageClone.querySelector('.message-text');
-            if (messageText) {
-                messageText.style.cssText = `
-                    font-size: 17px;
-                    line-height: 1.6;
-                    color: ${themeSettings['--text']};
-                    margin-bottom: 24px;
-                    white-space: pre-wrap;
-                    word-break: break-word;
-                `;
-                contentContainer.appendChild(messageText);
-            }
-            
-            // Sticky action buttons with professional effects
-            const actionButtonsContainer = document.createElement('div');
-            actionButtonsContainer.className = 'twitter-modal-actions';
-            actionButtonsContainer.style.cssText = `
-                position: sticky;
-                bottom: 0;
-                left: 0;
-                width: 100%;
-                background-color: ${themeSettings['--modal-header']};
-                border-top: 1px solid ${themeSettings['--modal-border']};
-                padding: 12px 20px;
-                backdrop-filter: blur(10px);
-                z-index: 10;
-                display: flex;
-                justify-content: center;
-            `;
-            
-            const actionButtons = messageClone.querySelector('.action-buttons');
-            if (actionButtons) {
-                actionButtons.style.cssText = `
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    width: 100%;
-                    max-width: 680px;
-                `;
-                
-                // Style all action buttons
-                actionButtons.querySelectorAll('.action-button').forEach(button => {
-                    button.style.cssText = `
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        background: none;
-                        border: none;
-                        color: ${themeSettings['--secondary-text']};
-                        padding: 8px;
-                        border-radius: 50%;
-                        cursor: pointer;
-                        transition: all 0.2s ease;
-                    `;
-                    
-                    button.addEventListener('mouseenter', () => {
-                        button.style.color = `var(--primary)`;
-                        button.style.backgroundColor = themeSettings['--hover'];
-                    });
-                    
-                    button.addEventListener('mouseleave', () => {
-                        button.style.color = themeSettings['--secondary-text'];
-                        button.style.backgroundColor = 'transparent';
-                    });
-                });
-                
-                actionButtonsContainer.appendChild(actionButtons);
-            }
-            
-            // Assemble modal
-            modal.appendChild(header);
-            modal.appendChild(contentContainer);
-            modal.appendChild(actionButtonsContainer);
             document.body.appendChild(modal);
             document.body.style.overflow = 'hidden';
             
-            // Remove loading animation and slide in modal
+            // Simulate loading delay (replace with actual content loading)
             setTimeout(() => {
-                removeLoadingAnimation(loader);
-                modal.style.right = '0';
-            }, 300);
-            
-            // Close modal function with smooth animation
-            function closeModal() {
-                modal.style.right = '-100%';
-                setTimeout(() => {
-                    if (modal.parentNode) {
-                        document.body.removeChild(modal);
+                // Clone the message element for modal content
+                const messageClone = messageElement.cloneNode(true);
+                const themeSettings = themes[currentTheme];
+                
+                // Remove skeleton
+                modal.removeChild(skeleton);
+                
+                // Create header
+                const header = document.createElement('div');
+                header.className = 'twitter-modal-header';
+                header.style.cssText = `
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 16px 20px;
+                    border-bottom: 1px solid ${themeSettings['--modal-border']};
+                    position: sticky;
+                    top: 0;
+                    background-color: ${themeSettings['--modal-header']};
+                    z-index: 10;
+                    backdrop-filter: blur(10px);
+                `;
+                
+                // Back button
+                const backButton = document.createElement('button');
+                backButton.className = 'twitter-modal-back-button';
+                backButton.innerHTML = `
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                        <path fill="${themeSettings['--text']}" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path>
+                    </svg>
+                `;
+                backButton.style.cssText = `
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    padding: 8px;
+                    border-radius: 50%;
+                    transition: all 0.2s ease;
+                `;
+                
+                backButton.addEventListener('mouseenter', () => {
+                    backButton.style.backgroundColor = themeSettings['--hover'];
+                });
+                
+                backButton.addEventListener('mouseleave', () => {
+                    backButton.style.backgroundColor = 'transparent';
+                });
+
+                // Profile section
+                const profileSection = document.createElement('div');
+                profileSection.style.cssText = `
+                    display: flex;
+                    align-items: center;
+                    flex-grow: 1;
+                    margin-left: 16px;
+                    overflow: hidden;
+                `;
+                
+                // Clone profile elements
+                const profileImage = messageClone.querySelector('.profile-image');
+                const userName = messageClone.querySelector('.user-name');
+                const countryFlag = messageClone.querySelector('.country-flag');
+                const messageTime = messageClone.querySelector('.message-time');
+                
+                if (profileImage) {
+                    const headerProfileImage = profileImage.cloneNode(true);
+                    headerProfileImage.style.cssText = `
+                        width: 40px;
+                        height: 40px;
+                        margin-right: 12px;
+                        border-radius: 50%;
+                        object-fit: cover;
+                    `;
+                    profileSection.appendChild(headerProfileImage);
+                }
+                
+                if (userName && countryFlag && messageTime) {
+                    const profileInfo = document.createElement('div');
+                    profileInfo.style.cssText = `
+                        display: flex;
+                        flex-direction: column;
+                        overflow: hidden;
+                    `;
+                    
+                    const nameContainer = document.createElement('div');
+                    nameContainer.style.cssText = `
+                        display: flex;
+                        align-items: center;
+                        overflow: hidden;
+                    `;
+                    
+                    const nameClone = userName.cloneNode(true);
+                    nameClone.style.cssText = `
+                        font-weight: 700;
+                        color: ${themeSettings['--text']};
+                        font-size: 16px;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    `;
+                    
+                    const flagClone = countryFlag.cloneNode(true);
+                    flagClone.style.cssText = `
+                        margin-left: 8px;
+                        flex-shrink: 0;
+                        width: 18px;
+                        height: 14px;
+                        border-radius: 2px;
+                    `;
+                    
+                    nameContainer.appendChild(nameClone);
+                    nameContainer.appendChild(flagClone);
+                    
+                    const timeClone = messageTime.cloneNode(true);
+                    timeClone.style.cssText = `
+                        font-size: 14px;
+                        color: ${themeSettings['--secondary-text']};
+                        margin-top: 2px;
+                    `;
+                    
+                    profileInfo.appendChild(nameContainer);
+                    profileInfo.appendChild(timeClone);
+                    profileSection.appendChild(profileInfo);
+                }
+                
+                // Follow button
+                const followButton = messageClone.querySelector('.follow-btn');
+                if (followButton) {
+                    followButton.style.cssText = `
+                        margin-left: 12px;
+                        background-color: transparent;
+                        color: var(--primary);
+                        border: 1px solid var(--primary);
+                        border-radius: 9999px;
+                        padding: 6px 16px;
+                        font-size: 14px;
+                        font-weight: 700;
+                        cursor: pointer;
+                    `;
+                }
+                
+                header.appendChild(backButton);
+                header.appendChild(profileSection);
+                if (followButton) header.appendChild(followButton);
+                
+                // Content container
+                const contentContainer = document.createElement('div');
+                contentContainer.className = 'twitter-modal-content';
+                contentContainer.style.cssText = `
+                    padding: 20px;
+                    width: 100%;
+                    margin: 0 auto;
+                    flex-grow: 1;
+                    overflow-y: auto;
+                `;
+                
+                // Remove original message header
+                const messageHeader = messageClone.querySelector('.message-header');
+                if (messageHeader) messageHeader.remove();
+                
+                // Media container
+                const mediaContainer = messageClone.querySelector('.media-container');
+                if (mediaContainer) {
+                    mediaContainer.style.cssText = `
+                        max-width: 100%;
+                        margin-bottom: 24px;
+                        border-radius: 16px;
+                        overflow: hidden;
+                    `;
+                    
+                    const images = mediaContainer.querySelectorAll('.message-image');
+                    images.forEach(img => {
+                        img.style.cssText = `
+                            width: 100%;
+                            max-height: 75vh;
+                            object-fit: contain;
+                            display: block;
+                            border-radius: 16px;
+                        `;
+                    });
+                    
+                    contentContainer.appendChild(mediaContainer);
+                }
+                
+                // Text styling
+                const messageText = messageClone.querySelector('.message-text');
+                if (messageText) {
+                    messageText.style.cssText = `
+                        font-size: 17px;
+                        line-height: 1.6;
+                        color: ${themeSettings['--text']};
+                        margin-bottom: 24px;
+                        white-space: pre-wrap;
+                    `;
+                    contentContainer.appendChild(messageText);
+                }
+                
+                // Action buttons
+                const actionButtonsContainer = document.createElement('div');
+                actionButtonsContainer.className = 'twitter-modal-actions';
+                actionButtonsContainer.style.cssText = `
+                    position: sticky;
+                    bottom: 0;
+                    left: 0;
+                    width: 100%;
+                    background-color: ${themeSettings['--modal-header']};
+                    border-top: 1px solid ${themeSettings['--modal-border']};
+                    padding: 12px 20px;
+                    backdrop-filter: blur(10px);
+                    z-index: 10;
+                    display: flex;
+                    justify-content: center;
+                `;
+                
+                const actionButtons = messageClone.querySelector('.action-buttons');
+                if (actionButtons) {
+                    actionButtons.style.cssText = `
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        width: 100%;
+                        max-width: 680px;
+                    `;
+                    
+                    actionButtons.querySelectorAll('.action-button').forEach(button => {
+                        button.style.cssText = `
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            background: none;
+                            border: none;
+                            color: ${themeSettings['--secondary-text']};
+                            padding: 8px;
+                            border-radius: 50%;
+                            cursor: pointer;
+                        `;
+                        
+                        button.addEventListener('mouseenter', () => {
+                            button.style.color = `var(--primary)`;
+                            button.style.backgroundColor = themeSettings['--hover'];
+                        });
+                        
+                        button.addEventListener('mouseleave', () => {
+                            button.style.color = themeSettings['--secondary-text'];
+                            button.style.backgroundColor = 'transparent';
+                        });
+                    });
+                    
+                    actionButtonsContainer.appendChild(actionButtons);
+                }
+                
+                // Assemble modal
+                modal.appendChild(header);
+                modal.appendChild(contentContainer);
+                modal.appendChild(actionButtonsContainer);
+                
+                // Close modal function
+                function closeModal() {
+                    modal.style.opacity = '0';
+                    setTimeout(() => {
+                        if (modal.parentNode) {
+                            document.body.removeChild(modal);
+                        }
+                        document.body.style.overflow = '';
+                    }, 200);
+                }
+                
+                // Back button click
+                backButton.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    closeModal();
+                });
+                
+                // Escape key to close
+                function handleEscape(e) {
+                    if (e.key === 'Escape') {
+                        closeModal();
+                        document.removeEventListener('keydown', handleEscape);
                     }
-                    document.body.style.overflow = '';
-                }, 300);
-            }
-            
-            // Back button click
-            backButton.addEventListener('click', function(e) {
-                e.stopPropagation();
-                closeModal();
-            });
-            
-            // Escape key to close
-            function handleEscape(e) {
-                if (e.key === 'Escape') {
-                    closeModal();
-                    document.removeEventListener('keydown', handleEscape);
                 }
-            }
-            document.addEventListener('keydown', handleEscape);
-            
-            // Click outside to close (with elegant detection)
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    closeModal();
-                }
-            });
+                document.addEventListener('keydown', handleEscape);
+                
+                // Click outside to close
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        closeModal();
+                    }
+                });
+            }, 800); // Simulated loading delay
         }
 
         function setupModalSystem() {
@@ -2456,34 +2474,71 @@ document.addEventListener('DOMContentLoaded', function() {
             style.textContent = `
                 .twitter-full-message-modal {
                     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                    animation: twitterModalFadeIn 0.3s ease-out;
                 }
+                
+                .twitter-modal-skeleton {
+                    overflow: hidden;
+                    position: relative;
+                }
+                
+                @keyframes twitterShimmer {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(100%); }
+                }
+                
+                @keyframes twitterModalFadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                
                 .twitter-full-message-modal .profile-image {
                     cursor: pointer;
+                    transition: transform 0.2s ease;
                 }
+                
+                .twitter-full-message-modal .profile-image:hover {
+                    transform: scale(1.05);
+                }
+                
                 .twitter-full-message-modal .user-name {
                     font-weight: 700;
                     color: var(--text);
                 }
-                .twitter-full-message-modal .country-flag {
-                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-                }
+                
                 .twitter-full-message-modal .follow-btn {
                     transition: all 0.2s ease;
                 }
+                
+                .twitter-full-message-modal .follow-btn:hover {
+                    background-color: var(--hover) !important;
+                }
+                
                 .twitter-full-message-modal .follow-btn.followed {
                     background-color: var(--primary) !important;
                     color: white !important;
                     border-color: transparent !important;
                 }
+                
                 .twitter-full-message-modal .action-button {
                     transition: all 0.2s ease;
                 }
+                
+                .twitter-full-message-modal .message-image {
+                    transition: transform 0.3s ease;
+                }
+                
+                .twitter-full-message-modal .message-image:hover {
+                    transform: scale(1.02);
+                }
+                
                 @media (max-width: 680px) {
                     .twitter-full-message-modal {
                         max-width: 100% !important;
                     }
-                    .twitter-full-message-modal .twitter-modal-actions {
-                        padding: 0 16px;
+                    
+                    .twitter-modal-actions {
+                        padding: 0 16px !important;
                     }
                 }
             `;
@@ -2493,7 +2548,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Public API
         return {
             init: function() {
-                initThemeSystem();
+                const currentTheme = localStorage.getItem('twitter-theme') || 'light';
+                applyTheme(currentTheme);
                 addStyles();
                 setupModalSystem();
             }
