@@ -1907,6 +1907,9 @@
 
 
 <script>
+  (function() {
+  'use strict';
+  
   document.addEventListener('DOMContentLoaded', function() {
     // Configuration - make these unique to our script
     const MAX_LENGTH = 60;
@@ -1917,27 +1920,27 @@
     // Style for our specific button
     const style = document.createElement('style');
     style.textContent = `
-        .${TOGGLE_BUTTON_CLASS} {
-            background: linear-gradient(90deg, rgba(74,144,226,0.2) 0%, rgba(74,144,226,0.1) 100%);
-            border: none;
-            border-radius: 12px;
-            color: #4a90e2;
-            cursor: pointer;
-            font-size: 10px;
-            margin-left: 5px;
-            padding: 2px 6px;
-            transition: all 0.2s ease;
-        }
-        
-        .${TEXT_CONTAINER_CLASS} {
-            display: inline;
-        }
-        
-        /* Ensure our buttons work in the modal too */
-        .full-message-modal .${TOGGLE_BUTTON_CLASS} {
-            font-size: 12px;
-            padding: 3px 8px;
-        }
+      .${TOGGLE_BUTTON_CLASS} {
+          background: linear-gradient(90deg, rgba(74,144,226,0.2) 0%, rgba(74,144,226,0.1) 100%);
+          border: none;
+          border-radius: 12px;
+          color: #4a90e2;
+          cursor: pointer;
+          font-size: 10px;
+          margin-left: 5px;
+          padding: 2px 6px;
+          transition: all 0.2s ease;
+      }
+      
+      .${TEXT_CONTAINER_CLASS} {
+          display: inline;
+      }
+      
+      /* Ensure our buttons work in the modal too */
+      .full-message-modal .${TOGGLE_BUTTON_CLASS} {
+          font-size: 12px;
+          padding: 3px 8px;
+      }
     `;
     document.head.appendChild(style);
     
@@ -1970,7 +1973,7 @@
         const btn = document.createElement('button');
         btn.className = TOGGLE_BUTTON_CLASS;
         btn.textContent = 'Show More';
-        btn.onclick = (e) => {
+        btn.onclick = function(e) {
           e.stopPropagation(); // Prevent triggering the full-screen modal
           toggleText(container, btn);
         };
@@ -1999,7 +2002,9 @@
       mutations.forEach(mutation => {
         if (mutation.addedNodes.length) {
           // Process both regular messages and modal messages
-          const newMessages = document.querySelectorAll('.message-text:not([data-js-processed]), .full-message-modal .message-text:not([data-js-processed])');
+          const newMessages = document.querySelectorAll(
+            '.message-text:not([data-js-processed]), .full-message-modal .message-text:not([data-js-processed])'
+          );
           if (newMessages.length) {
             initMessages();
           }
@@ -2008,10 +2013,13 @@
     });
     
     // Observe both the main chat and any potential modals
-    observer.observe(document.getElementById('chatContainer'), {
-      childList: true,
-      subtree: true
-    });
+    const chatContainer = document.getElementById('chatContainer');
+    if (chatContainer) {
+      observer.observe(chatContainer, {
+        childList: true,
+        subtree: true
+      });
+    }
     
     // Also observe the body for modals being added
     const modalObserver = new MutationObserver(function(mutations) {
@@ -2030,6 +2038,7 @@
       subtree: false
     });
   });
+})();
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
