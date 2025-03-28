@@ -2042,16 +2042,16 @@
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Configuration - make these unique to our script
-    const MEDIA_GRID_CLASS = 'media-grid-js';
-    const MEDIA_ITEM_CLASS = 'media-item-js';
-    const STYLE_ID = 'media-grid-styles-js';
-
-    // Add our styles only once
-    if (!document.getElementById(STYLE_ID)) {
-        const style = document.createElement('style');
-        style.id = STYLE_ID;
-        style.textContent = `
+  // Configuration - make these unique to our script
+  const MEDIA_GRID_CLASS = 'media-grid-js';
+  const MEDIA_ITEM_CLASS = 'media-item-js';
+  const STYLE_ID = 'media-grid-styles-js';
+  
+  // Add our styles only once
+  if (!document.getElementById(STYLE_ID)) {
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = `
             .${MEDIA_GRID_CLASS} {
                 display: grid;
                 grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -2115,78 +2115,78 @@ document.addEventListener('DOMContentLoaded', function() {
                 grid-template-columns: repeat(2, 1fr);
             }
         `;
-        document.head.appendChild(style);
-    }
-
-    // Process all media containers
-    function initMediaGrids() {
-        const mediaContainers = document.querySelectorAll('.media-container:not([data-js-processed])');
+    document.head.appendChild(style);
+  }
+  
+  // Process all media containers
+  function initMediaGrids() {
+    const mediaContainers = document.querySelectorAll('.media-container:not([data-js-processed])');
+    
+    mediaContainers.forEach(container => {
+      // Mark as processed
+      container.setAttribute('data-js-processed', 'true');
+      
+      const mediaItems = container.querySelectorAll('img, video');
+      if (mediaItems.length <= 1) return; // No need for grid with single item
+      
+      // Create our grid container
+      const grid = document.createElement('div');
+      grid.className = MEDIA_GRID_CLASS;
+      grid.setAttribute('data-item-count', mediaItems.length);
+      
+      // Wrap each media item in our grid item
+      mediaItems.forEach(item => {
+        const gridItem = document.createElement('div');
+        gridItem.className = MEDIA_ITEM_CLASS;
         
-        mediaContainers.forEach(container => {
-            // Mark as processed
-            container.setAttribute('data-js-processed', 'true');
-            
-            const mediaItems = container.querySelectorAll('img, video');
-            if (mediaItems.length <= 1) return; // No need for grid with single item
-            
-            // Create our grid container
-            const grid = document.createElement('div');
-            grid.className = MEDIA_GRID_CLASS;
-            grid.setAttribute('data-item-count', mediaItems.length);
-            
-            // Wrap each media item in our grid item
-            mediaItems.forEach(item => {
-                const gridItem = document.createElement('div');
-                gridItem.className = MEDIA_ITEM_CLASS;
-                
-                // Preserve any existing classes and attributes
-                if (item.className) gridItem.className += ' ' + item.className;
-                if (item.dataset) Object.assign(gridItem.dataset, item.dataset);
-                
-                // Clone the media element
-                const mediaClone = item.cloneNode(true);
-                gridItem.appendChild(mediaClone);
-                grid.appendChild(gridItem);
-            });
-            
-            // Replace the original container with our grid
-            container.innerHTML = '';
-            container.appendChild(grid);
-        });
-    }
-
-    // Initialize and watch for new media containers
-    initMediaGrids();
-    
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(mutation => {
-            if (mutation.addedNodes.length) {
-                initMediaGrids();
-            }
-        });
+        // Preserve any existing classes and attributes
+        if (item.className) gridItem.className += ' ' + item.className;
+        if (item.dataset) Object.assign(gridItem.dataset, item.dataset);
+        
+        // Clone the media element
+        const mediaClone = item.cloneNode(true);
+        gridItem.appendChild(mediaClone);
+        grid.appendChild(gridItem);
+      });
+      
+      // Replace the original container with our grid
+      container.innerHTML = '';
+      container.appendChild(grid);
     });
-    
-    observer.observe(document.getElementById('chatContainer'), {
-        childList: true,
-        subtree: true
+  }
+  
+  // Initialize and watch for new media containers
+  initMediaGrids();
+  
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(mutation => {
+      if (mutation.addedNodes.length) {
+        initMediaGrids();
+      }
     });
-    
-    // Also observe for full-screen modal
-    const modalObserver = new MutationObserver(function(mutations) {
-        mutations.forEach(mutation => {
-            mutation.addedNodes.forEach(node => {
-                if (node.classList && node.classList.contains('full-message-modal')) {
-                    // When modal appears, process its media
-                    initMediaGrids();
-                }
-            });
-        });
+  });
+  
+  observer.observe(document.getElementById('chatContainer'), {
+    childList: true,
+    subtree: true
+  });
+  
+  // Also observe for full-screen modal
+  const modalObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(mutation => {
+      mutation.addedNodes.forEach(node => {
+        if (node.classList && node.classList.contains('full-message-modal')) {
+          // When modal appears, process its media
+          initMediaGrids();
+        }
+      });
     });
-    
-    modalObserver.observe(document.body, {
-        childList: true,
-        subtree: false
-    });
+  });
+  
+  modalObserver.observe(document.body, {
+    childList: true,
+    subtree: false
+  });
 });
 </script>
 
