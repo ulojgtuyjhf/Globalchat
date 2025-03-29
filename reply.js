@@ -7,18 +7,22 @@
     currentTheme: 'light',
     
     icons: {
-      // True reply arrow icon (not a comment bubble)
-      reply: `<svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 3.786c-4.556 0-8.25 3.694-8.25 8.25s3.694 8.25 8.25 8.25c1.595 0 3.081-.451 4.341-1.233l1.054 1.1c-1.545.945-3.353 1.488-5.28 1.488-5.636 0-10.201-4.565-10.201-10.201S6.764 1.08 12.4 1.08c5.636 0 10.201 4.565 10.201 10.201v1.16c0 1.644-1.336 2.98-2.98 2.98-1.644 0-2.98-1.336-2.98-2.98V9.09h-1.586c-1.05-1.635-2.905-2.724-5.02-2.724-3.276 0-5.931 2.655-5.931 5.931s2.655 5.931 5.931 5.931c1.94 0 3.666-.932 4.744-2.373h1.043c.903 1.612 2.623 2.706 4.598 2.706 2.904 0 5.26-2.356 5.26-5.26V12c0-4.556-3.694-8.25-8.25-8.25zm0 14.034c-3.194 0-5.784-2.59-5.784-5.784s2.59-5.784 5.784-5.784 5.784 2.59 5.784 5.784-2.59 5.784-5.784 5.784z"></path></svg>`,
-      
-      // Better reply arrow (cleaner, more like Twitter's actual reply arrow)
-      reply: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-          <path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/>
-        </svg>`,
-      
-      // ACTUAL Twitter reply arrow (simplified)
-      reply: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-          <path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/>
-        </svg>`,
+      // Twitter reply arrow (simplified)
+      reply: `<svg xmlns="http://www.w3.org/2000/svg" 
+     shape-rendering="geometricPrecision" 
+     text-rendering="geometricPrecision" 
+     image-rendering="optimizeQuality" 
+     fill-rule="evenodd" 
+     clip-rule="evenodd" 
+     viewBox="0 0 512 410.87" 
+     fill="currentColor"
+     aria-hidden="true"
+     role="img">
+    <title>Directional Arrow Icon</title>
+    <desc>A curved arrow pointing to the right</desc>
+    <path fill-rule="nonzero" 
+          d="m28.94 205.45 169.28 165.24v-68.24c0-6.17 4.7-11.26 10.72-11.87 60.27-11.97 115.03-12.11 164.86 3.05 40.12 12.21 76.8 34.22 110.31 67.83-10.57-65.33-37.77-119.98-78.64-160.47-47.84-47.36-114.68-75.56-195.78-78.99-6.41-.25-11.43-5.53-11.43-11.89l-.04-69.89L28.94 205.45zM201.86 407.5 3.37 213.75c-4.58-4.71-4.48-12.25.23-16.83L201.22 4.04A11.87 11.87 0 0 1 210.16 0c6.58 0 11.93 5.35 11.93 11.94v86.93c82.19 5.79 150.41 35.99 200.16 85.25 52.41 51.9 84.08 124.76 89.73 212.34.22 3.73-1.3 7.51-4.43 10.02-5.13 4.12-12.62 3.31-16.74-1.82-36.96-45.99-78.09-74.33-123.91-88.27-43.54-13.25-91.69-13.7-144.81-w"/>
+</svg>`,
       
       close: `<svg viewBox="0 0 24 24" width="14" height="14"><path d="M10.59 12L4.54 5.96l1.42-1.42L12 10.59l6.04-6.05 1.42 1.42L13.41 12l6.05 6.04-1.42 1.42L12 13.41l-6.04 6.05-1.42-1.42L10.59 12z"></path></svg>`
     },
@@ -126,22 +130,41 @@
           border: none;
           cursor: pointer;
           display: flex;
-          padding: 3px;
+          align-items: center;
+          justify-content: center;
+          padding: 6px;
           border-radius: 50%;
           margin-left: 4px;
           transition: all 0.15s ease;
         }
         
-        .twitter-reply-close svg {
-          fill: var(--secondary-text);
+        /* Theme-specific close button colors */
+        [data-theme="light"] .twitter-reply-close svg {
+          fill: #536471;
+        }
+        
+        [data-theme="dim"] .twitter-reply-close svg {
+          fill: #8899a6;
+        }
+        
+        [data-theme="dark"] .twitter-reply-close svg {
+          fill: #e7e9ea;
         }
         
         .twitter-reply-close:hover {
           background: var(--hover);
         }
         
-        .twitter-reply-close:hover svg {
-          fill: var(--primary);
+        [data-theme="light"] .twitter-reply-close:hover svg {
+          fill: #f4212e;
+        }
+        
+        [data-theme="dim"] .twitter-reply-close:hover svg {
+          fill: #f4212e;
+        }
+        
+        [data-theme="dark"] .twitter-reply-close:hover svg {
+          fill: #f4212e;
         }
         
         /* Theme-aware reply indicator */
@@ -202,7 +225,7 @@
       quoteContainer.innerHTML = `
         <div class="twitter-reply-header">
           <div class="twitter-reply-name">Replying to @${userName}</div>
-          <button class="twitter-reply-close">${this.icons.close}</button>
+          <button class="twitter-reply-close" aria-label="Close reply">${this.icons.close}</button>
         </div>
         <div class="twitter-reply-text">${messageText}</div>
       `;
