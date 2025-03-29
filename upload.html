@@ -447,157 +447,106 @@
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    
+<script type="module">
+    // Import Firebase modules
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
-            authDomain: "globalchat-2d669.firebaseapp.com",
-            projectId: "globalchat-2d669",
-            storageBucket: "globalchat-2d669.firebasestorage.app",
-            messagingSenderId: "178714711978",
-            appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
-        };
+    // Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+        authDomain: "globalchat-2d669.firebaseapp.com",
+        projectId: "globalchat-2d669",
+        storageBucket: "globalchat-2d669.firebasestorage.app",
+        messagingSenderId: "178714711978",
+        appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
+    };
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+    // Appwrite Configuration
+    const APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1";
+    const APPWRITE_PROJECT_ID = "67d98c24003a405ab6a0";
+    const APPWRITE_BUCKET_ID = "67dba33e000399dc8641";
+    const APPWRITE_API_KEY = "standard_6f65a2d8e8c270ba9556f844789c1eae72c7fa71f64b95409ac20b6127c483454d1e4b9f8c13f82c09168ed1dfebd2d4e7e02494bee254252f9713675beea4d645a960879aaada1c6c98cb7651ec6c6bf4357e4c2c8b8d666c0166203ec43694b9a49ec8ee08161edf3fd5dea94e46c165316122f44f96c44933121be214b80c";
 
-        // Appwrite Configuration
-        const APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1";
-        const APPWRITE_PROJECT_ID = "67d98c24003a405ab6a0";
-        const APPWRITE_BUCKET_ID = "67dba33e000399dc8641";
-        const APPWRITE_API_KEY = "standard_6f65a2d8e8c270ba9556f844789c1eae72c7fa71f64b95409ac20b6127c483454d1e4b9f8c13f82c09168ed1dfebd2d4e7e02494bee254252f9713675beea4d645a960879aaada1c6c98cb7651ec6c6bf4357e4c2c8b8d666c0166203ec43694b9a49ec8ee08161edf3fd5dea94e46c165316122f44f96c44933121be214b80c";
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-        // DOM Elements
-        const postButton = document.getElementById('post-button');
-        const imageUpload = document.getElementById('image-upload');
-        const previewImage = document.getElementById('preview-image');
-        const descriptionInput = document.getElementById('description-input');
-        const resultModal = document.getElementById('result-modal');
-        const resultContainer = document.getElementById('result-container');
-        const resultIcon = document.getElementById('result-icon');
-        const resultMessage = document.getElementById('result-message');
-        const closeModal = document.getElementById('close-modal');
-        const loadingSpinner = document.getElementById('loading-spinner');
-        const dropZone = document.getElementById('drop-zone');
-        const mediumPlaceholder = document.getElementById('medium-placeholder');
-        const uploadProgressContainer = document.getElementById('upload-progress-container');
-        const uploadProgressBar = document.getElementById('upload-progress-bar');
+    // DOM Elements
+    const postButton = document.getElementById('post-button');
+    const imageUpload = document.getElementById('image-upload');
+    const previewImage = document.getElementById('preview-image');
+    const descriptionInput = document.getElementById('description-input');
+    const resultModal = document.getElementById('result-modal');
+    const resultContainer = document.getElementById('result-container');
+    const resultIcon = document.getElementById('result-icon');
+    const resultMessage = document.getElementById('result-message');
+    const closeModal = document.getElementById('close-modal');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const dropZone = document.getElementById('drop-zone');
+    const mediumPlaceholder = document.getElementById('medium-placeholder');
+    const uploadProgressContainer = document.getElementById('upload-progress-container');
+    const uploadProgressBar = document.getElementById('upload-progress-bar');
 
-        // Global variables
-        window.currentUser = null;
-        window.mediaFile = null;
-        window.canPost = true;
-        window.dragStartY = 0;
-        window.dragOffset = 0;
-        window.isDragging = false;
-        window.initialTouchY = 0;
+    // Global variables
+    let currentUser = null;
+    let mediaFile = null;
+    let canPost = true;
+    let dragStartY = 0;
+    let dragOffset = 0;
+    let isDragging = false;
+    let initialTouchY = 0;
 
-        // Authentication State Observer
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                window.currentUser = user;
-                postButton.disabled = false;
-            } else {
-                window.currentUser = null;
-                postButton.disabled = true;
-                window.location.href = 'login.html'; // Redirect to login if not authenticated
-            }
-        });
-
-        // Set up drag and drop functionality
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
-            document.body.addEventListener(eventName, preventDefaults, false);
-        });
-        
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, highlight, false);
-        });
-        
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, unhighlight, false);
-        });
-        
-        dropZone.addEventListener('drop', handleDrop, false);
-        
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
+    // Authentication State Observer
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            currentUser = user;
+            postButton.disabled = false;
+        } else {
+            currentUser = null;
+            postButton.disabled = true;
+            window.location.href = 'login.html'; // Redirect to login if not authenticated
         }
-        
-        function highlight() {
-            dropZone.classList.add('highlight');
-        }
-        
-        function unhighlight() {
-            dropZone.classList.remove('highlight');
-        }
-        
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            
-            if (files.length) {
-                const file = files[0];
-                if (file.type.startsWith('image/')) {
-                    handleFile(file);
-                } else if (file.type.startsWith('video/')) {
-                    showResult(false, 'Cannot upload videos. Images only.');
-                } else {
-                    showResult(false, 'Invalid file type. Images only.');
-                }
-            }
-        }
-        
-        function handleFile(file) {
-            window.mediaFile = file;
-            
-            // Show Medium-style placeholder
-            dropZone.style.display = 'none';
-            mediumPlaceholder.classList.add('visible');
-            uploadProgressContainer.style.display = 'block';
-            
-            // Create a local preview
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                previewImage.src = e.target.result;
-                // Simulate processing delay for better UX
-                simulateProgress(function() {
-                    previewImage.style.display = 'block';
-                    mediumPlaceholder.classList.remove('visible');
-                });
-            }
-            reader.readAsDataURL(file);
-        }
-        
-        // Simulated progress for better UX
-        function simulateProgress(callback) {
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += 5;
-                uploadProgressBar.style.width = `${progress}%`;
-                
-                if (progress >= 100) {
-                    clearInterval(interval);
-                    setTimeout(() => {
-                        callback();
-                    }, 300);
-                }
-            }, 50);
-        }
+    });
 
-        // Media Upload Handler
-        window.handleMediaUpload = function(event) {
-            const file = event.target.files[0];
-            
-            if (!file) return;
-            
+    // Set up drag and drop functionality
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+    });
+    
+    dropZone.addEventListener('drop', handleDrop, false);
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    function highlight() {
+        dropZone.classList.add('highlight');
+    }
+    
+    function unhighlight() {
+        dropZone.classList.remove('highlight');
+    }
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length) {
+            const file = files[0];
             if (file.type.startsWith('image/')) {
                 handleFile(file);
             } else if (file.type.startsWith('video/')) {
@@ -606,238 +555,281 @@
                 showResult(false, 'Invalid file type. Images only.');
             }
         }
-
-        // Upload to Appwrite
-        async function uploadToAppwrite(file) {
-            const formData = new FormData();
-            formData.append('fileId', 'unique_' + Date.now());
-            formData.append('file', file);
-            
-            try {
-                const response = await fetch(`${APPWRITE_ENDPOINT}/storage/buckets/${APPWRITE_BUCKET_ID}/files`, {
-                    method: 'POST',
-                    headers: {
-                        'X-Appwrite-Project': APPWRITE_PROJECT_ID,
-                        'X-Appwrite-Key': APPWRITE_API_KEY,
-                    },
-                    body: formData,
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to upload to Appwrite');
-                }
-                
-                const data = await response.json();
-                
-                // Generate file URL
-                return `${APPWRITE_ENDPOINT}/storage/buckets/${APPWRITE_BUCKET_ID}/files/${data.$id}/view?project=${APPWRITE_PROJECT_ID}`;
-                
-            } catch (error) {
-                console.error('Appwrite upload error:', error);
-                throw error;
-            }
+    }
+    
+    function handleFile(file) {
+        mediaFile = file;
+        
+        // Show Medium-style placeholder
+        dropZone.style.display = 'none';
+        mediumPlaceholder.classList.add('visible');
+        uploadProgressContainer.style.display = 'block';
+        
+        // Create a local preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImage.src = e.target.result;
+            // Simulate processing delay for better UX
+            simulateProgress(function() {
+                previewImage.style.display = 'block';
+                mediumPlaceholder.classList.remove('visible');
+            });
         }
-
-        // Process Post
-        window.processPost = async function() {
-            if (!window.canPost) return;
-
-            const description = descriptionInput.value || '';
-
-            if (!window.mediaFile && !description) {
-                showResult(false, 'Please add content to your post');
-                return;
-            }
-
-            try {
-                window.canPost = false;
-                postButton.disabled = true;
-                loadingSpinner.style.display = 'inline-block'; // Show loading spinner
-
-                let mediaUrl = null;
-                if (window.mediaFile) {
-                    // Use Appwrite for file upload
-                    mediaUrl = await uploadToAppwrite(window.mediaFile);
-                }
-
-                // Still use Firebase for post data
-                await addDoc(collection(db, 'posts'), {
-                    userId: window.currentUser.uid,
-                    text: description,
-                    mediaUrl: mediaUrl,
-                    mediaType: window.mediaFile ? window.mediaFile.type : null,
-                    createdAt: serverTimestamp()
-                });
-
-                loadingSpinner.style.display = 'none'; // Hide loading spinner
-                showResult(true, 'Post published successfully!');
-                
-                // Re-enable posting after 5 seconds
+        reader.readAsDataURL(file);
+    }
+    
+    // Simulated progress for better UX
+    function simulateProgress(callback) {
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += 5;
+            uploadProgressBar.style.width = `${progress}%`;
+            
+            if (progress >= 100) {
+                clearInterval(interval);
                 setTimeout(() => {
-                    window.canPost = true;
-                    postButton.disabled = false;
-                }, 5000);
-
-            } catch (error) {
-                console.error('Post creation error:', error);
-                loadingSpinner.style.display = 'none'; // Hide loading spinner
-                showResult(false, 'Failed to create post');
-                
-                // Re-enable posting immediately on error
-                window.canPost = true;
-                postButton.disabled = false;
+                    callback();
+                }, 300);
             }
-        }
+        }, 50);
+    }
 
-        // Show Result Modal that slides up from bottom
-        window.showResult = function(success, message) {
-            resultModal.style.display = 'flex';
-            
-            if (success) {
-                resultIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4a89dc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
-            } else {
-                resultIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ff4136" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>';
-            }
-
-            resultMessage.textContent = message;
-            
-            // Animate sliding up from bottom
-            setTimeout(() => {
-                resultContainer.classList.add('active');
-            }, 10);
-            
-            // Set up dragging for the result container
-            resultContainer.addEventListener('mousedown', startDrag);
-            resultContainer.addEventListener('touchstart', startDragTouch, { passive: false });
-            document.addEventListener('mousemove', drag);
-            document.addEventListener('touchmove', dragTouch, { passive: false });
-            document.addEventListener('mouseup', endDrag);
-            document.addEventListener('touchend', endDrag);
-        }
+    // Upload to Appwrite
+    async function uploadToAppwrite(file) {
+        const formData = new FormData();
+        formData.append('fileId', 'unique_' + Date.now());
+        formData.append('file', file);
         
-        // Draggable functions for the modal that slides up
-        window.startDrag = function(e) {
-            if (e.target.id === 'close-modal') return;
+        try {
+            const response = await fetch(`${APPWRITE_ENDPOINT}/storage/buckets/${APPWRITE_BUCKET_ID}/files`, {
+                method: 'POST',
+                headers: {
+                    'X-Appwrite-Project': APPWRITE_PROJECT_ID,
+                    'X-Appwrite-Key': APPWRITE_API_KEY,
+                },
+                body: formData,
+            });
             
-            window.isDragging = true;
-            window.dragStartY = e.clientY;
-            window.dragOffset = 0;
-            
-            e.preventDefault();
-        }
-        
-        window.startDragTouch = function(e) {
-            if (e.target.id === 'close-modal') return;
-            
-            window.isDragging = true;
-            window.initialTouchY = e.touches[0].clientY;
-            window.dragOffset = 0;
-            
-            e.preventDefault();
-        }
-        
-        window.drag = function(e) {
-            if (!window.isDragging) return;
-            
-            window.dragOffset = e.clientY - window.dragStartY;
-            
-            if (window.dragOffset < 0) {
-                // Don't allow dragging up beyond fully open
-                window.dragOffset = 0;
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Appwrite error details:', errorData);
+                throw new Error('Failed to upload to Appwrite: ' + response.status);
             }
             
-            resultContainer.style.transform = `translateY(${window.dragOffset}px)`;
-            e.preventDefault();
-        }
-        
-        window.dragTouch = function(e) {
-            if (!window.isDragging) return;
+            const data = await response.json();
             
-            const touchY = e.touches[0].clientY;
-            window.dragOffset = touchY - window.initialTouchY;
+            // Generate file URL
+            return `${APPWRITE_ENDPOINT}/storage/buckets/${APPWRITE_BUCKET_ID}/files/${data.$id}/view?project=${APPWRITE_PROJECT_ID}`;
             
-            if (window.dragOffset < 0) {
-                // Don't allow dragging up beyond fully open
-                window.dragOffset = 0;
-            }
-            
-            resultContainer.style.transform = `translateY(${window.dragOffset}px)`;
-            e.preventDefault();
-        }
-        
-        window.endDrag = function() {
-            if (!window.isDragging) return;
-            
-            window.isDragging = false;
-            
-            // If dragged down more than 100px, close the modal
-            if (window.dragOffset > 100) {
-                closeResultModal();
-            } else {
-                // Otherwise snap back to open position
-                resultContainer.style.transform = 'translateY(0)';
-            }
-        }
-        
-        function closeResultModal() {
-            resultContainer.style.transform = 'translateY(100%)';
-            
-            // After animation finishes, hide the modal
-            setTimeout(() => {
-                resultModal.style.display = 'none';
-                resultContainer.classList.remove('active');
-                resetApp();
-            }, 300);
-        }
-
-        // Close Modal Event
-        closeModal.addEventListener('click', () => {
-            closeResultModal();
-        });
-
-        // Reset App
-        function resetApp() {
-            previewImage.style.display = 'none';
-            dropZone.style.display = 'flex';
-            mediumPlaceholder.classList.remove('visible');
-            uploadProgressContainer.style.display = 'none';
-            uploadProgressBar.style.width = '0%';
-            descriptionInput.value = '';
-            imageUpload.value = '';
-            window.mediaFile = null;
-        }
-        
-        // Export functions to global scope
-        window.preventDefaults = preventDefaults;
-        window.highlight = highlight;
-        window.unhighlight = unhighlight;
-        window.handleDrop = handleDrop;
-        window.handleFile = handleFile;
-        window.closeResultModal = closeResultModal;
-    </script>
-    <script>
-    // Function to apply the theme
-    function applyTheme(theme) {
-        const body = document.body;
-        if (theme === 'dark') {
-            body.classList.add('dark-mode');
-        } else {
-            body.classList.remove('dark-mode');
+        } catch (error) {
+            console.error('Appwrite upload error:', error);
+            throw error;
         }
     }
 
-    // Initialize the theme when the page loads
-    document.addEventListener('DOMContentLoaded', () => {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        applyTheme(savedTheme);
+    // Process Post
+    async function processPost() {
+        if (!canPost) return;
+
+        const description = descriptionInput.value || '';
+
+        if (!mediaFile && !description) {
+            showResult(false, 'Please add content to your post');
+            return;
+        }
+
+        try {
+            canPost = false;
+            postButton.disabled = true;
+            loadingSpinner.style.display = 'inline-block'; // Show loading spinner
+
+            let mediaUrl = null;
+            if (mediaFile) {
+                try {
+                    // Use Appwrite for file upload
+                    mediaUrl = await uploadToAppwrite(mediaFile);
+                } catch (uploadError) {
+                    console.error('Upload error:', uploadError);
+                    throw new Error('Failed to upload image. Please try again.');
+                }
+            }
+
+            try {
+                // Still use Firebase for post data
+                await addDoc(collection(db, 'posts'), {
+                    userId: currentUser.uid,
+                    text: description,
+                    mediaUrl: mediaUrl,
+                    mediaType: mediaFile ? mediaFile.type : null,
+                    createdAt: serverTimestamp()
+                });
+            } catch (dbError) {
+                console.error('Database error:', dbError);
+                throw new Error('Failed to save post data. Please try again.');
+            }
+
+            loadingSpinner.style.display = 'none'; // Hide loading spinner
+            showResult(true, 'Post published successfully!');
+            
+            // Re-enable posting after 5 seconds
+            setTimeout(() => {
+                canPost = true;
+                postButton.disabled = false;
+            }, 5000);
+
+        } catch (error) {
+            console.error('Post creation error:', error);
+            loadingSpinner.style.display = 'none'; // Hide loading spinner
+            showResult(false, error.message || 'Failed to create post');
+            
+            // Re-enable posting immediately on error
+            canPost = true;
+            postButton.disabled = false;
+        }
+    }
+
+    // Show Result Modal
+    function showResult(success, message) {
+        resultModal.style.display = 'flex';
+        
+        if (success) {
+            resultIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4a89dc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
+        } else {
+            resultIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ff4136" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>';
+        }
+
+        resultMessage.textContent = message;
+        
+        // Animate sliding up from bottom
+        setTimeout(() => {
+            resultContainer.classList.add('active');
+        }, 10);
+        
+        // Set up dragging for the result container
+        resultContainer.addEventListener('mousedown', startDrag);
+        resultContainer.addEventListener('touchstart', startDragTouch, { passive: false });
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('touchmove', dragTouch, { passive: false });
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+    }
+    
+    // Draggable functions for the modal
+    function startDrag(e) {
+        if (e.target.id === 'close-modal') return;
+        
+        isDragging = true;
+        dragStartY = e.clientY;
+        dragOffset = 0;
+        
+        e.preventDefault();
+    }
+    
+    function startDragTouch(e) {
+        if (e.target.id === 'close-modal') return;
+        
+        isDragging = true;
+        initialTouchY = e.touches[0].clientY;
+        dragOffset = 0;
+        
+        e.preventDefault();
+    }
+    
+    function drag(e) {
+        if (!isDragging) return;
+        
+        dragOffset = e.clientY - dragStartY;
+        
+        if (dragOffset < 0) {
+            // Don't allow dragging up beyond fully open
+            dragOffset = 0;
+        }
+        
+        resultContainer.style.transform = `translateY(${dragOffset}px)`;
+        e.preventDefault();
+    }
+    
+    function dragTouch(e) {
+        if (!isDragging) return;
+        
+        const touchY = e.touches[0].clientY;
+        dragOffset = touchY - initialTouchY;
+        
+        if (dragOffset < 0) {
+            // Don't allow dragging up beyond fully open
+            dragOffset = 0;
+        }
+        
+        resultContainer.style.transform = `translateY(${dragOffset}px)`;
+        e.preventDefault();
+    }
+    
+    function endDrag() {
+        if (!isDragging) return;
+        
+        isDragging = false;
+        
+        // If dragged down more than 100px, close the modal
+        if (dragOffset > 100) {
+            closeResultModal();
+        } else {
+            // Otherwise snap back to open position
+            resultContainer.style.transform = 'translateY(0)';
+        }
+    }
+    
+    function closeResultModal() {
+        resultContainer.style.transform = 'translateY(100%)';
+        
+        // After animation finishes, hide the modal
+        setTimeout(() => {
+            resultModal.style.display = 'none';
+            resultContainer.classList.remove('active');
+            resetApp();
+        }, 300);
+    }
+
+    // Reset App
+    function resetApp() {
+        previewImage.style.display = 'none';
+        dropZone.style.display = 'flex';
+        mediumPlaceholder.classList.remove('visible');
+        uploadProgressContainer.style.display = 'none';
+        uploadProgressBar.style.width = '0%';
+        descriptionInput.value = '';
+        imageUpload.value = '';
+        mediaFile = null;
+    }
+
+    // Handle Media Upload from input
+    function handleMediaUpload(event) {
+        const file = event.target.files[0];
+        
+        if (!file) return;
+        
+        if (file.type.startsWith('image/')) {
+            handleFile(file);
+        } else if (file.type.startsWith('video/')) {
+            showResult(false, 'Cannot upload videos. Images only.');
+        } else {
+            showResult(false, 'Invalid file type. Images only.');
+        }
+    }
+
+    // Close Modal Event
+    closeModal.addEventListener('click', () => {
+        closeResultModal();
     });
 
-    // Listen for theme changes from other pages
-    window.addEventListener('storage', (event) => {
-        if (event.key === 'theme') {
-            applyTheme(event.newValue);
-        }
-    });
+    // Export functions to window object for HTML access
+    window.handleMediaUpload = handleMediaUpload;
+    window.processPost = processPost;
+    window.preventDefaults = preventDefaults;
+    window.highlight = highlight;
+    window.unhighlight = unhighlight;
+    window.handleDrop = handleDrop;
+    window.closeResultModal = closeResultModal;
 </script>
+
 </body>
 </html>
