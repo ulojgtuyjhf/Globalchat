@@ -1,756 +1,193 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern Blog Interface</title>
+    <title>Dynamic Image Gallery</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-    /* Reset & Global Styles */
-    * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-    }
-    html, body {
-        height: 100%;
-        width: 100%;
-        overflow-x: hidden;
-    }
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        background: #fafafa;
-        color: #292929;
-        line-height: 1.5;
-    }
-    .container {
-        max-width: 1000px;
-        margin: 0 auto;
-        padding: 20px;
-        min-height: 100%;
-    }
+/* Reset styles */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
-    /* Post card styling */
-    .post-card {
-        display: flex;
-        padding: 24px 0;
-        border-bottom: 1px solid rgba(230, 230, 230, 1);
-        cursor: pointer;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        border-radius: 8px;
-        margin-bottom: 12px;
-    }
-    .post-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        background-color: #fff;
-    }
-    .post-content {
-        flex: 2;
-        padding-right: 20px;
-    }
-    .post-image {
-        flex: 1;
-        max-width: 200px;
-    }
-    .post-image img {
-        width: 100%;
-        height: 134px;
-        object-fit: cover;
-        border-radius: 8px;
-        transition: transform 0.3s ease;
-    }
-    .post-card:hover .post-image img {
-        transform: scale(1.03);
-    }
-    .author-info {
-        display: flex;
-        align-items: center;
-        margin-bottom: 12px;
-    }
-    .author-avatar {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        margin-right: 12px;
-        border: 2px solid #fff;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    .author-name {
-        font-size: 14px;
-        color: #292929;
-        font-weight: 600;
-    }
-    .post-date {
-        font-size: 14px;
-        color: #757575;
-        margin-left: 8px;
-        position: relative;
-        padding-left: 12px;
-    }
-    .post-date::before {
-        content: '•';
-        position: absolute;
-        left: 0;
-        color: #757575;
-    }
-    .post-title {
-        font-weight: bold;
-        font-size: 20px;
-        margin-bottom: 8px;
-        color: #292929;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-    .post-excerpt {
-        font-size: 16px;
-        color: #575757;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        margin-bottom: 12px;
-        line-height: 1.6;
-    }
-    .post-meta {
-        display: flex;
-        align-items: center;
-        margin-top: 12px;
-    }
-    .post-meta span {
-        margin-right: 20px;
-        display: flex;
-        align-items: center;
-        color: #757575;
-        font-size: 14px;
-        transition: all 0.2s ease;
-    }
-    .post-meta span:hover {
-        color: #1a8917;
-    }
-    .post-meta svg {
-        margin-right: 6px;
-        width: 18px;
-        height: 18px;
-    }
+/* Body with a white default theme */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #ffffff;
+    padding: 20px;
+    padding-top: 40px;
+}
 
-    /* Modal for full post */
-    .modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: #fff;
-        z-index: 1000;
-        overflow-y: auto;
-        transform: translateX(100%);
-        transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    .modal.active {
-        display: block;
-        transform: translateX(0);
-    }
-    
-    .modal-container {
-        position: relative;
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 0 20px;
-    }
-    
-    .modal-header {
-        position: sticky;
-        top: 0;
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(8px);
-        padding: 16px 0;
-        border-bottom: 1px solid #eee;
-        z-index: 10;
-        display: flex;
-        align-items: center;
-    }
-    
-    .back-button {
-        background: none;
-        border: none;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        margin-right: 16px;
-        transition: background-color 0.2s ease;
-    }
-    
-    .back-button:hover {
-        background-color: rgba(0, 0, 0, 0.05);
-    }
-    
-    .modal-title {
-        font-size: 18px;
-        font-weight: 600;
-        flex: 1;
-    }
-    
-    .modal-content {
-        position: relative;
-        padding: 32px 0 80px 0;
-    }
-    
-    .full-post-image {
-        width: 100%;
-        max-height: 450px;
-        object-fit: cover;
-        border-radius: 8px;
-        margin-bottom: 32px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-    }
-    
-    .full-post-title {
-        font-size: 32px;
-        font-weight: 800;
-        margin-bottom: 24px;
-        line-height: 1.3;
-    }
-    
-    .full-post-content {
-        font-size: 18px;
-        line-height: 1.8;
-        margin-bottom: 40px;
-        color: #333;
-    }
-    
-    .full-post-author {
-        display: flex;
-        align-items: center;
-        margin: 32px 0;
-        padding: 16px;
-        border-radius: 8px;
-        background: #f9f9f9;
-    }
-    
-    .full-post-author img {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        margin-right: 16px;
-        border: 3px solid #fff;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-    
-    .full-post-author-info {
-        flex: 1;
-    }
-    
-    .full-post-author-name {
-        font-weight: 600;
-        margin-bottom: 4px;
-    }
-    
-    .full-post-author-bio {
-        color: #666;
-        font-size: 14px;
-    }
+/* Gallery container */
+/* Desktop: grid layout with multiple posts */
+.gallery {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: auto;
+    gap: 15px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
 
-    /* Post interaction bar */
-    .post-interaction-bar {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: #fff;
-        border-top: 1px solid #eee;
-        padding: 12px 0;
-        z-index: 100;
+/* Mobile view: display one post at a time with vertical scrolling */
+@media (max-width: 767px) {
+    .gallery {
+        grid-template-columns: 1fr;
     }
-    
-    .interaction-container {
-        max-width: 800px;
-        margin: 0 auto;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 20px;
+    .gallery-item {
+        /* Remove offset transforms on mobile for a clean vertical flow */
+        transform: none;
     }
-    
-    .interaction-left {
-        display: flex;
-        align-items: center;
-    }
-    
-    .interaction-button {
-        display: flex;
-        align-items: center;
-        background: none;
-        border: none;
-        padding: 8px 12px;
-        margin-right: 20px;
-        cursor: pointer;
-        border-radius: 20px;
-        color: #555;
-        transition: all 0.2s ease;
-    }
-    
-    .interaction-button:hover {
-        background-color: rgba(0, 0, 0, 0.05);
-    }
-    
-    .interaction-button svg {
-        margin-right: 8px;
-    }
-    
-    .interaction-button.write-comment {
-        background-color: #f5f5f5;
-        padding: 10px 20px;
-        border-radius: 24px;
-        margin-left: auto;
-    }
-    
-    .interaction-button.write-comment:hover {
-        background-color: #eee;
-    }
+}
 
-    /* Comments section */
-    .comments-section {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        max-height: 70vh;
-        background: #fff;
-        border-top-left-radius: 16px;
-        border-top-right-radius: 16px;
-        box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.1);
-        z-index: 200;
-        transform: translateY(100%);
-        transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-        overflow-y: auto;
+/* Medium screens: adjust grid layout */
+@media (min-width: 768px) {
+    .gallery {
+        grid-template-columns: repeat(3, 1fr);
     }
-    
-    .comments-section.active {
+}
+
+/* Larger screens: further adjust grid layout */
+@media (min-width: 780px) {
+    .gallery {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Gallery items */
+.gallery-item {
+    position: relative;
+    overflow: hidden;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    /* Modern linear gradient border */
+    border: 2px solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(45deg, #f06, transparent);
+}
+
+.gallery-item:hover {
+    transform: scale(1.03);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+/* Desktop alternating vertical offsets for visual interest */
+@media (min-width: 768px) {
+    .gallery-item:nth-child(even) {
+        transform: translateY(50px);
+    }
+    .gallery-item:nth-child(odd) {
+        transform: translateY(-50px);
+    }
+}
+
+/* Profile Info overlay */
+.profile-info {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    display: flex;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 5px 10px;
+    border-radius: 20px;
+}
+
+.profile-info img {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.profile-info span {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* Options overlay */
+.options {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 6px 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+}
+
+.options span {
+    height: 3px;
+    width: 3px;
+    background-color: #333;
+    border-radius: 50%;
+    margin: 1px 0;
+}
+
+/* Bouncing Loader */
+.bouncing-loader {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: none;
+}
+
+.bouncing-loader .dot {
+    width: 10px;
+    height: 10px;
+    background-color: black;
+    border-radius: 50%;
+    animation: bouncing-loader 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes bouncing-loader {
+    0% {
         transform: translateY(0);
     }
-    
-    .comments-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 20px;
-        border-bottom: 1px solid #eee;
-        position: sticky;
-        top: 0;
-        background: #fff;
-        z-index: 10;
+    100% {
+        transform: translateY(-10px);
     }
-    
-    .comments-title {
-        font-size: 18px;
-        font-weight: 600;
-    }
-    
-    .close-comments {
-        background: none;
-        border: none;
-        cursor: pointer;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .close-comments:hover {
-        background-color: rgba(0, 0, 0, 0.05);
-    }
-    
-    .comments-body {
-        padding: 20px;
-        max-height: calc(70vh - 70px);
-        overflow-y: auto;
-    }
-    
-    .comment-form {
-        margin-bottom: 32px;
-        position: relative;
-    }
-    
-    .comment-input {
-        width: 100%;
-        padding: 16px;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        font-size: 16px;
-        resize: none;
-        outline: none;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-    
-    .comment-input:focus {
-        border-color: #1a8917;
-        box-shadow: 0 0 0 2px rgba(26, 137, 23, 0.1);
-    }
-    
-    .comment-submit {
-        position: absolute;
-        bottom: 12px;
-        right: 12px;
-        background-color: #1a8917;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-    }
-    
-    .comment-submit:hover {
-        background-color: #0f7b0d;
-    }
-    
-    .comment {
-        padding: 20px 0;
-        border-bottom: 1px solid #f0f0f0;
-        animation: fadeIn 0.5s ease forwards;
-    }
-    
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .comment-author {
-        display: flex;
-        align-items: center;
-        margin-bottom: 12px;
-    }
-    
-    .comment-author-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        margin-right: 12px;
-        border: 2px solid #fff;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    
-    .comment-author-name {
-        font-weight: 600;
-        font-size: 15px;
-    }
-    
-    .comment-date {
-        font-size: 13px;
-        color: #757575;
-        margin-left: 8px;
-        position: relative;
-        padding-left: 12px;
-    }
-    
-    .comment-date::before {
-        content: '•';
-        position: absolute;
-        left: 0;
-        color: #757575;
-    }
-    
-    .comment-text {
-        font-size: 15px;
-        line-height: 1.5;
-        color: #333;
-        padding-left: 52px;
-    }
+}
 
-    /* Like button animation */
-    .like-button {
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-    
-    .like-button.liked svg {
-        fill: #e03c31;
-        stroke: #e03c31;
-    }
-    
-    .like-button.liked {
-        color: #e03c31;
-    }
-    
-    .like-animation {
-        animation: likeEffect 0.5s cubic-bezier(.17,.89,.32,1.49);
-    }
-    
-    @keyframes likeEffect {
-        0% {
-            transform: scale(1);
-        }
-        50% {
-            transform: scale(1.4);
-        }
-        100% {
-            transform: scale(1);
-        }
-    }
-
-    /* Skeleton loading animation */
-    .skeleton-loader {
-        max-width: 1000px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-    
-    .skeleton-post {
-        display: flex;
-        padding: 24px 0;
-        border-bottom: 1px solid rgba(230, 230, 230, 1);
-        margin-bottom: 12px;
-    }
-    
-    .skeleton-content {
-        flex: 2;
-        padding-right: 20px;
-    }
-    
-    .skeleton-image {
-        flex: 1;
-        max-width: 200px;
-        height: 134px;
-        background-color: #e6e6e6;
-        border-radius: 8px;
-    }
-    
-    .skeleton-author {
-        display: flex;
-        align-items: center;
-        margin-bottom: 12px;
-    }
-    
-    .skeleton-avatar {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        background-color: #e6e6e6;
-        margin-right: 12px;
-    }
-    
-    .skeleton-name {
-        width: 120px;
-        height: 14px;
-        background-color: #e6e6e6;
-        border-radius: 4px;
-    }
-    
-    .skeleton-title {
-        width: 90%;
-        height: 24px;
-        background-color: #e6e6e6;
-        border-radius: 4px;
-        margin-bottom: 12px;
-    }
-    
-    .skeleton-excerpt {
-        width: 100%;
-        height: 16px;
-        background-color: #e6e6e6;
-        border-radius: 4px;
-        margin-bottom: 12px;
-    }
-    
-    .skeleton-excerpt:last-of-type {
-        width: 80%;
-    }
-    
-    .skeleton-meta {
-        display: flex;
-        align-items: center;
-        margin-top: 12px;
-    }
-    
-    .skeleton-meta-item {
-        width: 60px;
-        height: 14px;
-        background-color: #e6e6e6;
-        border-radius: 4px;
-        margin-right: 20px;
-    }
-    
-    .skeleton-loading {
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .skeleton-loading::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-        animation: shimmer 1.5s infinite;
-    }
-    
-    @keyframes shimmer {
-        0% {
-            transform: translateX(-100%);
-        }
-        100% {
-            transform: translateX(100%);
-        }
-    }
+.show-loader {
+    display: block !important;
+}
 </style>
 </head>
 <body>
-    <!-- Skeleton loader -->
-    <div id="skeleton-loader" class="skeleton-loader">
-        <div class="skeleton-post">
-            <div class="skeleton-content">
-                <div class="skeleton-author">
-                    <div class="skeleton-avatar skeleton-loading"></div>
-                    <div class="skeleton-name skeleton-loading"></div>
-                </div>
-                <div class="skeleton-title skeleton-loading"></div>
-                <div class="skeleton-excerpt skeleton-loading"></div>
-                <div class="skeleton-excerpt skeleton-loading"></div>
-                <div class="skeleton-meta">
-                    <div class="skeleton-meta-item skeleton-loading"></div>
-                    <div class="skeleton-meta-item skeleton-loading"></div>
-                </div>
-            </div>
-            <div class="skeleton-image skeleton-loading"></div>
-        </div>
-        
-        <div class="skeleton-post">
-            <div class="skeleton-content">
-                <div class="skeleton-author">
-                    <div class="skeleton-avatar skeleton-loading"></div>
-                    <div class="skeleton-name skeleton-loading"></div>
-                </div>
-                <div class="skeleton-title skeleton-loading"></div>
-                <div class="skeleton-excerpt skeleton-loading"></div>
-                <div class="skeleton-excerpt skeleton-loading"></div>
-                <div class="skeleton-meta">
-                    <div class="skeleton-meta-item skeleton-loading"></div>
-                    <div class="skeleton-meta-item skeleton-loading"></div>
-                </div>
-            </div>
-            <div class="skeleton-image skeleton-loading"></div>
-        </div>
-        
-        <div class="skeleton-post">
-            <div class="skeleton-content">
-                <div class="skeleton-author">
-                    <div class="skeleton-avatar skeleton-loading"></div>
-                    <div class="skeleton-name skeleton-loading"></div>
-                </div>
-                <div class="skeleton-title skeleton-loading"></div>
-                <div class="skeleton-excerpt skeleton-loading"></div>
-                <div class="skeleton-excerpt skeleton-loading"></div>
-                <div class="skeleton-meta">
-                    <div class="skeleton-meta-item skeleton-loading"></div>
-                    <div class="skeleton-meta-item skeleton-loading"></div>
-                </div>
-            </div>
-            <div class="skeleton-image skeleton-loading"></div>
-        </div>
+    <div class="bouncing-loader">
+        <div class="dot"></div>
     </div>
 
-    <!-- Main content container -->
-    <div id="posts-container" class="container" style="display: none;"></div>
-
-    <!-- Full post modal -->
-    <div id="post-modal" class="modal">
-        <div class="modal-header">
-            <button id="back-button" class="back-button">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </button>
-            <div class="modal-title">Article</div>
-        </div>
-        <div class="modal-container">
-            <div id="full-post-content" class="modal-content"></div>
-        </div>
-        
-        <!-- Post interaction bar (fixed at bottom) -->
-        <div class="post-interaction-bar">
-            <div class="interaction-container">
-                <div class="interaction-left">
-                    <button id="like-button-main" class="interaction-button">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
-                        </svg>
-                        <span id="like-count-main">0</span>
-                    </button>
-                    <button id="comment-button" class="interaction-button">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"></path>
-                        </svg>
-                        <span id="comment-count-main">0</span>
-                    </button>
-                </div>
-                <button class="interaction-button write-comment">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-                    </svg>
-                    Write a comment
-                </button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Comments section (slides up from bottom) -->
-    <div id="comments-section" class="comments-section">
-        <div class="comments-header">
-            <div class="comments-title">Comments</div>
-            <button id="close-comments" class="close-comments">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
-        </div>
-        <div class="comments-body">
-            <div class="comment-form">
-                <textarea id="comment-input" class="comment-input" placeholder="Write a comment..." rows="3"></textarea>
-                <button id="comment-submit" class="comment-submit">Post</button>
-            </div>
-            <div id="comments-list" class="comments-list"></div>
+    <div id="gallery" class="gallery">
+        <div class="loading">
+            <div class="loading-spinner"></div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            collection, 
-            query, 
-            orderBy, 
-            getDocs, 
-            doc, 
-            getDoc, 
-            addDoc, 
-            updateDoc, 
-            deleteDoc,
-            serverTimestamp 
-        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, query, orderBy, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
@@ -764,75 +201,29 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        
-        // DOM Elements
-        const skeletonLoader = document.getElementById('skeleton-loader');
-        const postsContainer = document.getElementById('posts-container');
-        const postModal = document.getElementById('post-modal');
-        const backButton = document.getElementById('back-button');
-        const fullPostContent = document.getElementById('full-post-content');
-        const commentsSection = document.getElementById('comments-section');
-        const closeComments = document.getElementById('close-comments');
-        const commentButton = document.getElementById('comment-button');
-        const writeCommentButton = document.querySelector('.write-comment');
-        const commentInput = document.getElementById('comment-input');
-        const commentSubmit = document.getElementById('comment-submit');
-        const commentsList = document.getElementById('comments-list');
-        const likeButtonMain = document.getElementById('like-button-main');
-        const likeCountMain = document.getElementById('like-count-main');
-        const commentCountMain = document.getElementById('comment-count-main');
-        
-        let currentUser = null;
-        let allPosts = [];
-        let currentPostId = null;
+        const loader = document.querySelector('.bouncing-loader');
 
-        // Content moderation function
-        function moderateContent(content) {
+        // Content Moderation Function
+        function moderateContent(mediaUrl, mediaType) {
             const inappropriateKeywords = [
                 'nude', 'explicit', 'porn', 
                 'advertisement', 'spam', 
                 'offensive', 'violent'
             ];
 
-            if (!content) return true;
-            
-            content = content.toLowerCase();
-            return !inappropriateKeywords.some(keyword => 
-                content.includes(keyword)
+            const allowedMediaTypes = [
+                'image/jpeg', 'image/png', 
+                'image/gif', 'image/webp'
+            ];
+
+            return (
+                allowedMediaTypes.includes(mediaType) &&
+                !inappropriateKeywords.some(keyword => 
+                    mediaUrl.toLowerCase().includes(keyword)
+                )
             );
         }
 
-        // Format date
-        function formatDate(timestamp) {
-            if (!timestamp) return 'Just now';
-            
-            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-            const now = new Date();
-            const diffTime = Math.abs(now - date);
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            
-            if (diffDays === 0) {
-                // Hours and minutes
-                const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
-                if (diffHours === 0) {
-                    const diffMinutes = Math.floor(diffTime / (1000 * 60));
-                    return diffMinutes === 0 ? 'Just now' : `${diffMinutes}m ago`;
-                }
-                return `${diffHours}h ago`;
-            } else if (diffDays === 1) {
-                return 'Yesterday';
-            } else if (diffDays < 7) {
-                return `${diffDays}d ago`;
-            } else if (diffDays < 30) {
-                return `${Math.floor(diffDays / 7)}w ago`;
-            } else if (diffDays < 365) {
-                return `${Math.floor(diffDays / 30)}mo ago`;
-            } else {
-                return `${Math.floor(diffDays / 365)}y ago`;
-            }
-        }
-
-        // Get user profile
         async function getUserProfile(userId) {
             try {
                 const userDocRef = doc(db, 'users', userId);
@@ -844,799 +235,399 @@
             }
         }
 
-        // Create post card for feed
-        function createPostCard(post) {
-            // Skip posts without text content and media
-            if (!post.text && !post.mediaUrl) {
+        async function createGalleryItem(post) {
+            if (!moderateContent(post.mediaUrl, post.mediaType)) {
                 return null;
             }
 
-            if (post.text && !moderateContent(post.text)) {
-                return null;
-            }
+            const userProfile = await getUserProfile(post.userId);
+            const username = userProfile?.displayName || `User ${post.userId.slice(0, 4)}`;
+            const profilePic = userProfile?.photoURL || "/api/placeholder/30/30";
 
-            const postCard = document.createElement('div');
-            postCard.className = 'post-card';
-            postCard.dataset.postId = post.id;
-            
-            // Placeholder data in case user profile isn't available
-            let authorName = 'Anonymous';
-            let authorAvatar = 'https://via.placeholder.com/32';
-            
-            if (post.author) {
-                authorName = post.author.displayName || `User ${post.userId.slice(0, 4)}`;
-                authorAvatar = post.author.photoURL || 'https://via.placeholder.com/32';
-            }
-
-            // Create title if not available
-            const title = post.title || (post.text ? post.text.substring(0, 60) + '...' : 'Untitled Post');
-            
-            // Use the actual text content from the post
-            const content = post.text || '';
-            const excerpt = content.substring(0, 140) + (content.length > 140 ? '...' : '');
-            
-            postCard.innerHTML = `
-                <div class="post-content">
-                    <div class="author-info">
-                        
-                        <img src="${authorAvatar}" alt="${authorName}" class="author-avatar">
-                        <span class="author-name">${authorName}</span>
-                        <span class="post-date">${formatDate(post.createdAt)}</span>
-                    </div>
-                    <h2 class="post-title">${title}</h2>
-                    <p class="post-excerpt">${excerpt}</p>
-                    <div class="post-meta">
-                        <span class="like-button" data-post-id="${post.id}">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
-                            </svg>
-                            <span class="like-count">${post.likes || 0}</span>
-                        </span>
-                        <span class="comment-btn" data-post-id="${post.id}">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"></path>
-                            </svg>
-                            <span class="comment-count">${post.comments?.length || 0}</span>
-                        </span>
-                    </div>
+            const galleryItem = document.createElement('div');
+            galleryItem.className = 'gallery-item';
+            galleryItem.innerHTML = `
+                <img src="${post.mediaUrl}" alt="Gallery Image">
+                <div class="profile-info">
+                    <img src="${profilePic}" alt="Profile Image">
+                    <span>${username}</span>
                 </div>
-                ${post.mediaUrl ? `
-                <div class="post-image">
-                    <img src="${post.mediaUrl}" 
-                         alt="Post image" 
-                         onerror="this.src='https://via.placeholder.com/200x134?text=Image'">
+                <div class="options">
+                    <span></span>
+                    <span></span>
+                    <span></span>
                 </div>
-                ` : ''}
             `;
-            
-            // Add click event to open full post
-            postCard.addEventListener('click', (e) => {
-                // Don't open post if like button or comment button was clicked
-                if (e.target.closest('.like-button') || e.target.closest('.comment-btn')) return;
-                currentPostId = post.id;
-                openFullPost(post);
-            });
-            
-            // Add like button functionality
-            const likeButton = postCard.querySelector('.like-button');
-            addLikeButtonFunctionality(likeButton);
-            
-            // Add comment button functionality
-            const commentBtn = postCard.querySelector('.comment-btn');
-            commentBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                currentPostId = post.id;
-                openFullPost(post);
-                setTimeout(() => {
-                    toggleCommentsSection(true);
-                }, 300);
-            });
-            
-            return postCard;
+
+            return galleryItem;
         }
 
-        // Open full post modal with side animation
-        function openFullPost(post) {
-            let authorName = 'Anonymous';
-            let authorAvatar = 'https://via.placeholder.com/60';
-            let authorBio = 'Writer';
-            
-            if (post.author) {
-                authorName = post.author.displayName || `User ${post.userId.slice(0, 4)}`;
-                authorAvatar = post.author.photoURL || 'https://via.placeholder.com/60';
-                authorBio = post.author.bio || 'Writer';
-            }
-            
-            // Create title if not available
-            const title = post.title || (post.text ? post.text.substring(0, 60) + '...' : 'Untitled Post');
-            
-            fullPostContent.innerHTML = `
-                ${post.mediaUrl ? `
-                <img src="${post.mediaUrl}" 
-                     alt="Post image" 
-                     class="full-post-image"
-                     onerror="this.src='https://via.placeholder.com/800x400?text=Image'">
-                ` : ''}
-                     
-                <h1 class="full-post-title">${title}</h1>
-                
-                <div class="full-post-author">
-                    <img src="${authorAvatar}" alt="${authorName}">
-                    <div class="full-post-author-info">
-                        <div class="full-post-author-name">${authorName}</div>
-                        <div class="full-post-author-bio">${authorBio} · ${formatDate(post.createdAt)}</div>
-                    </div>
-                </div>
-                
-                <div class="full-post-content">${post.text || ''}</div>
-            `;
-            
-            // Update interaction bar counts
-            likeCountMain.textContent = post.likes || 0;
-            commentCountMain.textContent = post.comments?.length || 0;
-            
-            // Update like button state
-            if (currentUser && post.likedBy && post.likedBy.includes(currentUser.uid)) {
-                likeButtonMain.classList.add('liked');
-            } else {
-                likeButtonMain.classList.remove('liked');
-            }
-            
-            // Load comments for this post
-            loadComments(post);
-            
-            // Show modal with animation
-            postModal.classList.add('active');
-            document.body.style.overflow = 'hidden'; // Prevent scrolling behind modal
-        }
-        
-        // Toggle comments section visibility
-        function toggleCommentsSection(show) {
-            if (show) {
-                commentsSection.classList.add('active');
-                // Focus comment input
-                setTimeout(() => {
-                    commentInput.focus();
-                }, 400);
-            } else {
-                commentsSection.classList.remove('active');
-            }
-        }
-        
-        // Load comments for a post
-        function loadComments(post) {
-            commentsList.innerHTML = '';
-            
-            if (!post.comments || post.comments.length === 0) {
-                commentsList.innerHTML = '<p style="text-align: center; color: #757575; padding: 20px;">No comments yet. Be the first to comment!</p>';
-                return;
-            }
-            
-            // Sort comments by date (newest first)
-            const sortedComments = [...post.comments].sort((a, b) => {
-                const dateA = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date();
-                const dateB = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date();
-                return dateB - dateA;
-            });
-            
-            sortedComments.forEach(comment => {
-                const commentEl = document.createElement('div');
-                commentEl.className = 'comment';
-                
-                commentEl.innerHTML = `
-                    <div class="comment-author">
-                        <img src="${comment.authorAvatar || 'https://via.placeholder.com/40'}" alt="${comment.authorName || 'Anonymous'}" class="comment-author-avatar">
-                        <span class="comment-author-name">${comment.authorName || 'Anonymous'}</span>
-                        <span class="comment-date">${formatDate(comment.createdAt)}</span>
-                    </div>
-                    <p class="comment-text">${comment.text}</p>
-                `;
-                
-                commentsList.appendChild(commentEl);
-            });
-        }
+        async function loadGallery() {
+            const galleryContainer = document.getElementById('gallery');
+            galleryContainer.innerHTML = ''; // Clear loading message
 
-        // Add comment to post
-        async function addComment(postId, commentText) {
-            if (!currentUser || !moderateContent(commentText)) return;
-            
-            try {
-                const postRef = doc(db, 'posts', postId);
-                const postSnap = await getDoc(postRef);
-                
-                if (!postSnap.exists()) return;
-                
-                const post = postSnap.data();
-                const comments = post.comments || [];
-                
-                const userProfile = await getUserProfile(currentUser.uid);
-                
-                // Create new comment
-                const newComment = {
-                    authorId: currentUser.uid,
-                    authorName: userProfile?.displayName || `User ${currentUser.uid.slice(0, 4)}`,
-                    authorAvatar: userProfile?.photoURL || 'https://via.placeholder.com/40',
-                    text: commentText,
-                    createdAt: new Date()
-                };
-                
-                // Add new comment
-                comments.push(newComment);
-                
-                // Update post with new comment
-                await updateDoc(postRef, { comments });
-                
-                // Update local posts array
-                const postIndex = allPosts.findIndex(p => p.id === postId);
-                if (postIndex !== -1) {
-                    allPosts[postIndex].comments = comments;
-                    
-                    // Update comment count in UI
-                    document.querySelectorAll(`.post-card[data-post-id="${postId}"] .comment-count`).forEach(el => {
-                        el.textContent = comments.length;
-                    });
-                    
-                    // Update comment count in modal
-                    commentCountMain.textContent = comments.length;
-                }
-                
-                // Show the new comment
-                const commentEl = document.createElement('div');
-                commentEl.className = 'comment';
-                
-                commentEl.innerHTML = `
-                    <div class="comment-author">
-                        <img src="${newComment.authorAvatar}" alt="${newComment.authorName}" class="comment-author-avatar">
-                        <span class="comment-author-name">${newComment.authorName}</span>
-                        <span class="comment-date">Just now</span>
-                    </div>
-                    <p class="comment-text">${newComment.text}</p>
-                `;
-                
-                // Add to top of comments list with animation
-                if (commentsList.firstChild) {
-                    commentsList.insertBefore(commentEl, commentsList.firstChild);
-                } else {
-                    commentsList.innerHTML = '';
-                    commentsList.appendChild(commentEl);
-                }
-                
-                // Clear comment input
-                commentInput.value = '';
-                
-                return newComment;
-            } catch (error) {
-                console.error('Error adding comment:', error);
-                return null;
-            }
-        }
+            // Show loader
+            loader.classList.add('show-loader');
 
-        // Add like button functionality
-        function addLikeButtonFunctionality(likeButton) {
-            likeButton.addEventListener('click', async (e) => {
-                e.stopPropagation(); // Prevent opening post modal when clicking like
-                
-                if (!currentUser) return;
-                
-                const postId = likeButton.dataset.postId;
-                const likeCountEl = likeButton.querySelector('.like-count');
-                
-                // Add animation
-                likeButton.classList.add('like-animation');
-                setTimeout(() => {
-                    likeButton.classList.remove('like-animation');
-                }, 500);
-                
-                try {
-                    const postRef = doc(db, 'posts', postId);
-                    const postSnap = await getDoc(postRef);
-                    
-                    if (!postSnap.exists()) return;
-                    
-                    const post = postSnap.data();
-                    const likes = post.likes || 0;
-                    const likedBy = post.likedBy || [];
-                    
-                    // Toggle like
-                    const userIndex = likedBy.indexOf(currentUser.uid);
-                    let newLikes = likes;
-                    
-                    if (userIndex === -1) {
-                        // Add like
-                        likedBy.push(currentUser.uid);
-                        newLikes++;
-                        likeButton.classList.add('liked');
-                    } else {
-                        // Remove like
-                        likedBy.splice(userIndex, 1);
-                        newLikes--;
-                        likeButton.classList.remove('liked');
-                    }
-                    
-                    // Update post with new likes
-                    await updateDoc(postRef, { 
-                        likes: newLikes,
-                        likedBy: likedBy
-                    });
-                    
-                    // Update like count in UI
-                    likeCountEl.textContent = newLikes;
-                    
-                    // Update local posts array
-                    const postIndex = allPosts.findIndex(p => p.id === postId);
-                    if (postIndex !== -1) {
-                        allPosts[postIndex].likes = newLikes;
-                        allPosts[postIndex].likedBy = likedBy;
-                        
-                        // Update all instances of this like button
-                        document.querySelectorAll(`.like-button[data-post-id="${postId}"] .like-count`).forEach(el => {
-                            el.textContent = newLikes;
-                        });
-                        
-                        // Update liked status for all instances
-                        document.querySelectorAll(`.like-button[data-post-id="${postId}"]`).forEach(btn => {
-                            if (likedBy.includes(currentUser.uid)) {
-                                btn.classList.add('liked');
-                            } else {
-                                btn.classList.remove('liked');
-                            }
-                        });
-                        
-                        // Update main like button if this is the current post
-                        if (currentPostId === postId) {
-                            likeCountMain.textContent = newLikes;
-                            if (likedBy.includes(currentUser.uid)) {
-                                likeButtonMain.classList.add('liked');
-                            } else {
-                                likeButtonMain.classList.remove('liked');
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error updating likes:', error);
-                }
-            });
-        }
-
-        // Load posts from Firestore and auto-delete those older than 43 hours
-        async function loadPosts() {
             try {
                 const postsQuery = query(
                     collection(db, 'posts'),
                     orderBy('createdAt', 'desc')
                 );
-                
+
                 const snapshot = await getDocs(postsQuery);
-                allPosts = await Promise.all(snapshot.docs.map(async docSnap => {
-                    const postData = { id: docSnap.id, ...docSnap.data() };
-                    
-                    // Check if the post is older than 43 hours
-                    if (postData.createdAt) {
-                        const postDate = postData.createdAt.toDate ? postData.createdAt.toDate() : new Date(postData.createdAt);
-                        const now = new Date();
-                        const hoursDiff = (now - postDate) / (1000 * 60 * 60);
-                        if (hoursDiff > 43) {
-                            // Delete post from Firestore and skip it
-                            await deleteDoc(doc(db, 'posts', docSnap.id));
-                            return null;
-                        }
+                const posts = snapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                    .filter(post => post.mediaUrl);
+
+                // Once posts are fetched, hide loader
+                loader.classList.remove('show-loader');
+
+                for (const post of posts) {
+                    const galleryItem = await createGalleryItem(post);
+                    if (galleryItem) {
+                        galleryContainer.appendChild(galleryItem);
                     }
-                    
-                    // Get author info
-                    if (postData.userId) {
-                        postData.author = await getUserProfile(postData.userId);
-                    }
-                    
-                    // Set defaults for likes and likedBy
-                    postData.likes = postData.likes || 0;
-                    postData.likedBy = postData.likedBy || [];
-                    return postData;
-                }));
-                
-                // Filter out posts that are null (deleted) and posts without valid content
-                allPosts = allPosts.filter(post => post && ((post.text && moderateContent(post.text)) || post.mediaUrl));
-                
-                // Simulate loading time for better UX
-                setTimeout(() => {
-                    // Hide skeleton loader and show posts
-                    skeletonLoader.style.display = 'none';
-                    postsContainer.style.display = 'block';
-                    
-                    // Clear container
-                    postsContainer.innerHTML = '';
-                    
-                    // Create post cards
-                    for (const post of allPosts) {
-                        const postCard = createPostCard(post);
-                        if (postCard) {
-                            postsContainer.appendChild(postCard);
-                            
-                            // Add liked class if user has liked the post
-                            if (currentUser && post.likedBy && post.likedBy.includes(currentUser.uid)) {
-                                const likeButton = postCard.querySelector('.like-button');
-                                likeButton.classList.add('liked');
-                            }
-                        }
-                    }
-                    
-                    // Show message if no posts
-                    if (allPosts.length === 0) {
-                        postsContainer.innerHTML = `
-                            <div style="text-align: center; padding: 40px; color: #757575;">
-                                <p>No posts found. Be the first to create one!</p>
-                            </div>
-                        `;
-                    }
-                }, 1000); // 1 second loading time for better UX
+                }
+
             } catch (error) {
-                console.error('Error loading posts:', error);
-                skeletonLoader.style.display = 'none';
-                postsContainer.style.display = 'block';
-                postsContainer.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #757575;">
-                        <p>Failed to load posts. Please try again later.</p>
+                console.error('Gallery loading error:', error);
+                // Hide loader in case of error
+                loader.classList.remove('show-loader');
+                galleryContainer.innerHTML = `
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
                     </div>
                 `;
             }
         }
 
-        // Event Listeners
-        
-        // Back button to close modal
-        backButton.addEventListener('click', () => {
-            postModal.classList.remove('active');
-            setTimeout(() => {
-                document.body.style.overflow = 'auto'; // Re-enable scrolling
-            }, 300);
-        });
-        
-        // Close comments section
-        closeComments.addEventListener('click', () => {
-            toggleCommentsSection(false);
-        });
-        
-        // Comment button to open comments section
-        commentButton.addEventListener('click', () => {
-            toggleCommentsSection(true);
-        });
-        
-        // Write comment button to open comments section
-        writeCommentButton.addEventListener('click', () => {
-            toggleCommentsSection(true);
-        });
-        
-        // Submit comment
-        commentSubmit.addEventListener('click', async () => {
-            const commentText = commentInput.value.trim();
-            
-            if (commentText && currentUser && currentPostId) {
-                const newComment = await addComment(currentPostId, commentText);
-                if (newComment) {
-                    // Success feedback
-                    commentSubmit.textContent = 'Posted!';
-                    setTimeout(() => {
-                        commentSubmit.textContent = 'Post';
-                    }, 2000);
-                }
-            }
-        });
-        
-        // Like button in modal
-        likeButtonMain.addEventListener('click', async () => {
-            if (!currentUser || !currentPostId) return;
-            
-            // Add animation
-            likeButtonMain.classList.add('like-animation');
-            setTimeout(() => {
-                likeButtonMain.classList.remove('like-animation');
-            }, 500);
-            
-            try {
-                const postRef = doc(db, 'posts', currentPostId);
-                const postSnap = await getDoc(postRef);
-                
-                if (!postSnap.exists()) return;
-                
-                const post = postSnap.data();
-                const likes = post.likes || 0;
-                const likedBy = post.likedBy || [];
-                
-                // Toggle like
-                const userIndex = likedBy.indexOf(currentUser.uid);
-                let newLikes = likes;
-                
-                if (userIndex === -1) {
-                    // Add like
-                    likedBy.push(currentUser.uid);
-                    newLikes++;
-                    likeButtonMain.classList.add('liked');
-                } else {
-                    // Remove like
-                    likedBy.splice(userIndex, 1);
-                    newLikes--;
-                    likeButtonMain.classList.remove('liked');
-                }
-                
-                // Update post with new likes
-                await updateDoc(postRef, { 
-                    likes: newLikes,
-                    likedBy: likedBy
-                });
-                
-                // Update like count in UI
-                likeCountMain.textContent = newLikes;
-                
-                // Update local posts array
-                const postIndex = allPosts.findIndex(p => p.id === currentPostId);
-                if (postIndex !== -1) {
-                    allPosts[postIndex].likes = newLikes;
-                    allPosts[postIndex].likedBy = likedBy;
-                    
-                    // Update all instances of this like button
-                    document.querySelectorAll(`.like-button[data-post-id="${currentPostId}"] .like-count`).forEach(el => {
-                        el.textContent = newLikes;
-                    });
-                    
-                    // Update liked status for all instances
-                    document.querySelectorAll(`.like-button[data-post-id="${currentPostId}"]`).forEach(btn => {
-                        if (likedBy.includes(currentUser.uid)) {
-                            btn.classList.add('liked');
-                        } else {
-                            btn.classList.remove('liked');
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error('Error updating likes:', error);
-            }
-        });
-        
-        // Listen for auth state changes
         onAuthStateChanged(auth, (user) => {
-            currentUser = user;
-            
             if (user) {
-                // User is signed in
-                loadPosts();
+                loadGallery();
             } else {
-                // For demo purposes, continue loading posts even when not logged in
-                loadPosts();
-            }
-        });
-        
-        // Allow comment submission with Enter key (Shift+Enter for new line)
-        commentInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                commentSubmit.click();
+                window.location.href = 'login.html';
             }
         });
     </script>
-    
-<script>
-  (function() {
-    // Create the FAB element
-    const fab = document.createElement('div');
-    fab.className = 'compose-fab';
-    
-    // Create the SVG icon
-    const svg = `
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M14.06 9.02L14.98 9.94L5.92 19H5V18.08L14.06 9.02ZM17.66 3C17.41 3 17.15 3.1 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C18.17 3.09 17.92 3 17.66 3ZM14.06 6.19L3 17.25V21H6.75L17.81 9.94L14.06 6.19Z" fill="currentColor"/>
-        </svg>
-    `;
-    
-    fab.innerHTML = svg;
-    
-    // Apply styling
-    const style = document.createElement('style');
-    style.textContent = `
-        .compose-fab {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background-color: #1DA1F2;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            z-index: 1000;
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s, box-shadow 0.2s;
+  <script>
+document.addEventListener('DOMContentLoaded', () => {
+    const gallery = document.getElementById('gallery');
+    const modalOverlay = createModalOverlay();
+
+    gallery.addEventListener('click', (event) => {
+        const clickedItem = event.target.closest('.gallery-item');
+        if (clickedItem) {
+            openPostModal(clickedItem);
+            history.pushState({ modalOpen: true }, '');
         }
-        
-        .compose-fab:hover {
-            background-color: #1a91da;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            transform: scale(0.95);
+    });
+
+    // Handle browser back button
+    window.addEventListener('popstate', (event) => {
+        if (event.state && event.state.modalOpen) {
+            closeModal();
         }
-        
-        .compose-fab:active {
-            transform: scale(0.9);
-        }
-        
-        /* Dark mode support */
-        body.dark-theme .compose-fab {
-            background-color: #1DA1F2;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
-        }
-        
-        /* Upload iframe styles */
-        .upload-overlay {
+    });
+
+    function createModalOverlay() {
+        const overlay = document.createElement('div');
+        overlay.id = 'post-modal-overlay';
+        overlay.style.cssText = `
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1001;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease;
-        }
-        
-        .upload-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-        
-        .upload-container {
-            width: 90%;
-            max-width: 600px;
-            max-height: 90vh;
-            background-color: white;
-            border-radius: 16px;
+            background-color: rgba(0,0,0,0.8);
+            z-index: 1000;
+            display: none;
             overflow: hidden;
-            transform: scale(0.9);
-            transition: transform 0.3s ease;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-        }
-        
-        body.dark-theme .upload-container {
-            background-color: #15202B;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-        }
-        
-        .upload-overlay.active .upload-container {
-            transform: scale(1);
-        }
-        
-        .upload-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 16px;
-            border-bottom: 1px solid #E6ECF0;
-        }
-        
-        body.dark-theme .upload-header {
-            border-bottom-color: #38444D;
-        }
-        
-        .upload-title {
-            font-weight: bold;
-            font-size: 18px;
-            color: #333;
-        }
-        
-        body.dark-theme .upload-title {
-            color: #FFFFFF;
-        }
-        
-        .upload-close {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: #657786;
-            background: transparent;
-            border: none;
-            transition: background-color 0.2s;
-        }
-        
-        .upload-close:hover {
-            background-color: rgba(29, 161, 242, 0.1);
-            color: #1DA1F2;
-        }
-        
-        body.dark-theme .upload-close:hover {
-            background-color: rgba(29, 161, 242, 0.2);
-        }
-        
-        .upload-close svg {
-            width: 20px;
-            height: 20px;
-        }
-        
-        .upload-content {
-            height: 80vh;
-            max-height: 600px;
-        }
-        
-        .upload-iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-    `;
-    
-    document.head.appendChild(style);
-    document.body.appendChild(fab);
-    
-    // Create upload overlay
-    const uploadOverlay = document.createElement('div');
-    uploadOverlay.className = 'upload-overlay';
-    
-    uploadOverlay.innerHTML = `
-        <div class="upload-container">
-            <div class="upload-header">
-                <div class="upload-title">New Post</div>
-                <button class="upload-close">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M18.3 5.71a.996.996 0 00-1.41 0L12 10.59 7.11 5.7A.996.996 0 105.7 7.11L10.59 12 5.7 16.89a.996.996 0 101.41 1.41L12 13.41l4.89 4.89a.996.996 0 101.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z" fill="currentColor"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="upload-content">
-                <iframe class="upload-iframe" src="/upload.html"></iframe>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(uploadOverlay);
-    
-    // Show upload panel on FAB click
-    fab.addEventListener('click', function() {
-      uploadOverlay.classList.add('active');
-      document.body.style.overflow = 'hidden'; // Prevent background scrolling
-    });
-    
-    // Close upload panel on close button click
-    const closeButton = uploadOverlay.querySelector('.upload-close');
-    closeButton.addEventListener('click', function() {
-      uploadOverlay.classList.remove('active');
-      document.body.style.overflow = ''; // Restore scrolling
-    });
-    
-    // Close when clicking outside the container
-    uploadOverlay.addEventListener('click', function(e) {
-      if (e.target === uploadOverlay) {
-        uploadOverlay.classList.remove('active');
-        document.body.style.overflow = '';
-      }
-    });
-    
-    // Listen for theme changes (if applicable)
-    function updateTheme() {
-      // Update theme based on dark mode settings.
-      // This demo assumes dark mode is toggled via a 'dark-theme' class on the body.
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        `;
+        document.body.appendChild(overlay);
+        return overlay;
     }
-    
-    updateTheme();
-    
-    // Observe body for class changes to update theme
-    const observer = new MutationObserver(function(mutations) {
-      mutations.forEach(function(mutation) {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-          updateTheme();
+
+    function getRandomPosts(allPosts, excludePost, count) {
+        const availablePosts = allPosts.filter(item => item !== excludePost);
+        const shuffled = availablePosts.sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, count);
+    }
+
+    function createModalContent(clickedItem) {
+        const modalContent = document.createElement('div');
+        
+        // Responsive design
+        if (window.innerWidth > 768) {
+            // Desktop layout
+            modalContent.style.cssText = `
+                position: fixed;
+                top: 0;
+                right: 0;
+                width: 500px;
+                height: 100%;
+                background-color: white;
+                display: flex;
+                flex-direction: column;
+                overflow-y: auto;
+                box-shadow: -4px 0 15px rgba(0,0,0,0.1);
+                transform: translateX(100%);
+                transition: transform 0.4s cubic-bezier(0.32, 0.64, 0.45, 1);
+            `;
+        } else {
+            // Mobile full-screen layout
+            modalContent.style.cssText = `
+                width: 100%;
+                height: 100%;
+                background-color: white;
+                display: flex;
+                flex-direction: column;
+                overflow-y: auto;
+                transform: translateY(100%);
+                transition: transform 0.4s cubic-bezier(0.32, 0.64, 0.45, 1);
+                position: relative;
+            `;
         }
-      });
+
+        // Back Button with Fixed Positioning
+        const backButton = document.createElement('button');
+        backButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 18l-6-6 6-6"/>
+            </svg>
+        `;
+        backButton.style.cssText = `
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background-color: rgba(255,255,255,0.9);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 1002;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transition: all 0.2s ease;
+            opacity: 0;
+        `;
+        backButton.addEventListener('click', closeModal);
+        backButton.addEventListener('mouseenter', () => {
+            backButton.style.backgroundColor = 'rgba(240,240,240,1)';
+            backButton.style.transform = 'scale(1.1)';
+        });
+        backButton.addEventListener('mouseleave', () => {
+            backButton.style.backgroundColor = 'rgba(255,255,255,0.9)';
+            backButton.style.transform = 'scale(1)';
+        });
+
+        // Ensure back button stays fixed on scroll for mobile
+        if (window.innerWidth <= 768) {
+            const modalScrollContainer = document.createElement('div');
+            modalScrollContainer.style.cssText = `
+                flex-grow: 1;
+                overflow-y: auto;
+                position: relative;
+                padding-top: 70px;
+            `;
+
+            // Main content will be scrollable, with back button fixed
+            modalScrollContainer.appendChild(backButton);
+            modalContent.appendChild(modalScrollContainer);
+        } else {
+            modalContent.appendChild(backButton);
+        }
+
+        // Main Image Container
+        const mainImageContainer = document.createElement('div');
+        mainImageContainer.style.cssText = `
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background-color: ${window.innerWidth > 768 ? '#f8f9fa' : 'white'};
+            opacity: 0;
+            transform: scale(0.9);
+            transition: all 0.4s cubic-bezier(0.32, 0.64, 0.45, 1) 0.2s;
+        `;
+
+        const mainImage = clickedItem.querySelector('img').cloneNode(true);
+        mainImage.style.cssText = `
+            max-width: 100%;
+            max-height: ${window.innerWidth > 768 ? '70vh' : '60vh'};
+            object-fit: contain;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        `;
+        mainImageContainer.appendChild(mainImage);
+
+        // Profile Section
+        const profileSection = document.createElement('div');
+        profileSection.style.cssText = `
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s cubic-bezier(0.32, 0.64, 0.45, 1) 0.3s;
+        `;
+
+        const profileImage = clickedItem.querySelector('.profile-info img').cloneNode(true);
+        profileImage.style.cssText = `
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            margin-right: 12px;
+            border: 2px solid white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        `;
+
+        const profileName = clickedItem.querySelector('.profile-info span').cloneNode(true);
+        profileName.style.cssText = `
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+        `;
+
+        profileSection.appendChild(profileImage);
+        profileSection.appendChild(profileName);
+
+        // Recommended Posts Grid
+        const recommendedSection = document.createElement('div');
+        recommendedSection.style.cssText = `
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            padding: 15px;
+            background-color: white;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.4s cubic-bezier(0.32, 0.64, 0.45, 1) 0.4s;
+        `;
+
+        // Populate recommended posts RANDOMLY
+        const allGalleryItems = Array.from(document.querySelectorAll('.gallery-item'));
+        const recommendedPosts = getRandomPosts(allGalleryItems, clickedItem, 6);
+
+        recommendedPosts.forEach(post => {
+            const postWrapper = document.createElement('div');
+            postWrapper.style.cssText = `
+                position: relative;
+                border-radius: 10px;
+                overflow: hidden;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+                cursor: pointer;
+                transition: transform 0.3s ease;
+            `;
+
+            const recommendedImage = post.querySelector('img').cloneNode(true);
+            recommendedImage.style.cssText = `
+                width: 100%;
+                height: 250px;
+                object-fit: cover;
+                transition: transform 0.3s ease;
+            `;
+
+            postWrapper.addEventListener('mouseenter', () => {
+                postWrapper.style.transform = 'scale(1.05)';
+                recommendedImage.style.transform = 'scale(1.1)';
+            });
+
+            postWrapper.addEventListener('mouseleave', () => {
+                postWrapper.style.transform = 'scale(1)';
+                recommendedImage.style.transform = 'scale(1)';
+            });
+
+            postWrapper.addEventListener('click', () => {
+                closeModal();
+                setTimeout(() => {
+                    openPostModal(post);
+                }, 400);
+            });
+
+            postWrapper.appendChild(recommendedImage);
+            recommendedSection.appendChild(postWrapper);
+        });
+
+        // Append sections to modal content
+        const modalScrollContainer = modalContent.querySelector('div[style*="overflow-y"]') || modalContent;
+        if (window.innerWidth <= 768) {
+            modalScrollContainer.appendChild(mainImageContainer);
+            modalScrollContainer.appendChild(profileSection);
+            modalScrollContainer.appendChild(recommendedSection);
+        } else {
+            modalContent.appendChild(mainImageContainer);
+            modalContent.appendChild(profileSection);
+            modalContent.appendChild(recommendedSection);
+        }
+
+        // Trigger animations
+        setTimeout(() => {
+            mainImageContainer.style.opacity = '1';
+            mainImageContainer.style.transform = 'scale(1)';
+            profileSection.style.opacity = '1';
+            profileSection.style.transform = 'translateY(0)';
+            recommendedSection.style.opacity = '1';
+            recommendedSection.style.transform = 'translateY(0)';
+            backButton.style.opacity = '1';
+        }, 50);
+
+        return modalContent;
+    }
+
+    function openPostModal(clickedItem) {
+        document.body.style.overflow = 'hidden';
+        modalOverlay.style.display = 'block';
+        modalOverlay.style.opacity = '1';
+        
+        const modalContent = createModalContent(clickedItem);
+        modalOverlay.appendChild(modalContent);
+
+        // Animate modal entrance
+        setTimeout(() => {
+            if (window.innerWidth > 768) {
+                modalContent.style.transform = 'translateX(0)';
+            } else {
+                modalContent.style.transform = 'translateY(0)';
+            }
+        }, 50);
+    }
+
+    function closeModal() {
+        const modalContent = modalOverlay.querySelector('div');
+        
+        // Animate modal exit
+        if (window.innerWidth > 768) {
+            modalContent.style.transform = 'translateX(100%)';
+        } else {
+            modalContent.style.transform = 'translateY(100%)';
+        }
+
+        modalOverlay.style.opacity = '0';
+        
+        setTimeout(() => {
+            modalOverlay.style.display = 'none';
+            modalOverlay.innerHTML = '';
+            document.body.style.overflow = '';
+            history.replaceState(null, '', location.pathname);
+        }, 400);
+    }
+
+    // Close modal when clicking outside on desktop
+    modalOverlay.addEventListener('click', (event) => {
+        if (event.target === modalOverlay) {
+            closeModal();
+        }
     });
-    observer.observe(document.body, { attributes: true });
-    
-    // Ensure the FAB is visible on page load
-    fab.classList.remove('hidden');
-  })();
+});
 </script>
+
 </body>
 </html>
