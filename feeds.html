@@ -1412,5 +1412,231 @@
             }
         });
     </script>
+    
+<script>
+  (function() {
+    // Create the FAB element
+    const fab = document.createElement('div');
+    fab.className = 'compose-fab';
+    
+    // Create the SVG icon
+    const svg = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14.06 9.02L14.98 9.94L5.92 19H5V18.08L14.06 9.02ZM17.66 3C17.41 3 17.15 3.1 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C18.17 3.09 17.92 3 17.66 3ZM14.06 6.19L3 17.25V21H6.75L17.81 9.94L14.06 6.19Z" fill="currentColor"/>
+        </svg>
+    `;
+    
+    fab.innerHTML = svg;
+    
+    // Apply styling
+    const style = document.createElement('style');
+    style.textContent = `
+        .compose-fab {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: #1DA1F2;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            z-index: 1000;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s, box-shadow 0.2s;
+        }
+        
+        .compose-fab:hover {
+            background-color: #1a91da;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transform: scale(0.95);
+        }
+        
+        .compose-fab:active {
+            transform: scale(0.9);
+        }
+        
+        /* Dark mode support */
+        body.dark-theme .compose-fab {
+            background-color: #1DA1F2;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* Upload iframe styles */
+        .upload-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+        }
+        
+        .upload-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .upload-container {
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            background-color: white;
+            border-radius: 16px;
+            overflow: hidden;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        body.dark-theme .upload-container {
+            background-color: #15202B;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        }
+        
+        .upload-overlay.active .upload-container {
+            transform: scale(1);
+        }
+        
+        .upload-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid #E6ECF0;
+        }
+        
+        body.dark-theme .upload-header {
+            border-bottom-color: #38444D;
+        }
+        
+        .upload-title {
+            font-weight: bold;
+            font-size: 18px;
+            color: #333;
+        }
+        
+        body.dark-theme .upload-title {
+            color: #FFFFFF;
+        }
+        
+        .upload-close {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #657786;
+            background: transparent;
+            border: none;
+            transition: background-color 0.2s;
+        }
+        
+        .upload-close:hover {
+            background-color: rgba(29, 161, 242, 0.1);
+            color: #1DA1F2;
+        }
+        
+        body.dark-theme .upload-close:hover {
+            background-color: rgba(29, 161, 242, 0.2);
+        }
+        
+        .upload-close svg {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .upload-content {
+            height: 80vh;
+            max-height: 600px;
+        }
+        
+        .upload-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    `;
+    
+    document.head.appendChild(style);
+    document.body.appendChild(fab);
+    
+    // Create upload overlay
+    const uploadOverlay = document.createElement('div');
+    uploadOverlay.className = 'upload-overlay';
+    
+    uploadOverlay.innerHTML = `
+        <div class="upload-container">
+            <div class="upload-header">
+                <div class="upload-title">New Post</div>
+                <button class="upload-close">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18.3 5.71a.996.996 0 00-1.41 0L12 10.59 7.11 5.7A.996.996 0 105.7 7.11L10.59 12 5.7 16.89a.996.996 0 101.41 1.41L12 13.41l4.89 4.89a.996.996 0 101.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z" fill="currentColor"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="upload-content">
+                <iframe class="upload-iframe" src="/upload.html"></iframe>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(uploadOverlay);
+    
+    // Show upload panel on FAB click
+    fab.addEventListener('click', function() {
+      uploadOverlay.classList.add('active');
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    });
+    
+    // Close upload panel on close button click
+    const closeButton = uploadOverlay.querySelector('.upload-close');
+    closeButton.addEventListener('click', function() {
+      uploadOverlay.classList.remove('active');
+      document.body.style.overflow = ''; // Restore scrolling
+    });
+    
+    // Close when clicking outside the container
+    uploadOverlay.addEventListener('click', function(e) {
+      if (e.target === uploadOverlay) {
+        uploadOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+    });
+    
+    // Listen for theme changes (if applicable)
+    function updateTheme() {
+      // Update theme based on dark mode settings.
+      // This demo assumes dark mode is toggled via a 'dark-theme' class on the body.
+    }
+    
+    updateTheme();
+    
+    // Observe body for class changes to update theme
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          updateTheme();
+        }
+      });
+    });
+    observer.observe(document.body, { attributes: true });
+    
+    // Ensure the FAB is visible on page load
+    fab.classList.remove('hidden');
+  })();
+</script>
 </body>
 </html>
