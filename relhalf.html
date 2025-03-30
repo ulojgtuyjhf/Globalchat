@@ -787,104 +787,185 @@ body.dim-theme .menu-item:hover {
   })();
 </script>
 
+
 <script>
+(function() {
+  // Post Button Enhancement - Self-executing function to avoid global scope pollution
   document.addEventListener('DOMContentLoaded', function() {
     const postBtn = document.querySelector('.post-btn');
+    if (!postBtn) return; // Guard clause if element doesn't exist
     
-    // Create modal elements
+    let optionsVisible = false;
+    
+    // Function to get current theme and brand color
+    function getCurrentStyles() {
+      return {
+        theme: localStorage.getItem('twitter-theme') || 'light',
+        brandColor: localStorage.getItem('color-value') || '#D17457'
+      };
+    }
+    
+    // Create options container
+    const optionsContainer = document.createElement('div');
+    optionsContainer.className = 'post-options-container';
+    optionsContainer.style.cssText = `
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 10;
+    `;
+    
+    // Create Post option
+    const postOption = document.createElement('div');
+    postOption.className = 'post-option post-btn-option';
+    postOption.style.cssText = `
+      border-radius: 50px;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      white-space: nowrap;
+      font-weight: 600;
+    `;
+    postOption.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M23 3c-6.62-.1-10.38 2.421-13 5.76C7.38 5.42 3.62 2.9 0 3v2c3.62-.1 7.38 2.1 10 4.76C12.62 7.1 16.38 4.9 20 5v2c-3.62.1-7.38 2.1-10 4.76c-2.62-2.66-6.38-4.86-10-4.76v2c3.62-.1 7.38 2.1 10 4.76c-2.62 2.66-6.38 4.86-10 4.76v2c6.62-.1 10.38-2.421 13-5.76c2.62 3.34 6.38 5.66 10 5.76v-2c-3.62.1-7.38-2.1-10-4.76c2.62-2.66 6.38-4.86 10-4.76v-2c-3.62.1-7.38 2.1-10 4.76c2.62-2.66 6.38-4.86 10-4.76V3z"/>
+      </svg>
+      <span>Post</span>
+    `;
+    
+    // Create Appearance option
+    const appearanceOption = document.createElement('div');
+    appearanceOption.className = 'post-option appearance-btn-option';
+    appearanceOption.style.cssText = `
+      border-radius: 50px;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      white-space: nowrap;
+      font-weight: 600;
+    `;
+    appearanceOption.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm0-18c4.42 0 8 3.58 8 8 0 1.85-.63 3.55-1.69 4.9L7.1 5.69C8.45 4.63 10.15 4 12 4zM5.69 7.1L16.9 18.31C15.55 19.37 13.85 20 12 20c-4.42 0-8-3.58-8-8 0-1.85.63-3.55 1.69-4.9z"/>
+      </svg>
+      <span>Appearance</span>
+    `;
+    
+    // Add elements to DOM
+    optionsContainer.appendChild(postOption);
+    optionsContainer.appendChild(appearanceOption);
+    postBtn.parentNode.appendChild(optionsContainer);
+    
+    // Create post compose modal (similar to original but enhanced)
     const modal = document.createElement('div');
-    modal.className = 'tweet-compose-modal';
+    modal.className = 'tweet-compose-modal enhanced-modal';
     modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.4);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        opacity: 0;
-        transition: opacity 0.2s ease;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.4);
+      display: none;
+      justify-content: flex-end;
+      align-items: center;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s ease;
     `;
     
     const modalContent = document.createElement('div');
     modalContent.className = 'tweet-compose-content';
     modalContent.style.cssText = `
-        background: white;
-        border-radius: 16px;
-        width: 600px;
-        max-width: 90%;
-        height: auto;
-        max-height: 90vh;
-        overflow: hidden;
-        position: relative;
-        transform: translateY(20px);
-        transition: transform 0.2s ease;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+      background: white;
+      border-radius: 16px;
+      width: 600px;
+      max-width: 90%;
+      height: 90vh;
+      overflow: hidden;
+      position: relative;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: -5px 0 20px rgba(0, 0, 0, 0.15);
+      margin-right: 20px;
     `;
     
-    // Create close button (X)
+    // Create close button
     const closeBtn = document.createElement('button');
     closeBtn.className = 'tweet-compose-close';
     closeBtn.innerHTML = '×';
     closeBtn.style.cssText = `
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        background: transparent;
-        border: none;
-        font-size: 20px;
-        font-weight: bold;
-        cursor: pointer;
-        z-index: 1001;
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #536471;
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: transparent;
+      border: none;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 1001;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #536471;
+      transition: background-color 0.2s ease;
     `;
     
-    // Create loader with Twitter-style animation
+    // Create loader with theme-aware animation
     const loader = document.createElement('div');
     loader.className = 'tweet-compose-loader';
     loader.style.cssText = `
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 150px;
-        padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 200px;
+      padding: 20px;
     `;
     
     loader.innerHTML = `
-        <svg width="30" height="30" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" fill="#e6e7e8"/>
-            <path d="M12 22c5.523 0 10-4.477 10-10h-3c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7V2C6.477 2 2 6.477 2 12s4.477 10 10 10z" fill="#1d9bf0">
-                <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
-            </path>
-        </svg>
+      <svg width="40" height="40" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" opacity="0.1"/>
+        <path d="M12 22c5.523 0 10-4.477 10-10h-3c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7V2C6.477 2 2 6.477 2 12s4.477 10 10 10z">
+          <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
+        </path>
+      </svg>
     `;
     
     // Create iframe container
     const iframeContainer = document.createElement('div');
     iframeContainer.className = 'tweet-compose-iframe';
     iframeContainer.style.cssText = `
-        width: 100%;
-        height: 400px;
-        display: none;
-        position: relative;
+      width: 100%;
+      height: calc(100% - 40px);
+      display: none;
+      position: relative;
     `;
     
     // Create the iframe
     const iframe = document.createElement('iframe');
     iframe.src = 'chats.html';
     iframe.style.cssText = `
-        width: 100%;
-        height: 100%;
-        border: none;
+      width: 100%;
+      height: 100%;
+      border: none;
     `;
     
     // Assemble the modal
@@ -895,9 +976,201 @@ body.dim-theme .menu-item:hover {
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
     
-    // Function to open modal
-    function openModal() {
-      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    // Create appearance modal (similar structure)
+    const appearanceModal = document.createElement('div');
+    appearanceModal.className = 'appearance-modal';
+    appearanceModal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.4);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    `;
+    
+    const appearanceContent = document.createElement('div');
+    appearanceContent.className = 'appearance-content';
+    appearanceContent.style.cssText = `
+      background: white;
+      border-radius: 16px;
+      width: 600px;
+      max-width: 90%;
+      height: auto;
+      max-height: 90vh;
+      overflow: hidden;
+      position: relative;
+      transform: translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    `;
+    
+    const appearanceCloseBtn = document.createElement('button');
+    appearanceCloseBtn.className = 'appearance-close';
+    appearanceCloseBtn.innerHTML = '×';
+    appearanceCloseBtn.style.cssText = `
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: transparent;
+      border: none;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 1001;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #536471;
+      transition: background-color 0.2s ease;
+    `;
+    
+    const appearanceLoader = document.createElement('div');
+    appearanceLoader.className = 'appearance-loader';
+    appearanceLoader.style.cssText = `
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 150px;
+      padding: 20px;
+    `;
+    
+    appearanceLoader.innerHTML = `
+      <svg width="40" height="40" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" opacity="0.1"/>
+        <path d="M12 22c5.523 0 10-4.477 10-10h-3c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7V2C6.477 2 2 6.477 2 12s4.477 10 10 10z">
+          <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
+        </path>
+      </svg>
+    `;
+    
+    const appearanceIframeContainer = document.createElement('div');
+    appearanceIframeContainer.className = 'upload.html';
+    appearanceIframeContainer.style.cssText = `
+      width: 100%;
+      height: 500px;
+      display: none;
+      position: relative;
+    `;
+    
+    const appearanceIframe = document.createElement('iframe');
+    appearanceIframe.src = 'chats.html';
+    appearanceIframe.style.cssText = `
+      width: 100%;
+      height: 100%;
+      border: none;
+    `;
+    
+    appearanceIframeContainer.appendChild(appearanceIframe);
+    appearanceContent.appendChild(appearanceCloseBtn);
+    appearanceContent.appendChild(appearanceLoader);
+    appearanceContent.appendChild(appearanceIframeContainer);
+    appearanceModal.appendChild(appearanceContent);
+    document.body.appendChild(appearanceModal);
+    
+    // Update styles based on theme and brand color
+    function updateStyles() {
+      const styles = getCurrentStyles();
+      const isBrightColor = getBrightness(styles.brandColor) > 160;
+      const textColor = isBrightColor ? '#000000' : '#ffffff';
+      
+      // Set background colors based on theme
+      let bgColor, hoverBgColor, modalBgColor;
+      
+      if (styles.theme === 'dark') {
+        bgColor = '#000000';
+        hoverBgColor = '#181818';
+        modalBgColor = '#15181c';
+      } else if (styles.theme === 'dim') {
+        bgColor = '#15202b';
+        hoverBgColor = '#1e2732';
+        modalBgColor = '#1e2732';
+      } else {
+        bgColor = '#ffffff';
+        hoverBgColor = '#f7f9f9';
+        modalBgColor = '#ffffff';
+      }
+      
+      // Generate gradient from brand color
+      const gradient = createGradientFromColor(styles.brandColor);
+      
+      // Update options styles
+      postOption.style.backgroundColor = bgColor;
+      postOption.style.color = styles.theme === 'light' ? '#0f1419' : '#ffffff';
+      postOption.style.boxShadow = `0 4px 12px ${hexToRGBA(styles.brandColor, 0.2)}`;
+      
+      appearanceOption.style.backgroundColor = bgColor;
+      appearanceOption.style.color = styles.theme === 'light' ? '#0f1419' : '#ffffff';
+      appearanceOption.style.boxShadow = `0 4px 12px ${hexToRGBA(styles.brandColor, 0.2)}`;
+      
+      // Update modals
+      modalContent.style.backgroundColor = modalBgColor;
+      modalContent.style.color = styles.theme === 'light' ? '#0f1419' : '#ffffff';
+      
+      appearanceContent.style.backgroundColor = modalBgColor;
+      appearanceContent.style.color = styles.theme === 'light' ? '#0f1419' : '#ffffff';
+      
+      // Update svg paths in loaders
+      const loaderSvgPaths = document.querySelectorAll('.tweet-compose-loader path, .appearance-loader path');
+      loaderSvgPaths.forEach(path => {
+        path.setAttribute('fill', styles.brandColor);
+      });
+      
+      const loaderSvgCircles = document.querySelectorAll('.tweet-compose-loader circle, .appearance-loader circle');
+      loaderSvgCircles.forEach(circle => {
+        circle.setAttribute('fill', hexToRGBA(styles.brandColor, 0.1));
+      });
+      
+      // Update hover effects
+      postOption.onmouseover = () => {
+        postOption.style.transform = 'translateY(-2px)';
+        postOption.style.boxShadow = `0 6px 16px ${hexToRGBA(styles.brandColor, 0.3)}`;
+      };
+      
+      postOption.onmouseout = () => {
+        postOption.style.transform = 'translateY(0)';
+        postOption.style.boxShadow = `0 4px 12px ${hexToRGBA(styles.brandColor, 0.2)}`;
+      };
+      
+      appearanceOption.onmouseover = () => {
+        appearanceOption.style.transform = 'translateY(-2px)';
+        appearanceOption.style.boxShadow = `0 6px 16px ${hexToRGBA(styles.brandColor, 0.3)}`;
+      };
+      
+      appearanceOption.onmouseout = () => {
+        appearanceOption.style.transform = 'translateY(0)';
+        appearanceOption.style.boxShadow = `0 4px 12px ${hexToRGBA(styles.brandColor, 0.2)}`;
+      };
+    }
+    
+    // Show/hide options
+    function toggleOptions() {
+      updateStyles();
+      
+      if (optionsVisible) {
+        optionsContainer.style.opacity = '0';
+        optionsContainer.style.visibility = 'hidden';
+        optionsContainer.style.transform = 'translateX(-50%) translateY(20px)';
+      } else {
+        optionsContainer.style.opacity = '1';
+        optionsContainer.style.visibility = 'visible';
+        optionsContainer.style.transform = 'translateX(-50%) translateY(0)';
+      }
+      optionsVisible = !optionsVisible;
+    }
+    
+    // Open post modal
+    function openPostModal() {
+      updateStyles();
+      document.body.style.overflow = 'hidden';
       modal.style.display = 'flex';
       
       // Force reflow
@@ -905,64 +1178,182 @@ body.dim-theme .menu-item:hover {
       
       // Animate in
       modal.style.opacity = '1';
-      modalContent.style.transform = 'translateY(0)';
+      modalContent.style.transform = 'translateX(0)';
       
       // Show content after loader
       setTimeout(() => {
         loader.style.display = 'none';
         iframeContainer.style.display = 'block';
-        
-        // Adjust iframe height to fit content (if possible)
-        try {
-          iframe.onload = function() {
-            try {
-              const iframeHeight = iframe.contentWindow.document.body.scrollHeight;
-              const maxHeight = window.innerHeight * 0.7; // Max 70% of viewport
-              iframeContainer.style.height = Math.min(iframeHeight, maxHeight) + 'px';
-            } catch (e) {
-              // If cross-origin issues prevent access, use default height
-              console.log('Using default iframe height');
-            }
-          };
-        } catch (e) {
-          console.log('Error setting iframe dimensions');
-        }
       }, 800);
+      
+      // Hide options
+      optionsContainer.style.opacity = '0';
+      optionsContainer.style.visibility = 'hidden';
+      optionsContainer.style.transform = 'translateX(-50%) translateY(20px)';
+      optionsVisible = false;
     }
     
-    // Function to close modal
-    function closeModal() {
+    // Close post modal
+    function closePostModal() {
       modal.style.opacity = '0';
-      modalContent.style.transform = 'translateY(20px)';
+      modalContent.style.transform = 'translateX(100%)';
       
       setTimeout(() => {
         modal.style.display = 'none';
         loader.style.display = 'flex';
         iframeContainer.style.display = 'none';
-        document.body.style.overflow = ''; // Restore scrolling
-      }, 200);
+        document.body.style.overflow = '';
+      }, 300);
+    }
+    
+    // Open appearance modal
+    function openAppearanceModal() {
+      updateStyles();
+      document.body.style.overflow = 'hidden';
+      appearanceModal.style.display = 'flex';
+      
+      // Force reflow
+      void appearanceModal.offsetWidth;
+      
+      // Animate in
+      appearanceModal.style.opacity = '1';
+      appearanceContent.style.transform = 'translateY(0)';
+      
+      // Show content after loader
+      setTimeout(() => {
+        appearanceLoader.style.display = 'none';
+        appearanceIframeContainer.style.display = 'block';
+      }, 800);
+      
+      // Hide options
+      optionsContainer.style.opacity = '0';
+      optionsContainer.style.visibility = 'hidden';
+      optionsContainer.style.transform = 'translateX(-50%) translateY(20px)';
+      optionsVisible = false;
+    }
+    
+    // Close appearance modal
+    function closeAppearanceModal() {
+      appearanceModal.style.opacity = '0';
+      appearanceContent.style.transform = 'translateY(20px)';
+      
+      setTimeout(() => {
+        appearanceModal.style.display = 'none';
+        appearanceLoader.style.display = 'flex';
+        appearanceIframeContainer.style.display = 'none';
+        document.body.style.overflow = '';
+      }, 300);
+    }
+    
+    // Handle iframe errors
+    iframe.addEventListener('error', function() {
+      this.src = 'chats.html'; // Retry loading
+    });
+    
+    appearanceIframe.addEventListener('error', function() {
+      this.src = 'chats.html'; // Retry loading
+    });
+    
+    // Utility: Get color brightness
+    function getBrightness(hex) {
+      const rgb = hexToRGB(hex);
+      return (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+    }
+    
+    // Utility: Create gradient from color
+    function createGradientFromColor(hexColor) {
+      const rgb = hexToRGB(hexColor);
+      const lighter = adjustColor(rgb, 40);
+      const darker = adjustColor(rgb, -20);
+      
+      return `linear-gradient(135deg, 
+        ${rgbToHex(darker)} 0%, 
+        ${hexColor} 50%, 
+        ${rgbToHex(lighter)} 100%)`;
+    }
+    
+    // Utility: Adjust color brightness
+    function adjustColor(rgbColor, amount) {
+      return {
+        r: Math.max(0, Math.min(255, rgbColor.r + amount)),
+        g: Math.max(0, Math.min(255, rgbColor.g + amount)),
+        b: Math.max(0, Math.min(255, rgbColor.b + amount))
+      };
+    }
+    
+    // Utility: Convert hex to RGB
+    function hexToRGB(hex) {
+      hex = hex.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return { r, g, b };
+    }
+    
+    // Utility: Convert RGB to hex
+    function rgbToHex(rgbColor) {
+      return '#' + ((1 << 24) + (rgbColor.r << 16) + (rgbColor.g << 8) + rgbColor.b)
+        .toString(16).slice(1);
+    }
+    
+    // Utility: Convert hex to rgba
+    function hexToRGBA(hex, alpha) {
+      const rgb = hexToRGB(hex);
+      return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
     }
     
     // Event listeners
-    postBtn.addEventListener('click', openModal);
-    closeBtn.addEventListener('click', closeModal);
+    postBtn.addEventListener('click', toggleOptions);
+    postOption.addEventListener('click', openPostModal);
+    appearanceOption.addEventListener('click', openAppearanceModal);
+    closeBtn.addEventListener('click', closePostModal);
+    appearanceCloseBtn.addEventListener('click', closeAppearanceModal);
     
     // Close when clicking outside
     modal.addEventListener('click', function(e) {
-      if (e.target === modal) closeModal();
+      if (e.target === modal) closePostModal();
+    });
+    
+    appearanceModal.addEventListener('click', function(e) {
+      if (e.target === appearanceModal) closeAppearanceModal();
     });
     
     // Handle escape key
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && modal.style.display === 'flex') closeModal();
+      if (e.key === 'Escape') {
+        if (modal.style.display === 'flex') closePostModal();
+        if (appearanceModal.style.display === 'flex') closeAppearanceModal();
+        if (optionsVisible) {
+          optionsContainer.style.opacity = '0';
+          optionsContainer.style.visibility = 'hidden';
+          optionsContainer.style.transform = 'translateX(-50%) translateY(20px)';
+          optionsVisible = false;
+        }
+      }
     });
     
-    // Handle iframe errors by retrying
-    iframe.addEventListener('error', function() {
-      this.src = 'chats.html'; // Retry loading
+    // Listen for theme/color changes
+    window.addEventListener('storage', function(event) {
+      if (event.key === 'twitter-theme' || event.key === 'color-value' || event.key === 'color-palette') {
+        updateStyles();
+      }
     });
+    
+    // Custom events
+    window.addEventListener('themeChanged', function() {
+      updateStyles();
+    });
+    
+    window.addEventListener('chatColorChanged', function() {
+      updateStyles();
+    });
+    
+    // Apply initial styles
+    updateStyles();
   });
+})();
 </script>
+
 <script>
   // Font size synchronization script
   (function() {
