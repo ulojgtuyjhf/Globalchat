@@ -14,7 +14,7 @@ function setupFollowButtonEnhancements() {
     }
     
     .follow-btn {
-      background-color: var(--primary, #1d9bf0);
+      background-color: var(--primary-color, #626262);
       color: white;
       border: none;
       border-radius: 9999px;
@@ -29,8 +29,8 @@ function setupFollowButtonEnhancements() {
     
     .follow-btn.followed {
       background-color: transparent;
-      color: var(--primary, #1d9bf0);
-      border: 1px solid var(--primary, #1d9bf0);
+      color: var(--primary-color, #626262);
+      border: 1px solid var(--primary-color, #626262);
     }
     
     .follow-btn.loading {
@@ -55,6 +55,7 @@ function setupFollowButtonEnhancements() {
       visibility: hidden;
     }
     
+    /* Light theme spinner (dark colored) */
     .spinner::after {
       content: '';
       box-sizing: border-box;
@@ -62,40 +63,44 @@ function setupFollowButtonEnhancements() {
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-top-color: var(--primary, #1d9bf0);
+      border: 2px solid rgba(150, 150, 150, 0.3);
+      border-top-color: #333333;
       animation: spin-animation 0.8s linear infinite;
     }
     
     .follow-btn.followed .spinner::after {
-      border: 2px solid rgba(29, 155, 240, 0.2);
-      border-top-color: var(--primary, #1d9bf0);
+      border: 2px solid rgba(150, 150, 150, 0.2);
+      border-top-color: #333333;
+    }
+    
+    /* Dark theme spinner (light colored) */
+    html[data-theme="dark"] .spinner::after,
+    html[data-theme="dim"] .spinner::after {
+      border: 2px solid rgba(50, 50, 50, 0.3);
+      border-top-color: #ffffff;
+    }
+    
+    html[data-theme="dark"] .follow-btn.followed .spinner::after,
+    html[data-theme="dim"] .follow-btn.followed .spinner::after {
+      border: 2px solid rgba(50, 50, 50, 0.2);
+      border-top-color: #ffffff;
     }
   `;
   document.head.appendChild(followLoaderStyle);
 
-  // Function to update primary color from localStorage
-  function updatePrimaryColor() {
-    const savedColorValue = localStorage.getItem('color-value');
-    if (savedColorValue) {
-      document.documentElement.style.setProperty('--primary', savedColorValue);
-    }
+  // Function to update theme attributes for spinner
+  function updateThemeAttributes() {
+    const currentTheme = localStorage.getItem('twitter-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', currentTheme);
   }
 
-  // Initialize primary color
-  updatePrimaryColor();
+  // Initialize theme attributes
+  updateThemeAttributes();
 
-  // Listen for color changes
+  // Listen for theme changes
   window.addEventListener('storage', function(event) {
-    if (event.key === 'color-value') {
-      updatePrimaryColor();
-    }
-  });
-
-  // Also listen for the custom event from the theme customizer
-  window.addEventListener('chatColorChanged', function(event) {
-    if (event.detail && event.detail.color) {
-      document.documentElement.style.setProperty('--primary', event.detail.color);
+    if (event.key === 'twitter-theme') {
+      updateThemeAttributes();
     }
   });
 
