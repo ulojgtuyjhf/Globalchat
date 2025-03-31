@@ -719,7 +719,7 @@ document.addEventListener('DOMContentLoaded', function() {
     optionsVisible = !optionsVisible;
   }
   
-  // --- Modal Creation (same as before) ---
+  // --- Modal Creation with Beautiful Loading Animations ---
   function createModalHeader(closeCallback) {
     const header = document.createElement('div');
     header.style.cssText = `
@@ -759,7 +759,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return header;
   }
   
-  // Create the Post Modal
+  // Create the Post Modal with Loading Animation
   const postModal = document.createElement('div');
   postModal.className = 'tweet-compose-modal';
   postModal.style.cssText = `
@@ -801,6 +801,34 @@ document.addEventListener('DOMContentLoaded', function() {
     position: relative;
   `;
   
+  // Create the beautiful loading animation for post modal
+  const postLoader = document.createElement('div');
+  postLoader.className = 'tweet-compose-loader';
+  postLoader.style.cssText = `
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    padding: 20px;
+  `;
+  postLoader.innerHTML = `
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="var(--loader-color, #1d9bf0)">
+      <circle cx="12" cy="12" r="10" opacity="0.1" fill="var(--loader-color, #1d9bf0)"/>
+      <path d="M12 22c5.523 0 10-4.477 10-10h-3c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7V2C6.477 2 2 6.477 2 12s4.477 10 10 10z">
+        <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
+      </path>
+    </svg>
+  `;
+  
+  const postIframeContainer = document.createElement('div');
+  postIframeContainer.className = 'tweet-compose-iframe';
+  postIframeContainer.style.cssText = `
+    width: 100%;
+    height: calc(100% - 53px);
+    display: none;
+    position: relative;
+  `;
+  
   const postIframe = document.createElement('iframe');
   postIframe.src = 'upload.html';
   postIframe.style.cssText = `
@@ -809,13 +837,15 @@ document.addEventListener('DOMContentLoaded', function() {
     border: none;
   `;
   
-  postContentArea.appendChild(postIframe);
+  postIframeContainer.appendChild(postIframe);
+  postContentArea.appendChild(postLoader);
+  postContentArea.appendChild(postIframeContainer);
   postModalContent.appendChild(postHeader);
   postModalContent.appendChild(postContentArea);
   postModal.appendChild(postModalContent);
   document.body.appendChild(postModal);
   
-  // Create the Appearance Modal
+  // Create the Appearance Modal with Loading Animation
   const appearanceModal = document.createElement('div');
   appearanceModal.className = 'appearance-modal';
   appearanceModal.style.cssText = `
@@ -857,21 +887,51 @@ document.addEventListener('DOMContentLoaded', function() {
     position: relative;
   `;
   
+  // Create the beautiful loading animation for appearance modal
+  const appearanceLoader = document.createElement('div');
+  appearanceLoader.className = 'appearance-loader';
+  appearanceLoader.style.cssText = `
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    padding: 20px;
+  `;
+  appearanceLoader.innerHTML = `
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="var(--loader-color, #1d9bf0)">
+      <circle cx="12" cy="12" r="10" opacity="0.1" fill="var(--loader-color, #1d9bf0)"/>
+      <path d="M12 22c5.523 0 10-4.477 10-10h-3c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7V2C6.477 2 2 6.477 2 12s4.477 10 10 10z">
+        <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
+      </path>
+    </svg>
+  `;
+  
+  const appearanceIframeContainer = document.createElement('div');
+  appearanceIframeContainer.className = 'appearance-iframe';
+  appearanceIframeContainer.style.cssText = `
+    width: 100%;
+    height: 500px;
+    display: none;
+    position: relative;
+  `;
+  
   const appearanceIframe = document.createElement('iframe');
   appearanceIframe.src = 'chats.html';
   appearanceIframe.style.cssText = `
     width: 100%;
-    height: 500px;
+    height: 100%;
     border: none;
   `;
   
-  appearanceContentArea.appendChild(appearanceIframe);
+  appearanceIframeContainer.appendChild(appearanceIframe);
+  appearanceContentArea.appendChild(appearanceLoader);
+  appearanceContentArea.appendChild(appearanceIframeContainer);
   appearanceModalContent.appendChild(appearanceHeader);
   appearanceModalContent.appendChild(appearanceContentArea);
   appearanceModal.appendChild(appearanceModalContent);
   document.body.appendChild(appearanceModal);
   
-  // --- Modal Open/Close Functions ---
+  // --- Modal Open/Close Functions with Loading Animations ---
   function openPostModal() {
     document.body.style.overflow = 'hidden';
     postModal.style.display = 'flex';
@@ -879,11 +939,21 @@ document.addEventListener('DOMContentLoaded', function() {
     postModal.style.opacity = '1';
     postModalContent.style.transform = 'translateX(0)';
     
+    // Show loader initially
+    postLoader.style.display = 'flex';
+    postIframeContainer.style.display = 'none';
+    
     // Hide options
     optionsContainer.style.opacity = '0';
     optionsContainer.style.visibility = 'hidden';
     optionsContainer.style.transform = 'translateY(10px)';
     optionsVisible = false;
+    
+    // Simulate loading (in real app, this would be when iframe loads)
+    setTimeout(() => {
+      postLoader.style.display = 'none';
+      postIframeContainer.style.display = 'block';
+    }, 800);
   }
   
   function closePostModal() {
@@ -892,6 +962,10 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
       postModal.style.display = 'none';
       document.body.style.overflow = '';
+      
+      // Reset for next open
+      postLoader.style.display = 'flex';
+      postIframeContainer.style.display = 'none';
     }, 300);
   }
   
@@ -902,11 +976,21 @@ document.addEventListener('DOMContentLoaded', function() {
     appearanceModal.style.opacity = '1';
     appearanceModalContent.style.transform = 'translateY(0)';
     
+    // Show loader initially
+    appearanceLoader.style.display = 'flex';
+    appearanceIframeContainer.style.display = 'none';
+    
     // Hide options
     optionsContainer.style.opacity = '0';
     optionsContainer.style.visibility = 'hidden';
     optionsContainer.style.transform = 'translateY(10px)';
     optionsVisible = false;
+    
+    // Simulate loading (in real app, this would be when iframe loads)
+    setTimeout(() => {
+      appearanceLoader.style.display = 'none';
+      appearanceIframeContainer.style.display = 'block';
+    }, 800);
   }
   
   function closeAppearanceModal() {
@@ -915,6 +999,10 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
       appearanceModal.style.display = 'none';
       document.body.style.overflow = '';
+      
+      // Reset for next open
+      appearanceLoader.style.display = 'flex';
+      appearanceIframeContainer.style.display = 'none';
     }, 300);
   }
   
@@ -985,6 +1073,7 @@ document.addEventListener('DOMContentLoaded', function() {
       document.documentElement.style.setProperty('--modal-header-bg', '#000');
       document.documentElement.style.setProperty('--modal-close', '#71767b');
       document.documentElement.style.setProperty('--modal-close-hover', 'rgba(255, 255, 255, 0.1)');
+      document.documentElement.style.setProperty('--loader-color', '#1d9bf0');
     } else if (isDim) {
       // Dim theme variables
       document.documentElement.style.setProperty('--options-bg', '#15202b');
@@ -998,6 +1087,7 @@ document.addEventListener('DOMContentLoaded', function() {
       document.documentElement.style.setProperty('--modal-header-bg', '#15202b');
       document.documentElement.style.setProperty('--modal-close', '#8b98a5');
       document.documentElement.style.setProperty('--modal-close-hover', 'rgba(255, 255, 255, 0.1)');
+      document.documentElement.style.setProperty('--loader-color', '#1d9bf0');
     } else {
       // Light theme variables (default)
       document.documentElement.style.setProperty('--options-bg', '#fff');
@@ -1011,6 +1101,7 @@ document.addEventListener('DOMContentLoaded', function() {
       document.documentElement.style.setProperty('--modal-header-bg', '#fff');
       document.documentElement.style.setProperty('--modal-close', '#536471');
       document.documentElement.style.setProperty('--modal-close-hover', 'rgba(0, 0, 0, 0.05)');
+      document.documentElement.style.setProperty('--loader-color', '#1d9bf0');
     }
   }
   
