@@ -1290,5 +1290,160 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 })();
 </script>
+<script>
+  (function() {
+    // RelHalf Theme Integration - Color Inversion Version
+    const RelHalfThemeIntegrator = {
+      // Style element ID
+      styleElementId: 'relhalf-theme-integrator-styles',
+      
+      // Initialize integration
+      initialize: function() {
+        this.createStyleElement();
+        this.applyCurrentTheme();
+        this.setupEventListeners();
+        console.log('RelHalf Theme Integrator initialized');
+      },
+      
+      // Create dedicated style element
+      createStyleElement: function() {
+        const existingStyle = document.getElementById(this.styleElementId);
+        if (existingStyle) {
+          existingStyle.remove();
+        }
+        
+        const styleElement = document.createElement('style');
+        styleElement.id = this.styleElementId;
+        styleElement.setAttribute('data-origin', 'relhalf-theme-integrator');
+        document.head.appendChild(styleElement);
+      },
+      
+      // Apply current theme from localStorage
+      applyCurrentTheme: function() {
+        const themeName = localStorage.getItem('twitter-theme') || 'light';
+        this.applyTheme(themeName);
+      },
+      
+      // Apply specified theme with logo/button inversion
+      applyTheme: function(themeName) {
+        // Default to light theme if invalid theme name
+        const validThemes = ['light', 'dim', 'dark'];
+        const theme = validThemes.includes(themeName) ? themeName : 'light';
+        
+        // Get style element
+        const styleElement = document.getElementById(this.styleElementId);
+        if (!styleElement) {
+          this.createStyleElement();
+          return this.applyTheme(theme); // Retry after creating style element
+        }
+        
+        // Theme-specific CSS with logo/button inversion
+        const themeCSS = {
+          light: `
+            /* Light theme - original black styling */
+            body { background-color: #ffffff; color: #0f1419; }
+            .sidebar { border-right-color: #eff3f4; }
+            .content { border-right-color: #eff3f4; }
+            .menu-item { color: #0f1419; }
+            .menu-item:hover { background-color: rgba(128, 128, 128, 0.1); }
+            .menu-item.active { color: #4d4d4d; font-weight: 700; }
+            
+            
+            
+            /* Original black post button */
+            .post-btn { 
+              background: linear-gradient(135deg, #0f0f0f 0%, #1c1c1c 15%, #3a3a3a 30%, #4d4d4d 45%, #626262 60%, #787878 75%, #8f8f8f 90%, #a6a6a6 100%);
+              color: white;
+            }
+          `,
+          dim: `
+            /* Dim theme - inverted white styling */
+            body { background-color: #15202b; color: #f7f9f9; }
+            .sidebar { border-right-color: #38444d; }
+            .content { border-right-color: #38444d; }
+            .menu-item { color: #f7f9f9; }
+            .menu-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+            .menu-item.active { color: #a6a6a6; font-weight: 700; }
+            
+            /* Inverted white logo styling */
+            .logo { background: #15202b; }
+            .logo::before { background: linear-gradient(135deg, #ffffff 0%, #e6e6e6 15%, #cccccc 30%, #b3b3b3 45%, #999999 60%, #808080 75%, #666666 90%, #4d4d4d 100%); }
+            .logo::after { 
+              background: linear-gradient(135deg, #ffffff 0%, #e6e6e6 15%, #cccccc 30%, #b3b3b3 45%, #999999 60%, #808080 75%, #666666 90%, #4d4d4d 100%);
+              -webkit-background-clip: text;
+              background-clip: text;
+              color: transparent;
+            }
+            
+            /* Inverted white post button */
+            .post-btn { 
+              background: linear-gradient(135deg, #ffffff 0%, #e6e6e6 15%, #cccccc 30%, #b3b3b3 45%, #999999 60%, #808080 75%, #666666 90%, #4d4d4d 100%);
+              color: black;
+            }
+          `,
+          dark: `
+            /* Dark theme - inverted white styling */
+            body { background-color: #000000; color: #ffffff; }
+            .sidebar { border-right-color: #2f3336; }
+            .content { border-right-color: #2f3336; }
+            .menu-item { color: #ffffff; }
+            .menu-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+            .menu-item.active { color: #a6a6a6; font-weight: 700; }
+            
+            /* Inverted white logo styling */
+            .logo { background: #000; }
+            .logo::before { background: linear-gradient(135deg, #ffffff 0%, #e6e6e6 15%, #cccccc 30%, #b3b3b3 45%, #999999 60%, #808080 75%, #666666 90%, #4d4d4d 100%); }
+            .logo::after { 
+              background: linear-gradient(135deg, #ffffff 0%, #e6e6e6 15%, #cccccc 30%, #b3b3b3 45%, #999999 60%, #808080 75%, #666666 90%, #4d4d4d 100%);
+              -webkit-background-clip: text;
+              background-clip: text;
+              color: transparent;
+            }
+            
+            /* Inverted white post button */
+            .post-btn { 
+              background: linear-gradient(135deg, #ffffff 0%, #e6e6e6 15%, #cccccc 30%, #b3b3b3 45%, #999999 60%, #808080 75%, #666666 90%, #4d4d4d 100%);
+              color: black;
+            }
+          `
+        };
+        
+        // Set the CSS content
+        styleElement.textContent = themeCSS[theme];
+        
+        // Update body class for theme
+        document.body.className = theme;
+        
+        console.log('RelHalf Theme Integrator: Applied theme', theme);
+      },
+      
+      // Set up event listeners
+      setupEventListeners: function() {
+        // Listen for localStorage changes (theme)
+        window.addEventListener('storage', (e) => {
+          if (e.key === 'twitter-theme') {
+            this.applyTheme(e.newValue || 'light');
+          }
+        });
+        
+        // Listen for custom events from GlobalChatThemeManager
+        window.addEventListener('themeChanged', (e) => {
+          if (e.detail && e.detail.theme) {
+            this.applyTheme(e.detail.theme);
+          }
+        });
+      }
+    };
+    
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        RelHalfThemeIntegrator.initialize();
+      });
+    } else {
+      RelHalfThemeIntegrator.initialize();
+    }
+  })();
+</script>
 </body>
 </html>
