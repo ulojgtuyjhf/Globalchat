@@ -1043,30 +1043,22 @@ body {
 </script>  
 
 
-
-
-
 <script>
   (function() {
-    // Global Chat Theme Manager - Enhanced version with better dark mode support
+    // Global Chat Theme Manager - Improved Dark Theme for Non-Input Elements
     const GlobalChatThemeManager = {
-      // Theme configuration with improved dark mode colors
+      // Theme configuration (light and dim remain unchanged; dark has updated values)
       themeConfig: {
         light: {
           '--primary-color': '#4a90e2',
           '--primary-light': '#e0e7ff',
           '--primary-dark': '#357abd',
-          '--text-primary': '#333333',
-          '--text-secondary': '#666666',
+          '--text-primary': '#333',
+          '--text-secondary': '#666',
           '--background-light': '#f9f9f9',
           '--background-white': '#ffffff',
           '--border-light': '#e0e7ff',
-          '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.05)',
-          '--input-background': '#ffffff',
-          '--input-text': '#333333',
-          '--input-border': '#e0e7ff',
-          '--message-incoming': '#ffffff',
-          '--message-outgoing': '#e0e7ff'
+          '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.05)'
         },
         dim: {
           '--primary-color': '#4a90e2',
@@ -1077,28 +1069,20 @@ body {
           '--background-light': '#15202b',
           '--background-white': '#192734',
           '--border-light': '#38444d',
-          '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.2)',
-          '--input-background': '#192734',
-          '--input-text': '#f1f1f1',
-          '--input-border': '#38444d',
-          '--message-incoming': '#192734',
-          '--message-outgoing': '#1e2732'
+          '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.2)'
         },
         dark: {
+          // Updated dark theme variables so that text, borders, etc. get darkened too—
+          // while leaving the input area styles (defined later) untouched.
           '--primary-color': '#4a90e2',
           '--primary-light': '#16181c',
           '--primary-dark': '#357abd',
-          '--text-primary': '#ffffff',
-          '--text-secondary': '#8899a6',
-          '--background-light': '#000000',
-          '--background-white': '#16181c',
-          '--border-light': '#2f3336',
-          '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.3)',
-          '--input-background': '#16181c',
-          '--input-text': '#ffffff',
-          '--input-border': '#2f3336',
-          '--message-incoming': '#16181c',
-          '--message-outgoing': '#1a1d21'
+          '--text-primary': '#e0e0e0',
+          '--text-secondary': '#aaaaaa',
+          '--background-light': '#121212',
+          '--background-white': '#1e1e1e',
+          '--border-light': '#333333',
+          '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.5)'
         }
       },
       
@@ -1113,7 +1097,7 @@ body {
         console.log('Global Chat Theme Manager initialized');
       },
       
-      // Create dedicated style element
+      // Create or recreate the dedicated style element
       createStyleElement: function() {
         const existingStyle = document.getElementById(this.styleElementId);
         if (existingStyle) {
@@ -1126,226 +1110,166 @@ body {
         document.head.appendChild(styleElement);
       },
       
-      // Apply current theme based on localStorage
+      // Apply the current theme based on localStorage
       applyCurrentTheme: function() {
         const themeName = localStorage.getItem('twitter-theme') || 'light';
         this.applyTheme(themeName);
       },
       
-      // Apply specified theme
+      // Apply the specified theme
       applyTheme: function(themeName) {
-        // Default to light theme if invalid theme name
         const validThemes = ['light', 'dim', 'dark'];
         const theme = validThemes.includes(themeName) ? themeName : 'light';
-        
-        // Get theme configuration
         const themeVars = this.themeConfig[theme] || this.themeConfig.light;
-        
-        // Get style element
         const styleElement = document.getElementById(this.styleElementId);
         if (!styleElement) {
           this.createStyleElement();
-          return this.applyTheme(theme); // Retry after creating style element
+          return this.applyTheme(theme);
         }
         
-        // Generate CSS with theme variables
+        // Generate CSS using the theme variables
         let css = '';
-        
-        // Add CSS variables
         css += ':root {\n';
         Object.entries(themeVars).forEach(([key, value]) => {
-          css += ` ${key}: ${value};\n`;
+          css += `  ${key}: ${value};\n`;
         });
         css += '}\n\n';
         
-        // Add comprehensive theme-specific overrides
+        // Global Chat Theme Overrides
+        // (Note: The input area styling is intentionally left out so that it remains unaffected.)
         css += `
-        /* Global Chat Theme Overrides */
         body, html {
-          background-color: var(--background-light) !important;
-          color: var(--text-primary) !important;
+          background-color: var(--background-light);
+          color: var(--text-primary);
         }
-
-        .chat-container {
-          background-color: var(--background-light) !important;
-          scrollbar-color: var(--primary-light) var(--background-light) !important;
-        }
-
-        .chat-container::-webkit-scrollbar-track {
-          background: var(--background-light) !important;
-        }
-
-        .chat-container::-webkit-scrollbar-thumb {
-          background: var(--primary-light) !important;
-        }
-
-        .message.incoming .message-content {
-          background-color: var(--message-incoming) !important;
-          color: var(--text-primary) !important;
-        }
-
-        .message.incoming .message-content:before {
-          background-color: var(--message-incoming) !important;
-        }
-
-        .message.outgoing .message-content {
-          background-color: var(--message-outgoing) !important;
-          color: var(--text-primary) !important;
-        }
-
-        .message.outgoing .message-content:before {
-          background-color: var(--message-outgoing) !important;
-        }
-
-        .user-name {
-          color: var(--primary-color) !important;
-        }
-
-        .message-time {
-          color: var(--text-secondary) !important;
-        }
-
-        .action-button {
-          color: var(--text-secondary) !important;
-        }
-
-        .action-button:hover {
-          color: var(--primary-color) !important;
-        }
-
-        .input-container {
-          background-color: var(--background-white) !important;
-          border-top: 1px solid var(--border-light) !important;
-          box-shadow: var(--box-shadow) !important;
-        }
-
-        .input-wrapper {
-          background-color: var(--input-background) !important;
-          border: 1px solid var(--input-border) !important;
-          color: var(--input-text) !important;
-        }
-
-        .message-textarea {
-          background-color: var(--input-background) !important;
-          color: var(--input-text) !important;
-        }
-
-        .message-textarea::placeholder {
-          color: var(--text-secondary) !important;
-          opacity: 1 !important;
-        }
-
-        .loading-dot {
-          background-color: var(--primary-color) !important;
-        }
-
-        .media-button {
-          color: var(--primary-color) !important;
-        }
-
-        /* Follow button styling */
-        .follow-btn {
-          background-color: transparent !important;
-          color: var(--primary-color) !important;
-          border: 1px solid var(--primary-color) !important;
-        }
-
-        .follow-btn:hover {
-          background-color: rgba(74, 144, 226, 0.1) !important;
-        }
-
-        .follow-btn.followed {
-          background-color: var(--primary-color) !important;
-          color: white !important;
-        }
-
-        .reply-wrapper {
-          background-color: var(--primary-light) !important;
-          border: 1px solid var(--border-light) !important;
-        }
-
-        .reply-textarea {
-          background-color: var(--input-background) !important;
-          color: var(--input-text) !important;
-        }
-
-        .typing-indicator {
-          color: var(--text-secondary) !important;
-        }
-
-        .media-preview {
-          background-color: var(--background-light) !important;
-          border: 1px solid var(--border-light) !important;
-        }
-
-        .preview-item {
-          box-shadow: var(--box-shadow) !important;
-          background-color: var(--background-white) !important;
-        }
-
-        /* Input area visibility improvements */
-        .input-area, .input-toolbar, .send-button {
-          background-color: var(--input-background) !important;
-          color: var(--input-text) !important;
-        }
-
-        .emoji-picker, .attachment-menu {
-          background-color: var(--background-white) !important;
-          border: 1px solid var(--border-light) !important;
-          box-shadow: var(--box-shadow) !important;
-        }
-
-        /* Ensure all text is visible in dark mode */
-        * {
-          color: var(--text-primary) !important;
-        }
-      `;
         
-        // Set the CSS content
+        .chat-container {
+          background-color: var(--background-light);
+          scrollbar-color: var(--primary-light) var(--background-light);
+        }
+        
+        .chat-container::-webkit-scrollbar-track {
+          background: var(--background-light);
+        }
+        
+        .chat-container::-webkit-scrollbar-thumb {
+          background: var(--primary-light);
+        }
+        
+        .message.incoming .message-content {
+          background-color: var(--background-white);
+        }
+        
+        .message.incoming .message-content:before {
+          background-color: var(--background-white);
+        }
+        
+        .message.outgoing .message-content {
+          background-color: var(--primary-light);
+        }
+        
+        .message.outgoing .message-content:before {
+          background-color: var(--primary-light);
+        }
+        
+        .user-name {
+          color: var(--primary-color);
+        }
+        
+        .message-time {
+          color: var(--text-secondary);
+        }
+        
+        .action-button {
+          color: var(--text-secondary);
+        }
+        
+        .action-button:hover {
+          color: var(--primary-color);
+        }
+        
+        /* Input area styling intentionally left untouched */
+        
+        .loading-dot {
+          background-color: var(--primary-color);
+        }
+        
+        .media-button {
+          color: var(--primary-color);
+        }
+        
+        .follow-btn {
+          background-color: transparent;
+          color: var(--primary-color);
+          border: 1px solid var(--primary-color);
+        }
+        
+        .follow-btn:hover {
+          background-color: rgba(74, 144, 226, 0.1);
+        }
+        
+        .follow-btn.followed {
+          background-color: var(--primary-color);
+          color: white;
+        }
+        
+        .reply-wrapper {
+          background-color: var(--primary-light);
+        }
+        
+        .typing-indicator {
+          color: var(--text-secondary);
+        }
+        
+        .media-preview {
+          background-color: var(--background-light);
+        }
+        
+        .preview-item {
+          box-shadow: var(--box-shadow);
+        }
+        `;
+        
+        // Apply the generated CSS to the style element
         styleElement.textContent = css;
         console.log('Global Chat Theme Manager: Applied theme', theme);
       },
       
-      // Set up event listeners
+      // Set up event listeners for theme changes
       setupEventListeners: function() {
-        // Listen for localStorage changes
         window.addEventListener('storage', (e) => {
           if (e.key === 'twitter-theme') {
             this.applyTheme(e.newValue || 'light');
           }
         });
-        
-        // Periodic theme check to ensure consistency
         this.setupPeriodicCheck();
       },
       
-      // Set up periodic check for theme consistency
+      // Periodically check for theme consistency
       setupPeriodicCheck: function() {
         let lastKnownTheme = localStorage.getItem('twitter-theme') || 'light';
-        
         setInterval(() => {
           const currentTheme = localStorage.getItem('twitter-theme');
           if (currentTheme !== lastKnownTheme) {
             lastKnownTheme = currentTheme || 'light';
             this.applyTheme(lastKnownTheme);
           }
-        }, 3000); // Check every 3 seconds
+        }, 3000);
       }
     };
     
-    // Initialize the theme manager when DOM is loaded
+    // Initialize the theme manager when the DOM is ready
     function initializeThemeManager() {
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
           GlobalChatThemeManager.initialize();
         });
       } else {
-        // DOM is already ready
         GlobalChatThemeManager.initialize();
       }
     }
     
-    // Trigger initialization with safe delay
+    // Trigger initialization with a slight delay
     setTimeout(initializeThemeManager, 100);
   })();
 </script>
