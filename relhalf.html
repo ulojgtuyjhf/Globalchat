@@ -1336,6 +1336,107 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000);
   })();
 </script>
-
+<script>
+  (function() {
+  // Wait for DOM to be fully loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    // Get the logo element
+    const logo = document.getElementById('home-logo');
+    if (!logo) return;
+    
+    // Variables to track drag state
+    let isDragging = false;
+    let startX, startY;
+    
+    // Function to handle navigation
+    function navigateToHome() {
+      if (!isDragging) { // Only navigate if not dragging
+        window.location.href = 'half.html';
+      }
+    }
+    
+    // Click handler
+    logo.addEventListener('click', navigateToHome);
+    
+    // Touch start handler
+    logo.addEventListener('touchstart', function(e) {
+      isDragging = false;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }, { passive: true });
+    
+    // Touch move handler - detect if dragging
+    logo.addEventListener('touchmove', function(e) {
+      if (!startX || !startY) return;
+      
+      const diffX = Math.abs(e.touches[0].clientX - startX);
+      const diffY = Math.abs(e.touches[0].clientY - startY);
+      
+      // Consider it dragging if moved more than 10px in any direction
+      if (diffX > 10 || diffY > 10) {
+        isDragging = true;
+      }
+    }, { passive: true });
+    
+    // Touch end handler
+    logo.addEventListener('touchend', function(e) {
+      if (!isDragging) {
+        navigateToHome();
+      }
+      isDragging = false;
+      startX = startY = null;
+    }, { passive: true });
+    
+    // Mouse down handler
+    logo.addEventListener('mousedown', function(e) {
+      isDragging = false;
+      startX = e.clientX;
+      startY = e.clientY;
+    });
+    
+    // Mouse move handler - detect if dragging
+    logo.addEventListener('mousemove', function(e) {
+      if (!startX || !startY) return;
+      
+      const diffX = Math.abs(e.clientX - startX);
+      const diffY = Math.abs(e.clientY - startY);
+      
+      // Consider it dragging if moved more than 5px in any direction
+      if (diffX > 5 || diffY > 5) {
+        isDragging = true;
+      }
+    });
+    
+    // Mouse up handler
+    logo.addEventListener('mouseup', function(e) {
+      if (!isDragging) {
+        navigateToHome();
+      }
+      isDragging = false;
+      startX = startY = null;
+    });
+    
+    // Make logo draggable as a link
+    logo.setAttribute('draggable', 'true');
+    
+    // Drag start handler - create a drag image with the URL
+    logo.addEventListener('dragstart', function(e) {
+      const fullUrl = window.location.origin + '/half.html';
+      e.dataTransfer.setData('text/uri-list', fullUrl);
+      e.dataTransfer.setData('text/plain', fullUrl);
+      
+      // Create a drag image (optional)
+      const dragImg = new Image();
+      dragImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="%235A9BD5"/><text x="24" y="32" font-family="Arial" font-size="24" text-anchor="middle" fill="white">N</text></svg>';
+      e.dataTransfer.setDragImage(dragImg, 0, 0);
+    });
+    
+    // Prevent conflict with other drag operations
+    logo.addEventListener('dragend', function() {
+      isDragging = false;
+    });
+  });
+})();
+</script>
 </body>
 </html>
