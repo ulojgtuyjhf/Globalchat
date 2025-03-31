@@ -585,124 +585,183 @@ body.dim .menu-item:hover {
 
 
 
-
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Retrieve the post button from the sidebar.
+  // Retrieve the post button from the sidebar
   const postBtn = document.querySelector('.post-btn');
   if (!postBtn) return;
   
   let optionsVisible = false;
   
-  // Create the container for the two option buttons.
+  // Create the container for the two option buttons
   const optionsContainer = document.createElement('div');
   optionsContainer.className = 'post-options-container';
-  // Position it so that it appears directly above the post button.
+  
+  // Position it absolutely relative to the post button
+  const postBtnRect = postBtn.getBoundingClientRect();
   optionsContainer.style.cssText = `
     position: absolute;
-    bottom: 70px; /* Adjust so it sits on top of the post button */
-    left: 50%;
-    transform: translateX(-50%) translateY(10px);
-    display: flex;
-    flex-direction: column;
-    width: 90%;
-    max-width: 250px;
+    bottom: ${postBtnRect.height + 10}px;
+    left: ${postBtnRect.left}px;
+    width: ${postBtnRect.width}px;
     background: var(--options-bg, #fff);
-    border: 1px solid var(--options-border, #ccc);
-    border-radius: 8px;
+    border: 1px solid var(--options-border, rgba(0, 0, 0, 0.1));
+    border-radius: 16px;
+    box-shadow: 0 4px 12px var(--options-shadow, rgba(0, 0, 0, 0.15));
     overflow: hidden;
     opacity: 0;
+    transform: translateY(10px);
     visibility: hidden;
-    transition: opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.3s;
-    z-index: 10;
+    transition: all 0.2s cubic-bezier(0.2, 0, 0.2, 1);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
   `;
   
-  // Create "Post" option.
-  const postOption = document.createElement('div');
+  // Create "Post" option
+  const postOption = document.createElement('button');
   postOption.className = 'post-option post-btn-option';
   postOption.style.cssText = `
-    padding: 12px 16px;
+    padding: 16px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     cursor: pointer;
     background-color: inherit;
     font-weight: 600;
+    color: var(--options-text, #0f1419);
+    border: none;
     transition: background 0.2s ease;
+    font-size: 15px;
   `;
   postOption.innerHTML = `
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
       <path d="M23 3c-6.62-.1-10.38 2.421-13 5.76C7.38 5.42 3.62 2.9 0 3v2c3.62-.1 7.38 2.1 10 4.76C12.62 7.1 16.38 4.9 20 5v2c-3.62.1-7.38 2.1-10 4.76c-2.62-2.66-6.38-4.86-10-4.76v2c3.62-.1 7.38 2.1 10 4.76c-2.62 2.66-6.38 4.86-10 4.76v2c6.62-.1 10.38-2.421 13-5.76c2.62 3.34 6.38 5.66 10 5.76v-2c-3.62.1-7.38-2.1-10-4.76c2.62-2.66 6.38-4.86 10-4.76V3z"/>
     </svg>
     <span>Post</span>
   `;
   
-  // Create "Appearance" option.
-  const appearanceOption = document.createElement('div');
+  // Create "Appearance" option
+  const appearanceOption = document.createElement('button');
   appearanceOption.className = 'post-option appearance-btn-option';
   appearanceOption.style.cssText = `
-    padding: 12px 16px;
+    padding: 16px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     cursor: pointer;
     background-color: inherit;
     font-weight: 600;
+    color: var(--options-text, #0f1419);
+    border: none;
     transition: background 0.2s ease;
+    font-size: 15px;
   `;
   appearanceOption.innerHTML = `
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm0-18c4.42 0 8 3.58 8 8 0 1.85-.63 3.55-1.69 4.9L7.1 5.69C8.45 4.63 10.15 4 12 4zM5.69 7.1L16.9 18.31C15.55 19.37 13.85 20 12 20c-4.42 0-8-3.58-8-8 0-1.85.63-3.55 1.69-4.9z"/>
     </svg>
     <span>Appearance</span>
   `;
   
-  // Append options and add a dividing border between them.
+  // Append options and add hover effects
   optionsContainer.appendChild(postOption);
-  // Add a divider element.
+  
+  // Add divider
   const divider = document.createElement('div');
   divider.style.cssText = `
     height: 1px;
-    background: var(--options-border, #ccc);
+    background: var(--options-divider, rgba(0, 0, 0, 0.1));
     width: 100%;
+    margin: 0;
   `;
   optionsContainer.appendChild(divider);
   optionsContainer.appendChild(appearanceOption);
-  postBtn.parentNode.appendChild(optionsContainer);
   
-  // --- Create Modal Templates ---
-  // Function to create a modal header with a small close icon
+  // Add hover effects
+  [postOption, appearanceOption].forEach(option => {
+    option.addEventListener('mouseenter', () => {
+      option.style.backgroundColor = 'var(--options-hover, rgba(0, 0, 0, 0.05))';
+    });
+    option.addEventListener('mouseleave', () => {
+      option.style.backgroundColor = 'inherit';
+    });
+  });
+  
+  // Insert the options container right after the post button
+  postBtn.parentNode.insertBefore(optionsContainer, postBtn.nextSibling);
+  
+  // Function to update position (for responsive adjustments)
+  function updateOptionsPosition() {
+    const postBtnRect = postBtn.getBoundingClientRect();
+    optionsContainer.style.left = `${postBtnRect.left}px`;
+    optionsContainer.style.bottom = `${postBtnRect.height + 10}px`;
+    optionsContainer.style.width = `${postBtnRect.width}px`;
+  }
+  
+  // --- Toggle Options ---
+  function toggleOptions() {
+    updateOptionsPosition();
+    
+    if (optionsVisible) {
+      // Close animation
+      optionsContainer.style.opacity = '0';
+      optionsContainer.style.transform = 'translateY(10px)';
+      setTimeout(() => {
+        optionsContainer.style.visibility = 'hidden';
+      }, 200);
+    } else {
+      // Open animation
+      optionsContainer.style.visibility = 'visible';
+      optionsContainer.style.opacity = '1';
+      optionsContainer.style.transform = 'translateY(0)';
+    }
+    optionsVisible = !optionsVisible;
+  }
+  
+  // --- Modal Creation (same as before) ---
   function createModalHeader(closeCallback) {
     const header = document.createElement('div');
     header.style.cssText = `
       width: 100%;
-      height: 40px;
+      height: 53px;
       display: flex;
       align-items: center;
-      justify-content: flex-end;
-      padding: 0 12px;
-      border-bottom: 1px solid var(--modal-border, #e6e6e6);
-      background: var(--modal-header-bg, #f9f9f9);
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--modal-border, rgba(0, 0, 0, 0.1));
+      background: var(--modal-header-bg, #fff);
     `;
+    
     const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '×';
+    closeBtn.innerHTML = `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--modal-close, #536471)">
+        <path d="M10.59 12L4.54 5.96l1.42-1.42L12 10.59l6.04-6.05 1.42 1.42L13.41 12l6.05 6.04-1.42 1.42L12 13.41l-6.04 6.05-1.42-1.42L10.59 12z"/>
+      </svg>
+    `;
     closeBtn.style.cssText = `
       background: transparent;
       border: none;
-      font-size: 20px;
       cursor: pointer;
-      color: #536471;
-      padding: 4px;
+      padding: 8px;
+      border-radius: 50%;
+      transition: background 0.2s ease;
     `;
+    closeBtn.addEventListener('mouseenter', () => {
+      closeBtn.style.backgroundColor = 'var(--modal-close-hover, rgba(0, 0, 0, 0.05))';
+    });
+    closeBtn.addEventListener('mouseleave', () => {
+      closeBtn.style.backgroundColor = 'transparent';
+    });
     closeBtn.addEventListener('click', closeCallback);
     header.appendChild(closeBtn);
+    
     return header;
   }
   
-  // Create the Post Modal (slides in from the right).
+  // Create the Post Modal
   const postModal = document.createElement('div');
-  postModal.className = 'tweet-compose-modal enhanced-modal';
+  postModal.className = 'tweet-compose-modal';
   postModal.style.cssText = `
     position: fixed;
     top: 0;
@@ -717,56 +776,31 @@ document.addEventListener('DOMContentLoaded', function() {
     opacity: 0;
     transition: opacity 0.3s ease;
   `;
+  
   const postModalContent = document.createElement('div');
   postModalContent.className = 'tweet-compose-content';
   postModalContent.style.cssText = `
     background: var(--modal-bg, #fff);
-    border-radius: 16px;
+    border-radius: 16px 0 0 16px;
     width: 600px;
     max-width: 90%;
-    height: 90vh;
+    height: 100%;
     overflow: hidden;
     position: relative;
     transform: translateX(100%);
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
     box-shadow: -5px 0 20px rgba(0, 0, 0, 0.15);
-    margin-right: 20px;
     display: flex;
     flex-direction: column;
   `;
-  // Insert a small header with close icon.
+  
   const postHeader = createModalHeader(closePostModal);
-  // Create content area.
   const postContentArea = document.createElement('div');
   postContentArea.style.cssText = `
     flex: 1;
     position: relative;
   `;
-  const postLoader = document.createElement('div');
-  postLoader.className = 'tweet-compose-loader';
-  postLoader.style.cssText = `
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    padding: 20px;
-  `;
-  postLoader.innerHTML = `
-    <svg width="40" height="40" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="10" opacity="0.1"/>
-      <path d="M12 22c5.523 0 10-4.477 10-10h-3c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7V2C6.477 2 2 6.477 2 12s4.477 10 10 10z">
-        <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
-      </path>
-    </svg>
-  `;
-  const postIframeContainer = document.createElement('div');
-  postIframeContainer.className = 'tweet-compose-iframe';
-  postIframeContainer.style.cssText = `
-    width: 100%;
-    height: calc(100% - 40px);
-    display: none;
-    position: relative;
-  `;
+  
   const postIframe = document.createElement('iframe');
   postIframe.src = 'upload.html';
   postIframe.style.cssText = `
@@ -774,15 +808,14 @@ document.addEventListener('DOMContentLoaded', function() {
     height: 100%;
     border: none;
   `;
-  postIframeContainer.appendChild(postIframe);
-  postContentArea.appendChild(postLoader);
-  postContentArea.appendChild(postIframeContainer);
+  
+  postContentArea.appendChild(postIframe);
   postModalContent.appendChild(postHeader);
   postModalContent.appendChild(postContentArea);
   postModal.appendChild(postModalContent);
   document.body.appendChild(postModal);
   
-  // Create the Appearance Modal (pops in from the center).
+  // Create the Appearance Modal
   const appearanceModal = document.createElement('div');
   appearanceModal.className = 'appearance-modal';
   appearanceModal.style.cssText = `
@@ -799,6 +832,7 @@ document.addEventListener('DOMContentLoaded', function() {
     opacity: 0;
     transition: opacity 0.3s ease;
   `;
+  
   const appearanceModalContent = document.createElement('div');
   appearanceModalContent.className = 'appearance-content';
   appearanceModalContent.style.cssText = `
@@ -810,70 +844,32 @@ document.addEventListener('DOMContentLoaded', function() {
     overflow: hidden;
     position: relative;
     transform: translateY(20px);
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     display: flex;
     flex-direction: column;
   `;
+  
   const appearanceHeader = createModalHeader(closeAppearanceModal);
   const appearanceContentArea = document.createElement('div');
   appearanceContentArea.style.cssText = `
     flex: 1;
     position: relative;
   `;
-  const appearanceLoader = document.createElement('div');
-  appearanceLoader.className = 'appearance-loader';
-  appearanceLoader.style.cssText = `
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    padding: 20px;
-  `;
-  appearanceLoader.innerHTML = `
-    <svg width="40" height="40" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="10" opacity="0.1"/>
-      <path d="M12 22c5.523 0 10-4.477 10-10h-3c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7V2C6.477 2 2 6.477 2 12s4.477 10 10 10z">
-        <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
-      </path>
-    </svg>
-  `;
-  const appearanceIframeContainer = document.createElement('div');
-  appearanceIframeContainer.className = 'tweet-compose-iframe';
-  appearanceIframeContainer.style.cssText = `
-    width: 100%;
-    height: 500px;
-    display: none;
-    position: relative;
-  `;
+  
   const appearanceIframe = document.createElement('iframe');
   appearanceIframe.src = 'chats.html';
   appearanceIframe.style.cssText = `
     width: 100%;
-    height: 100%;
+    height: 500px;
     border: none;
   `;
-  appearanceIframeContainer.appendChild(appearanceIframe);
-  appearanceContentArea.appendChild(appearanceLoader);
-  appearanceContentArea.appendChild(appearanceIframeContainer);
+  
+  appearanceContentArea.appendChild(appearanceIframe);
   appearanceModalContent.appendChild(appearanceHeader);
   appearanceModalContent.appendChild(appearanceContentArea);
   appearanceModal.appendChild(appearanceModalContent);
   document.body.appendChild(appearanceModal);
-  
-  // --- Toggle Options ---
-  function toggleOptions() {
-    if (optionsVisible) {
-      optionsContainer.style.opacity = '0';
-      optionsContainer.style.visibility = 'hidden';
-      optionsContainer.style.transform = 'translateX(-50%) translateY(10px)';
-    } else {
-      optionsContainer.style.opacity = '1';
-      optionsContainer.style.visibility = 'visible';
-      optionsContainer.style.transform = 'translateX(-50%) translateY(0)';
-    }
-    optionsVisible = !optionsVisible;
-  }
   
   // --- Modal Open/Close Functions ---
   function openPostModal() {
@@ -882,14 +878,11 @@ document.addEventListener('DOMContentLoaded', function() {
     void postModal.offsetWidth; // Force reflow
     postModal.style.opacity = '1';
     postModalContent.style.transform = 'translateX(0)';
-    setTimeout(() => {
-      postLoader.style.display = 'none';
-      postIframeContainer.style.display = 'block';
-    }, 800);
-    // Hide options.
+    
+    // Hide options
     optionsContainer.style.opacity = '0';
     optionsContainer.style.visibility = 'hidden';
-    optionsContainer.style.transform = 'translateX(-50%) translateY(10px)';
+    optionsContainer.style.transform = 'translateY(10px)';
     optionsVisible = false;
   }
   
@@ -898,8 +891,6 @@ document.addEventListener('DOMContentLoaded', function() {
     postModalContent.style.transform = 'translateX(100%)';
     setTimeout(() => {
       postModal.style.display = 'none';
-      postLoader.style.display = 'flex';
-      postIframeContainer.style.display = 'none';
       document.body.style.overflow = '';
     }, 300);
   }
@@ -910,14 +901,11 @@ document.addEventListener('DOMContentLoaded', function() {
     void appearanceModal.offsetWidth; // Force reflow
     appearanceModal.style.opacity = '1';
     appearanceModalContent.style.transform = 'translateY(0)';
-    setTimeout(() => {
-      appearanceLoader.style.display = 'none';
-      appearanceIframeContainer.style.display = 'block';
-    }, 800);
-    // Hide options.
+    
+    // Hide options
     optionsContainer.style.opacity = '0';
     optionsContainer.style.visibility = 'hidden';
-    optionsContainer.style.transform = 'translateX(-50%) translateY(10px)';
+    optionsContainer.style.transform = 'translateY(10px)';
     optionsVisible = false;
   }
   
@@ -926,26 +914,46 @@ document.addEventListener('DOMContentLoaded', function() {
     appearanceModalContent.style.transform = 'translateY(20px)';
     setTimeout(() => {
       appearanceModal.style.display = 'none';
-      appearanceLoader.style.display = 'flex';
-      appearanceIframeContainer.style.display = 'none';
       document.body.style.overflow = '';
     }, 300);
   }
   
   // --- Event Listeners ---
-  postBtn.addEventListener('click', toggleOptions);
-  postOption.addEventListener('click', openPostModal);
-  appearanceOption.addEventListener('click', openAppearanceModal);
+  postBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggleOptions();
+  });
   
-  // Close modals when clicking outside the content.
+  postOption.addEventListener('click', function(e) {
+    e.stopPropagation();
+    openPostModal();
+  });
+  
+  appearanceOption.addEventListener('click', function(e) {
+    e.stopPropagation();
+    openAppearanceModal();
+  });
+  
+  // Close options when clicking outside
+  document.addEventListener('click', function(e) {
+    if (optionsVisible && !optionsContainer.contains(e.target) && e.target !== postBtn) {
+      optionsContainer.style.opacity = '0';
+      optionsContainer.style.visibility = 'hidden';
+      optionsContainer.style.transform = 'translateY(10px)';
+      optionsVisible = false;
+    }
+  });
+  
+  // Close modals when clicking outside the content
   postModal.addEventListener('click', function(e) {
     if (e.target === postModal) closePostModal();
   });
+  
   appearanceModal.addEventListener('click', function(e) {
     if (e.target === appearanceModal) closeAppearanceModal();
   });
   
-  // Close any open modals/options on Escape key.
+  // Close any open modals/options on Escape key
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
       if (postModal.style.display === 'flex') closePostModal();
@@ -953,20 +961,82 @@ document.addEventListener('DOMContentLoaded', function() {
       if (optionsVisible) {
         optionsContainer.style.opacity = '0';
         optionsContainer.style.visibility = 'hidden';
-        optionsContainer.style.transform = 'translateX(-50%) translateY(10px)';
+        optionsContainer.style.transform = 'translateY(10px)';
         optionsVisible = false;
       }
     }
   });
   
-  // (Optional) Listen for theme or brand color changes from localStorage and update dynamic CSS variables.
-  // For example, you might set:
-  // document.documentElement.style.setProperty('--options-bg', '#fefefe');
-  // document.documentElement.style.setProperty('--options-border', '#ddd');
-  // document.documentElement.style.setProperty('--modal-bg', '#fff');
-  // document.documentElement.style.setProperty('--modal-border', '#e6e6e6');
-  // document.documentElement.style.setProperty('--modal-header-bg', '#f9f9f9');
-  // And update the SVG fill colors for loaders accordingly.
+  // Update CSS variables based on theme
+  function updateThemeVariables() {
+    const isDark = document.body.classList.contains('dark');
+    const isDim = document.body.classList.contains('dim');
+    
+    if (isDark) {
+      // Dark theme variables
+      document.documentElement.style.setProperty('--options-bg', '#000');
+      document.documentElement.style.setProperty('--options-border', 'rgba(255, 255, 255, 0.1)');
+      document.documentElement.style.setProperty('--options-shadow', 'rgba(255, 255, 255, 0.1)');
+      document.documentElement.style.setProperty('--options-text', '#fff');
+      document.documentElement.style.setProperty('--options-hover', 'rgba(255, 255, 255, 0.1)');
+      document.documentElement.style.setProperty('--options-divider', 'rgba(255, 255, 255, 0.1)');
+      document.documentElement.style.setProperty('--modal-bg', '#000');
+      document.documentElement.style.setProperty('--modal-border', 'rgba(255, 255, 255, 0.1)');
+      document.documentElement.style.setProperty('--modal-header-bg', '#000');
+      document.documentElement.style.setProperty('--modal-close', '#71767b');
+      document.documentElement.style.setProperty('--modal-close-hover', 'rgba(255, 255, 255, 0.1)');
+    } else if (isDim) {
+      // Dim theme variables
+      document.documentElement.style.setProperty('--options-bg', '#15202b');
+      document.documentElement.style.setProperty('--options-border', 'rgba(255, 255, 255, 0.1)');
+      document.documentElement.style.setProperty('--options-shadow', 'rgba(255, 255, 255, 0.1)');
+      document.documentElement.style.setProperty('--options-text', '#f7f9f9');
+      document.documentElement.style.setProperty('--options-hover', 'rgba(255, 255, 255, 0.1)');
+      document.documentElement.style.setProperty('--options-divider', 'rgba(255, 255, 255, 0.1)');
+      document.documentElement.style.setProperty('--modal-bg', '#15202b');
+      document.documentElement.style.setProperty('--modal-border', 'rgba(255, 255, 255, 0.1)');
+      document.documentElement.style.setProperty('--modal-header-bg', '#15202b');
+      document.documentElement.style.setProperty('--modal-close', '#8b98a5');
+      document.documentElement.style.setProperty('--modal-close-hover', 'rgba(255, 255, 255, 0.1)');
+    } else {
+      // Light theme variables (default)
+      document.documentElement.style.setProperty('--options-bg', '#fff');
+      document.documentElement.style.setProperty('--options-border', 'rgba(0, 0, 0, 0.1)');
+      document.documentElement.style.setProperty('--options-shadow', 'rgba(0, 0, 0, 0.15)');
+      document.documentElement.style.setProperty('--options-text', '#0f1419');
+      document.documentElement.style.setProperty('--options-hover', 'rgba(0, 0, 0, 0.05)');
+      document.documentElement.style.setProperty('--options-divider', 'rgba(0, 0, 0, 0.1)');
+      document.documentElement.style.setProperty('--modal-bg', '#fff');
+      document.documentElement.style.setProperty('--modal-border', 'rgba(0, 0, 0, 0.1)');
+      document.documentElement.style.setProperty('--modal-header-bg', '#fff');
+      document.documentElement.style.setProperty('--modal-close', '#536471');
+      document.documentElement.style.setProperty('--modal-close-hover', 'rgba(0, 0, 0, 0.05)');
+    }
+  }
+  
+  // Initialize theme variables
+  updateThemeVariables();
+  
+  // Watch for theme changes (if you have a theme toggle elsewhere)
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.attributeName === 'class') {
+        updateThemeVariables();
+      }
+    });
+  });
+  
+  observer.observe(document.body, {
+    attributes: true,
+    attributeFilter: ['class']
+  });
+  
+  // Update position on resize
+  window.addEventListener('resize', function() {
+    if (optionsVisible) {
+      updateOptionsPosition();
+    }
+  });
 });
 </script>
 
