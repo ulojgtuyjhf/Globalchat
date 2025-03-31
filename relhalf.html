@@ -708,579 +708,393 @@ body.dim .menu-item:focus {
 </script>
 
 
+
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const postBtn = document.querySelector('.post-btn');
-    
-    // Create floating options container (positioned above the button)
-    const optionsContainer = document.createElement('div');
-    optionsContainer.className = 'post-options-container';
-    optionsContainer.style.cssText = `
-        position: absolute;
-        bottom: calc(100% + 10px);
-        left: 50%;
-        transform: translateX(-50%) scale(0.95);
-        transform-origin: bottom center;
-        display: flex;
-        flex-direction: column-reverse; /* Makes first option appear at bottom */
-        gap: 8px;
-        opacity: 0;
-        visibility: hidden;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 10;
-        pointer-events: none;
-        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+  // Retrieve the post button from the sidebar.
+  const postBtn = document.querySelector('.post-btn');
+  if (!postBtn) return;
+  
+  let optionsVisible = false;
+  
+  // Create the container for the two option buttons.
+  const optionsContainer = document.createElement('div');
+  optionsContainer.className = 'post-options-container';
+  // Position it so that it appears directly above the post button.
+  optionsContainer.style.cssText = `
+    position: absolute;
+    bottom: 70px; /* Adjust so it sits on top of the post button */
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    display: flex;
+    flex-direction: column;
+    width: 90%;
+    max-width: 250px;
+    background: var(--options-bg, #fff);
+    border: 1px solid var(--options-border, #ccc);
+    border-radius: 8px;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.3s;
+    z-index: 10;
+  `;
+  
+  // Create "Post" option.
+  const postOption = document.createElement('div');
+  postOption.className = 'post-option post-btn-option';
+  postOption.style.cssText = `
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    background-color: inherit;
+    font-weight: 600;
+    transition: background 0.2s ease;
+  `;
+  postOption.innerHTML = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M23 3c-6.62-.1-10.38 2.421-13 5.76C7.38 5.42 3.62 2.9 0 3v2c3.62-.1 7.38 2.1 10 4.76C12.62 7.1 16.38 4.9 20 5v2c-3.62.1-7.38 2.1-10 4.76c-2.62-2.66-6.38-4.86-10-4.76v2c3.62-.1 7.38 2.1 10 4.76c-2.62 2.66-6.38 4.86-10 4.76v2c6.62-.1 10.38-2.421 13-5.76c2.62 3.34 6.38 5.66 10 5.76v-2c-3.62.1-7.38-2.1-10-4.76c2.62-2.66 6.38-4.86 10-4.76V3z"/>
+    </svg>
+    <span>Post</span>
+  `;
+  
+  // Create "Appearance" option.
+  const appearanceOption = document.createElement('div');
+  appearanceOption.className = 'post-option appearance-btn-option';
+  appearanceOption.style.cssText = `
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    background-color: inherit;
+    font-weight: 600;
+    transition: background 0.2s ease;
+  `;
+  appearanceOption.innerHTML = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm0-18c4.42 0 8 3.58 8 8 0 1.85-.63 3.55-1.69 4.9L7.1 5.69C8.45 4.63 10.15 4 12 4zM5.69 7.1L16.9 18.31C15.55 19.37 13.85 20 12 20c-4.42 0-8-3.58-8-8 0-1.85.63-3.55 1.69-4.9z"/>
+    </svg>
+    <span>Appearance</span>
+  `;
+  
+  // Append options and add a dividing border between them.
+  optionsContainer.appendChild(postOption);
+  // Add a divider element.
+  const divider = document.createElement('div');
+  divider.style.cssText = `
+    height: 1px;
+    background: var(--options-border, #ccc);
+    width: 100%;
+  `;
+  optionsContainer.appendChild(divider);
+  optionsContainer.appendChild(appearanceOption);
+  postBtn.parentNode.appendChild(optionsContainer);
+  
+  // --- Create Modal Templates ---
+  // Function to create a modal header with a small close icon
+  function createModalHeader(closeCallback) {
+    const header = document.createElement('div');
+    header.style.cssText = `
+      width: 100%;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--modal-border, #e6e6e6);
+      background: var(--modal-header-bg, #f9f9f9);
     `;
-    
-    // Create Post option
-    const postOption = document.createElement('div');
-    postOption.className = 'post-option';
-    postOption.style.cssText = `
-        background: white;
-        border-radius: 16px;
-        padding: 12px 16px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        white-space: nowrap;
-        font-weight: 600;
-        font-size: 15px;
-        transform: translateY(8px);
-        will-change: transform;
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '×';
+    closeBtn.style.cssText = `
+      background: transparent;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #536471;
+      padding: 4px;
     `;
-    postOption.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M23 3c-6.62-.1-10.38 2.421-13 5.76C7.38 5.42 3.62 2.9 0 3v2c3.62-.1 7.38 2.1 10 4.76C12.62 7.1 16.38 4.9 20 5v2c-3.62.1-7.38 2.1-10 4.76c-2.62-2.66-6.38-4.86-10-4.76v2c3.62-.1 7.38 2.1 10 4.76c-2.62 2.66-6.38 4.86-10 4.76v2c6.62-.1 10.38-2.421 13-5.76c2.62 3.34 6.38 5.66 10 5.76v-2c-3.62.1-7.38-2.1-10-4.76c2.62-2.66 6.38-4.86 10-4.76v-2c-3.62.1-7.38 2.1-10 4.76c2.62-2.66 6.38-4.86 10-4.76V3z"/>
-        </svg>
-        <span>Post</span>
-    `;
-    
-    // Create Appearance option
-    const appearanceOption = document.createElement('div');
-    appearanceOption.className = 'appearance-option';
-    appearanceOption.style.cssText = `
-        background: white;
-        border-radius: 16px;
-        padding: 12px 16px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        white-space: nowrap;
-        font-weight: 600;
-        font-size: 15px;
-        transform: translateY(8px);
-        will-change: transform;
-    `;
-    appearanceOption.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm0-18c4.42 0 8 3.58 8 8 0 1.85-.63 3.55-1.69 4.9L7.1 5.69C8.45 4.63 10.15 4 12 4zM5.69 7.1L16.9 18.31C15.55 19.37 13.85 20 12 20c-4.42 0-8-3.58-8-8 0-1.85.63-3.55 1.69-4.9z"/>
-        </svg>
-        <span>Appearance</span>
-    `;
-    
-    // Add elements to DOM
-    optionsContainer.appendChild(appearanceOption);
-    optionsContainer.appendChild(postOption);
-    postBtn.parentNode.appendChild(optionsContainer);
-    
-    // Create post compose modal (right side animation)
-    const postModal = document.createElement('div');
-    postModal.className = 'post-compose-modal';
-    postModal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.4);
-        display: none;
-        justify-content: flex-end;
-        align-items: flex-start;
-        z-index: 1000;
-        opacity: 0;
-        transition: opacity 0.2s ease;
-    `;
-    
-    const postModalContent = document.createElement('div');
-    postModalContent.className = 'post-compose-content';
-    postModalContent.style.cssText = `
-        background: white;
-        border-radius: 16px 16px 0 0;
-        width: 600px;
-        max-width: 100%;
-        height: 90vh;
-        max-height: calc(100% - 20px);
-        overflow: hidden;
-        position: relative;
-        transform: translateY(20px) translateX(100%);
-        transition: transform 0.3s cubic-bezier(0.17, 0.67, 0.21, 0.99);
-        margin-top: 20px;
-        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
-    `;
-    
-    // Create minimal close button (X)
-    const postCloseBtn = document.createElement('button');
-    postCloseBtn.className = 'post-compose-close';
-    postCloseBtn.innerHTML = '×';
-    postCloseBtn.style.cssText = `
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        background: transparent;
-        border: none;
-        font-size: 18px;
-        font-weight: 400;
-        cursor: pointer;
-        z-index: 1001;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #536471;
-        transition: background-color 0.2s ease;
-    `;
-    
-    // Create loader with theme-aware animation
-    const postLoader = document.createElement('div');
-    postLoader.className = 'post-compose-loader';
-    postLoader.style.cssText = `
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 200px;
-        padding: 20px;
-    `;
-    
-    postLoader.innerHTML = `
-        <svg width="32" height="32" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" opacity="0.1" fill="currentColor"/>
-            <path d="M12 22c5.523 0 10-4.477 10-10h-3c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7V2C6.477 2 2 6.477 2 12s4.477 10 10 10z" fill="currentColor">
-                <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
-            </path>
-        </svg>
-    `;
-    
-    // Create iframe container
-    const postIframeContainer = document.createElement('div');
-    postIframeContainer.className = 'post-compose-iframe';
-    postIframeContainer.style.cssText = `
-        width: 100%;
-        height: calc(100% - 40px);
-        display: none;
-        position: relative;
-    `;
-    
-    // Create the iframe
-    const postIframe = document.createElement('iframe');
-    postIframe.src = 'upload.html';
-    postIframe.style.cssText = `
-        width: 100%;
-        height: 100%;
-        border: none;
-    `;
-    
-    // Assemble the modal
-    postIframeContainer.appendChild(postIframe);
-    postModalContent.appendChild(postCloseBtn);
-    postModalContent.appendChild(postLoader);
-    postModalContent.appendChild(postIframeContainer);
-    postModal.appendChild(postModalContent);
-    document.body.appendChild(postModal);
-    
-    // Create appearance modal (center animation)
-    const appearanceModal = document.createElement('div');
-    appearanceModal.className = 'appearance-modal';
-    appearanceModal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.4);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        opacity: 0;
-        transition: opacity 0.2s ease;
-    `;
-    
-    const appearanceContent = document.createElement('div');
-    appearanceContent.className = 'appearance-content';
-    appearanceContent.style.cssText = `
-        background: white;
-        border-radius: 16px;
-        width: 500px;
-        max-width: calc(100% - 40px);
-        height: auto;
-        max-height: 80vh;
-        overflow: hidden;
-        position: relative;
-        transform: translateY(20px);
-        transition: transform 0.3s cubic-bezier(0.17, 0.67, 0.21, 0.99);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    `;
-    
-    // Minimal close button (X)
-    const appearanceCloseBtn = document.createElement('button');
-    appearanceCloseBtn.className = 'appearance-close';
-    appearanceCloseBtn.innerHTML = '×';
-    appearanceCloseBtn.style.cssText = `
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        background: transparent;
-        border: none;
-        font-size: 18px;
-        font-weight: 400;
-        cursor: pointer;
-        z-index: 1001;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #536471;
-        transition: background-color 0.2s ease;
-    `;
-    
-    const appearanceLoader = document.createElement('div');
-    appearanceLoader.className = 'appearance-loader';
-    appearanceLoader.style.cssText = `
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 150px;
-        padding: 20px;
-    `;
-    
-    appearanceLoader.innerHTML = `
-        <svg width="32" height="32" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" opacity="0.1" fill="currentColor"/>
-            <path d="M12 22c5.523 0 10-4.477 10-10h-3c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7V2C6.477 2 2 6.477 2 12s4.477 10 10 10z" fill="currentColor">
-                <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
-            </path>
-        </svg>
-    `;
-    
-    const appearanceIframeContainer = document.createElement('div');
-    appearanceIframeContainer.className = 'appearance-iframe';
-    appearanceIframeContainer.style.cssText = `
-        width: 100%;
-        height: 500px;
-        display: none;
-        position: relative;
-    `;
-    
-    const appearanceIframe = document.createElement('iframe');
-    appearanceIframe.src = 'chats.html';
-    appearanceIframe.style.cssText = `
-        width: 100%;
-        height: 100%;
-        border: none;
-    `;
-    
-    appearanceIframeContainer.appendChild(appearanceIframe);
-    appearanceContent.appendChild(appearanceCloseBtn);
-    appearanceContent.appendChild(appearanceLoader);
-    appearanceContent.appendChild(appearanceIframeContainer);
-    appearanceModal.appendChild(appearanceContent);
-    document.body.appendChild(appearanceModal);
-    
-    // Function to get current theme and brand color
-    function getCurrentStyles() {
-        return {
-            theme: localStorage.getItem('twitter-theme') || 'light',
-            brandColor: localStorage.getItem('color-value') || '#5A9BD5'
-        };
+    closeBtn.addEventListener('click', closeCallback);
+    header.appendChild(closeBtn);
+    return header;
+  }
+  
+  // Create the Post Modal (slides in from the right).
+  const postModal = document.createElement('div');
+  postModal.className = 'tweet-compose-modal enhanced-modal';
+  postModal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: none;
+    justify-content: flex-end;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  `;
+  const postModalContent = document.createElement('div');
+  postModalContent.className = 'tweet-compose-content';
+  postModalContent.style.cssText = `
+    background: var(--modal-bg, #fff);
+    border-radius: 16px;
+    width: 600px;
+    max-width: 90%;
+    height: 90vh;
+    overflow: hidden;
+    position: relative;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.15);
+    margin-right: 20px;
+    display: flex;
+    flex-direction: column;
+  `;
+  // Insert a small header with close icon.
+  const postHeader = createModalHeader(closePostModal);
+  // Create content area.
+  const postContentArea = document.createElement('div');
+  postContentArea.style.cssText = `
+    flex: 1;
+    position: relative;
+  `;
+  const postLoader = document.createElement('div');
+  postLoader.className = 'tweet-compose-loader';
+  postLoader.style.cssText = `
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    padding: 20px;
+  `;
+  postLoader.innerHTML = `
+    <svg width="40" height="40" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10" opacity="0.1"/>
+      <path d="M12 22c5.523 0 10-4.477 10-10h-3c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7V2C6.477 2 2 6.477 2 12s4.477 10 10 10z">
+        <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
+      </path>
+    </svg>
+  `;
+  const postIframeContainer = document.createElement('div');
+  postIframeContainer.className = 'tweet-compose-iframe';
+  postIframeContainer.style.cssText = `
+    width: 100%;
+    height: calc(100% - 40px);
+    display: none;
+    position: relative;
+  `;
+  const postIframe = document.createElement('iframe');
+  postIframe.src = 'upload.html';
+  postIframe.style.cssText = `
+    width: 100%;
+    height: 100%;
+    border: none;
+  `;
+  postIframeContainer.appendChild(postIframe);
+  postContentArea.appendChild(postLoader);
+  postContentArea.appendChild(postIframeContainer);
+  postModalContent.appendChild(postHeader);
+  postModalContent.appendChild(postContentArea);
+  postModal.appendChild(postModalContent);
+  document.body.appendChild(postModal);
+  
+  // Create the Appearance Modal (pops in from the center).
+  const appearanceModal = document.createElement('div');
+  appearanceModal.className = 'appearance-modal';
+  appearanceModal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  `;
+  const appearanceModalContent = document.createElement('div');
+  appearanceModalContent.className = 'appearance-content';
+  appearanceModalContent.style.cssText = `
+    background: var(--modal-bg, #fff);
+    border-radius: 16px;
+    width: 600px;
+    max-width: 90%;
+    max-height: 90vh;
+    overflow: hidden;
+    position: relative;
+    transform: translateY(20px);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    display: flex;
+    flex-direction: column;
+  `;
+  const appearanceHeader = createModalHeader(closeAppearanceModal);
+  const appearanceContentArea = document.createElement('div');
+  appearanceContentArea.style.cssText = `
+    flex: 1;
+    position: relative;
+  `;
+  const appearanceLoader = document.createElement('div');
+  appearanceLoader.className = 'appearance-loader';
+  appearanceLoader.style.cssText = `
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    padding: 20px;
+  `;
+  appearanceLoader.innerHTML = `
+    <svg width="40" height="40" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10" opacity="0.1"/>
+      <path d="M12 22c5.523 0 10-4.477 10-10h-3c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7V2C6.477 2 2 6.477 2 12s4.477 10 10 10z">
+        <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
+      </path>
+    </svg>
+  `;
+  const appearanceIframeContainer = document.createElement('div');
+  appearanceIframeContainer.className = 'tweet-compose-iframe';
+  appearanceIframeContainer.style.cssText = `
+    width: 100%;
+    height: 500px;
+    display: none;
+    position: relative;
+  `;
+  const appearanceIframe = document.createElement('iframe');
+  appearanceIframe.src = 'chats.html';
+  appearanceIframe.style.cssText = `
+    width: 100%;
+    height: 100%;
+    border: none;
+  `;
+  appearanceIframeContainer.appendChild(appearanceIframe);
+  appearanceContentArea.appendChild(appearanceLoader);
+  appearanceContentArea.appendChild(appearanceIframeContainer);
+  appearanceModalContent.appendChild(appearanceHeader);
+  appearanceModalContent.appendChild(appearanceContentArea);
+  appearanceModal.appendChild(appearanceModalContent);
+  document.body.appendChild(appearanceModal);
+  
+  // --- Toggle Options ---
+  function toggleOptions() {
+    if (optionsVisible) {
+      optionsContainer.style.opacity = '0';
+      optionsContainer.style.visibility = 'hidden';
+      optionsContainer.style.transform = 'translateX(-50%) translateY(10px)';
+    } else {
+      optionsContainer.style.opacity = '1';
+      optionsContainer.style.visibility = 'visible';
+      optionsContainer.style.transform = 'translateX(-50%) translateY(0)';
     }
-    
-    // Update styles based on theme and brand color
-    function updateStyles() {
-        const styles = getCurrentStyles();
-        const isBrightColor = getBrightness(styles.brandColor) > 160;
-        const textColor = isBrightColor ? '#000000' : '#ffffff';
-        
-        // Set background colors based on theme
-        let bgColor, hoverBgColor, modalBgColor, textMainColor;
-        
-        if (styles.theme === 'dark') {
-            bgColor = '#000000';
-            hoverBgColor = '#181818';
-            modalBgColor = '#15181c';
-            textMainColor = '#e7e9ea';
-        } else if (styles.theme === 'dim') {
-            bgColor = '#15202b';
-            hoverBgColor = '#1e2732';
-            modalBgColor = '#1e2732';
-            textMainColor = '#f7f9f9';
-        } else {
-            bgColor = '#ffffff';
-            hoverBgColor = '#f7f9f9';
-            modalBgColor = '#ffffff';
-            textMainColor = '#0f1419';
-        }
-        
-        // Update options styles
-        postOption.style.backgroundColor = bgColor;
-        postOption.style.color = textMainColor;
-        postOption.style.boxShadow = `0 2px 8px ${hexToRGBA(styles.brandColor, 0.15)}`;
-        
-        appearanceOption.style.backgroundColor = bgColor;
-        appearanceOption.style.color = textMainColor;
-        appearanceOption.style.boxShadow = `0 2px 8px ${hexToRGBA(styles.brandColor, 0.15)}`;
-        
-        // Update modals
-        postModalContent.style.backgroundColor = modalBgColor;
-        postModalContent.style.color = textMainColor;
-        
-        appearanceContent.style.backgroundColor = modalBgColor;
-        appearanceContent.style.color = textMainColor;
-        
-        // Update close buttons
-        postCloseBtn.style.color = textMainColor;
-        appearanceCloseBtn.style.color = textMainColor;
-        
-        // Update hover effects
-        postOption.onmouseover = () => {
-            postOption.style.backgroundColor = hoverBgColor;
-            postOption.style.transform = 'translateY(0)';
-        };
-        
-        postOption.onmouseout = () => {
-            postOption.style.backgroundColor = bgColor;
-            postOption.style.transform = 'translateY(8px)';
-        };
-        
-        appearanceOption.onmouseover = () => {
-            appearanceOption.style.backgroundColor = hoverBgColor;
-            appearanceOption.style.transform = 'translateY(0)';
-        };
-        
-        appearanceOption.onmouseout = () => {
-            appearanceOption.style.backgroundColor = bgColor;
-            appearanceOption.style.transform = 'translateY(8px)';
-        };
-        
-        // Update close button hover effects
-        postCloseBtn.onmouseover = () => {
-            postCloseBtn.style.backgroundColor = styles.theme === 'light' ? 'rgba(15, 20, 25, 0.1)' : 'rgba(231, 233, 234, 0.1)';
-        };
-        
-        postCloseBtn.onmouseout = () => {
-            postCloseBtn.style.backgroundColor = 'transparent';
-        };
-        
-        appearanceCloseBtn.onmouseover = () => {
-            appearanceCloseBtn.style.backgroundColor = styles.theme === 'light' ? 'rgba(15, 20, 25, 0.1)' : 'rgba(231, 233, 234, 0.1)';
-        };
-        
-        appearanceCloseBtn.onmouseout = () => {
-            appearanceCloseBtn.style.backgroundColor = 'transparent';
-        };
-        
-        // Update loader colors
-        const loaders = document.querySelectorAll('.post-compose-loader, .appearance-loader');
-        loaders.forEach(loader => {
-            loader.querySelector('path').setAttribute('fill', styles.brandColor);
-            loader.querySelector('circle').setAttribute('fill', hexToRGBA(styles.brandColor, 0.1));
-        });
+    optionsVisible = !optionsVisible;
+  }
+  
+  // --- Modal Open/Close Functions ---
+  function openPostModal() {
+    document.body.style.overflow = 'hidden';
+    postModal.style.display = 'flex';
+    void postModal.offsetWidth; // Force reflow
+    postModal.style.opacity = '1';
+    postModalContent.style.transform = 'translateX(0)';
+    setTimeout(() => {
+      postLoader.style.display = 'none';
+      postIframeContainer.style.display = 'block';
+    }, 800);
+    // Hide options.
+    optionsContainer.style.opacity = '0';
+    optionsContainer.style.visibility = 'hidden';
+    optionsContainer.style.transform = 'translateX(-50%) translateY(10px)';
+    optionsVisible = false;
+  }
+  
+  function closePostModal() {
+    postModal.style.opacity = '0';
+    postModalContent.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      postModal.style.display = 'none';
+      postLoader.style.display = 'flex';
+      postIframeContainer.style.display = 'none';
+      document.body.style.overflow = '';
+    }, 300);
+  }
+  
+  function openAppearanceModal() {
+    document.body.style.overflow = 'hidden';
+    appearanceModal.style.display = 'flex';
+    void appearanceModal.offsetWidth; // Force reflow
+    appearanceModal.style.opacity = '1';
+    appearanceModalContent.style.transform = 'translateY(0)';
+    setTimeout(() => {
+      appearanceLoader.style.display = 'none';
+      appearanceIframeContainer.style.display = 'block';
+    }, 800);
+    // Hide options.
+    optionsContainer.style.opacity = '0';
+    optionsContainer.style.visibility = 'hidden';
+    optionsContainer.style.transform = 'translateX(-50%) translateY(10px)';
+    optionsVisible = false;
+  }
+  
+  function closeAppearanceModal() {
+    appearanceModal.style.opacity = '0';
+    appearanceModalContent.style.transform = 'translateY(20px)';
+    setTimeout(() => {
+      appearanceModal.style.display = 'none';
+      appearanceLoader.style.display = 'flex';
+      appearanceIframeContainer.style.display = 'none';
+      document.body.style.overflow = '';
+    }, 300);
+  }
+  
+  // --- Event Listeners ---
+  postBtn.addEventListener('click', toggleOptions);
+  postOption.addEventListener('click', openPostModal);
+  appearanceOption.addEventListener('click', openAppearanceModal);
+  
+  // Close modals when clicking outside the content.
+  postModal.addEventListener('click', function(e) {
+    if (e.target === postModal) closePostModal();
+  });
+  appearanceModal.addEventListener('click', function(e) {
+    if (e.target === appearanceModal) closeAppearanceModal();
+  });
+  
+  // Close any open modals/options on Escape key.
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      if (postModal.style.display === 'flex') closePostModal();
+      if (appearanceModal.style.display === 'flex') closeAppearanceModal();
+      if (optionsVisible) {
+        optionsContainer.style.opacity = '0';
+        optionsContainer.style.visibility = 'hidden';
+        optionsContainer.style.transform = 'translateX(-50%) translateY(10px)';
+        optionsVisible = false;
+      }
     }
-    
-    // Show/hide options with proper animation
-    function toggleOptions() {
-        updateStyles();
-        
-        if (optionsContainer.style.opacity === '1') {
-            // Hide options
-            optionsContainer.style.opacity = '0';
-            optionsContainer.style.visibility = 'hidden';
-            optionsContainer.style.pointerEvents = 'none';
-            optionsContainer.style.transform = 'translateX(-50%) scale(0.95)';
-            
-            // Reset option positions
-            postOption.style.transform = 'translateY(8px)';
-            appearanceOption.style.transform = 'translateY(8px)';
-        } else {
-            // Show options
-            optionsContainer.style.opacity = '1';
-            optionsContainer.style.visibility = 'visible';
-            optionsContainer.style.pointerEvents = 'auto';
-            optionsContainer.style.transform = 'translateX(-50%) scale(1)';
-            
-            // Animate options in sequence
-            setTimeout(() => {
-                postOption.style.transform = 'translateY(0)';
-                setTimeout(() => {
-                    appearanceOption.style.transform = 'translateY(0)';
-                }, 50);
-            }, 50);
-        }
-    }
-    
-    // Open post modal (right side animation)
-    function openPostModal() {
-        updateStyles();
-        document.body.style.overflow = 'hidden';
-        postModal.style.display = 'flex';
-        
-        // Force reflow
-        void postModal.offsetWidth;
-        
-        // Animate in
-        postModal.style.opacity = '1';
-        postModalContent.style.transform = 'translateY(0) translateX(0)';
-        
-        // Show content after loader
-        setTimeout(() => {
-            postLoader.style.display = 'none';
-            postIframeContainer.style.display = 'block';
-        }, 800);
-        
-        // Hide options
-        toggleOptions();
-    }
-    
-    // Close post modal
-    function closePostModal() {
-        postModal.style.opacity = '0';
-        postModalContent.style.transform = 'translateY(20px) translateX(100%)';
-        
-        setTimeout(() => {
-            postModal.style.display = 'none';
-            postLoader.style.display = 'flex';
-            postIframeContainer.style.display = 'none';
-            document.body.style.overflow = '';
-        }, 300);
-    }
-    
-    // Open appearance modal (center animation)
-    function openAppearanceModal() {
-        updateStyles();
-        document.body.style.overflow = 'hidden';
-        appearanceModal.style.display = 'flex';
-        
-        // Force reflow
-        void appearanceModal.offsetWidth;
-        
-        // Animate in
-        appearanceModal.style.opacity = '1';
-        appearanceContent.style.transform = 'translateY(0)';
-        
-        // Show content after loader
-        setTimeout(() => {
-            appearanceLoader.style.display = 'none';
-            appearanceIframeContainer.style.display = 'block';
-        }, 800);
-        
-        // Hide options
-        toggleOptions();
-    }
-    
-    // Close appearance modal
-    function closeAppearanceModal() {
-        appearanceModal.style.opacity = '0';
-        appearanceContent.style.transform = 'translateY(20px)';
-        
-        setTimeout(() => {
-            appearanceModal.style.display = 'none';
-            appearanceLoader.style.display = 'flex';
-            appearanceIframeContainer.style.display = 'none';
-            document.body.style.overflow = '';
-        }, 300);
-    }
-    
-    // Utility: Get color brightness
-    function getBrightness(hex) {
-        const rgb = hexToRGB(hex);
-        return (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
-    }
-    
-    // Utility: Convert hex to RGB
-    function hexToRGB(hex) {
-        hex = hex.replace('#', '');
-        const r = parseInt(hex.substring(0, 2), 16);
-        const g = parseInt(hex.substring(2, 4), 16);
-        const b = parseInt(hex.substring(4, 6), 16);
-        return { r, g, b };
-    }
-    
-    // Utility: Convert hex to rgba
-    function hexToRGBA(hex, alpha) {
-        const rgb = hexToRGB(hex);
-        return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
-    }
-    
-    // Event listeners
-    postBtn.addEventListener('click', toggleOptions);
-    postOption.addEventListener('click', openPostModal);
-    appearanceOption.addEventListener('click', openAppearanceModal);
-    postCloseBtn.addEventListener('click', closePostModal);
-    appearanceCloseBtn.addEventListener('click', closeAppearanceModal);
-    
-    // Close when clicking outside
-    postModal.addEventListener('click', function(e) {
-        if (e.target === postModal) closePostModal();
-    });
-    
-    appearanceModal.addEventListener('click', function(e) {
-        if (e.target === appearanceModal) closeAppearanceModal();
-    });
-    
-    // Handle escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            if (postModal.style.display === 'flex') closePostModal();
-            if (appearanceModal.style.display === 'flex') closeAppearanceModal();
-            if (optionsContainer.style.opacity === '1') toggleOptions();
-        }
-    });
-    
-    // Handle iframe errors by retrying
-    postIframe.addEventListener('error', function() {
-        this.src = 'upload.html'; // Retry loading
-    });
-    
-    appearanceIframe.addEventListener('error', function() {
-        this.src = 'chats.html'; // Retry loading
-    });
-    
-    // Listen for theme/color changes
-    window.addEventListener('storage', function(event) {
-        if (event.key === 'twitter-theme' || event.key === 'color-value' || event.key === 'color-palette') {
-            updateStyles();
-        }
-    });
-    
-    // Custom events
-    window.addEventListener('themeChanged', function() {
-        updateStyles();
-    });
-    
-    window.addEventListener('chatColorChanged', function() {
-        updateStyles();
-    });
-    
-    // Close options when clicking elsewhere
-    document.addEventListener('click', function(e) {
-        if (optionsContainer.style.opacity === '1' && 
-            !postBtn.contains(e.target) && 
-            !optionsContainer.contains(e.target)) {
-            toggleOptions();
-        }
-    });
-    
-    // Apply initial styles
-    updateStyles();
+  });
+  
+  // (Optional) Listen for theme or brand color changes from localStorage and update dynamic CSS variables.
+  // For example, you might set:
+  // document.documentElement.style.setProperty('--options-bg', '#fefefe');
+  // document.documentElement.style.setProperty('--options-border', '#ddd');
+  // document.documentElement.style.setProperty('--modal-bg', '#fff');
+  // document.documentElement.style.setProperty('--modal-border', '#e6e6e6');
+  // document.documentElement.style.setProperty('--modal-header-bg', '#f9f9f9');
+  // And update the SVG fill colors for loaders accordingly.
 });
 </script>
+
+
+
 
 <script>
   // Font size synchronization script
