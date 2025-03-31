@@ -6,8 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Global Chat</title>
   <style>
-    
-
 
 /* Base Reset & Typography */
 * {
@@ -44,6 +42,7 @@
         #8f8f8f 90%,  
         #a6a6a6 100%
     );
+    --border-color: #dadada;
 }
 
 /* Prevent scrolling while maintaining accessibility */
@@ -93,8 +92,8 @@ body {
     display: flex;
     margin-bottom: 16px;
     position: relative;
-    animation: fadeIn 0.4s ease;
     clear: both;
+    transition: opacity 0.3s ease;
 }
 
 .message.incoming {
@@ -107,36 +106,13 @@ body {
     margin-left: auto;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Diamond Message Indicator */
+/* Diamond Message Indicator - Removed pop animation */
 .message.incoming .message-content:before {
-    content: "";
-    position: absolute;
-    top: 15px;
-    left: -10px;
-    width: 20px;
-    height: 20px;
-    background-color: var(--background-white);
-    transform: rotate(45deg);
-    box-shadow: -2px 2px 2px rgba(0, 0, 0, 0.05);
-    z-index: -1;
+    display: none;
 }
 
 .message.outgoing .message-content:before {
-    content: "";
-    position: absolute;
-    top: 15px;
-    right: -10px;
-    width: 20px;
-    height: 20px;
-    background-color: var(--primary-light);
-    transform: rotate(45deg);
-    box-shadow: 2px -2px 2px rgba(0, 0, 0, 0.05);
-    z-index: -1;
+    display: none;
 }
 
 .profile-image {
@@ -153,8 +129,7 @@ body {
 }
 
 .profile-image:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: scale(1.05);
 }
 
 .message.outgoing .profile-image {
@@ -162,24 +137,25 @@ body {
 }
 
 .message-content {
-    max-width: 85%; /* Increased width */
+    max-width: 85%;
     min-width: 180px;
     background-color: var(--background-white);
     border-radius: var(--border-radius-md);
-    padding: 12px 16px; /* Increased padding */
+    padding: 12px 16px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
     position: relative;
     overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: background-color 0.2s ease;
+    border: 1px solid var(--border-color);
 }
 
 .message-content:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    background-color: #f8f8f8;
 }
 
 .message.outgoing .message-content {
     background-color: var(--primary-light);
+    border: 1px solid #e5e5e5;
 }
 
 /* Message Header & Metadata */
@@ -215,28 +191,30 @@ body {
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
 }
 
 .message-image {
     max-width: 100%;
-    max-height: 350px; /* Increased height */
+    max-height: 350px;
     object-fit: contain;
     border-radius: 8px;
     cursor: pointer;
     display: block;
-    transition: transform 0.3s ease;
+    transition: filter 0.3s ease;
 }
 
 .message-image:hover {
-    transform: scale(1.02);
+    filter: brightness(1.05);
 }
 
 .message-video {
     max-width: 100%;
-    max-height: 350px; /* Increased height */
+    max-height: 350px;
     border-radius: 8px;
     background: #000;
     display: block;
+    border: 1px solid var(--border-color);
 }
 
 /* Message Groups - Consecutive messages from same sender */
@@ -276,13 +254,12 @@ body {
     border: none;
     cursor: pointer;
     font-size: 0.95rem;
-    transition: color var(--transition-speed), transform var(--transition-speed);
+    transition: color var(--transition-speed);
     padding: 6px;
 }
 
 .action-button:hover {
     color: var(--primary-color);
-    transform: translateY(-3px);
 }
 
 .action-button svg {
@@ -290,11 +267,11 @@ body {
     height: 18px;
     margin-right: 8px;
     fill: currentColor;
-    transition: transform var(--transition-speed);
+    transition: color var(--transition-speed);
 }
 
 .action-button:hover svg {
-    transform: scale(1.2) rotate(5deg);
+    color: var(--primary-dark);
 }
 
 /* Input Area */
@@ -322,11 +299,12 @@ body {
     border-radius: var(--border-radius-md);
     overflow: hidden;
     box-shadow: var(--box-shadow);
-    transition: transform var(--transition-speed);
+    transition: background-color var(--transition-speed);
+    border: 1px solid var(--border-color);
 }
 
 .preview-item:hover {
-    transform: scale(1.05);
+    background-color: #f8f8f8;
 }
 
 .preview-image, .preview-video {
@@ -350,12 +328,11 @@ body {
     color: white;
     font-size: 16px;
     border: none;
-    transition: background-color var(--transition-speed), transform var(--transition-speed);
+    transition: background-color var(--transition-speed);
 }
 
 .remove-media:hover {
     background-color: rgba(240, 40, 40, 0.8);
-    transform: scale(1.1) rotate(90deg);
 }
 
 .input-wrapper {
@@ -364,13 +341,13 @@ body {
     background-color: var(--primary-light);
     border-radius: var(--border-radius-lg);
     padding: 14px 18px;
-    transition: box-shadow var(--transition-speed), transform var(--transition-speed);
+    transition: box-shadow var(--transition-speed);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-color);
 }
 
 .input-wrapper:focus-within {
     box-shadow: 0 0 0 3px rgba(98, 98, 98, 0.3);
-    transform: translateY(-2px);
 }
 
 .message-textarea {
@@ -408,12 +385,12 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform var(--transition-speed), color var(--transition-speed);
+    transition: color var(--transition-speed);
     opacity: 0.9;
 }
 
 .media-button:hover {
-    transform: scale(1.15) rotate(5deg);
+    color: var(--primary-dark);
     opacity: 1;
 }
 
@@ -434,18 +411,13 @@ body {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: transform var(--transition-speed);
+    transition: opacity var(--transition-speed);
     margin-left: 12px;
     box-shadow: 0 3px 8px rgba(98, 98, 98, 0.3);
 }
 
 .send-button:hover:not(:disabled) {
-    background-color: var(--primary-dark);
-    transform: scale(1.1);
-}
-
-.send-button:active:not(:disabled) {
-    transform: scale(0.95);
+    opacity: 0.9;
 }
 
 .send-button:disabled {
@@ -480,11 +452,12 @@ body {
     vertical-align: middle;
     border-radius: 2px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
+    transition: opacity 0.3s ease;
+    border: 1px solid var(--border-color);
 }
 
 .country-flag:hover {
-    transform: scale(1.2);
+    opacity: 0.8;
 }
 
 /* Follow Button */
@@ -498,13 +471,11 @@ body {
     font-size: 0.8rem;
     font-weight: bold;
     cursor: pointer;
-    transition: all var(--transition-speed);
+    transition: background-color var(--transition-speed);
 }
 
 .follow-btn:hover {
     background-color: rgba(98, 98, 98, 0.1);
-    transform: translateY(-2px);
-    box-shadow: 0 2px 5px rgba(98, 98, 98, 0.2);
 }
 
 .follow-btn.followed {
@@ -512,7 +483,7 @@ body {
     color: white;
 }
 
-/* Loading Animation */
+/* Loading Animation - More subtle */
 .loading-dots {
     display: flex;
     justify-content: center;
@@ -525,32 +496,23 @@ body {
     margin: 0 5px;
     border-radius: 50%;
     background-color: var(--primary-color);
-    animation: bounce 0.6s infinite alternate;
+    opacity: 0.7;
+    transition: opacity 0.4s ease;
 }
 
 .loading-dot:nth-child(2) {
-    animation-delay: 0.2s;
+    transition-delay: 0.2s;
 }
 
 .loading-dot:nth-child(3) {
-    animation-delay: 0.4s;
-}
-
-@keyframes bounce {
-    from { transform: translateY(0); }
-    to { transform: translateY(-10px); }
+    transition-delay: 0.4s;
 }
 
 /* Reply Section */
 .reply-input {
     padding: 12px 0 0 70px;
     margin-top: 6px;
-    animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    transition: opacity 0.3s ease;
 }
 
 .reply-wrapper {
@@ -559,12 +521,12 @@ body {
     border-radius: var(--border-radius-lg);
     padding: 10px 16px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    transition: box-shadow var(--transition-speed), transform var(--transition-speed);
+    transition: background-color var(--transition-speed);
+    border: 1px solid var(--border-color);
 }
 
 .reply-wrapper:focus-within {
-    box-shadow: 0 0 0 2px rgba(98, 98, 98, 0.2);
-    transform: translateY(-2px);
+    background-color: #e8e8e8;
 }
 
 .reply-textarea {
@@ -591,16 +553,12 @@ body {
     justify-content: center;
     cursor: pointer;
     margin-left: 10px;
-    transition: transform var(--transition-speed);
+    transition: opacity var(--transition-speed);
     box-shadow: 0 2px 6px rgba(98, 98, 98, 0.2);
 }
 
 .reply-send:hover {
-    transform: scale(1.1);
-}
-
-.reply-send:active {
-    transform: scale(0.95);
+    opacity: 0.9;
 }
 
 /* Fix for blue outline on focus */
@@ -608,21 +566,14 @@ body {
     outline: none;
 }
 
-/* Harvard animations */
+/* Harvard animations - More subtle */
 .harvard-logo {
     display: inline-block;
     margin-right: 8px;
-    animation: harwardFadeIn 1s ease;
-    transform-origin: center;
+    transition: opacity 0.3s ease;
 }
 
-@keyframes harwardFadeIn {
-    0% { opacity: 0; transform: scale(0.8) rotate(-5deg); }
-    50% { transform: scale(1.1) rotate(5deg); }
-    100% { opacity: 1; transform: scale(1) rotate(0); }
-}
-
-/* Premium badge animation */
+/* Premium badge with updated color scheme */
 .premium-badge {
     display: inline-block;
     padding: 3px 8px;
@@ -633,45 +584,21 @@ body {
     font-weight: bold;
     margin-left: 8px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    animation: premiumPulse 2s infinite;
+    transition: opacity 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-@keyframes premiumPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); box-shadow: 0 4px 10px rgba(98, 98, 98, 0.4); }
-    100% { transform: scale(1); }
+.premium-badge:hover {
+    opacity: 0.9;
 }
 
-/* Diamond indicator for richness */
-.diamond-indicator {
-    position: absolute;
-    width: 24px;
-    height: 24px;
-    background: linear-gradient(135deg, #f0f0f0, #ffffff);
-    transform: rotate(45deg);
-    z-index: 1;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
+/* Borderlines for messages */
+.message.incoming .message-content {
+    border-left: 3px solid var(--primary-color);
 }
 
-.message.incoming .diamond-indicator {
-    left: -12px;
-    top: 15px;
-    border-left: 1px solid rgba(98, 98, 98, 0.3);
-    border-bottom: 1px solid rgba(98, 98, 98, 0.3);
-}
-
-.message.outgoing .diamond-indicator {
-    right: -12px;
-    top: 15px;
-    background: linear-gradient(135deg, #e0e0e0, #f0f0f0);
-    border-right: 1px solid rgba(98, 98, 98, 0.3);
-    border-top: 1px solid rgba(98, 98, 98, 0.3);
-}
-
-.message:hover .diamond-indicator {
-    transform: rotate(45deg) scale(1.2);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+.message.outgoing .message-content {
+    border-right: 3px solid var(--primary-dark);
 }
 
 /* Media Queries for Responsiveness */
@@ -860,11 +787,6 @@ body {
     .phone-number {
         font-size: 0.75rem;
     }
-    
-    .diamond-indicator {
-        width: 20px;
-        height: 20px;
-    }
 }
 
 /* Extra Small Mobile */
@@ -898,12 +820,6 @@ body {
     
     .message-textarea {
         font-size: 0.9rem;
-    }
-    
-    .diamond-indicator {
-        width: 18px;
-        height: 18px;
-        top: 12px;
     }
 }
 
@@ -1006,230 +922,185 @@ body {
 
 <script>
   (function() {
-    // Global Chat Theme Manager - Ultimate Dark Mode (No Grays)
+    // Enhanced Global Chat Theme Manager with Hover Animation Support
     const GlobalChatThemeManager = {
-      // Theme configurations: light and dim are as originally defined.
-      // The dark theme is now redefined to force a completely dark (pure black) style,
-      // with white text and no gray or dim hues.
       themeConfig: {
         light: {
-          '--primary-color': '#4a90e2',
-          '--primary-light': '#e0e7ff',
-          '--primary-dark': '#357abd',
+          '--primary-color': '#626262',
+          '--primary-light': '#f0f0f0',
+          '--primary-dark': '#3a3a3a',
           '--text-primary': '#333',
           '--text-secondary': '#666',
           '--background-light': '#f9f9f9',
           '--background-white': '#ffffff',
-          '--border-light': '#e0e7ff',
-          '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.05)'
+          '--border-light': '#e0e0e0',
+          '--border-color': '#dadada',
+          '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.05)',
+          '--luxury-gradient': 'linear-gradient(135deg, #0f0f0f 0%, #1c1c1c 15%, #3a3a3a 30%, #4d4d4d 45%, #626262 60%, #787878 75%, #8f8f8f 90%, #a6a6a6 100%)',
+          '--message-hover': '#f8f8f8',
+          '--outgoing-hover': '#e5e5e5',
+          '--image-hover': 'brightness(1.05)'
         },
         dim: {
-          '--primary-color': '#4a90e2',
-          '--primary-light': '#1e2732',
-          '--primary-dark': '#357abd',
+          '--primary-color': '#787878',
+          '--primary-light': '#1e1e1e',
+          '--primary-dark': '#4d4d4d',
           '--text-primary': '#f1f1f1',
-          '--text-secondary': '#8899a6',
-          '--background-light': '#15202b',
-          '--background-white': '#192734',
-          '--border-light': '#38444d',
-          '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.2)'
+          '--text-secondary': '#a6a6a6',
+          '--background-light': '#121212',
+          '--background-white': '#1c1c1c',
+          '--border-light': '#383838',
+          '--border-color': '#2d2d2d',
+          '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.2)',
+          '--luxury-gradient': 'linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 15%, #d0d0d0 30%, #c0c0c0 45%, #b0b0b0 60%, #a0a0a0 75%, #909090 90%, #808080 100%)',
+          '--message-hover': '#252525',
+          '--outgoing-hover': '#2a2a2a',
+          '--image-hover': 'brightness(1.1)'
         },
         dark: {
-          // Dark theme: pure dark mode with no gray/dim hues.
-          '--primary-color': '#4a90e2', // Accent remains
-          '--primary-light': '#000000', // Force pure black for element backgrounds
-          '--primary-dark': '#000000', // Same as above for consistency
-          '--text-primary': '#ffffff', // Pure white text for high contrast
-          '--text-secondary': '#ffffff', // Secondary text also pure white
-          '--background-light': '#000000', // Entire page background pure black
-          '--background-white': '#000000', // Message backgrounds pure black
-          '--border-light': '#000000', // No gray borders
-          '--box-shadow': 'none' // No shadow (which might otherwise appear gray)
+          '--primary-color': '#8f8f8f',
+          '--primary-light': '#0a0a0a',
+          '--primary-dark': '#626262',
+          '--text-primary': '#ffffff',
+          '--text-secondary': '#b0b0b0',
+          '--background-light': '#000000',
+          '--background-white': '#0f0f0f',
+          '--border-light': '#252525',
+          '--border-color': '#1f1f1f',
+          '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.3)',
+          '--luxury-gradient': 'linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 15%, #d8d8d8 30%, #c8c8c8 45%, #b8b8b8 60%, #a8a8a8 75%, #989898 90%, #888888 100%)',
+          '--message-hover': '#1a1a1a',
+          '--outgoing-hover': '#222222',
+          '--image-hover': 'brightness(1.15)'
         }
       },
       
-      // Unique style element ID
       styleElementId: 'global-chat-theme-manager-styles',
       
-      // Initialize the theme manager
       initialize: function() {
         this.createStyleElement();
         this.applyCurrentTheme();
         this.setupEventListeners();
-        console.log('Global Chat Theme Manager initialized');
       },
       
-      // Create (or recreate) the dedicated style element
       createStyleElement: function() {
         const existingStyle = document.getElementById(this.styleElementId);
-        if (existingStyle) {
-          existingStyle.remove();
-        }
+        if (existingStyle) existingStyle.remove();
+        
         const styleElement = document.createElement('style');
         styleElement.id = this.styleElementId;
         styleElement.setAttribute('data-origin', 'global-chat-theme-manager');
         document.head.appendChild(styleElement);
       },
       
-      // Apply the current theme from localStorage
       applyCurrentTheme: function() {
         const themeName = localStorage.getItem('twitter-theme') || 'light';
         this.applyTheme(themeName);
       },
       
-      // Apply the specified theme
       applyTheme: function(themeName) {
         const validThemes = ['light', 'dim', 'dark'];
         const theme = validThemes.includes(themeName) ? themeName : 'light';
         const themeVars = this.themeConfig[theme] || this.themeConfig.light;
         const styleElement = document.getElementById(this.styleElementId);
+        
         if (!styleElement) {
           this.createStyleElement();
           return this.applyTheme(theme);
         }
         
-        // Generate CSS using the theme variables
-        let css = '';
-        css += ':root {\n';
+        let css = ':root {\n';
         Object.entries(themeVars).forEach(([key, value]) => {
           css += `  ${key}: ${value};\n`;
         });
         css += '}\n\n';
         
-        // Global Chat Theme Overrides
-        // (Note: The input area styling remains untouched.)
+        // Enhanced hover and animation styles
         css += `
-        /* Overall page styling */
-        body, html {
-          background-color: var(--background-light);
-          color: var(--text-primary);
+        /* Message hover effects */
+        .message-content:hover {
+          background-color: var(--message-hover) !important;
+          transition: background-color 0.2s ease;
         }
         
-        /* Chat container styling */
-        .chat-container {
-          background-color: var(--background-light);
-          color: var(--text-primary);
-          scrollbar-color: var(--primary-light) var(--background-light);
+        .message.outgoing .message-content:hover {
+          background-color: var(--outgoing-hover) !important;
         }
         
-        .chat-container::-webkit-scrollbar-track {
-          background: var(--background-light);
+        /* Image hover effects */
+        .message-image:hover {
+          filter: var(--image-hover);
+          transition: filter 0.3s ease;
         }
         
-        .chat-container::-webkit-scrollbar-thumb {
-          background: var(--primary-light);
+        /* Profile image hover */
+        .profile-image:hover {
+          transform: scale(1.05);
+          transition: transform 0.3s ease;
         }
         
-        /* Message bubbles */
-        .message.incoming .message-content {
-          background-color: var(--background-white);
-          color: var(--text-primary);
-          border: 1px solid var(--border-light);
-          box-shadow: var(--box-shadow);
-          padding: 10px;
-          border-radius: 4px;
-        }
-        
-        .message.incoming .message-content:before {
-          background-color: var(--background-white);
-        }
-        
-        .message.outgoing .message-content {
-          background-color: var(--primary-light);
-          color: var(--text-primary);
-          border: 1px solid var(--border-light);
-          box-shadow: var(--box-shadow);
-          padding: 10px;
-          border-radius: 4px;
-        }
-        
-        .message.outgoing .message-content:before {
-          background-color: var(--primary-light);
-        }
-        
-        /* User name and timestamp */
-        .user-name {
-          color: var(--primary-color);
-        }
-        
-        .message-time {
-          color: var(--text-secondary);
-        }
-        
-        /* Action buttons */
-        .action-button {
-          color: var(--text-secondary);
-        }
-        
+        /* Action button hover */
         .action-button:hover {
           color: var(--primary-color);
+          transition: color var(--transition-speed);
         }
         
-        /* Input area styling is intentionally left untouched */
-        
-        /* Loading and media elements */
-        .loading-dot {
-          background-color: var(--primary-color);
+        .action-button:hover svg {
+          color: var(--primary-dark);
         }
         
-        .media-button {
-          color: var(--primary-color);
+        /* Media button hover */
+        .media-button:hover {
+          color: var(--primary-dark);
+          opacity: 1;
+          transition: color var(--transition-speed), opacity var(--transition-speed);
         }
         
-        /* Follow button styling */
-        .follow-btn {
-          background-color: transparent;
-          color: var(--primary-color);
-          border: 1px solid var(--primary-color);
+        /* Send button hover */
+        .send-button:hover:not(:disabled),
+        .reply-send:hover {
+          opacity: 0.9;
+          transition: opacity var(--transition-speed);
         }
         
+        /* Follow button hover */
         .follow-btn:hover {
-          background-color: rgba(74, 144, 226, 0.1);
+          background-color: rgba(98, 98, 98, 0.1);
+          transition: background-color var(--transition-speed);
         }
         
-        .follow-btn.followed {
-          background-color: var(--primary-color);
-          color: white;
+        /* Remove media button hover */
+        .remove-media:hover {
+          background-color: rgba(240, 40, 40, 0.8);
+          transition: background-color var(--transition-speed);
         }
         
-        /* Reply area */
-        .reply-wrapper {
-          background-color: var(--primary-light);
-          color: var(--text-primary);
+        /* Input focus effects */
+        .input-wrapper:focus-within {
+          box-shadow: 0 0 0 3px rgba(98, 98, 98, 0.3);
+          transition: box-shadow var(--transition-speed);
         }
         
-        /* Typing indicator */
-        .typing-indicator {
-          color: var(--text-secondary);
-        }
-        
-        /* Media preview and other elements */
-        .media-preview {
-          background-color: var(--background-light);
-          color: var(--text-primary);
-        }
-        
-        .preview-item {
-          box-shadow: var(--box-shadow);
+        /* Reply wrapper focus */
+        .reply-wrapper:focus-within {
+          background-color: #e8e8e8;
+          transition: background-color var(--transition-speed);
         }
         `;
         
-        // Apply the generated CSS to the style element
         styleElement.textContent = css;
-        console.log('Global Chat Theme Manager: Applied theme', theme);
       },
       
-      // Set up event listeners to handle theme changes
       setupEventListeners: function() {
         window.addEventListener('storage', (e) => {
           if (e.key === 'twitter-theme') {
             this.applyTheme(e.newValue || 'light');
           }
         });
+        
         this.setupPeriodicCheck();
       },
       
-      // Periodically check for theme consistency
       setupPeriodicCheck: function() {
         let lastKnownTheme = localStorage.getItem('twitter-theme') || 'light';
         setInterval(() => {
@@ -1242,7 +1113,6 @@ body {
       }
     };
     
-    // Initialize the theme manager when the DOM is ready
     function initializeThemeManager() {
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
@@ -1253,11 +1123,9 @@ body {
       }
     }
     
-    // Trigger initialization with a short delay
     setTimeout(initializeThemeManager, 100);
   })();
 </script>
-
 
 <script>
 
@@ -1727,129 +1595,7 @@ body {
 
 
 
-<script>
-  (function() {
-    // Apply color palette on load
-    applyColorPalette();
-    
-    // Listen for changes in localStorage
-    window.addEventListener('storage', function(event) {
-      if (event.key === 'color-value' || event.key === 'color-palette') {
-        applyColorPalette();
-      }
-    });
-    
-    // Listen for custom events
-    window.addEventListener('chatColorChanged', function(event) {
-      applyColorPalette();
-    });
-    
-    function applyColorPalette() {
-      const savedColorValue = localStorage.getItem('color-value');
-      const savedColorIndex = localStorage.getItem('color-palette');
-      
-      // Only apply if we have a valid color and it's not the default blue
-      if (savedColorValue && savedColorIndex !== '0') {
-        // Convert hex to RGB
-        const colorObj = hexToRGB(savedColorValue);
-        const rgbString = `${colorObj.r}, ${colorObj.g}, ${colorObj.b}`;
-        
-        // Create style element for all overrides
-        let styleEl = document.getElementById('color-palette-style');
-        if (!styleEl) {
-          styleEl = document.createElement('style');
-          styleEl.id = 'color-palette-style';
-          document.head.appendChild(styleEl);
-        }
-        
-        // Apply to all blue elements while preserving black and white
-        styleEl.textContent = `
-                /* Primary colors */
-                :root {
-                    --primary-color: ${savedColorValue} !important;
-                    --primary-light: rgba(${rgbString}, 0.1) !important;
-                    --primary-dark: ${darkenColor(savedColorValue, 0.15)} !important;
-                }
-                
-                /* Loading dots */
-                .loading-dot {
-                    background-color: ${savedColorValue} !important;
-                }
-                
-                /* Buttons */
-                .send-button, .reply-send {
-                    background-color: ${savedColorValue} !important;
-                    box-shadow: 0 2px 5px rgba(${rgbString}, 0.3) !important;
-                }
-                .send-button:hover:not(:disabled), .reply-send:hover {
-                    background-color: ${darkenColor(savedColorValue, 0.15)} !important;
-                }
-                
-                /* Username should match the color palette */
-                .user-name {
-                    color: ${savedColorValue} !important;
-                }
-                
-                /* Interactive elements */
-                .action-button:hover, 
-                .media-button,
-                .theme-indicator svg {
-                    color: ${savedColorValue} !important;
-                }
-                
-                /* Scrollbar */
-                .chat-container::-webkit-scrollbar-thumb:hover {
-                    background: ${savedColorValue} !important;
-                }
-                
-                /* Profile image border on hover */
-                .profile-image:hover {
-                    border-color: ${savedColorValue} !important;
-                }
-                
-                /* Input wrapper */
-                .input-wrapper, .reply-wrapper {
-                    background-color: rgba(${rgbString}, 0.1) !important;
-                }
-                .input-wrapper:focus-within, .reply-wrapper:focus-within {
-                    box-shadow: 0 0 0 2px rgba(${rgbString}, 0.3) !important;
-                }
-            `;
-      } else {
-        // Remove all custom styles to revert to default
-        const styleEl = document.getElementById('color-palette-style');
-        if (styleEl) {
-          styleEl.remove();
-        }
-      }
-    }
-    
-    function hexToRGB(hex) {
-      hex = hex.replace('#', '');
-      const r = parseInt(hex.substring(0, 2), 16);
-      const g = parseInt(hex.substring(2, 4), 16);
-      const b = parseInt(hex.substring(4, 6), 16);
-      return { r, g, b };
-    }
-    
-    function darkenColor(hex, percent) {
-      hex = hex.replace('#', '');
-      let r = parseInt(hex.substring(0, 2), 16);
-      let g = parseInt(hex.substring(2, 4), 16);
-      let b = parseInt(hex.substring(4, 6), 16);
-      
-      r = Math.floor(r * (1 - percent));
-      g = Math.floor(g * (1 - percent));
-      b = Math.floor(b * (1 - percent));
-      
-      r = Math.max(0, r);
-      g = Math.max(0, g);
-      b = Math.max(0, b);
-      
-      return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-    }
-  })();
-</script>
+
 
 <script>
   // Font size synchronization script
