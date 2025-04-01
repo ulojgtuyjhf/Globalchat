@@ -1701,3 +1701,232 @@ auth.onAuthStateChanged(async (user) => {
     });
   });
 </script>
+<script>
+
+// Theme Support for Login Form
+(function() {
+  // Check local storage for theme preference
+  const themePreference = localStorage.getItem('twitter-theme') || 'light';
+  
+  // Define luxury gradient based on theme
+  const luxuryGradient = `linear-gradient(
+    135deg,  
+    #0f0f0f 0%,  
+    #1c1c1c 15%,  
+    #3a3a3a 30%,  
+    #4d4d4d 45%,  
+    #626262 60%,  
+    #787878 75%,  
+    #8f8f8f 90%,  
+    #a6a6a6 100%
+  )`;
+  
+  // Define color variables for different themes
+  const themeColors = {
+    light: {
+      background: '#f7f9fa',
+      card: '#ffffff',
+      text: '#14171A',
+      textLight: '#657786',
+      border: '#E1E8ED'
+    },
+    dim: {
+      background: '#15202b',
+      card: '#1e2732',
+      text: '#ffffff',
+      textLight: '#8899a6',
+      border: '#38444d'
+    },
+    dark: {
+      background: '#000000',
+      card: '#16181c',
+      text: '#ffffff',
+      textLight: '#8899a6',
+      border: '#2f3336'
+    }
+  };
+  
+  // Get theme colors
+  const colors = themeColors[themePreference];
+  
+  // Create and inject theme CSS
+  const themeStyle = document.createElement('style');
+  themeStyle.textContent = `
+    :root {
+      --background: ${colors.background};
+      --card: ${colors.card};
+      --text: ${colors.text};
+      --text-light: ${colors.textLight};
+      --border: ${colors.border};
+    }
+    
+    body {
+      background-color: var(--background);
+      color: var(--text);
+    }
+    
+    .logo {
+      color: ${themePreference === 'light' ? 'transparent' : '#ffffff'};
+      background: ${themePreference === 'light' ? luxuryGradient : 'none'};
+      -webkit-background-clip: ${themePreference === 'light' ? 'text' : 'none'};
+      background-clip: ${themePreference === 'light' ? 'text' : 'none'};
+      opacity: ${themePreference === 'light' ? '1' : '0.9'};
+    }
+    
+    .auth-option {
+      background: var(--card);
+      border-color: var(--border);
+    }
+    
+    .auth-option-title {
+      color: var(--text);
+    }
+    
+    .auth-option-description {
+      color: var(--text-light);
+    }
+    
+    .auth-option-icon {
+      color: ${themePreference === 'light' ? '#626262' : '#ffffff'};
+    }
+    
+    .modal {
+      background: var(--card);
+    }
+    
+    .modal-header h3 {
+      color: var(--text);
+    }
+    
+    .modal-header p {
+      color: var(--text-light);
+    }
+    
+    label {
+      color: var(--text);
+    }
+    
+    input {
+      background: ${themePreference === 'light' ? 'var(--background)' : 'rgba(255, 255, 255, 0.1)'};
+      color: var(--text);
+      border-color: var(--border);
+    }
+    
+    input:focus {
+      background: ${themePreference === 'light' ? 'var(--card)' : 'rgba(255, 255, 255, 0.15)'};
+    }
+    
+    .loading-text {
+      color: var(--text);
+    }
+    
+    .loading-subtext {
+      color: var(--text-light);
+    }
+    
+    .loading-progress {
+      background-color: var(--border);
+    }
+    
+    /* Special handling for dark themes and auth options hover */
+    ${themePreference !== 'light' ? `
+      .auth-option:hover {
+        border-color: #626262;
+      }
+      
+      .auth-option:hover .auth-option-title,
+      .auth-option:hover .auth-option-description {
+        color: white;
+      }
+      
+      .auth-option:before {
+        background: ${luxuryGradient};
+        opacity: 0;
+      }
+      
+      .auth-option:hover:before {
+        opacity: 0.9;
+      }
+    ` : ''}
+  `;
+  
+  document.head.appendChild(themeStyle);
+  
+  // Listen for theme changes
+  window.addEventListener('storage', function(event) {
+    if (event.key === 'twitter-theme') {
+      // Reload the page to apply new theme
+      window.location.reload();
+    }
+  });
+  
+  // Add theme switcher (optional)
+  const createThemeSwitcher = () => {
+    const switcher = document.createElement('div');
+    switcher.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      gap: 8px;
+      z-index: 1000;
+    `;
+    
+    const createThemeButton = (theme, label) => {
+      const btn = document.createElement('button');
+      btn.textContent = label;
+      btn.style.cssText = `
+        padding: 8px 12px;
+        border-radius: 20px;
+        border: none;
+        background: ${theme === 'light' ? '#f7f9fa' : theme === 'dim' ? '#15202b' : '#000000'};
+        color: ${theme === 'light' ? '#14171A' : '#ffffff'};
+        cursor: pointer;
+        font-size: 12px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      `;
+      
+      if (theme === themePreference) {
+        btn.style.outline = '2px solid #626262';
+      }
+      
+      btn.addEventListener('click', () => {
+        localStorage.setItem('twitter-theme', theme);
+        window.location.reload();
+      });
+      
+      return btn;
+    };
+    
+    switcher.appendChild(createThemeButton('light', 'Light'));
+    switcher.appendChild(createThemeButton('dim', 'Dim'));
+    switcher.appendChild(createThemeButton('dark', 'Dark'));
+    
+    document.body.appendChild(switcher);
+  };
+  
+  // Uncomment to enable theme switcher
+  // createThemeSwitcher();
+  
+  // Update logo based on theme
+  const updateLogo = () => {
+    const logo = document.querySelector('.logo');
+    if (logo) {
+      if (themePreference !== 'light') {
+        logo.style.color = '#ffffff';
+        logo.style.opacity = '0.9';
+        logo.style.background = 'none';
+        logo.style.webkitBackgroundClip = 'none';
+        logo.style.backgroundClip = 'none';
+      }
+    }
+  };
+  
+  // Run when DOM is loaded
+  document.addEventListener('DOMContentLoaded', updateLogo);
+  
+  // Try to update logo immediately in case DOM is already loaded
+  updateLogo();
+})();
+
+</script>
