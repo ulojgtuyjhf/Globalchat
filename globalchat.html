@@ -864,60 +864,120 @@ body {
   </div>
 
 <script>
-  // Wait for the page to fully load
-  document.addEventListener('DOMContentLoaded', function() {
-    // Function to scroll to bottom with animation
-    function scrollToBottomAnimated() {
+  (function() {
+    // Wait until DOM is fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
       const chatContainer = document.getElementById('chatContainer');
       if (!chatContainer) return;
       
-      // Use requestAnimationFrame for smooth scrolling
-      const startPosition = chatContainer.scrollTop;
-      const endPosition = chatContainer.scrollHeight - chatContainer.clientHeight;
-      const duration = 500; // milliseconds
-      const startTime = performance.now();
+      // Variables to track user scrolling behavior
+      let userIsScrolling = false;
+      let userScrollTimeout;
+      let lastScrollTop = 0;
       
-      function step(currentTime) {
-        const elapsedTime = currentTime - startTime;
-        if (elapsedTime < duration) {
-          // Use easeOutCubic for smoother animation
-          const progress = 1 - Math.pow(1 - elapsedTime / duration, 3);
-          chatContainer.scrollTop = startPosition + (endPosition - startPosition) * progress;
-          requestAnimationFrame(step);
-        } else {
-          chatContainer.scrollTop = endPosition;
-        }
+      // Detect when user is manually scrolling
+      chatContainer.addEventListener('scroll', function() {
+        userIsScrolling = true;
+        lastScrollTop = chatContainer.scrollTop;
+        
+        // Reset the scrolling flag after user stops scrolling
+        clearTimeout(userScrollTimeout);
+        userScrollTimeout = setTimeout(function() {
+          userIsScrolling = false;
+        }, 1000);
+      });
+      
+      // Function to check if user is near bottom
+      function isNearBottom() {
+        const threshold = 150; // pixels from bottom to consider "near bottom"
+        const position = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight;
+        return position < threshold;
       }
       
-      requestAnimationFrame(step);
-    }
-    
-    // Scroll to bottom on page load (with slight delay to ensure content is loaded)
-    setTimeout(scrollToBottomAnimated, 500);
-    
-    // Create a MutationObserver to detect when new messages are added
-    const chatContainer = document.getElementById('chatContainer');
-    if (chatContainer) {
+      // Smooth scroll function with easing
+      function smoothScrollToBottom() {
+        if (!chatContainer) return;
+        
+        // Don't interrupt if user is actively scrolling
+        if (userIsScrolling) return;
+        
+        // Only scroll if user is already near the bottom
+        if (!isNearBottom()) return;
+        
+        const startPosition = chatContainer.scrollTop;
+        const endPosition = chatContainer.scrollHeight - chatContainer.clientHeight;
+        const distance = endPosition - startPosition;
+        
+        // No need to animate if already at bottom or distance is tiny
+        if (distance < 5) {
+          chatContainer.scrollTop = endPosition;
+          return;
+        }
+        
+        // Use more gentle animation
+        const duration = 600; // longer duration = smoother feel
+        const startTime = performance.now();
+        
+        function easeOutCubic(t) {
+          return 1 - Math.pow(1 - t, 3);
+        }
+        
+        function animationStep(currentTime) {
+          const elapsed = currentTime - startTime;
+          
+          if (elapsed < duration) {
+            // Apply easing function for smoother motion
+            const progress = easeOutCubic(elapsed / duration);
+            
+            // Skip animation if user started scrolling manually
+            if (userIsScrolling) return;
+            
+            chatContainer.scrollTop = startPosition + distance * progress;
+            requestAnimationFrame(animationStep);
+          } else {
+            chatContainer.scrollTop = endPosition;
+          }
+        }
+        
+        requestAnimationFrame(animationStep);
+      }
+      
+      // Initial scroll to bottom (once when page loads)
+      setTimeout(function() {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }, 500);
+      
+      // Watch for new messages and scroll when appropriate
       const observer = new MutationObserver(function(mutations) {
-        // Check if a new message was added
-        for (const mutation of mutations) {
+        let newMessageAdded = false;
+        
+        mutations.forEach(function(mutation) {
           if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-            for (const node of mutation.addedNodes) {
-              if (node.classList && node.classList.contains('message')) {
-                // New message detected, scroll to bottom
-                scrollToBottomAnimated();
+            for (let i = 0; i < mutation.addedNodes.length; i++) {
+              const node = mutation.addedNodes[i];
+              if (node.classList && (node.classList.contains('message') ||
+                  node.querySelector && node.querySelector('.message'))) {
+                newMessageAdded = true;
                 break;
               }
             }
           }
+        });
+        
+        if (newMessageAdded) {
+          // Use small timeout to ensure rendering is complete
+          setTimeout(smoothScrollToBottom, 100);
         }
       });
       
-      // Start observing the chat container for changes
-      observer.observe(chatContainer, { childList: true });
-    }
-  });
-</script>  
+      // Start observing the chat container
+      observer.observe(chatContainer, {
+        childList: true,
+        subtree: true
+      });
+    });
+  })();
+</script>
 
 
 <script>
@@ -1807,114 +1867,177 @@ body {
   });
 })();
 </script>
+
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Configuration - make these unique to our script
-  const MEDIA_GRID_CLASS = 'media-grid-js';
-  const MEDIA_ITEM_CLASS = 'media-item-js';
-  const STYLE_ID = 'media-grid-styles-js';
+// Self-executing function to avoid conflicts with global scope
+(function() {
+  // Configuration with unique identifiers
+  const MEDIA_GRID_CLASS = 'gc-media-grid-v1';
+  const MEDIA_ITEM_CLASS = 'gc-media-item-v1';
+  const STYLE_ID = 'gc-media-grid-styles-v1';
+  const MAX_VISIBLE_ITEMS = 4;
   
-  // Add our styles only once
-  if (!document.getElementById(STYLE_ID)) {
-    const style = document.createElement('style');
-    style.id = STYLE_ID;
-    style.textContent = `
-            .${MEDIA_GRID_CLASS} {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-                gap: 8px;
-                margin-top: 8px;
-                width: 100%;
-            }
-            
-            .${MEDIA_ITEM_CLASS} {
-                position: relative;
-                border-radius: 8px;
-                overflow: hidden;
-                aspect-ratio: 1/1;
-            }
-            
-            .${MEDIA_ITEM_CLASS} img, 
-            .${MEDIA_ITEM_CLASS} video {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-                display: block;
-            }
-            
-            /* Responsive adjustments */
-            @media (max-width: 768px) {
-                .${MEDIA_GRID_CLASS} {
-                    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-                    gap: 6px;
-                }
-            }
-            
-            @media (max-width: 480px) {
-                .${MEDIA_GRID_CLASS} {
-                    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-                    gap: 4px;
-                }
-            }
-            
-            /* For single media item */
-            .media-grid-js[data-item-count="1"] {
-                grid-template-columns: 1fr;
-            }
-            
-            /* For two media items */
-            .media-grid-js[data-item-count="2"] {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            /* For three media items */
-            .media-grid-js[data-item-count="3"] {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .media-grid-js[data-item-count="3"] .${MEDIA_ITEM_CLASS}:first-child {
-                grid-column: span 2;
-                aspect-ratio: 2/1;
-            }
-            
-            /* For four media items */
-            .media-grid-js[data-item-count="4"] {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        `;
-    document.head.appendChild(style);
+  // Store original showFullImage function if it exists
+  const originalShowFullImage = window.showFullImage;
+  
+  // Add styles only once
+  function addStyles() {
+    if (!document.getElementById(STYLE_ID)) {
+      const style = document.createElement('style');
+      style.id = STYLE_ID;
+      style.textContent = `
+        .${MEDIA_GRID_CLASS} {
+          display: grid;
+          gap: 4px;
+          margin-top: 8px;
+          width: 100%;
+          max-height: 500px;
+          border-radius: 12px;
+          overflow: hidden;
+        }
+        
+        .${MEDIA_ITEM_CLASS} {
+          position: relative;
+          overflow: hidden;
+          border: 1px solid rgba(0,0,0,0.1);
+          background-color: #f5f5f5;
+        }
+        
+        .${MEDIA_ITEM_CLASS} img, 
+        .${MEDIA_ITEM_CLASS} video {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+          transition: transform 0.3s ease;
+        }
+        
+        .${MEDIA_ITEM_CLASS}:hover img,
+        .${MEDIA_ITEM_CLASS}:hover video {
+          transform: scale(1.03);
+        }
+        
+        .${MEDIA_ITEM_CLASS} .overlay-count {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.5);
+          color: white;
+          font-size: 24px;
+          font-weight: bold;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          cursor: pointer;
+        }
+        
+        /* Single media item */
+        .${MEDIA_GRID_CLASS}[data-item-count="1"] {
+          grid-template-columns: 1fr;
+          aspect-ratio: 16/9;
+          max-height: 400px;
+        }
+        
+        /* Two media items */
+        .${MEDIA_GRID_CLASS}[data-item-count="2"] {
+          grid-template-columns: repeat(2, 1fr);
+          aspect-ratio: 16/9;
+        }
+        
+        /* Three media items */
+        .${MEDIA_GRID_CLASS}[data-item-count="3"] {
+          grid-template-columns: repeat(2, 1fr);
+          grid-template-rows: 1fr 1fr;
+          aspect-ratio: 16/10;
+        }
+        
+        .${MEDIA_GRID_CLASS}[data-item-count="3"] .${MEDIA_ITEM_CLASS}:first-child {
+          grid-row: span 2;
+        }
+        
+        /* Four or more media items */
+        .${MEDIA_GRID_CLASS}[data-item-count="4"],
+        .${MEDIA_GRID_CLASS}[data-item-count="more"] {
+          grid-template-columns: repeat(2, 1fr);
+          grid-template-rows: repeat(2, 1fr);
+          aspect-ratio: 16/14;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+          .${MEDIA_GRID_CLASS} {
+            max-height: 400px;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .${MEDIA_GRID_CLASS} {
+            max-height: 300px;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
   }
   
   // Process all media containers
   function initMediaGrids() {
-    const mediaContainers = document.querySelectorAll('.media-container:not([data-js-processed])');
+    const mediaContainers = document.querySelectorAll('.media-container:not([data-gc-processed])');
     
     mediaContainers.forEach(container => {
       // Mark as processed
-      container.setAttribute('data-js-processed', 'true');
+      container.setAttribute('data-gc-processed', 'true');
       
       const mediaItems = container.querySelectorAll('img, video');
-      if (mediaItems.length <= 1) return; // No need for grid with single item
+      if (mediaItems.length === 0) return;
       
       // Create our grid container
       const grid = document.createElement('div');
       grid.className = MEDIA_GRID_CLASS;
-      grid.setAttribute('data-item-count', mediaItems.length);
       
-      // Wrap each media item in our grid item
-      mediaItems.forEach(item => {
+      const itemCount = mediaItems.length;
+      const displayCount = Math.min(itemCount, MAX_VISIBLE_ITEMS);
+      
+      grid.setAttribute('data-item-count', itemCount > MAX_VISIBLE_ITEMS ? 'more' : itemCount.toString());
+      
+      // Add each media item to the grid
+      for (let i = 0; i < displayCount; i++) {
+        const item = mediaItems[i];
         const gridItem = document.createElement('div');
         gridItem.className = MEDIA_ITEM_CLASS;
         
-        // Preserve any existing classes and attributes
-        if (item.className) gridItem.className += ' ' + item.className;
-        if (item.dataset) Object.assign(gridItem.dataset, item.dataset);
-        
         // Clone the media element
         const mediaClone = item.cloneNode(true);
+        
+        // Preserve original click handlers and attributes
+        if (item.onclick) {
+          mediaClone.onclick = item.onclick;
+        } else if (item.getAttribute('onclick')) {
+          mediaClone.setAttribute('onclick', item.getAttribute('onclick'));
+        }
+        
         gridItem.appendChild(mediaClone);
+        
+        // Add "+" overlay to the last visible item if there are more than MAX_VISIBLE_ITEMS
+        if (i === MAX_VISIBLE_ITEMS - 1 && itemCount > MAX_VISIBLE_ITEMS) {
+          const overlay = document.createElement('div');
+          overlay.className = 'overlay-count';
+          overlay.textContent = `+${itemCount - MAX_VISIBLE_ITEMS}`;
+          
+          // When clicking the overlay, show all images
+          overlay.addEventListener('click', function(e) {
+            e.stopPropagation();
+            showAllMedia(Array.from(mediaItems));
+          });
+          
+          gridItem.appendChild(overlay);
+        }
+        
         grid.appendChild(gridItem);
-      });
+      }
       
       // Replace the original container with our grid
       container.innerHTML = '';
@@ -1922,40 +2045,148 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Initialize and watch for new media containers
-  initMediaGrids();
+  // Function to show all media in a full-screen gallery
+  function showAllMedia(mediaItems) {
+    // Use the original showFullImage function if it's for a single image
+    if (mediaItems.length === 1 && mediaItems[0].tagName.toLowerCase() === 'img' && typeof originalShowFullImage === 'function') {
+      originalShowFullImage(mediaItems[0].src);
+      return;
+    }
+    
+    // Create modal container
+    const modal = document.createElement('div');
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+    modal.style.display = 'flex';
+    modal.style.flexDirection = 'column';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    modal.style.zIndex = '1000';
+    
+    // Create close button
+    const closeBtn = document.createElement('div');
+    closeBtn.textContent = '×';
+    closeBtn.style.position = 'absolute';
+    closeBtn.style.top = '20px';
+    closeBtn.style.right = '30px';
+    closeBtn.style.color = 'white';
+    closeBtn.style.fontSize = '40px';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.style.zIndex = '1001';
+    closeBtn.onclick = () => document.body.removeChild(modal);
+    
+    // Create gallery container
+    const gallery = document.createElement('div');
+    gallery.style.display = 'flex';
+    gallery.style.flexWrap = 'wrap';
+    gallery.style.justifyContent = 'center';
+    gallery.style.alignItems = 'center';
+    gallery.style.gap = '10px';
+    gallery.style.maxWidth = '90%';
+    gallery.style.maxHeight = '90%';
+    gallery.style.overflowY = 'auto';
+    gallery.style.padding = '20px';
+    
+    // Add all media items to gallery
+    mediaItems.forEach(item => {
+      if (item.tagName.toLowerCase() === 'video') {
+        const video = document.createElement('video');
+        video.src = item.src;
+        video.controls = true;
+        video.style.maxWidth = '100%';
+        video.style.maxHeight = '80vh';
+        video.style.margin = '10px';
+        video.style.objectFit = 'contain';
+        video.style.borderRadius = '8px';
+        video.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
+        gallery.appendChild(video);
+      } else {
+        const img = document.createElement('img');
+        img.src = item.src;
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '80vh';
+        img.style.margin = '10px';
+        img.style.objectFit = 'contain';
+        img.style.borderRadius = '8px';
+        img.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
+        gallery.appendChild(img);
+      }
+    });
+    
+    modal.appendChild(closeBtn);
+    modal.appendChild(gallery);
+    document.body.appendChild(modal);
+    
+    // Close modal when clicking outside the content
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        document.body.removeChild(modal);
+      }
+    });
+  }
   
-  const observer = new MutationObserver(function(mutations) {
-    mutations.forEach(mutation => {
-      if (mutation.addedNodes.length) {
+  // Function to set up observers
+  function setupObservers() {
+    // Create an observer to detect new messages
+    const observer = new MutationObserver(function(mutations) {
+      let hasNewNodes = false;
+      
+      mutations.forEach(mutation => {
+        if (mutation.addedNodes.length) {
+          hasNewNodes = true;
+        }
+      });
+      
+      if (hasNewNodes) {
         initMediaGrids();
       }
     });
-  });
-  
-  observer.observe(document.getElementById('chatContainer'), {
-    childList: true,
-    subtree: true
-  });
-  
-  // Also observe for full-screen modal
-  const modalObserver = new MutationObserver(function(mutations) {
-    mutations.forEach(mutation => {
-      mutation.addedNodes.forEach(node => {
-        if (node.classList && node.classList.contains('full-message-modal')) {
-          // When modal appears, process its media
-          initMediaGrids();
-        }
+    
+    // Start observing the chat container for changes
+    const chatContainer = document.getElementById('chatContainer');
+    if (chatContainer) {
+      observer.observe(chatContainer, {
+        childList: true,
+        subtree: true
       });
-    });
-  });
+    }
+  }
   
-  modalObserver.observe(document.body, {
-    childList: true,
-    subtree: false
-  });
-});
+  // Main init function
+  function init() {
+    // Add styles
+    addStyles();
+    
+    // Process existing media
+    initMediaGrids();
+    
+    // Set up observers
+    setupObservers();
+    
+    // Monitor for dynamically added modal content
+    document.body.addEventListener('DOMNodeInserted', function(e) {
+      if (e.target.nodeType === 1) { // Element node
+        if (e.target.querySelector && e.target.querySelector('.media-container')) {
+          setTimeout(initMediaGrids, 50);
+        }
+      }
+    });
+  }
+  
+  // Run initialization when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
 </script>
+
+
 
 <script>
   (function() {
@@ -2009,6 +2240,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 
+
 <script>
 // Skeleton Loading Animation for Chat Comments
 (function() {
@@ -2019,7 +2251,8 @@ document.addEventListener('DOMContentLoaded', function() {
     highlightColor: '#38444d',
     skeletonCount: 3,  // Number of skeleton items to show
     containerSelector: '.reply-section, #reply-messages-',
-    loadingTextSelectors: ['.loading-replies', '.no-replies']
+    loadingTextSelectors: ['.loading-replies', '.no-replies'],
+    minimumDisplayTime: 11000  // Minimum time in milliseconds to show skeleton (6 seconds)
   };
 
   // Create and inject CSS
@@ -2133,22 +2366,39 @@ document.addEventListener('DOMContentLoaded', function() {
     
     container.appendChild(fragment);
     
-    // Return a cleanup function
+    // Track when this skeleton was added
+    const startTime = Date.now();
+    
+    // Return a cleanup function that respects minimum display time
     return function cleanupSkeleton() {
-      const skeletons = container.querySelectorAll('.skeleton-item');
-      skeletons.forEach(skeleton => {
-        if (skeleton.parentNode === container) {
-          container.removeChild(skeleton);
-        }
-      });
+      const currentTime = Date.now();
+      const elapsedTime = currentTime - startTime;
       
-      // Restore loading text if needed
-      config.loadingTextSelectors.forEach(selector => {
-        const loadingText = container.querySelector(selector);
-        if (loadingText) {
-          loadingText.style.display = '';
-        }
-      });
+      if (elapsedTime >= config.minimumDisplayTime) {
+        // If minimum time has passed, remove skeletons immediately
+        performCleanup();
+      } else {
+        // Otherwise, wait until minimum time has passed
+        const remainingTime = config.minimumDisplayTime - elapsedTime;
+        setTimeout(performCleanup, remainingTime);
+      }
+      
+      function performCleanup() {
+        const skeletons = container.querySelectorAll('.skeleton-item');
+        skeletons.forEach(skeleton => {
+          if (skeleton.parentNode === container) {
+            container.removeChild(skeleton);
+          }
+        });
+        
+        // Restore loading text if needed
+        config.loadingTextSelectors.forEach(selector => {
+          const loadingText = container.querySelector(selector);
+          if (loadingText) {
+            loadingText.style.display = '';
+          }
+        });
+      }
     };
   }
 
@@ -2171,7 +2421,11 @@ document.addEventListener('DOMContentLoaded', function() {
               if (repliesContainer) {
                 // Add skeleton and store cleanup function
                 const cleanup = addSkeletonToContainer(repliesContainer);
-                activeSkeletons.set(repliesContainer, cleanup);
+                activeSkeletons.set(repliesContainer, {
+                  cleanup: cleanup,
+                  contentLoaded: false,
+                  startTime: Date.now()
+                });
                 
                 // Monitor for child changes to detect when content is loaded
                 const contentObserver = new MutationObserver(contentMutations => {
@@ -2186,10 +2440,28 @@ document.addEventListener('DOMContentLoaded', function() {
                       });
                       
                       if (hasRealContent && activeSkeletons.has(repliesContainer)) {
-                        // Clean up skeletons
-                        const cleanupFn = activeSkeletons.get(repliesContainer);
-                        cleanupFn();
-                        activeSkeletons.delete(repliesContainer);
+                        // Mark content as loaded but don't clean up yet
+                        const skeletonInfo = activeSkeletons.get(repliesContainer);
+                        skeletonInfo.contentLoaded = true;
+                        
+                        // Calculate remaining time to meet minimum display time
+                        const elapsedTime = Date.now() - skeletonInfo.startTime;
+                        const remainingTime = Math.max(0, config.minimumDisplayTime - elapsedTime);
+                        
+                        // Schedule cleanup after remaining time
+                        if (remainingTime > 0) {
+                          setTimeout(() => {
+                            if (activeSkeletons.has(repliesContainer)) {
+                              const info = activeSkeletons.get(repliesContainer);
+                              info.cleanup();
+                              activeSkeletons.delete(repliesContainer);
+                            }
+                          }, remainingTime);
+                        } else {
+                          // Clean up now if minimum time already passed
+                          skeletonInfo.cleanup();
+                          activeSkeletons.delete(repliesContainer);
+                        }
                         
                         // Stop observing
                         contentObserver.disconnect();
@@ -2214,7 +2486,11 @@ document.addEventListener('DOMContentLoaded', function() {
               
               if (isEmpty && !activeSkeletons.has(container)) {
                 const cleanup = addSkeletonToContainer(container);
-                activeSkeletons.set(container, cleanup);
+                activeSkeletons.set(container, {
+                  cleanup: cleanup,
+                  contentLoaded: false,
+                  startTime: Date.now()
+                });
               }
             });
           }
@@ -2260,7 +2536,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (isEmpty) {
               const cleanup = addSkeletonToContainer(repliesContainer);
-              activeSkeletons.set(repliesContainer, cleanup);
+              activeSkeletons.set(repliesContainer, {
+                cleanup: cleanup,
+                contentLoaded: false,
+                startTime: Date.now()
+              });
             }
           }
         }, 50);
@@ -2277,7 +2557,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add skeleton before loading
         if (repliesContainer && !activeSkeletons.has(repliesContainer)) {
           const cleanup = addSkeletonToContainer(repliesContainer);
-          activeSkeletons.set(repliesContainer, cleanup);
+          activeSkeletons.set(repliesContainer, {
+            cleanup: cleanup,
+            contentLoaded: false,
+            startTime: Date.now()
+          });
         }
         
         // Call original function
