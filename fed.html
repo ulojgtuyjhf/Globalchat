@@ -3,919 +3,645 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NewsPortal</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>Follow Suggestions</title>
     <style>
-    :root {
-        --primary-color: #1da1f2;
-        --bg-color: #ffffff;
-        --card-bg: #ffffff;
-        --text-color: #0f1419;
-        --shadow-color: rgba(0, 0, 0, 0.08);
-        --chip-bg: #f0f2f5;
-        --chip-hover: #e4e6eb;
-        --chip-active: #1da1f2;
-        --search-bg: #f0f2f5;
-        --suggestion-bg: #f8f9fa;
-        --glossy-gradient: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 50%);
-    }
-
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    body {
-        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-        background-color: var(--bg-color);
-        color: var(--text-color);
-        min-height: 100vh;
-    }
-
-    /* Search Bar Styles */
-    .search-container {
-        padding: 1.2rem 1rem;
-        background-color: var(--bg-color);
-        border-bottom: 1px solid var(--shadow-color);
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-    }
-
-    .search-wrapper {
-        position: relative;
-        max-width: 600px;
-        margin: 0 auto;
-        border-radius: 25px;
-        transition: all 0.3s ease;
-    }
-
-    .search-wrapper:focus-within {
-        box-shadow: 0 2px 8px rgba(29, 161, 242, 0.15);
-    }
-
-    #searchInput {
-        width: 100%;
-        padding: 0.9rem 3.5rem 0.9rem 3rem;
-        font-size: 1rem;
-        border: none;
-        border-radius: 25px;
-        background: var(--search-bg);
-        color: var(--text-color);
-        transition: all 0.3s ease;
-        font-weight: 500;
-    }
-
-    #searchInput:focus {
-        outline: none;
-        background: white;
-        box-shadow: 0 0 0 2px var(--primary-color);
-    }
-
-    .search-icon {
-        position: absolute;
-        left: 1.2rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #65676b;
-        pointer-events: none;
-        font-size: 1rem;
-    }
-
-    .search-assistant {
-        position: absolute;
-        right: 1.2rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--primary-color);
-        font-size: 0.75rem;
-        background: rgba(29, 161, 242, 0.1);
-        padding: 0.25rem 0.6rem;
-        border-radius: 12px;
-        opacity: 0;
-        transition: opacity 0.2s ease;
-        font-weight: 500;
-    }
-
-    .search-assistant.active {
-        opacity: 1;
-    }
-
-    .search-suggestions {
-        position: absolute;
-        top: calc(100% + 5px);
-        left: 0;
-        right: 0;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-        z-index: 1001;
-        display: none;
-        max-height: 350px;
-        overflow-y: auto;
-        border: 1px solid #e4e6eb;
-    }
-
-    .search-suggestions.active {
-        display: block;
-        animation: fadeIn 0.2s ease-out;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-5px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .suggestion-item {
-        padding: 0.9rem 1.2rem;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 0.8rem;
-        transition: background-color 0.15s ease;
-    }
-
-    .suggestion-item:hover {
-        background-color: var(--suggestion-bg);
-    }
-
-    .suggestion-icon {
-        color: #65676b;
-        width: 20px;
-        text-align: center;
-        font-size: 0.9rem;
-    }
-
-    /* Category Chips Bar - Horizontal Scrolling */
-    .category-chips-container {
-        position: sticky;
-        top: 60px;
-        background: var(--bg-color);
-        padding: 1rem 1rem 0.8rem;
-        z-index: 999;
-        border-bottom: 1px solid var(--shadow-color);
-        overflow-x: auto;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-    }
-
-    .category-chips-container::-webkit-scrollbar {
-        display: none;
-    }
-
-    .category-chips {
-        display: flex;
-        gap: 0.8rem;
-        width: max-content;
-        padding-bottom: 0.5rem;
-    }
-
-    .category-chip {
-        background: var(--chip-bg);
-        border: none;
-        padding: 0.6rem 1.2rem;
-        border-radius: 100px;
-        font-size: 0.9rem;
-        white-space: nowrap;
-        cursor: pointer;
-        transition: all 0.25s ease;
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        font-weight: 500;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    }
-
-    .category-chip:hover {
-        background: var(--chip-hover);
-        transform: translateY(-1px);
-    }
-
-    .category-chip.active {
-        background: var(--chip-active);
-        color: white;
-        box-shadow: 0 2px 6px rgba(29, 161, 242, 0.3);
-    }
-
-    .category-chip i {
-        font-size: 0.9rem;
-    }
-
-    /* News Feed Styles - Glossy Cards */
-    #newsFeed {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 1.8rem;
-        padding: 1.5rem;
-    }
-
-    .news-card {
-        background: var(--card-bg);
-        border-radius: 14px;
-        overflow: hidden;
-        box-shadow: 0 3px 8px var(--shadow-color);
-        transition: all 0.3s ease;
-        cursor: pointer;
-        position: relative;
-        border: 1px solid #e4e6eb;
-    }
-
-    .news-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 60%;
-        background: var(--glossy-gradient);
-        z-index: 1;
-        pointer-events: none;
-        border-radius: 14px 14px 0 0;
-    }
-
-    .news-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-    }
-
-    .news-image {
-        width: 100%;
-        height: 180px;
-        object-fit: cover;
-        transition: transform 0.3s ease;
-    }
-
-    .news-card:hover .news-image {
-        transform: scale(1.03);
-    }
-
-    .news-content {
-        padding: 1.2rem;
-        position: relative;
-        z-index: 2;
-    }
-
-    .news-title {
-        font-size: 1.15rem;
-        font-weight: 600;
-        margin-bottom: 0.6rem;
-        line-height: 1.35;
-        color: var(--text-color);
-    }
-
-    .news-snippet {
-        color: #65676b;
-        font-size: 0.92rem;
-        line-height: 1.45;
-        margin-bottom: 1rem;
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
-    .news-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: 0.82rem;
-        color: #65676b;
-    }
-
-    .news-date {
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-    }
-
-    .news-date i {
-        font-size: 0.8rem;
-    }
-
-    /* Loading and Empty States */
-    .loading {
-        display: flex;
-        justify-content: center;
-        padding: 3rem;
-        grid-column: 1 / -1;
-    }
-
-    .spinner {
-        width: 42px;
-        height: 42px;
-        border: 4px solid rgba(29, 161, 242, 0.15);
-        border-top-color: var(--primary-color);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-
-    .empty-state {
-        grid-column: 1 / -1;
-        text-align: center;
-        padding: 3rem;
-        color: #65676b;
-    }
-
-    .empty-state i {
-        font-size: 2.2rem;
-        margin-bottom: 1.2rem;
-        color: var(--primary-color);
-    }
-
-    .empty-state h3 {
-        font-size: 1.3rem;
-        margin-bottom: 0.5rem;
-        color: var(--text-color);
-    }
-
-    /* Responsive Adjustments */
-    @media (max-width: 768px) {
-        #newsFeed {
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
-            padding: 1rem;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
-
-        .category-chips {
-            gap: 0.6rem;
+        
+        body {
+            background-color: #15202b;
+            color: #ffffff;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 15px;
         }
-
-        .category-chip {
-            padding: 0.5rem 1rem;
-            font-size: 0.85rem;
+        
+        .profile-section {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background-color: #192734;
+            border-radius: 15px;
+            margin-bottom: 20px;
         }
-
-        #searchInput {
-            padding: 0.8rem 3rem 0.8rem 2.8rem;
+        
+        .profile-pic {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+            border: 2px solid #1da1f2;
         }
-
-        .search-icon {
-            left: 1rem;
+        
+        .profile-info {
+            flex: 1;
         }
-    }
-
-    @media (max-width: 480px) {
-        .search-container {
-            padding: 1rem 0.8rem;
+        
+        .profile-name {
+            font-weight: 800;
+            font-size: 18px;
+            margin-bottom: 3px;
         }
-
-        .category-chips {
-            gap: 0.5rem;
+        
+        .profile-username {
+            color: #8899a6;
+            font-size: 15px;
+            margin-bottom: 8px;
         }
-
-        .category-chip {
-            padding: 0.5rem 0.9rem;
-            font-size: 0.8rem;
+        
+        .profile-stats {
+            display: flex;
+            font-size: 14px;
+            color: #8899a6;
         }
-
-        .news-card {
-            border-radius: 12px;
+        
+        .profile-stats span {
+            margin-right: 15px;
         }
-
-        .news-image {
-            height: 160px;
+        
+        .profile-stats strong {
+            color: #ffffff;
         }
-    }
-</style>
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 800;
+            margin: 10px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #38444d;
+        }
+        
+        .user-card {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background-color: #192734;
+            border-radius: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .user-pic {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 12px;
+        }
+        
+        .user-info {
+            flex: 1;
+        }
+        
+        .user-name {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 2px;
+        }
+        
+        .user-username {
+            color: #8899a6;
+            font-size: 14px;
+        }
+        
+        .follow-btn {
+            background-color: #ffffff;
+            color: #0f1419;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .follow-btn.followed {
+            background-color: transparent;
+            color: #ffffff;
+            border: 1px solid #536471;
+        }
+        
+        .follow-btn:hover {
+            background-color: #e6e6e6;
+        }
+        
+        .follow-btn.followed:hover {
+            background-color: rgba(29, 161, 242, 0.1);
+            border-color: #1da1f2;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #8899a6;
+            font-size: 16px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #8899a6;
+        }
+        
+        .load-more {
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        .load-more-btn {
+            background-color: transparent;
+            color: #1da1f2;
+            border: 1px solid #1da1f2;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .load-more-btn:hover {
+            background-color: rgba(29, 161, 242, 0.1);
+        }
+        
+        .switch-btn {
+            background-color: transparent;
+            color: #1da1f2;
+            border: 1px solid #1da1f2;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            display: block;
+            width: 100%;
+            text-align: center;
+        }
+    </style>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
-    <!-- Search Bar -->
-    <div class="search-container">
-        <div class="search-wrapper">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" id="searchInput" placeholder="Search news...">
-            <span class="search-assistant">Search assistant</span>
-            <div class="search-suggestions" id="searchSuggestions">
-                <!-- Suggestions will appear here -->
+    <div class="profile-section">
+        <img src="https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png" class="profile-pic" id="myProfilePic">
+        <div class="profile-info">
+            <div class="profile-name" id="myProfileName">Loading...</div>
+            <div class="profile-username" id="myUsername">@username</div>
+            <div class="profile-stats">
+                <span><strong id="followingCount">0</strong> Following</span>
+                <span><strong id="followersCount">0</strong> Followers</span>
             </div>
         </div>
     </div>
-
-    <!-- Category Chips Bar -->
-    <div class="category-chips-container">
-        <div class="category-chips">
-            
-            <button class="category-chip" data-category="technology">
-                <i class="fas fa-microchip"></i>
-                Technology
-            </button>
-            <button class="category-chip" data-category="business">
-                <i class="fas fa-chart-line"></i>
-                Business
-            </button>
-            <button class="category-chip" data-category="politics">
-                <i class="fas fa-landmark"></i>
-                Politics
-            </button>
-            <button class="category-chip" data-category="entertainment">
-                <i class="fas fa-film"></i>
-                Entertainment
-            </button>
-            <button class="category-chip" data-category="sports">
-                <i class="fas fa-running"></i>
-                Sports
-            </button>
-            <button class="category-chip" data-category="health">
-                <i class="fas fa-heartbeat"></i>
-                Health
-            </button>
-            <button class="category-chip" data-category="science">
-                <i class="fas fa-atom"></i>
-                Science
-            </button>
-            <button class="category-chip" data-category="world">
-                <i class="fas fa-globe-americas"></i>
-                World
-            </button>
-        </div>
+    
+    <button class="switch-btn" id="switchViewBtn">Switch to Following</button>
+    
+    <div class="section-title" id="sectionTitle">Suggestions for you</div>
+    
+    <div id="usersContainer">
+        <div class="loading">Loading suggestions...</div>
     </div>
-
-    <!-- Main Content -->
-    <main>
-        <div id="newsFeed">
-            <div class="loading">
-                <div class="spinner"></div>
-            </div>
-        </div>
-    </main>
-
+    
+    <div class="load-more" id="loadMoreContainer" style="display: none;">
+        <button class="load-more-btn" id="loadMoreBtn">Show more</button>
+    </div>
+    
     <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('searchInput');
-    const searchAssistant = document.querySelector('.search-assistant');
-    const searchSuggestions = document.getElementById('searchSuggestions');
-    const categoryChips = document.querySelectorAll('.category-chip');
-    const newsFeed = document.getElementById('newsFeed');
-    
-    let currentCategory = 'technology'; // Changed default to technology
-    let currentSearch = '';
-    let searchTimeout;
-    
-    // Show loading state
-    function showLoading() {
-      newsFeed.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-    }
-    
-    // Show empty state
-    function showEmptyState() {
-      newsFeed.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-newspaper"></i>
-                <h3>No articles found</h3>
-                <p>Try a different search term or category</p>
-            </div>
-        `;
-    }
-    
-    // Format date as "Month Day, Year"
-    function formatDate(date) {
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    }
-    
-    // Get current date
-    function getCurrentDate() {
-      return formatDate(new Date());
-    }
-    
-    // Fetch search suggestions from Wikipedia
-    async function fetchSuggestions(query) {
-      if (!query || query.length < 2) return [];
-      
-      try {
-        const response = await fetch(
-          `https://en.wikipedia.org/w/api.php?` +
-          `origin=*&` +
-          `action=opensearch&` +
-          `format=json&` +
-          `search=${encodeURIComponent(query)}&` +
-          `limit=5`
-        );
-        const data = await response.json();
-        return data[1] || [];
-      } catch (error) {
-        console.error('Error fetching suggestions:', error);
-        return [];
-      }
-    }
-    
-    // Display search suggestions
-    async function showSuggestions(query) {
-      const suggestions = await fetchSuggestions(query);
-      searchSuggestions.innerHTML = '';
-      
-      if (suggestions.length === 0) {
-        hideSuggestions();
-        return;
-      }
-      
-      suggestions.forEach(suggestion => {
-        const item = document.createElement('div');
-        item.className = 'suggestion-item';
-        item.innerHTML = `
-                <div class="suggestion-icon"><i class="fas fa-search"></i></div>
-                <div>${suggestion}</div>
-            `;
-        item.addEventListener('click', () => {
-          searchInput.value = suggestion;
-          searchInput.focus();
-          hideSuggestions();
-        });
-        searchSuggestions.appendChild(item);
-      });
-      
-      searchSuggestions.classList.add('active');
-    }
-    
-    // Hide search suggestions
-    function hideSuggestions() {
-      searchSuggestions.classList.remove('active');
-    }
-    
-    // Fetch articles from Wikipedia (1 text + 1 image)
-    async function fetchArticles(query = '', category = 'technology') { // Changed default to technology
-      showLoading();
-      
-      try {
-        // First fetch text article
-        const textResponse = await fetch(
-          `https://en.wikipedia.org/w/api.php?` +
-          `origin=*&` +
-          `action=query&` +
-          `format=json&` +
-          `generator=search&` +
-          `gsrnamespace=0&` +
-          `gsrlimit=1&` +
-          `gsrsearch=${encodeURIComponent(query || category)}&` +
-          `prop=extracts&` +
-          `exintro&` +
-          `explaintext&` +
-          `exchars=200`
-        );
-        const textData = await textResponse.json();
+        // Firebase Configuration (same as your chat.js)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+            authDomain: "globalchat-2d669.firebaseapp.com",
+            projectId: "globalchat-2d669",
+            messagingSenderId: "178714711978",
+            appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
+        };
         
-        // Then fetch image article (with retry logic)
-        let imageArticle = null;
-        let attempts = 0;
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
         
-        while (!imageArticle && attempts < 3) {
-          const imageResponse = await fetch(
-            `https://en.wikipedia.org/w/api.php?` +
-            `origin=*&` +
-            `action=query&` +
-            `format=json&` +
-            `generator=search&` +
-            `gsrnamespace=0&` +
-            `gsrlimit=1&` +
-            `gsrsearch=${encodeURIComponent(query || category)}&` +
-            `prop=pageimages|extracts&` +
-            `pithumbsize=500&` +
-            `pilimit=1&` +
-            `exintro&` +
-            `explaintext&` +
-            `exchars=200`
-          );
-          const imageData = await imageResponse.json();
-          
-          if (imageData.query?.pages) {
-            const potentialArticle = Object.values(imageData.query.pages)[0];
-            if (potentialArticle.thumbnail) {
-              imageArticle = potentialArticle;
+        // App State (same as your chat.js)
+        const LOCAL_STORAGE_CONVERSATION_STATUS_KEY = 'conversationStatus';
+        const MAX_SUGGESTIONS = 5;
+        let currentUser = null;
+        let followedUsers = new Set();
+        let allUsers = [];
+        let conversationStatus = {};
+        let lastVisibleUser = null;
+        let hasMoreUsers = true;
+        let currentView = 'suggestions'; // 'suggestions' or 'following'
+        
+        // Initialize the app
+        function initApp() {
+            // Load conversation status from local storage (same as chat.js)
+            loadConversationStatus();
+            
+            // Set up auth state listener (same as chat.js)
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    try {
+                        // Get user document from Firestore (same as chat.js)
+                        const userDoc = await db.collection('users').doc(user.uid).get();
+                        const userData = userDoc.data() || {};
+                        
+                        currentUser = {
+                            uid: user.uid,
+                            displayName: user.displayName || userData.displayName || "User" + Math.floor(Math.random() * 10000),
+                            photoURL: user.photoURL || userData.photoURL || "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png"
+                        };
+                        
+                        // Create user in database if not exists (same as chat.js)
+                        if (!userDoc.exists()) {
+                            await db.collection('users').doc(user.uid).set({
+                                displayName: currentUser.displayName,
+                                photoURL: currentUser.photoURL,
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        }
+                        
+                        // Update UI with current user info
+                        myProfilePic.src = currentUser.photoURL;
+                        myProfileName.textContent = currentUser.displayName;
+                        myUsername.textContent = '@' + (userData.username || currentUser.displayName.toLowerCase().replace(/\s/g, ''));
+                        
+                        // Fetch followed users (same as chat.js)
+                        await fetchFollowedUsers();
+                        
+                        // Load initial suggestions
+                        await loadSuggestions();
+                        
+                    } catch (error) {
+                        console.error('Error initializing user:', error);
+                        usersContainer.innerHTML = '<div class="empty-state">Error loading suggestions</div>';
+                    }
+                } else {
+                    // Sign in anonymously if no user (same as chat.js)
+                    auth.signInAnonymously()
+                        .catch((error) => {
+                            console.error('Anonymous auth error:', error);
+                            usersContainer.innerHTML = '<div class="empty-state">Error authenticating</div>';
+                        });
+                }
+            });
+            
+            // Set up switch view button
+            document.getElementById('switchViewBtn').addEventListener('click', toggleView);
+            
+            // Set up load more button
+            document.getElementById('loadMoreBtn').addEventListener('click', loadMoreSuggestions);
+        }
+        
+        // Load conversation status from local storage (same as chat.js)
+        function loadConversationStatus() {
+            try {
+                const storedStatus = localStorage.getItem(LOCAL_STORAGE_CONVERSATION_STATUS_KEY);
+                if (storedStatus) {
+                    conversationStatus = JSON.parse(storedStatus);
+                }
+            } catch (error) {
+                console.error('Error loading conversation status:', error);
+                conversationStatus = {};
             }
-          }
-          attempts++;
         }
         
-        // Combine results
-        const articles = [];
-        
-        if (textData.query?.pages) {
-          const textArticle = Object.values(textData.query.pages)[0];
-          articles.push({
-            ...textArticle,
-            thumbnail: null,
-            date: getCurrentDate()
-          });
+        // Save conversation status to local storage (same as chat.js)
+        function saveConversationStatus() {
+            try {
+                localStorage.setItem(LOCAL_STORAGE_CONVERSATION_STATUS_KEY, JSON.stringify(conversationStatus));
+            } catch (error) {
+                console.error('Error saving conversation status:', error);
+            }
         }
         
-        if (imageArticle) {
-          articles.push({
-            ...imageArticle,
-            date: getCurrentDate()
-          });
+        // Fetch followed users from Firestore (same as chat.js)
+        async function fetchFollowedUsers() {
+            if (!currentUser) return;
+            
+            try {
+                const followQuery = db.collection('follows')
+                    .where('followerUserId', '==', currentUser.uid);
+                
+                const querySnapshot = await followQuery.get();
+                
+                followedUsers.clear();
+                querySnapshot.forEach(doc => {
+                    const followedUserId = doc.data().followedUserId;
+                    followedUsers.add(followedUserId);
+                    
+                    // Mark this conversation as "full" in local storage (same as chat.js)
+                    conversationStatus[followedUserId] = 'full';
+                });
+                
+                // Save updated conversation status (same as chat.js)
+                saveConversationStatus();
+                
+                // Update following count
+                followingCount.textContent = followedUsers.size;
+                
+            } catch (error) {
+                console.error('Error fetching followed users:', error);
+            }
         }
         
-        if (articles.length > 0) {
-          displayArticles(articles);
-        } else {
-          showEmptyState();
+        // Toggle between suggestions and following views
+        function toggleView() {
+            currentView = currentView === 'suggestions' ? 'following' : 'suggestions';
+            
+            // Update button text
+            document.getElementById('switchViewBtn').textContent = 
+                currentView === 'suggestions' ? 'Switch to Following' : 'Switch to Suggestions';
+            
+            // Update section title
+            document.getElementById('sectionTitle').textContent = 
+                currentView === 'suggestions' ? 'Suggestions for you' : 'People you follow';
+            
+            // Show/hide load more button
+            document.getElementById('loadMoreContainer').style.display = 
+                currentView === 'suggestions' && hasMoreUsers ? 'block' : 'none';
+            
+            // Load the appropriate content
+            if (currentView === 'suggestions') {
+                loadSuggestions();
+            } else {
+                showFollowing();
+            }
         }
-      } catch (error) {
-        console.error('Error fetching articles:', error);
-        showEmptyState();
-      }
-    }
-    
-    // Display articles in the feed
-    function displayArticles(articles) {
-      if (!articles || articles.length === 0) {
-        showEmptyState();
-        return;
-      }
-      
-      newsFeed.innerHTML = '';
-      
-      // Separate image and text articles
-      const imageArticle = articles.find(a => a.thumbnail);
-      const textArticle = articles.find(a => !a.thumbnail);
-      
-      // Always show image article first if available
-      if (imageArticle) {
-        const card = document.createElement('div');
-        card.className = 'news-card';
-        card.innerHTML = `
-                <img src="${imageArticle.thumbnail.source}" alt="${imageArticle.title}" class="news-image" loading="lazy">
-                <div class="news-content">
-                    <h3 class="news-title">${imageArticle.title}</h3>
-                    <p class="news-snippet">${imageArticle.extract || 'No description available.'}</p>
-                    <div class="news-footer">
-                        <span class="news-date"><i class="far fa-clock"></i> ${imageArticle.date}</span>
-                        <span><i class="fas fa-share-alt"></i></span>
-                    </div>
+        
+        // Load initial suggestions
+        async function loadSuggestions() {
+            try {
+                usersContainer.innerHTML = '<div class="loading">Loading suggestions...</div>';
+                
+                // Query for users not followed (same logic as chat.js)
+                let usersQuery = db.collection('users')
+                    .where('__name__', '!=', currentUser.uid)
+                    .orderBy('__name__')
+                    .limit(MAX_SUGGESTIONS);
+                
+                const querySnapshot = await usersQuery.get();
+                
+                if (querySnapshot.empty) {
+                    usersContainer.innerHTML = '<div class="empty-state">No suggestions available</div>';
+                    return;
+                }
+                
+                // Process users
+                allUsers = [];
+                querySnapshot.forEach(doc => {
+                    const userData = doc.data();
+                    allUsers.push({
+                        id: doc.id,
+                        name: userData.displayName || 'Anonymous',
+                        username: userData.username || userData.displayName?.toLowerCase().replace(/\s/g, '') || 'user' + Math.floor(Math.random() * 10000),
+                        photoURL: userData.photoURL || "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png"
+                    });
+                });
+                
+                // Get last user for pagination
+                lastVisibleUser = querySnapshot.docs[querySnapshot.docs.length-1];
+                hasMoreUsers = querySnapshot.docs.length === MAX_SUGGESTIONS;
+                
+                // Filter out already followed users
+                const suggestions = allUsers.filter(user => 
+                    !followedUsers.has(user.id) && conversationStatus[user.id] !== 'full'
+                );
+                
+                if (suggestions.length === 0) {
+                    usersContainer.innerHTML = '<div class="empty-state">No suggestions available</div>';
+                    return;
+                }
+                
+                // Display suggestions
+                renderUsers(suggestions);
+                
+                // Show load more button if there might be more users
+                document.getElementById('loadMoreContainer').style.display = hasMoreUsers ? 'block' : 'none';
+                
+            } catch (error) {
+                console.error('Error loading suggestions:', error);
+                usersContainer.innerHTML = '<div class="empty-state">Error loading suggestions</div>';
+            }
+        }
+        
+        // Load more suggestions
+        async function loadMoreSuggestions() {
+            try {
+                document.getElementById('loadMoreBtn').disabled = true;
+                document.getElementById('loadMoreBtn').textContent = 'Loading...';
+                
+                // Query for next batch of users
+                let usersQuery = db.collection('users')
+                    .where('__name__', '!=', currentUser.uid)
+                    .orderBy('__name__')
+                    .startAfter(lastVisibleUser)
+                    .limit(MAX_SUGGESTIONS);
+                
+                const querySnapshot = await usersQuery.get();
+                
+                if (querySnapshot.empty) {
+                    hasMoreUsers = false;
+                    document.getElementById('loadMoreContainer').style.display = 'none';
+                    return;
+                }
+                
+                // Process new users
+                const newUsers = [];
+                querySnapshot.forEach(doc => {
+                    const userData = doc.data();
+                    newUsers.push({
+                        id: doc.id,
+                        name: userData.displayName || 'Anonymous',
+                        username: userData.username || userData.displayName?.toLowerCase().replace(/\s/g, '') || 'user' + Math.floor(Math.random() * 10000),
+                        photoURL: userData.photoURL || "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png"
+                    });
+                });
+                
+                // Add to all users
+                allUsers = [...allUsers, ...newUsers];
+                
+                // Get last user for pagination
+                lastVisibleUser = querySnapshot.docs[querySnapshot.docs.length-1];
+                hasMoreUsers = querySnapshot.docs.length === MAX_SUGGESTIONS;
+                
+                // Filter out already followed users
+                const suggestions = newUsers.filter(user => 
+                    !followedUsers.has(user.id) && conversationStatus[user.id] !== 'full'
+                );
+                
+                // Display new suggestions
+                renderUsers(suggestions, true);
+                
+                // Show/hide load more button
+                document.getElementById('loadMoreContainer').style.display = hasMoreUsers ? 'block' : 'none';
+                document.getElementById('loadMoreBtn').disabled = false;
+                document.getElementById('loadMoreBtn').textContent = 'Show more';
+                
+            } catch (error) {
+                console.error('Error loading more suggestions:', error);
+                document.getElementById('loadMoreBtn').disabled = false;
+                document.getElementById('loadMoreBtn').textContent = 'Show more';
+            }
+        }
+        
+        // Show followed users
+        async function showFollowing() {
+            try {
+                usersContainer.innerHTML = '<div class="loading">Loading...</div>';
+                
+                // Get all followed users
+                const following = allUsers.filter(user => 
+                    followedUsers.has(user.id) || conversationStatus[user.id] === 'full'
+                );
+                
+                if (following.length === 0) {
+                    usersContainer.innerHTML = '<div class="empty-state">You\'re not following anyone yet</div>';
+                    return;
+                }
+                
+                renderUsers(following);
+                
+                // Hide load more button in following view
+                document.getElementById('loadMoreContainer').style.display = 'none';
+                
+            } catch (error) {
+                console.error('Error loading following:', error);
+                usersContainer.innerHTML = '<div class="empty-state">Error loading following</div>';
+            }
+        }
+        
+        // Render users to the UI
+        function renderUsers(users, append = false) {
+            if (!append) {
+                usersContainer.innerHTML = '';
+            }
+            
+            if (users.length === 0 && !append) {
+                usersContainer.innerHTML = '<div class="empty-state">No users found</div>';
+                return;
+            }
+            
+            users.forEach(user => {
+                createUserCard(user);
+            });
+        }
+        
+        // Create a user card element
+        function createUserCard(user) {
+            const userCard = document.createElement('div');
+            userCard.className = 'user-card';
+            
+            const isFollowing = followedUsers.has(user.id) || conversationStatus[user.id] === 'full';
+            
+            userCard.innerHTML = `
+                <img src="${user.photoURL}" class="user-pic" alt="${user.name}">
+                <div class="user-info">
+                    <div class="user-name">${user.name}</div>
+                    <div class="user-username">@${user.username}</div>
                 </div>
+                <button class="follow-btn ${isFollowing ? 'followed' : ''}" 
+                    data-user-id="${user.id}" 
+                    onclick="toggleFollow('${user.id}', '${user.name}')"
+                    style="display: ${user.id === currentUser?.uid ? 'none' : 'block'}">
+                    ${isFollowing ? 'Following' : 'Follow'}
+                </button>
             `;
-        newsFeed.appendChild(card);
-      }
-      
-      // Then show text article
-      if (textArticle) {
-        const card = document.createElement('div');
-        card.className = 'news-card';
-        card.innerHTML = `
-                <div class="news-content" style="padding-top: 1.5rem;">
-                    <h3 class="news-title">${textArticle.title}</h3>
-                    <p class="news-snippet">${textArticle.extract || 'No description available.'}</p>
-                    <div class="news-footer">
-                        <span class="news-date"><i class="far fa-clock"></i> ${textArticle.date}</span>
-                        <span><i class="fas fa-share-alt"></i></span>
-                    </div>
-                </div>
-            `;
-        newsFeed.appendChild(card);
-      }
-    }
-    
-    // Event listeners
-    searchInput.addEventListener('input', async () => {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(async () => {
-        const query = searchInput.value.trim();
-        if (query.length > 1) {
-          await showSuggestions(query);
-        } else {
-          hideSuggestions();
+            
+            usersContainer.appendChild(userCard);
         }
-      }, 300);
-    });
-    
-    searchInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        const query = searchInput.value.trim();
-        if (query) {
-          hideSuggestions();
-          fetchArticles(query, currentCategory);
-        }
-      }
-    });
-    
-    searchInput.addEventListener('focus', () => {
-      const query = searchInput.value.trim();
-      if (query.length > 1) {
-        showSuggestions(query);
-      }
-    });
-    
-    searchInput.addEventListener('blur', () => {
-      setTimeout(hideSuggestions, 200);
-    });
-    
-    categoryChips.forEach(chip => {
-      chip.addEventListener('click', () => {
-        categoryChips.forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        currentCategory = chip.dataset.category;
-        searchInput.value = '';
-        fetchArticles('', currentCategory);
-      });
-    });
-    
-    // Set technology chip as active by default
-    document.querySelector('.category-chip[data-category="technology"]').classList.add('active');
-    
-    // Initial load with technology articles
-    fetchArticles();
-  });
-</script>
-<script>
-  // COMPLETE THEME INTEGRATION FOR NEWSPORTAL
-  document.addEventListener('DOMContentLoaded', function() {
-    // 1. THEME CONFIGURATION
-    const themes = {
-      light: {
-        '--bg-color': '#ffffff',
-        '--card-bg': '#ffffff',
-        '--text-color': '#0f1419',
-        '--shadow-color': 'rgba(0, 0, 0, 0.08)',
-        '--chip-bg': '#f0f2f5',
-        '--chip-hover': '#e4e6eb',
-        '--chip-active': '#1da1f2',
-        '--search-bg': '#f0f2f5',
-        '--suggestion-bg': '#f8f9fa',
-        '--input-bg': '#f0f2f5',
-        '--input-text': '#0f1419',
-        '--input-focus-bg': '#ffffff',
-        '--placeholder-color': '#65676b',
-        '--search-icon': '#65676b',
-        '--assistant-text': '#1da1f2',
-        '--assistant-bg': 'rgba(29, 161, 242, 0.1)',
-        '--suggestions-bg': '#ffffff',
-        '--suggestions-text': '#0f1419',
-        '--suggestions-border': '#e4e6eb',
-        '--suggestions-hover': '#f8f9fa',
-        '--glossy-gradient': 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 50%)'
-      },
-      dim: {
-        '--bg-color': '#15202b',
-        '--card-bg': '#1e2732',
-        '--text-color': '#ffffff',
-        '--shadow-color': 'rgba(0, 0, 0, 0.3)',
-        '--chip-bg': '#1e2732',
-        '--chip-hover': '#38444d',
-        '--chip-active': '#1da1f2',
-        '--search-bg': '#1e2732',
-        '--suggestion-bg': '#38444d',
-        '--input-bg': '#1e2732',
-        '--input-text': '#ffffff',
-        '--input-focus-bg': '#38444d',
-        '--placeholder-color': '#8899a6',
-        '--search-icon': '#8899a6',
-        '--assistant-text': '#1da1f2',
-        '--assistant-bg': 'rgba(29, 161, 242, 0.2)',
-        '--suggestions-bg': '#1e2732',
-        '--suggestions-text': '#ffffff',
-        '--suggestions-border': '#38444d',
-        '--suggestions-hover': '#38444d',
-        '--glossy-gradient': 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)'
-      },
-      dark: {
-        '--bg-color': '#000000',
-        '--card-bg': '#16181c',
-        '--text-color': '#ffffff',
-        '--shadow-color': 'rgba(0, 0, 0, 0.5)',
-        '--chip-bg': '#16181c',
-        '--chip-hover': '#2f3336',
-        '--chip-active': '#1da1f2',
-        '--search-bg': '#16181c',
-        '--suggestion-bg': '#2f3336',
-        '--input-bg': '#16181c',
-        '--input-text': '#ffffff',
-        '--input-focus-bg': '#2f3336',
-        '--placeholder-color': '#71767b',
-        '--search-icon': '#71767b',
-        '--assistant-text': '#1da1f2',
-        '--assistant-bg': 'rgba(29, 161, 242, 0.3)',
-        '--suggestions-bg': '#16181c',
-        '--suggestions-text': '#ffffff',
-        '--suggestions-border': '#2f3336',
-        '--suggestions-hover': '#2f3336',
-        '--glossy-gradient': 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)'
-      }
-    };
-    
-    // 2. THEME APPLICATION
-    function applyTheme(theme) {
-      const themeSettings = themes[theme] || themes.light;
-      const root = document.documentElement;
-      
-      // Apply all CSS variables
-      Object.entries(themeSettings).forEach(([key, value]) => {
-        root.style.setProperty(key, value);
-      });
-      
-      // Special handling for search components
-      const searchInput = document.getElementById('searchInput');
-      const searchAssistant = document.querySelector('.search-assistant');
-      const searchIcon = document.querySelector('.search-icon');
-      const suggestions = document.getElementById('searchSuggestions');
-      
-      // Input styling
-      if (searchInput) {
-        searchInput.style.backgroundColor = themeSettings['--input-bg'];
-        searchInput.style.color = themeSettings['--input-text'];
         
-        // Dynamic style for focus state
-        const styleTag = document.getElementById('search-dynamic-styles') || document.createElement('style');
-        styleTag.id = 'search-dynamic-styles';
-        styleTag.textContent = `
-                #searchInput {
-                    background-color: ${themeSettings['--input-bg']} !important;
-                    color: ${themeSettings['--input-text']} !important;
-                }
-                #searchInput:focus {
-                    background-color: ${themeSettings['--input-focus-bg']} !important;
-                    color: ${themeSettings['--input-text']} !important;
-                }
-                #searchInput::placeholder {
-                    color: ${themeSettings['--placeholder-color']} !important;
-                }
-            `;
-        document.head.appendChild(styleTag);
-      }
-      
-      // Search assistant
-      if (searchAssistant) {
-        searchAssistant.style.color = themeSettings['--assistant-text'];
-        searchAssistant.style.backgroundColor = themeSettings['--assistant-bg'];
-        searchAssistant.style.opacity = '1';
-      }
-      
-      // Search icon
-      if (searchIcon) {
-        searchIcon.style.color = themeSettings['--search-icon'];
-      }
-      
-      // Suggestions dropdown
-      if (suggestions) {
-        suggestions.style.backgroundColor = themeSettings['--suggestions-bg'];
-        suggestions.style.borderColor = themeSettings['--suggestions-border'];
-      }
-    }
-    
-    // 3. COLOR PALETTE APPLICATION
-    function applyColorPalette(color) {
-      const root = document.documentElement;
-      root.style.setProperty('--primary-color', color);
-      root.style.setProperty('--chip-active', color);
-      
-      // Update search assistant
-      const assistant = document.querySelector('.search-assistant');
-      if (assistant) {
-        assistant.style.color = color;
-        assistant.style.backgroundColor = `${color}20`;
-      }
-      
-      // Update focus states
-      const styleTag = document.getElementById('color-dynamic-styles') || document.createElement('style');
-      styleTag.id = 'color-dynamic-styles';
-      styleTag.textContent = `
-            #searchInput:focus {
-                box-shadow: 0 0 0 2px ${color} !important;
+        // Toggle follow/unfollow (same as chat.js)
+        window.toggleFollow = async function(userId, userName) {
+            if (!currentUser) {
+                alert('Please log in to follow users');
+                return;
             }
-            .category-chip.active {
-                background: ${color} !important;
-                box-shadow: 0 2px 6px ${color}50 !important;
+            
+            try {
+                const followQuery = db.collection('follows')
+                    .where('followerUserId', '==', currentUser.uid)
+                    .where('followedUserId', '==', userId);
+                
+                const followSnapshot = await followQuery.get();
+                
+                if (followSnapshot.empty) {
+                    // Follow the user (same as chat.js)
+                    await db.collection('follows').add({
+                        followerUserId: currentUser.uid,
+                        followedUserId: userId,
+                        followedUserName: userName,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    followedUsers.add(userId);
+                    
+                    // Mark conversation as "full" in local storage (same as chat.js)
+                    conversationStatus[userId] = 'full';
+                    saveConversationStatus();
+                    
+                    // Update button immediately
+                    const buttons = document.querySelectorAll(`[data-user-id="${userId}"]`);
+                    buttons.forEach(btn => {
+                        btn.classList.add('followed');
+                        btn.textContent = 'Following';
+                    });
+                    
+                    // Update following count
+                    followingCount.textContent = followedUsers.size;
+                    
+                    // If in suggestions view, remove the card
+                    if (currentView === 'suggestions') {
+                        const userCard = document.querySelector(`[data-user-id="${userId}"]`).closest('.user-card');
+                        if (userCard) {
+                            userCard.remove();
+                        }
+                    }
+                } else {
+                    // Unfollow the user (same as chat.js)
+                    followSnapshot.forEach(async (doc) => {
+                        await db.collection('follows').doc(doc.id).delete();
+                    });
+                    followedUsers.delete(userId);
+                    
+                    // Remove "full" status (same as chat.js)
+                    delete conversationStatus[userId];
+                    saveConversationStatus();
+                    
+                    // Update button immediately
+                    const buttons = document.querySelectorAll(`[data-user-id="${userId}"]`);
+                    buttons.forEach(btn => {
+                        btn.classList.remove('followed');
+                        btn.textContent = 'Follow';
+                    });
+                    
+                    // Update following count
+                    followingCount.textContent = followedUsers.size;
+                    
+                    // If in following view, remove the card
+                    if (currentView === 'following') {
+                        const userCard = document.querySelector(`[data-user-id="${userId}"]`).closest('.user-card');
+                        if (userCard) {
+                            userCard.remove();
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Follow/Unfollow error:', error);
+                alert('Failed to update follow status. Please try again.');
             }
-        `;
-      document.head.appendChild(styleTag);
-    }
-    
-    // 4. INITIALIZATION
-    function initialize() {
-      // Load saved theme
-      const savedTheme = localStorage.getItem('twitter-theme') || 'light';
-      applyTheme(savedTheme);
-      
-      // Load saved color
-      const savedColor = localStorage.getItem('color-value') || '#1da1f2';
-      applyColorPalette(savedColor);
-      
-      // Ensure search assistant is visible
-      setTimeout(() => {
-        const assistant = document.querySelector('.search-assistant');
-        if (assistant) assistant.style.opacity = '1';
-      }, 100);
-    }
-    
-    // 5. EVENT HANDLERS
-    window.addEventListener('storage', function(e) {
-      if (e.key === 'twitter-theme') applyTheme(e.newValue);
-      if (e.key === 'color-value') applyColorPalette(e.newValue);
-    });
-    
-    window.addEventListener('themeChanged', (e) => applyTheme(e.detail.theme));
-    window.addEventListener('chatColorChanged', (e) => applyColorPalette(e.detail.color));
-    
-    // 6. START EVERYTHING
-    initialize();
-  });
-</script>
+        };
+        
+        // Initialize the app when the page loads
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
 </body>
 </html>
