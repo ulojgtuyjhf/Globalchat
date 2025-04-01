@@ -483,37 +483,45 @@ body {
     color: white;
 }
 
-/* Loading Animation - More subtle */
+/* Loading Animation - Subtle bounce */
 .loading-dots {
     display: flex;
     justify-content: center;
-    padding: 24px;
+    padding: 24px; /* Your original spacing */
 }
 
 .loading-dot {
-    width: 10px;
+    width: 10px; /* Your original size */
     height: 10px;
-    margin: 0 5px;
+    margin: 0 5px; /* Your original margin */
     border-radius: 50%;
     background-color: var(--primary-color);
-    opacity: 0.7;
-    transition: opacity 0.4s ease;
+    animation: subtle-bounce 1.2s infinite ease-in-out;
+}
+
+.loading-dot:nth-child(1) {
+    animation-delay: 0s;
 }
 
 .loading-dot:nth-child(2) {
-    transition-delay: 0.2s;
+    animation-delay: 0.2s; /* Your original delay */
 }
 
 .loading-dot:nth-child(3) {
-    transition-delay: 0.4s;
+    animation-delay: 0.4s; /* Your original delay */
 }
 
-/* Reply Section */
-.reply-input {
-    padding: 12px 0 0 70px;
-    margin-top: 6px;
-    transition: opacity 0.3s ease;
+@keyframes subtle-bounce {
+    0%, 100% {
+        transform: translateY(0);
+        opacity: 0.7; /* Your original opacity */
+    }
+    50% {
+        transform: translateY(-5px); /* Small bounce */
+        opacity: 1; /* Slightly more visible at peak */
+    }
 }
+
 
 .reply-wrapper {
     display: flex;
@@ -525,10 +533,10 @@ body {
     border: 1px solid var(--border-color);
 }
 
+
 .reply-wrapper:focus-within {
     background-color: #e8e8e8;
 }
-
 .reply-textarea {
     flex: 1;
     background: none;
@@ -2242,35 +2250,35 @@ body {
 
 
 <script>
-// Skeleton Loading Animation for Chat Comments
 (function() {
   // Configuration options
   const config = {
     animationDuration: '1.5s',
-    backgroundColor: '#253341',
-    highlightColor: '#38444d',
+    // These variables will now be taken from CSS, with fallbacks in case they are not set.
+    backgroundColor: 'var(--comment-bg, #253341)',
+    highlightColor: 'var(--comment-border, #38444d)',
     skeletonCount: 3,  // Number of skeleton items to show
-    containerSelector: '.reply-section, #reply-messages-',
+    containerSelector: '.reply-section, [id^="reply-messages-"]',
     loadingTextSelectors: ['.loading-replies', '.no-replies'],
-    minimumDisplayTime: 11000  // Minimum time in milliseconds to show skeleton (6 seconds)
+    minimumDisplayTime: 11000  // Minimum time in milliseconds to show skeleton
   };
 
-  // Create and inject CSS
+  // Create and inject CSS for skeleton animations using CSS variables for colors.
   function injectStyles() {
     const css = `
       @keyframes skeletonPulse {
         0% { background-position: -200px 0; }
         100% { background-position: calc(200px + 100%) 0; }
       }
-      
+
       .skeleton-item {
         display: flex;
         padding: 12px 16px;
         margin-bottom: 12px;
-        border-bottom: 1px solid #38444d;
+        border-bottom: 1px solid ${config.highlightColor};
         animation-duration: ${config.animationDuration};
       }
-      
+
       .skeleton-avatar {
         width: 36px;
         height: 36px;
@@ -2280,11 +2288,11 @@ body {
         background-size: 200% 100%;
         animation: skeletonPulse ${config.animationDuration} ease-in-out infinite;
       }
-      
+
       .skeleton-content {
         flex: 1;
       }
-      
+
       .skeleton-name {
         height: 14px;
         width: 120px;
@@ -2294,7 +2302,7 @@ body {
         background-size: 200% 100%;
         animation: skeletonPulse ${config.animationDuration} ease-in-out infinite;
       }
-      
+
       .skeleton-text {
         height: 10px;
         border-radius: 4px;
@@ -2303,86 +2311,73 @@ body {
         background-size: 200% 100%;
         animation: skeletonPulse ${config.animationDuration} ease-in-out infinite;
       }
-      
+
       .skeleton-text:last-child {
         width: 80%;
       }
     `;
-    
     const styleElement = document.createElement('style');
     styleElement.textContent = css;
     document.head.appendChild(styleElement);
   }
 
-  // Create skeleton UI elements
+  // Create skeleton UI element
   function createSkeletonElement() {
     const skeletonItem = document.createElement('div');
     skeletonItem.className = 'skeleton-item';
-    
+
     const avatar = document.createElement('div');
     avatar.className = 'skeleton-avatar';
-    
+
     const content = document.createElement('div');
     content.className = 'skeleton-content';
-    
+
     const name = document.createElement('div');
     name.className = 'skeleton-name';
-    
+
     const text1 = document.createElement('div');
     text1.className = 'skeleton-text';
     text1.style.width = '95%';
-    
+
     const text2 = document.createElement('div');
     text2.className = 'skeleton-text';
     text2.style.width = '60%';
-    
+
     content.appendChild(name);
     content.appendChild(text1);
     content.appendChild(text2);
-    
+
     skeletonItem.appendChild(avatar);
     skeletonItem.appendChild(content);
-    
+
     return skeletonItem;
   }
 
-  // Add skeleton items to a container
+  // Add skeleton items to a container and return a cleanup function.
   function addSkeletonToContainer(container) {
-    // Remove loading text if present
+    // Hide any loading text
     config.loadingTextSelectors.forEach(selector => {
       const loadingText = container.querySelector(selector);
       if (loadingText) {
         loadingText.style.display = 'none';
       }
     });
-    
-    // Create fragment to minimize DOM operations
+
     const fragment = document.createDocumentFragment();
-    
-    // Add multiple skeleton items
     for (let i = 0; i < config.skeletonCount; i++) {
       fragment.appendChild(createSkeletonElement());
     }
-    
     container.appendChild(fragment);
-    
-    // Track when this skeleton was added
+
     const startTime = Date.now();
-    
-    // Return a cleanup function that respects minimum display time
+
     return function cleanupSkeleton() {
-      const currentTime = Date.now();
-      const elapsedTime = currentTime - startTime;
-      
+      const elapsedTime = Date.now() - startTime;
       if (elapsedTime >= config.minimumDisplayTime) {
-        // If minimum time has passed, remove skeletons immediately
         performCleanup();
       } else {
-        // Otherwise, wait until minimum time has passed
-        const remainingTime = config.minimumDisplayTime - elapsedTime;
-        setTimeout(performCleanup, remainingTime);
+        setTimeout(performCleanup, config.minimumDisplayTime - elapsedTime);
       }
-      
       function performCleanup() {
         const skeletons = container.querySelectorAll('.skeleton-item');
         skeletons.forEach(skeleton => {
@@ -2390,8 +2385,6 @@ body {
             container.removeChild(skeleton);
           }
         });
-        
-        // Restore loading text if needed
         config.loadingTextSelectors.forEach(selector => {
           const loadingText = container.querySelector(selector);
           if (loadingText) {
@@ -2402,53 +2395,39 @@ body {
     };
   }
 
-  // Initialize and set up observers
+  // Initialize observers and patch functions to add skeleton loaders.
   function init() {
-    // Inject the CSS only once
     injectStyles();
-    
-    // Track currently active skeleton loaders
+
     const activeSkeletons = new Map();
-    
-    // Monitor DOM for reply sections being added
+
     const observer = new MutationObserver(mutations => {
       mutations.forEach(mutation => {
         mutation.addedNodes.forEach(node => {
           if (node.nodeType === Node.ELEMENT_NODE) {
-            // Check if this is a reply section
             if (node.classList && node.classList.contains('reply-section')) {
               const repliesContainer = node.querySelector('[id^="reply-messages-"]');
               if (repliesContainer) {
-                // Add skeleton and store cleanup function
                 const cleanup = addSkeletonToContainer(repliesContainer);
                 activeSkeletons.set(repliesContainer, {
                   cleanup: cleanup,
                   contentLoaded: false,
                   startTime: Date.now()
                 });
-                
-                // Monitor for child changes to detect when content is loaded
                 const contentObserver = new MutationObserver(contentMutations => {
                   contentMutations.forEach(contentMutation => {
                     if (contentMutation.addedNodes.length > 0) {
-                      // Check if real content is added (not skeleton or loading text)
                       const hasRealContent = Array.from(contentMutation.addedNodes).some(addedNode => {
-                        return addedNode.nodeType === Node.ELEMENT_NODE && 
+                        return addedNode.nodeType === Node.ELEMENT_NODE &&
                                !addedNode.classList.contains('skeleton-item') &&
                                !addedNode.classList.contains('loading-replies') &&
                                !addedNode.classList.contains('no-replies');
                       });
-                      
                       if (hasRealContent && activeSkeletons.has(repliesContainer)) {
-                        // Mark content as loaded but don't clean up yet
                         const skeletonInfo = activeSkeletons.get(repliesContainer);
                         skeletonInfo.contentLoaded = true;
-                        
-                        // Calculate remaining time to meet minimum display time
                         const elapsedTime = Date.now() - skeletonInfo.startTime;
                         const remainingTime = Math.max(0, config.minimumDisplayTime - elapsedTime);
-                        
-                        // Schedule cleanup after remaining time
                         if (remainingTime > 0) {
                           setTimeout(() => {
                             if (activeSkeletons.has(repliesContainer)) {
@@ -2458,32 +2437,23 @@ body {
                             }
                           }, remainingTime);
                         } else {
-                          // Clean up now if minimum time already passed
                           skeletonInfo.cleanup();
                           activeSkeletons.delete(repliesContainer);
                         }
-                        
-                        // Stop observing
                         contentObserver.disconnect();
                       }
                     }
                   });
                 });
-                
-                // Start observing for content changes
                 contentObserver.observe(repliesContainer, { childList: true });
               }
             }
-            
-            // Check existing elements within the added node
             const repliesContainers = node.querySelectorAll('[id^="reply-messages-"]');
             repliesContainers.forEach(container => {
-              // Only add skeleton if container is empty or only has loading text
-              const isEmpty = !container.childElementCount || 
-                             (container.childElementCount === 1 && 
-                              (container.querySelector('.loading-replies') || 
+              const isEmpty = !container.childElementCount ||
+                              (container.childElementCount === 1 &&
+                              (container.querySelector('.loading-replies') ||
                                container.querySelector('.no-replies')));
-              
               if (isEmpty && !activeSkeletons.has(container)) {
                 const cleanup = addSkeletonToContainer(container);
                 activeSkeletons.set(container, {
@@ -2495,11 +2465,8 @@ body {
             });
           }
         });
-        
-        // Handle removed nodes to clean up our tracking
         mutation.removedNodes.forEach(node => {
           if (node.nodeType === Node.ELEMENT_NODE) {
-            // Check if this is a reply section being removed
             if (node.classList && node.classList.contains('reply-section')) {
               const repliesContainer = node.querySelector('[id^="reply-messages-"]');
               if (repliesContainer && activeSkeletons.has(repliesContainer)) {
@@ -2510,30 +2477,24 @@ body {
         });
       });
     });
-    
-    // Start observing the whole document for added reply sections
-    observer.observe(document.body, { 
+
+    observer.observe(document.body, {
       childList: true,
       subtree: true
     });
-    
-    // Patch the toggleReplySection function to show skeleton loading
+
+    // Patch the toggleReplySection function to add skeleton loading.
     if (window.toggleReplySection) {
       const originalToggleReplySection = window.toggleReplySection;
       window.toggleReplySection = function(messageId) {
-        // Call original function
         originalToggleReplySection(messageId);
-        
-        // After a small delay, check if reply section exists and add skeleton
         setTimeout(() => {
           const repliesContainer = document.getElementById(`reply-messages-${messageId}`);
           if (repliesContainer && !activeSkeletons.has(repliesContainer)) {
-            // Only add skeleton if container is empty or only has loading text
-            const isEmpty = !repliesContainer.childElementCount || 
-                           (repliesContainer.childElementCount === 1 && 
-                            (repliesContainer.querySelector('.loading-replies') || 
+            const isEmpty = !repliesContainer.childElementCount ||
+                           (repliesContainer.childElementCount === 1 &&
+                            (repliesContainer.querySelector('.loading-replies') ||
                              repliesContainer.querySelector('.no-replies')));
-            
             if (isEmpty) {
               const cleanup = addSkeletonToContainer(repliesContainer);
               activeSkeletons.set(repliesContainer, {
@@ -2546,15 +2507,12 @@ body {
         }, 50);
       };
     }
-    
-    // Patch the loadReplies function
+
+    // Patch the loadReplies function to add skeleton loading.
     if (window.loadReplies) {
       const originalLoadReplies = window.loadReplies;
       window.loadReplies = function(parentMessageId) {
-        // Get the replies container
         const repliesContainer = document.getElementById(`reply-messages-${parentMessageId}`);
-        
-        // Add skeleton before loading
         if (repliesContainer && !activeSkeletons.has(repliesContainer)) {
           const cleanup = addSkeletonToContainer(repliesContainer);
           activeSkeletons.set(repliesContainer, {
@@ -2563,18 +2521,141 @@ body {
             startTime: Date.now()
           });
         }
-        
-        // Call original function
         originalLoadReplies(parentMessageId);
       };
     }
   }
 
-  // Initialize when DOM is fully loaded
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
 })();
+</script>
+<script>
+  (function() {
+    // CommentThemeManager: applies theme settings to the reply/comment section,
+    // including the reply input container ("rapper") around the input area.
+    const CommentThemeManager = {
+      // Define theme variables for each mode (light, dim, dark)
+      themeConfig: {
+        light: {
+          '--comment-bg': '#ffffff',
+          '--comment-text': '#333333',
+          '--comment-border': '#e0e0e0'
+        },
+        dim: {
+          '--comment-bg': '#1e2732',
+          '--comment-text': '#ffffff',
+          '--comment-border': '#38444d'
+        },
+        dark: {
+          '--comment-bg': '#080808',
+          '--comment-text': '#ffffff',
+          '--comment-border': '#121212'
+        }
+      },
+      styleElementId: 'comment-theme-manager-styles',
+      
+      initialize: function() {
+        this.createStyleElement();
+        this.applyCurrentTheme();
+        this.setupEventListeners();
+      },
+      
+      createStyleElement: function() {
+        const existingStyle = document.getElementById(this.styleElementId);
+        if (existingStyle) existingStyle.remove();
+        
+        const styleElement = document.createElement('style');
+        styleElement.id = this.styleElementId;
+        styleElement.setAttribute('data-origin', 'comment-theme-manager');
+        document.head.appendChild(styleElement);
+      },
+      
+      applyCurrentTheme: function() {
+        const themeName = localStorage.getItem('twitter-theme') || 'light';
+        this.applyTheme(themeName);
+      },
+      
+      applyTheme: function(themeName) {
+        const validThemes = ['light', 'dim', 'dark'];
+        const theme = validThemes.includes(themeName) ? themeName : 'light';
+        const themeVars = this.themeConfig[theme] || this.themeConfig.light;
+        let css = ':root {\n';
+        Object.entries(themeVars).forEach(([key, value]) => {
+          css += `  ${key}: ${value};\n`;
+        });
+        css += '}\n\n';
+        
+        // CSS rules to target the reply/comment section and its input container.
+        css += `
+        /* Reply/Comment Section Styling */
+        .reply-section {
+          background-color: var(--comment-bg) !important;
+          color: var(--comment-text) !important;
+          border-top: 1px solid var(--comment-border) !important;
+        }
+        .reply-section h3,
+        .reply-section .reply-header {
+          color: var(--comment-text) !important;
+        }
+        /* Style the reply input area */
+        .reply-section .reply-input {
+          background-color: var(--comment-bg) !important;
+          color: var(--comment-text) !important;
+          border: 1px solid var(--comment-border) !important;
+        }
+        /* Style the wrapper around the reply input (input container) */
+        .reply-section .reply-input-container {
+          background-color: var(--comment-bg) !important;
+          border: 1px solid var(--comment-border) !important;
+        }
+        /* Leave the send icon unchanged */
+        .reply-section .reply-send-btn svg {
+          fill: #1da1f2 !important;
+        }
+      `;
+        
+        const styleElement = document.getElementById(this.styleElementId);
+        if (styleElement) {
+          styleElement.textContent = css;
+        }
+      },
+      
+      setupEventListeners: function() {
+        // Listen for changes in localStorage for immediate theme updates.
+        window.addEventListener('storage', (e) => {
+          if (e.key === 'twitter-theme') {
+            this.applyTheme(e.newValue || 'light');
+          }
+        });
+        
+        // Periodic check to catch theme changes.
+        let lastKnownTheme = localStorage.getItem('twitter-theme') || 'light';
+        setInterval(() => {
+          const currentTheme = localStorage.getItem('twitter-theme') || 'light';
+          if (currentTheme !== lastKnownTheme) {
+            lastKnownTheme = currentTheme;
+            this.applyTheme(currentTheme);
+          }
+        }, 3000);
+      }
+    };
+    
+    // Initialize when DOM is ready.
+    function initCommentThemeManager() {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          CommentThemeManager.initialize();
+        });
+      } else {
+        CommentThemeManager.initialize();
+      }
+    }
+    
+    // Small delay to ensure other scripts have loaded.
+    setTimeout(initCommentThemeManager, 100);
+  })();
 </script>
