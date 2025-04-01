@@ -2767,169 +2767,169 @@ document.addEventListener('scroll', () => {
 </script>
 <script>
 
-// Clean, professional date headers for social media platform
+// Ultimate Date Headers for Professional Chat
 (function() {
-  // Store processed dates to avoid duplicates
-  let processedDates = new Set();
+  // Configuration - Add your purchased gradient here:
+  const HEADER_GRADIENT = 'linear-gradient(135deg, rgba(98,98,98,0.8) 0%, rgba(72,72,72,0.9) 100%)';
   
-  function addDateHeaders() {
-    const chatContainer = document.getElementById('chatContainer');
-    if (!chatContainer) return;
+  function initDateHeaders() {
+    const chat = document.getElementById('chatContainer');
+    if (!chat) return;
     
-    const messages = Array.from(document.querySelectorAll('.message'));
+    // Clear old headers first
+    removeExistingHeaders();
+    
+    // Process all messages
+    const messages = Array.from(chat.querySelectorAll('.message'));
     if (!messages.length) return;
     
-    processedDates.clear();
-    document.querySelectorAll('.date-header').forEach(el => el.remove());
+    let lastDateKey = null;
+    const processedDates = new Set();
     
-    let previousDate = null;
-    
-    messages.forEach((message) => {
-      if (!message.classList.contains('message')) return;
-      
-      const timestamp = extractTimestamp(message);
+    messages.forEach(message => {
+      const timestamp = getMessageTimestamp(message);
       if (!timestamp) return;
       
-      const dateKey = formatDateKey(timestamp);
-      const displayDate = formatDisplayDate(timestamp);
-      
-      if (dateKey !== previousDate && !processedDates.has(dateKey)) {
-        const dateHeader = createDateHeader(displayDate);
-        message.parentNode.insertBefore(dateHeader, message);
+      const dateKey = getDateKey(timestamp);
+      if (dateKey !== lastDateKey && !processedDates.has(dateKey)) {
+        const header = createHeaderElement(getDisplayText(timestamp));
+        message.parentNode.insertBefore(header, message);
+        
         processedDates.add(dateKey);
-        previousDate = dateKey;
+        lastDateKey = dateKey;
       }
     });
   }
   
-  function extractTimestamp(messageElement) {
+  function getMessageTimestamp(message) {
     try {
-      // First try to get from data attribute
-      if (messageElement.dataset.timestamp) {
-        return new Date(messageElement.dataset.timestamp);
+      // 1. Check for direct timestamp data
+      if (message.dataset.timestamp) {
+        return new Date(message.dataset.timestamp);
       }
       
-      // Then try to get from time element
-      const timeElement = messageElement.querySelector('.message-time');
-      if (!timeElement) return null;
-      
-      // Check for data attribute with full timestamp
-      if (timeElement.dataset.fullTimestamp) {
-        return new Date(parseInt(timeElement.dataset.fullTimestamp));
+      // 2. Check time element data
+      const timeElement = message.querySelector('.message-time');
+      if (timeElement?.dataset.timestamp) {
+        return new Date(parseInt(timeElement.dataset.timestamp));
       }
       
-      return new Date(); // Fallback to current date
+      // 3. Parse from visible time text as last resort
+      if (timeElement?.textContent) {
+        return parseTimeText(timeElement.textContent.trim());
+      }
+      
+      return null;
     } catch (e) {
-      console.error('Error parsing timestamp:', e);
-      return new Date();
+      console.error('Failed to parse timestamp:', e);
+      return null;
     }
   }
   
-  function formatDateKey(date) {
-    return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+  function parseTimeText(timeText) {
+    // Handle "HH:MM" format by assuming it's today
+    if (/^\d{1,2}:\d{2}$/.test(timeText)) {
+      const now = new Date();
+      const [hours, minutes] = timeText.split(':');
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+    }
+    return new Date(); // Fallback
   }
   
-  function formatDisplayDate(date) {
+  function getDateKey(date) {
+    return date.toISOString().split('T')[0]; // YYYY-MM-DD
+  }
+  
+  function getDisplayText(date) {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     
-    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const dayDiff = Math.floor((today - messageDate) / (1000 * 60 * 60 * 24));
     
-    if (dateOnly.getTime() === today.getTime()) {
-      return "Today";
-    } else if (dateOnly.getTime() === yesterday.getTime()) {
-      return "Yesterday";
-    } else {
-      // Format as "Month Day" (e.g., "June 15")
-      return date.toLocaleDateString(undefined, {
-        month: 'long',
-        day: 'numeric'
-      });
+    if (dayDiff === 0) return "Today";
+    if (dayDiff === 1) return "Yesterday";
+    if (dayDiff < 7) return date.toLocaleDateString(undefined, { weekday: 'long' }); // Wednesday
+    if (messageDate.getFullYear() === today.getFullYear()) {
+      return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric' }); // June 15
+    }
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }); // June 15, 2023
+  }
+  
+  function createHeaderElement(text) {
+    const header = document.createElement('div');
+    header.className = 'date-header';
+    
+    const label = document.createElement('div');
+    label.className = 'date-label';
+    label.textContent = text;
+    
+    // Glass morphism styling
+    label.style.display = 'inline-block';
+    label.style.padding = '6px 18px';
+    label.style.borderRadius = '20px';
+    label.style.fontSize = '13px';
+    label.style.fontWeight = '500';
+    label.style.color = '#fff';
+    label.style.textShadow = '0 1px 2px rgba(0,0,0,0.2)';
+    label.style.background = HEADER_GRADIENT;
+    label.style.border = '1px solid rgba(255,255,255,0.15)';
+    label.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+    
+    header.appendChild(label);
+    return header;
+  }
+  
+  function removeExistingHeaders() {
+    document.querySelectorAll('.date-header').forEach(el => el.remove());
+  }
+  
+  function setupMutationObserver() {
+    const observer = new MutationObserver(mutations => {
+      if (mutations.some(m => m.addedNodes.length > 0)) {
+        setTimeout(initDateHeaders, 50);
+      }
+    });
+    
+    const chat = document.getElementById('chatContainer');
+    if (chat) {
+      observer.observe(chat, { childList: true, subtree: false });
     }
   }
   
-  function createDateHeader(displayText) {
-    const dateHeader = document.createElement('div');
-    dateHeader.className = 'date-header';
-    
-    const wrapper = document.createElement('div');
-    wrapper.className = 'date-header-wrapper';
-    wrapper.textContent = displayText;
-    
-    // Clean, professional styling
-    dateHeader.style.textAlign = 'center';
-    dateHeader.style.padding = '12px 0';
-    dateHeader.style.margin = '16px 0';
-    dateHeader.style.clear = 'both';
-    
-    wrapper.style.display = 'inline-block';
-    wrapper.style.padding = '6px 12px';
-    wrapper.style.backgroundColor = '#f0f0f0';
-    wrapper.style.borderRadius = '4px';
-    wrapper.style.fontSize = '13px';
-    wrapper.style.fontWeight = '500';
-    wrapper.style.color = '#555';
-    
-    dateHeader.appendChild(wrapper);
-    return dateHeader;
-  }
-  
-  function setupObserver() {
-    const chatContainer = document.getElementById('chatContainer');
-    if (!chatContainer) return;
-    
-    const observer = new MutationObserver(function(mutations) {
-      let needsUpdate = false;
-      mutations.forEach(mutation => {
-        if (mutation.addedNodes.length > 0) {
-          needsUpdate = Array.from(mutation.addedNodes).some(
-            node => node.nodeType === 1 && node.classList.contains('message')
-          );
-        }
-      });
-      if (needsUpdate) setTimeout(addDateHeaders, 50);
-    });
-    
-    observer.observe(chatContainer, { childList: true });
-  }
-  
-  function init() {
-    // Add minimal styles
+  function addGlobalStyles() {
     const style = document.createElement('style');
     style.textContent = `
       .date-header {
-        position: relative;
-        margin: 16px 0;
         text-align: center;
+        margin: 16px 0;
+        position: relative;
       }
-      .date-header:before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background-color: #e0e0e0;
-        z-index: -1;
+      .date-header:first-child {
+        margin-top: 8px;
       }
     `;
     document.head.appendChild(style);
+  }
+  
+  // Initialize everything
+  function init() {
+    addGlobalStyles();
     
-    // Initialize
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
-          addDateHeaders();
-          setupObserver();
-        }, 1000);
+          initDateHeaders();
+          setupMutationObserver();
+        }, 300);
       });
     } else {
       setTimeout(() => {
-        addDateHeaders();
-        setupObserver();
-      }, 1000);
+        initDateHeaders();
+        setupMutationObserver();
+      }, 300);
     }
   }
   
