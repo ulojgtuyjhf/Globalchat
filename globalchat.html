@@ -2765,22 +2765,104 @@ document.addEventListener('scroll', () => {
 });
 
 </script>
-<script>
 
-// Ultimate Date Headers for Professional Chat
+
+
+<script>
+// Ultimate Date Headers with Enhanced Timestamps for Professional Chat
 (function() {
-  // Configuration - Add your purchased gradient here:
+  // Configuration - Customizable gradient
   const HEADER_GRADIENT = 'linear-gradient(135deg, rgba(98,98,98,0.8) 0%, rgba(72,72,72,0.9) 100%)';
   
+  // Enhanced timestamp formatter that works with the actual chat platform
+  function enhancedFormatTimestamp(timestamp) {
+    const messageDate = new Date(timestamp);
+    const now = new Date();
+    
+    // Format time as HH:MM
+    const hours = messageDate.getHours();
+    const minutes = messageDate.getMinutes().toString().padStart(2, '0');
+    const timeString = `${hours}:${minutes}`;
+    
+    // Check if it's today
+    if (messageDate.toDateString() === now.toDateString()) {
+      return `Today at ${timeString}`;
+    }
+    
+    // Check if it's yesterday
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (messageDate.toDateString() === yesterday.toDateString()) {
+      return `Yesterday at ${timeString}`;
+    }
+    
+    // Check if it's within the last week
+    const oneWeekAgo = new Date(now);
+    oneWeekAgo.setDate(now.getDate() - 7);
+    if (messageDate > oneWeekAgo) {
+      // Get day of week
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayOfWeek = days[messageDate.getDay()];
+      return `${dayOfWeek} at ${timeString}`;
+    }
+    
+    // Otherwise show full date
+    const month = messageDate.toLocaleString('default', { month: 'short' });
+    const day = messageDate.getDate();
+    return `${month} ${day} at ${timeString}`;
+  }
+  
+  // Function to update all message timestamps in the interface
+  function updateAllTimestamps() {
+    const timeElements = document.querySelectorAll('.message-time');
+    timeElements.forEach(element => {
+      // Extract timestamp from data attribute if available
+      const messageElement = element.closest('.message');
+      if (messageElement) {
+        const messageId = messageElement.getAttribute('data-message-id');
+        // Try to find the timestamp from local storage
+        try {
+          const localMessages = localStorage.getItem('localMessages');
+          if (localMessages) {
+            const messages = JSON.parse(localMessages);
+            const message = messages.find(m => m.id === messageId);
+            if (message && message.timestamp) {
+              element.textContent = enhancedFormatTimestamp(message.timestamp);
+            }
+          }
+        } catch (error) {
+          console.error('Error updating timestamps:', error);
+        }
+      }
+    });
+    
+    // Also update reply timestamps
+    const replyTimeElements = document.querySelectorAll('.reply-time');
+    replyTimeElements.forEach(element => {
+      // Similar logic for replies could be implemented here
+    });
+  }
+  
+  // Override the platform's timestamp formatter
+  if (window.formatTimestamp) {
+    window.originalFormatTimestamp = window.formatTimestamp;
+  }
+  window.formatTimestamp = enhancedFormatTimestamp;
+  
+  // Date headers functionality
   function initDateHeaders() {
-    const chat = document.getElementById('chatContainer');
-    if (!chat) return;
+    const chat = document.querySelector('.chat-container, #chatContainer, .message-list');
+    if (!chat) {
+      console.log('Chat container not found, retrying in 500ms');
+      setTimeout(initDateHeaders, 500);
+      return;
+    }
     
     // Clear old headers first
     removeExistingHeaders();
     
     // Process all messages
-    const messages = Array.from(chat.querySelectorAll('.message'));
+    const messages = Array.from(chat.querySelectorAll('.message, .chat-message'));
     if (!messages.length) return;
     
     let lastDateKey = null;
@@ -2803,15 +2885,33 @@ document.addEventListener('scroll', () => {
   
   function getMessageTimestamp(message) {
     try {
+      // Try getting timestamp from localStorage first (your preferred method)
+      const messageId = message.getAttribute('data-message-id');
+      if (messageId) {
+        try {
+          const localMessages = localStorage.getItem('localMessages');
+          if (localMessages) {
+            const messages = JSON.parse(localMessages);
+            const messageObj = messages.find(m => m.id === messageId);
+            if (messageObj && messageObj.timestamp) {
+              return new Date(messageObj.timestamp);
+            }
+          }
+        } catch (e) {
+          console.error('Error accessing localStorage:', e);
+        }
+      }
+      
+      // Fallback methods
       // 1. Check for direct timestamp data
       if (message.dataset.timestamp) {
-        return new Date(message.dataset.timestamp);
+        return new Date(parseInt(message.dataset.timestamp) || message.dataset.timestamp);
       }
       
       // 2. Check time element data
-      const timeElement = message.querySelector('.message-time');
+      const timeElement = message.querySelector('.message-time, .timestamp');
       if (timeElement?.dataset.timestamp) {
-        return new Date(parseInt(timeElement.dataset.timestamp));
+        return new Date(parseInt(timeElement.dataset.timestamp) || timeElement.dataset.timestamp);
       }
       
       // 3. Parse from visible time text as last resort
@@ -2827,17 +2927,68 @@ document.addEventListener('scroll', () => {
   }
   
   function parseTimeText(timeText) {
-    // Handle "HH:MM" format by assuming it's today
-    if (/^\d{1,2}:\d{2}$/.test(timeText)) {
+    // Handle various timestamp text formats
+    
+    // Format: "Today at 10:30"
+    if (timeText.includes('Today at')) {
+      const time = timeText.split('at')[1].trim();
+      const [hours, minutes] = time.split(':').map(Number);
       const now = new Date();
-      const [hours, minutes] = timeText.split(':');
       return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
     }
-    return new Date(); // Fallback
+    
+    // Format: "Yesterday at 10:30"
+    if (timeText.includes('Yesterday at')) {
+      const time = timeText.split('at')[1].trim();
+      const [hours, minutes] = time.split(':').map(Number);
+      const now = new Date();
+      now.setDate(now.getDate() - 1);
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+    }
+    
+    // Format: "Monday at 10:30" (day of week)
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    for (const day of days) {
+      if (timeText.includes(`${day} at`)) {
+        const time = timeText.split('at')[1].trim();
+        const [hours, minutes] = time.split(':').map(Number);
+        
+        const now = new Date();
+        const currentDay = now.getDay(); // 0-6
+        const targetDay = days.indexOf(day); // 0-6
+        
+        let daysToSubtract = currentDay - targetDay;
+        if (daysToSubtract < 0) daysToSubtract += 7;
+        
+        now.setDate(now.getDate() - daysToSubtract);
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+      }
+    }
+    
+    // Format: "HH:MM" (assume today)
+    if (/^\d{1,2}:\d{2}(?: [AP]M)?$/.test(timeText)) {
+      const now = new Date();
+      let [hours, minutesPart] = timeText.split(':');
+      let minutes = parseInt(minutesPart);
+      
+      hours = parseInt(hours);
+      
+      // Handle AM/PM if present
+      if (minutesPart.includes('PM') && hours < 12) {
+        hours += 12;
+      } else if (minutesPart.includes('AM') && hours === 12) {
+        hours = 0;
+      }
+      
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+    }
+    
+    // Last resort: Try direct parse
+    return new Date(timeText);
   }
   
   function getDateKey(date) {
-    return date.toISOString().split('T')[0]; // YYYY-MM-DD
+    return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
   }
   
   function getDisplayText(date) {
@@ -2851,11 +3002,11 @@ document.addEventListener('scroll', () => {
     
     if (dayDiff === 0) return "Today";
     if (dayDiff === 1) return "Yesterday";
-    if (dayDiff < 7) return date.toLocaleDateString(undefined, { weekday: 'long' }); // Wednesday
+    if (dayDiff < 7) return date.toLocaleDateString(undefined, { weekday: 'long' });
     if (messageDate.getFullYear() === today.getFullYear()) {
-      return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric' }); // June 15
+      return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
     }
-    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }); // June 15, 2023
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   }
   
   function createHeaderElement(text) {
@@ -2877,6 +3028,7 @@ document.addEventListener('scroll', () => {
     label.style.background = HEADER_GRADIENT;
     label.style.border = '1px solid rgba(255,255,255,0.15)';
     label.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+    label.style.backdropFilter = 'blur(0px)'; // Ensure it's not blurry
     
     header.appendChild(label);
     return header;
@@ -2889,23 +3041,32 @@ document.addEventListener('scroll', () => {
   function setupMutationObserver() {
     const observer = new MutationObserver(mutations => {
       if (mutations.some(m => m.addedNodes.length > 0)) {
-        setTimeout(initDateHeaders, 50);
+        setTimeout(() => {
+          initDateHeaders();
+          updateAllTimestamps();
+        }, 50);
       }
     });
     
-    const chat = document.getElementById('chatContainer');
+    const chat = document.querySelector('.chat-container, #chatContainer, .message-list');
     if (chat) {
-      observer.observe(chat, { childList: true, subtree: false });
+      observer.observe(chat, { childList: true, subtree: true });
+    } else {
+      setTimeout(setupMutationObserver, 500);
     }
   }
   
   function addGlobalStyles() {
+    if (document.getElementById('date-header-styles')) return;
+    
     const style = document.createElement('style');
+    style.id = 'date-header-styles';
     style.textContent = `
       .date-header {
         text-align: center;
         margin: 16px 0;
         position: relative;
+        z-index: 10;
       }
       .date-header:first-child {
         margin-top: 8px;
@@ -2918,19 +3079,25 @@ document.addEventListener('scroll', () => {
   function init() {
     addGlobalStyles();
     
+    function initialRun() {
+      initDateHeaders();
+      updateAllTimestamps();
+      setupMutationObserver();
+    }
+    
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-          initDateHeaders();
-          setupMutationObserver();
-        }, 300);
+        setTimeout(initialRun, 300);
       });
     } else {
-      setTimeout(() => {
-        initDateHeaders();
-        setupMutationObserver();
-      }, 300);
+      setTimeout(initialRun, 300);
     }
+    
+    // Periodically refresh timestamps and headers
+    setInterval(() => {
+      updateAllTimestamps();
+      initDateHeaders();
+    }, 60000);
   }
   
   init();
