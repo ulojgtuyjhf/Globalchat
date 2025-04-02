@@ -1,647 +1,485 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Follow Suggestions</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-        
-        body {
-            background-color: #15202b;
-            color: #ffffff;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 15px;
-        }
-        
-        .profile-section {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            background-color: #192734;
-            border-radius: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .profile-pic {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-right: 15px;
-            border: 2px solid #1da1f2;
-        }
-        
-        .profile-info {
-            flex: 1;
-        }
-        
-        .profile-name {
-            font-weight: 800;
-            font-size: 18px;
-            margin-bottom: 3px;
-        }
-        
-        .profile-username {
-            color: #8899a6;
-            font-size: 15px;
-            margin-bottom: 8px;
-        }
-        
-        .profile-stats {
-            display: flex;
-            font-size: 14px;
-            color: #8899a6;
-        }
-        
-        .profile-stats span {
-            margin-right: 15px;
-        }
-        
-        .profile-stats strong {
-            color: #ffffff;
-        }
-        
-        .section-title {
-            font-size: 18px;
-            font-weight: 800;
-            margin: 10px 0 15px 0;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #38444d;
-        }
-        
-        .user-card {
-            display: flex;
-            align-items: center;
-            padding: 12px 15px;
-            background-color: #192734;
-            border-radius: 15px;
-            margin-bottom: 10px;
-        }
-        
-        .user-pic {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-right: 12px;
-        }
-        
-        .user-info {
-            flex: 1;
-        }
-        
-        .user-name {
-            font-weight: 700;
-            font-size: 15px;
-            margin-bottom: 2px;
-        }
-        
-        .user-username {
-            color: #8899a6;
-            font-size: 14px;
-        }
-        
-        .follow-btn {
-            background-color: #ffffff;
-            color: #0f1419;
-            border: none;
-            border-radius: 20px;
-            padding: 8px 16px;
-            font-weight: 700;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        .follow-btn.followed {
-            background-color: transparent;
-            color: #ffffff;
-            border: 1px solid #536471;
-        }
-        
-        .follow-btn:hover {
-            background-color: #e6e6e6;
-        }
-        
-        .follow-btn.followed:hover {
-            background-color: rgba(29, 161, 242, 0.1);
-            border-color: #1da1f2;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #8899a6;
-            font-size: 16px;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #8899a6;
-        }
-        
-        .load-more {
-            text-align: center;
-            margin-top: 15px;
-        }
-        
-        .load-more-btn {
-            background-color: transparent;
-            color: #1da1f2;
-            border: 1px solid #1da1f2;
-            border-radius: 20px;
-            padding: 8px 16px;
-            font-weight: 700;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        .load-more-btn:hover {
-            background-color: rgba(29, 161, 242, 0.1);
-        }
-        
-        .switch-btn {
-            background-color: transparent;
-            color: #1da1f2;
-            border: 1px solid #1da1f2;
-            border-radius: 20px;
-            padding: 8px 16px;
-            font-weight: 700;
-            font-size: 14px;
-            cursor: pointer;
-            margin-bottom: 15px;
-            display: block;
-            width: 100%;
-            text-align: center;
-        }
-    </style>
-    
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Social Connections</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background-color: #ffffff;
+      color: #0f1419;
+      min-height: 100vh;
+      width: 100%;
+      overflow-y: auto;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    /* Profile Section */
+    .profile-section {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      background-color: #fff;
+      border-radius: 15px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+      border: 1px solid #e6ecf0;
+      justify-content: space-between;
+      position: relative;
+    }
+    .profile-left {
+      display: flex;
+      align-items: center;
+    }
+    .profile-pic {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-right: 15px;
+      border: 2px solid #ffffff;
+      display: none;
+    }
+    .profile-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .profile-name {
+      font-weight: 800;
+      font-size: 18px;
+      display: none;
+    }
+    /* Switch Button with fade-in animation */
+    .switch-btn {
+      background-color: #f7f9fa;
+      color: #0f1419;
+      border: 1px solid #cfd9de;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      opacity: 0;
+      animation: slideFadeIn 1s forwards;
+    }
+    .switch-btn:hover {
+      background-color: #e6ecf0;
+    }
+    @keyframes slideFadeIn {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    /* Centered Spinner container */
+    .spinner-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px 0;
+    }
+    /* Section Titles with Border */
+    .section-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin: 20px 0 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e6ecf0;
+    }
+    /* User Card – using a subtle bottom divider */
+    .user-card {
+      display: flex;
+      align-items: center;
+      padding: 12px 15px;
+      border-bottom: 1px solid #e6ecf0;
+      transition: opacity 0.5s ease-in;
+    }
+    /* Fade-in effect for newly added cards */
+    .fade-in {
+      opacity: 0;
+      animation: fadeIn 0.5s forwards;
+    }
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+    .user-pic {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-right: 12px;
+    }
+    .user-info {
+      flex: 1;
+    }
+    .user-name {
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 2px;
+    }
+    /* Follow Button with loading spinner */
+    .follow-btn {
+      background-color: #0f1419;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .follow-btn.followed {
+      background-color: #fff;
+      color: #0f1419;
+      border: 1px solid #cfd9de;
+    }
+    .follow-btn:hover {
+      background-color: #272c30;
+    }
+    .follow-btn.followed:hover {
+      background-color: #f7f9fa;
+      border-color: #0f1419;
+    }
+    /* Show More Button with inline spinner */
+    .show-more {
+      text-align: center;
+      padding: 12px;
+      color: #1da1f2;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+      border-radius: 15px;
+      background-color: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border: 1px solid #e6ecf0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .show-more:hover {
+      background-color: #f7f7f7;
+    }
+    /* Loading Spinner */
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(0,0,0,0.1);
+      border-radius: 50%;
+      border-top-color: #1da1f2;
+      animation: spin 1s ease-in-out infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    /* Responsive adjustments for mobile */
+    @media (max-width: 600px) {
+      .container {
+        padding: 15px;
+      }
+      .switch-btn {
+        padding: 6px 12px;
+        font-size: 13px;
+      }
+    }
+  </style>
+  
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
+  <div class="container">
+    <!-- Profile Section with Switch Button -->
     <div class="profile-section">
-        <img src="https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png" class="profile-pic" id="myProfilePic">
+      <div class="profile-left">
+        <div id="profileSpinner" class="loading-spinner" style="margin-right: 15px;"></div>
+        <img src="" class="profile-pic" id="myProfilePic" alt="Profile Picture">
         <div class="profile-info">
-            <div class="profile-name" id="myProfileName">Loading...</div>
-            <div class="profile-username" id="myUsername">@username</div>
-            <div class="profile-stats">
-                <span><strong id="followingCount">0</strong> Following</span>
-                <span><strong id="followersCount">0</strong> Followers</span>
-            </div>
+          <div class="profile-name" id="myProfileName"></div>
         </div>
+      </div>
+      <button class="switch-btn">Switch</button>
     </div>
     
-    <button class="switch-btn" id="switchViewBtn">Switch to Following</button>
-    
-    <div class="section-title" id="sectionTitle">Suggestions for you</div>
-    
-    <div id="usersContainer">
-        <div class="loading">Loading suggestions...</div>
+    <!-- Suggested Users Section -->
+    <div class="section-title">Suggested for you</div>
+    <div id="suggestedUsersContainer">
+      <div id="suggestedSpinner" class="spinner-container">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+    <div class="show-more" id="showMoreSuggested">
+      <span id="suggestedBtnSpinner" class="loading-spinner" style="display: none;"></span>
+      Show more
     </div>
     
-    <div class="load-more" id="loadMoreContainer" style="display: none;">
-        <button class="load-more-btn" id="loadMoreBtn">Show more</button>
+    <!-- Top Followed Section -->
+    <div id="topFollowedSection">
+      <div class="section-title">Top followed</div>
+      <div id="topFollowedUsersContainer">
+        <div id="topFollowedSpinner" class="spinner-container">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+      <div class="show-more" id="showMoreTopFollowed">
+        <span id="topFollowedBtnSpinner" class="loading-spinner" style="display: none;"></span>
+        Show more
+      </div>
     </div>
+  </div>
+  
+  <script>
+    // Global arrays to hold the ordered lists
+    let suggestedUsersOrdered = [];
+    let topFollowedOrdered = [];
     
-    <script>
-        // Firebase Configuration (same as your chat.js)
-        const firebaseConfig = {
-            apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
-            authDomain: "globalchat-2d669.firebaseapp.com",
-            projectId: "globalchat-2d669",
-            messagingSenderId: "178714711978",
-            appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
-        };
-        
-        // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        
-        // App State (same as your chat.js)
-        const LOCAL_STORAGE_CONVERSATION_STATUS_KEY = 'conversationStatus';
-        const MAX_SUGGESTIONS = 5;
-        let currentUser = null;
-        let followedUsers = new Set();
-        let allUsers = [];
-        let conversationStatus = {};
-        let lastVisibleUser = null;
-        let hasMoreUsers = true;
-        let currentView = 'suggestions'; // 'suggestions' or 'following'
-        
-        // Initialize the app
-        function initApp() {
-            // Load conversation status from local storage (same as chat.js)
-            loadConversationStatus();
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+      authDomain: "globalchat-2d669.firebaseapp.com",
+      projectId: "globalchat-2d669",
+      messagingSenderId: "178714711978",
+      appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
+    };
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    
+    // DOM Elements
+    const myProfilePic = document.getElementById('myProfilePic');
+    const myProfileName = document.getElementById('myProfileName');
+    const profileSpinner = document.getElementById('profileSpinner');
+    
+    const suggestedUsersContainer = document.getElementById('suggestedUsersContainer');
+    const suggestedSpinner = document.getElementById('suggestedSpinner');
+    const showMoreSuggested = document.getElementById('showMoreSuggested');
+    const suggestedBtnSpinner = document.getElementById('suggestedBtnSpinner');
+    
+    const topFollowedUsersContainer = document.getElementById('topFollowedUsersContainer');
+    const topFollowedSpinner = document.getElementById('topFollowedSpinner');
+    const topFollowedSection = document.getElementById('topFollowedSection');
+    const showMoreTopFollowed = document.getElementById('showMoreTopFollowed');
+    const topFollowedBtnSpinner = document.getElementById('topFollowedBtnSpinner');
+    
+    // App State
+    let currentUser = null;
+    let allUsers = [];
+    let suggestedUsers = [];   // currently displayed in Suggested section
+    let topFollowedUsers = []; // currently displayed in Top Followed section
+    const usersPerPage = 5;
+    
+    // Helper: Shuffle array (Fisher–Yates)
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+    
+    // Initialize the app
+    function initApp() {
+      auth.onAuthStateChanged(async (user) => {
+        if (user) {
+          try {
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            currentUser = {
+              uid: user.uid,
+              displayName: user.displayName || userDoc.data()?.displayName || "User" + Math.floor(Math.random() * 10000),
+              photoURL: user.photoURL || userDoc.data()?.photoURL || "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png"
+            };
+            myProfilePic.src = currentUser.photoURL;
+            myProfilePic.style.display = 'block';
+            myProfileName.textContent = currentUser.displayName;
+            myProfileName.style.display = 'block';
+            profileSpinner.style.display = 'none';
+            await loadAllUsers();
+            // Compute ordered array for Suggested
+            suggestedUsersOrdered = shuffle([...allUsers]);
+            suggestedUsers = suggestedUsersOrdered.slice(0, usersPerPage);
+            renderUsers(suggestedUsers, suggestedUsersContainer, false);
             
-            // Set up auth state listener (same as chat.js)
-            auth.onAuthStateChanged(async (user) => {
-                if (user) {
-                    try {
-                        // Get user document from Firestore (same as chat.js)
-                        const userDoc = await db.collection('users').doc(user.uid).get();
-                        const userData = userDoc.data() || {};
-                        
-                        currentUser = {
-                            uid: user.uid,
-                            displayName: user.displayName || userData.displayName || "User" + Math.floor(Math.random() * 10000),
-                            photoURL: user.photoURL || userData.photoURL || "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png"
-                        };
-                        
-                        // Create user in database if not exists (same as chat.js)
-                        if (!userDoc.exists()) {
-                            await db.collection('users').doc(user.uid).set({
-                                displayName: currentUser.displayName,
-                                photoURL: currentUser.photoURL,
-                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                            });
-                        }
-                        
-                        // Update UI with current user info
-                        myProfilePic.src = currentUser.photoURL;
-                        myProfileName.textContent = currentUser.displayName;
-                        myUsername.textContent = '@' + (userData.username || currentUser.displayName.toLowerCase().replace(/\s/g, ''));
-                        
-                        // Fetch followed users (same as chat.js)
-                        await fetchFollowedUsers();
-                        
-                        // Load initial suggestions
-                        await loadSuggestions();
-                        
-                    } catch (error) {
-                        console.error('Error initializing user:', error);
-                        usersContainer.innerHTML = '<div class="empty-state">Error loading suggestions</div>';
-                    }
-                } else {
-                    // Sign in anonymously if no user (same as chat.js)
-                    auth.signInAnonymously()
-                        .catch((error) => {
-                            console.error('Anonymous auth error:', error);
-                            usersContainer.innerHTML = '<div class="empty-state">Error authenticating</div>';
-                        });
-                }
-            });
-            
-            // Set up switch view button
-            document.getElementById('switchViewBtn').addEventListener('click', toggleView);
-            
-            // Set up load more button
-            document.getElementById('loadMoreBtn').addEventListener('click', loadMoreSuggestions);
-        }
-        
-        // Load conversation status from local storage (same as chat.js)
-        function loadConversationStatus() {
-            try {
-                const storedStatus = localStorage.getItem(LOCAL_STORAGE_CONVERSATION_STATUS_KEY);
-                if (storedStatus) {
-                    conversationStatus = JSON.parse(storedStatus);
-                }
-            } catch (error) {
-                console.error('Error loading conversation status:', error);
-                conversationStatus = {};
-            }
-        }
-        
-        // Save conversation status to local storage (same as chat.js)
-        function saveConversationStatus() {
-            try {
-                localStorage.setItem(LOCAL_STORAGE_CONVERSATION_STATUS_KEY, JSON.stringify(conversationStatus));
-            } catch (error) {
-                console.error('Error saving conversation status:', error);
-            }
-        }
-        
-        // Fetch followed users from Firestore (same as chat.js)
-        async function fetchFollowedUsers() {
-            if (!currentUser) return;
-            
-            try {
-                const followQuery = db.collection('follows')
-                    .where('followerUserId', '==', currentUser.uid);
-                
-                const querySnapshot = await followQuery.get();
-                
-                followedUsers.clear();
-                querySnapshot.forEach(doc => {
-                    const followedUserId = doc.data().followedUserId;
-                    followedUsers.add(followedUserId);
-                    
-                    // Mark this conversation as "full" in local storage (same as chat.js)
-                    conversationStatus[followedUserId] = 'full';
-                });
-                
-                // Save updated conversation status (same as chat.js)
-                saveConversationStatus();
-                
-                // Update following count
-                followingCount.textContent = followedUsers.size;
-                
-            } catch (error) {
-                console.error('Error fetching followed users:', error);
-            }
-        }
-        
-        // Toggle between suggestions and following views
-        function toggleView() {
-            currentView = currentView === 'suggestions' ? 'following' : 'suggestions';
-            
-            // Update button text
-            document.getElementById('switchViewBtn').textContent = 
-                currentView === 'suggestions' ? 'Switch to Following' : 'Switch to Suggestions';
-            
-            // Update section title
-            document.getElementById('sectionTitle').textContent = 
-                currentView === 'suggestions' ? 'Suggestions for you' : 'People you follow';
-            
-            // Show/hide load more button
-            document.getElementById('loadMoreContainer').style.display = 
-                currentView === 'suggestions' && hasMoreUsers ? 'block' : 'none';
-            
-            // Load the appropriate content
-            if (currentView === 'suggestions') {
-                loadSuggestions();
+            // Compute ordered array for Top Followed
+            topFollowedOrdered = allUsers.filter(user => user.followersCount > 2)
+                                         .sort((a, b) => b.followersCount - a.followersCount);
+            topFollowedUsers = topFollowedOrdered.slice(0, usersPerPage);
+            if (topFollowedUsers.length > 0) {
+              renderUsers(topFollowedUsers, topFollowedUsersContainer, false);
             } else {
-                showFollowing();
+              topFollowedSection.style.display = 'none';
             }
+          } catch (error) {
+            console.error('Error initializing user:', error);
+          }
+        } else {
+          auth.signInAnonymously().catch((error) => {
+            console.error('Anonymous auth error:', error);
+          });
         }
-        
-        // Load initial suggestions
-        async function loadSuggestions() {
-            try {
-                usersContainer.innerHTML = '<div class="loading">Loading suggestions...</div>';
-                
-                // Query for users not followed (same logic as chat.js)
-                let usersQuery = db.collection('users')
-                    .where('__name__', '!=', currentUser.uid)
-                    .orderBy('__name__')
-                    .limit(MAX_SUGGESTIONS);
-                
-                const querySnapshot = await usersQuery.get();
-                
-                if (querySnapshot.empty) {
-                    usersContainer.innerHTML = '<div class="empty-state">No suggestions available</div>';
-                    return;
-                }
-                
-                // Process users
-                allUsers = [];
-                querySnapshot.forEach(doc => {
-                    const userData = doc.data();
-                    allUsers.push({
-                        id: doc.id,
-                        name: userData.displayName || 'Anonymous',
-                        username: userData.username || userData.displayName?.toLowerCase().replace(/\s/g, '') || 'user' + Math.floor(Math.random() * 10000),
-                        photoURL: userData.photoURL || "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png"
-                    });
-                });
-                
-                // Get last user for pagination
-                lastVisibleUser = querySnapshot.docs[querySnapshot.docs.length-1];
-                hasMoreUsers = querySnapshot.docs.length === MAX_SUGGESTIONS;
-                
-                // Filter out already followed users
-                const suggestions = allUsers.filter(user => 
-                    !followedUsers.has(user.id) && conversationStatus[user.id] !== 'full'
-                );
-                
-                if (suggestions.length === 0) {
-                    usersContainer.innerHTML = '<div class="empty-state">No suggestions available</div>';
-                    return;
-                }
-                
-                // Display suggestions
-                renderUsers(suggestions);
-                
-                // Show load more button if there might be more users
-                document.getElementById('loadMoreContainer').style.display = hasMoreUsers ? 'block' : 'none';
-                
-            } catch (error) {
-                console.error('Error loading suggestions:', error);
-                usersContainer.innerHTML = '<div class="empty-state">Error loading suggestions</div>';
-            }
-        }
-        
-        // Load more suggestions
-        async function loadMoreSuggestions() {
-            try {
-                document.getElementById('loadMoreBtn').disabled = true;
-                document.getElementById('loadMoreBtn').textContent = 'Loading...';
-                
-                // Query for next batch of users
-                let usersQuery = db.collection('users')
-                    .where('__name__', '!=', currentUser.uid)
-                    .orderBy('__name__')
-                    .startAfter(lastVisibleUser)
-                    .limit(MAX_SUGGESTIONS);
-                
-                const querySnapshot = await usersQuery.get();
-                
-                if (querySnapshot.empty) {
-                    hasMoreUsers = false;
-                    document.getElementById('loadMoreContainer').style.display = 'none';
-                    return;
-                }
-                
-                // Process new users
-                const newUsers = [];
-                querySnapshot.forEach(doc => {
-                    const userData = doc.data();
-                    newUsers.push({
-                        id: doc.id,
-                        name: userData.displayName || 'Anonymous',
-                        username: userData.username || userData.displayName?.toLowerCase().replace(/\s/g, '') || 'user' + Math.floor(Math.random() * 10000),
-                        photoURL: userData.photoURL || "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png"
-                    });
-                });
-                
-                // Add to all users
-                allUsers = [...allUsers, ...newUsers];
-                
-                // Get last user for pagination
-                lastVisibleUser = querySnapshot.docs[querySnapshot.docs.length-1];
-                hasMoreUsers = querySnapshot.docs.length === MAX_SUGGESTIONS;
-                
-                // Filter out already followed users
-                const suggestions = newUsers.filter(user => 
-                    !followedUsers.has(user.id) && conversationStatus[user.id] !== 'full'
-                );
-                
-                // Display new suggestions
-                renderUsers(suggestions, true);
-                
-                // Show/hide load more button
-                document.getElementById('loadMoreContainer').style.display = hasMoreUsers ? 'block' : 'none';
-                document.getElementById('loadMoreBtn').disabled = false;
-                document.getElementById('loadMoreBtn').textContent = 'Show more';
-                
-            } catch (error) {
-                console.error('Error loading more suggestions:', error);
-                document.getElementById('loadMoreBtn').disabled = false;
-                document.getElementById('loadMoreBtn').textContent = 'Show more';
-            }
-        }
-        
-        // Show followed users
-        async function showFollowing() {
-            try {
-                usersContainer.innerHTML = '<div class="loading">Loading...</div>';
-                
-                // Get all followed users
-                const following = allUsers.filter(user => 
-                    followedUsers.has(user.id) || conversationStatus[user.id] === 'full'
-                );
-                
-                if (following.length === 0) {
-                    usersContainer.innerHTML = '<div class="empty-state">You\'re not following anyone yet</div>';
-                    return;
-                }
-                
-                renderUsers(following);
-                
-                // Hide load more button in following view
-                document.getElementById('loadMoreContainer').style.display = 'none';
-                
-            } catch (error) {
-                console.error('Error loading following:', error);
-                usersContainer.innerHTML = '<div class="empty-state">Error loading following</div>';
-            }
-        }
-        
-        // Render users to the UI
-        function renderUsers(users, append = false) {
-            if (!append) {
-                usersContainer.innerHTML = '';
-            }
-            
-            if (users.length === 0 && !append) {
-                usersContainer.innerHTML = '<div class="empty-state">No users found</div>';
-                return;
-            }
-            
-            users.forEach(user => {
-                createUserCard(user);
+      });
+      showMoreSuggested.addEventListener('click', () => loadMoreUsers('suggested'));
+      showMoreTopFollowed.addEventListener('click', () => loadMoreUsers('topFollowed'));
+    }
+    
+    async function loadAllUsers() {
+      try {
+        const usersSnapshot = await db.collection('users').get();
+        allUsers = [];
+        usersSnapshot.forEach(doc => {
+          if (doc.id !== currentUser.uid) {
+            const userData = doc.data();
+            allUsers.push({
+              id: doc.id,
+              name: userData.displayName || 'Anonymous',
+              photoURL: userData.photoURL || "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png",
+              followersCount: userData.followersCount || 0
             });
+          }
+        });
+        if (allUsers.length === 0) {
+          allUsers = [
+            { id: 'user_123', name: 'Alex Johnson', photoURL: 'https://randomuser.me/api/portraits/men/32.jpg', followersCount: 3 },
+            { id: 'user_456', name: 'Maria Garcia', photoURL: 'https://randomuser.me/api/portraits/women/44.jpg', followersCount: 5 },
+            { id: 'user_789', name: 'James Wilson', photoURL: 'https://randomuser.me/api/portraits/men/22.jpg', followersCount: 2 },
+            { id: 'user_101', name: 'Sarah Miller', photoURL: 'https://randomuser.me/api/portraits/women/33.jpg', followersCount: 7 },
+            { id: 'user_112', name: 'David Taylor', photoURL: 'https://randomuser.me/api/portraits/men/45.jpg', followersCount: 1 }
+          ];
         }
-        
-        // Create a user card element
-        function createUserCard(user) {
-            const userCard = document.createElement('div');
-            userCard.className = 'user-card';
-            
-            const isFollowing = followedUsers.has(user.id) || conversationStatus[user.id] === 'full';
-            
-            userCard.innerHTML = `
-                <img src="${user.photoURL}" class="user-pic" alt="${user.name}">
-                <div class="user-info">
-                    <div class="user-name">${user.name}</div>
-                    <div class="user-username">@${user.username}</div>
-                </div>
-                <button class="follow-btn ${isFollowing ? 'followed' : ''}" 
-                    data-user-id="${user.id}" 
-                    onclick="toggleFollow('${user.id}', '${user.name}')"
-                    style="display: ${user.id === currentUser?.uid ? 'none' : 'block'}">
-                    ${isFollowing ? 'Following' : 'Follow'}
-                </button>
-            `;
-            
-            usersContainer.appendChild(userCard);
+      } catch (error) {
+        console.error('Error loading users:', error);
+        throw error;
+      }
+    }
+    
+    async function loadMoreUsers(type) {
+      const container = type === 'suggested' ? suggestedUsersContainer : topFollowedUsersContainer;
+      const btnSpinner = type === 'suggested' ? suggestedBtnSpinner : topFollowedBtnSpinner;
+      try {
+        btnSpinner.style.display = 'inline-block';
+        let moreUsers = [];
+        if (type === 'suggested') {
+          moreUsers = suggestedUsersOrdered.slice(suggestedUsers.length, suggestedUsers.length + usersPerPage);
+          suggestedUsers = suggestedUsers.concat(moreUsers);
+        } else {
+          moreUsers = topFollowedOrdered.slice(topFollowedUsers.length, topFollowedUsers.length + usersPerPage);
+          topFollowedUsers = topFollowedUsers.concat(moreUsers);
         }
-        
-        // Toggle follow/unfollow (same as chat.js)
-        window.toggleFollow = async function(userId, userName) {
-            if (!currentUser) {
-                alert('Please log in to follow users');
-                return;
-            }
-            
-            try {
-                const followQuery = db.collection('follows')
-                    .where('followerUserId', '==', currentUser.uid)
-                    .where('followedUserId', '==', userId);
-                
-                const followSnapshot = await followQuery.get();
-                
-                if (followSnapshot.empty) {
-                    // Follow the user (same as chat.js)
-                    await db.collection('follows').add({
-                        followerUserId: currentUser.uid,
-                        followedUserId: userId,
-                        followedUserName: userName,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    followedUsers.add(userId);
-                    
-                    // Mark conversation as "full" in local storage (same as chat.js)
-                    conversationStatus[userId] = 'full';
-                    saveConversationStatus();
-                    
-                    // Update button immediately
-                    const buttons = document.querySelectorAll(`[data-user-id="${userId}"]`);
-                    buttons.forEach(btn => {
-                        btn.classList.add('followed');
-                        btn.textContent = 'Following';
-                    });
-                    
-                    // Update following count
-                    followingCount.textContent = followedUsers.size;
-                    
-                    // If in suggestions view, remove the card
-                    if (currentView === 'suggestions') {
-                        const userCard = document.querySelector(`[data-user-id="${userId}"]`).closest('.user-card');
-                        if (userCard) {
-                            userCard.remove();
-                        }
-                    }
-                } else {
-                    // Unfollow the user (same as chat.js)
-                    followSnapshot.forEach(async (doc) => {
-                        await db.collection('follows').doc(doc.id).delete();
-                    });
-                    followedUsers.delete(userId);
-                    
-                    // Remove "full" status (same as chat.js)
-                    delete conversationStatus[userId];
-                    saveConversationStatus();
-                    
-                    // Update button immediately
-                    const buttons = document.querySelectorAll(`[data-user-id="${userId}"]`);
-                    buttons.forEach(btn => {
-                        btn.classList.remove('followed');
-                        btn.textContent = 'Follow';
-                    });
-                    
-                    // Update following count
-                    followingCount.textContent = followedUsers.size;
-                    
-                    // If in following view, remove the card
-                    if (currentView === 'following') {
-                        const userCard = document.querySelector(`[data-user-id="${userId}"]`).closest('.user-card');
-                        if (userCard) {
-                            userCard.remove();
-                        }
-                    }
-                }
-                
-            } catch (error) {
-                console.error('Follow/Unfollow error:', error);
-                alert('Failed to update follow status. Please try again.');
-            }
-        };
-        
-        // Initialize the app when the page loads
-        window.addEventListener('DOMContentLoaded', initApp);
-    </script>
+        renderUsers(moreUsers, container, true);
+        btnSpinner.style.display = 'none';
+        // If no more users, hide the "Show more" button
+        if (moreUsers.length < usersPerPage) {
+          if (type === 'suggested') {
+            showMoreSuggested.style.display = 'none';
+          } else {
+            showMoreTopFollowed.style.display = 'none';
+          }
+        }
+      } catch (error) {
+        console.error(`Error loading more ${type} users:`, error);
+        btnSpinner.style.display = 'none';
+        if (type === 'suggested') {
+          showMoreSuggested.style.display = 'none';
+        } else {
+          showMoreTopFollowed.style.display = 'none';
+        }
+      }
+    }
+    
+    // Render users; if appending, apply fade-in effect
+    function renderUsers(users, container, append = false) {
+      if (!append) {
+        container.innerHTML = '';
+      }
+      if (users.length === 0) {
+        container.innerHTML = '<div class="empty-state">No users found</div>';
+        return;
+      }
+      users.forEach(user => {
+        const userCard = document.createElement('div');
+        userCard.className = 'user-card';
+        if (append) {
+          userCard.classList.add('fade-in');
+        }
+        userCard.innerHTML = `
+          <img src="${user.photoURL}" class="user-pic" alt="${user.name}">
+          <div class="user-info">
+            <div class="user-name">${user.name}</div>
+          </div>
+          <button class="follow-btn" data-user-id="${user.id}" onclick="toggleFollow('${user.id}', '${user.name}', this)">
+            Follow
+          </button>
+        `;
+        container.appendChild(userCard);
+      });
+    }
+    
+    // Toggle follow/unfollow with loading spinner inside button
+    window.toggleFollow = async function(userId, userName, button) {
+      if (!currentUser) {
+        alert('Please log in to follow users');
+        return;
+      }
+      try {
+        button.disabled = true;
+        button.innerHTML = '<span class="loading-spinner"></span>';
+        const followQuery = db.collection('follows')
+          .where('followerUserId', '==', currentUser.uid)
+          .where('followedUserId', '==', userId);
+        const followSnapshot = await followQuery.get();
+        if (followSnapshot.empty) {
+          await db.collection('follows').add({
+            followerUserId: currentUser.uid,
+            followedUserId: userId,
+            followedUserName: userName,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          setTimeout(() => {
+            button.innerHTML = 'Following';
+            button.classList.add('followed');
+            button.disabled = false;
+          }, 500);
+        } else {
+          followSnapshot.forEach(async (doc) => {
+            await db.collection('follows').doc(doc.id).delete();
+          });
+          setTimeout(() => {
+            button.innerHTML = 'Follow';
+            button.classList.remove('followed');
+            button.disabled = false;
+          }, 500);
+        }
+      } catch (error) {
+        console.error('Follow/Unfollow error:', error);
+        button.disabled = false;
+        button.innerHTML = 'Follow';
+      }
+    };
+    
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+  
 </body>
 </html>
