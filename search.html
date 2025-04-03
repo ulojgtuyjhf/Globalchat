@@ -842,7 +842,136 @@ window.addEventListener('unload', () => {
 });
     </script>
 
-
+<script>
+  // Theme Manager for Search Page (isolated implementation)
+  (function() {
+    const searchThemeManager = {
+      // Theme definitions (same as mobile interface)
+      themes: {
+        light: {
+          name: 'light',
+          bg: '#ffffff',
+          card: '#f7f9fa',
+          line: '#ebeef0',
+          text: '#14171a',
+          secondaryText: '#657786',
+          border: '#ebeef0',
+          blue: '#1da1f2',
+          lightBlue: '#1a91da'
+        },
+        dim: {
+          name: 'dim',
+          bg: '#15202b',
+          card: '#192734',
+          line: '#38444d',
+          text: '#ffffff',
+          secondaryText: '#8899a6',
+          border: '#38444d',
+          blue: '#1da1f2',
+          lightBlue: '#1a91da'
+        },
+        dark: {
+          name: 'dark',
+          bg: '#000000',
+          card: '#16181c',
+          line: '#2f3336',
+          text: '#ffffff',
+          secondaryText: '#8899a6',
+          border: '#2f3336',
+          blue: '#1da1f2',
+          lightBlue: '#1a91da'
+        }
+      },
+      
+      // Current theme state
+      currentTheme: 'light',
+      
+      // Apply theme to search interface
+      applyTheme: function(themeName) {
+        const theme = this.themes[themeName] || this.themes.light;
+        this.currentTheme = themeName;
+        
+        // Apply to body and main container
+        document.body.className = `theme-${themeName}`;
+        
+        // Update all message bubbles
+        document.querySelectorAll('.message-bubble').forEach(bubble => {
+          bubble.style.backgroundColor = theme.card;
+          bubble.style.borderColor = theme.border;
+        });
+        
+        // Update reaction elements
+        document.querySelectorAll('.reaction').forEach(reaction => {
+          reaction.style.backgroundColor = theme.card;
+          reaction.style.borderColor = theme.border;
+          reaction.style.color = theme.text;
+          
+          if (reaction.classList.contains('user-reacted')) {
+            reaction.style.backgroundColor = `rgba(29, 161, 242, ${themeName === 'light' ? 0.1 : 0.2})`;
+            reaction.style.color = theme.blue;
+          }
+        });
+        
+        // Update media wrappers
+        document.querySelectorAll('.media-wrapper').forEach(wrapper => {
+          wrapper.style.backgroundColor = theme.card;
+          wrapper.style.borderColor = theme.border;
+        });
+        
+        // Update add reaction button
+        document.querySelectorAll('.add-reaction').forEach(button => {
+          button.style.backgroundColor = theme.card;
+          button.style.borderColor = theme.border;
+        });
+        
+        // Update text colors
+        document.querySelectorAll('.username, .text-content').forEach(el => {
+          el.style.color = theme.text;
+        });
+        
+        document.querySelectorAll('.timestamp').forEach(el => {
+          el.style.color = theme.secondaryText;
+        });
+        
+        // Store theme preference
+        localStorage.setItem('twitter-theme', themeName);
+      },
+      
+      // Initialize theme from localStorage
+      init: function() {
+        const savedTheme = localStorage.getItem('twitter-theme') || 'light';
+        this.applyTheme(savedTheme);
+        
+        // Listen for theme changes from other tabs
+        window.addEventListener('storage', (event) => {
+          if (event.key === 'twitter-theme') {
+            this.applyTheme(event.newValue || 'light');
+          }
+        });
+        
+        // Poll for theme changes (fallback)
+        this.startPolling();
+      },
+      
+      // Poll for theme changes (redundancy)
+      startPolling: function() {
+        setInterval(() => {
+          const newTheme = localStorage.getItem('twitter-theme');
+          if (newTheme && newTheme !== this.currentTheme) {
+            this.applyTheme(newTheme);
+          }
+        }, 1000);
+      }
+    };
+    
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => searchThemeManager.init());
+    } else {
+      searchThemeManager.init();
+    }
+  })();
+</script>
 
 </body>
 </html>
