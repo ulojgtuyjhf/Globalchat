@@ -240,6 +240,141 @@
   window.addEventListener('load', createDownloadNotification);
 </script>
 
-
+<script>
+  // Theme Support for half.html
+(function() {
+  // Check local storage for theme preference (default to light if not set)
+  const themePreference = localStorage.getItem('twitter-theme') || 'light';
+  
+  // Define luxury gradient (used for light theme)
+  const luxuryGradient = `linear-gradient(
+    135deg,  
+    #0f0f0f 0%,  
+    #1c1c1c 15%,  
+    #3a3a3a 30%,  
+    #4d4d4d 45%,  
+    #626262 60%,  
+    #787878 75%,  
+    #8f8f8f 90%,  
+    #a6a6a6 100%
+  )`;
+  
+  // Define color schemes for different themes
+  const themeColors = {
+    light: {
+      background: '#f7f9fa',
+      text: '#14171A',
+      border: '#E1E8ED'
+    },
+    dim: {
+      background: '#15202b',
+      text: '#ffffff',
+      border: '#38444d'
+    },
+    dark: {
+      background: '#000000',
+      text: '#ffffff',
+      border: '#2f3336'
+    }
+  };
+  
+  // Get colors for current theme
+  const colors = themeColors[themePreference];
+  
+  // Create and inject theme CSS
+  const themeStyle = document.createElement('style');
+  themeStyle.textContent = `
+    body {
+      background-color: ${colors.background};
+      color: ${colors.text};
+    }
+    
+    /* Style for the download notification to match theme */
+    #download-notification {
+      background: ${themePreference === 'light' ? '#ffffff' : themePreference === 'dim' ? '#1e2732' : '#16181c'} !important;
+      color: ${themePreference === 'light' ? '#1da1f2' : '#ffffff'} !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, ${themePreference === 'light' ? '0.15' : '0.3'}) !important;
+    }
+    
+    #download-notification button {
+      background: ${themePreference === 'light' ? '#1da1f2' : '#626262'} !important;
+      color: #ffffff !important;
+    }
+    
+    #download-notification .cancel-button {
+      background: transparent !important;
+      color: ${themePreference === 'light' ? '#1da1f2' : '#ffffff'} !important;
+      border: 1px solid ${themePreference === 'light' ? '#1da1f2' : '#626262'} !important;
+    }
+    
+    /* Iframe border (if needed) */
+    iframe {
+      border: 1px solid ${colors.border} !important;
+    }
+  `;
+  
+  document.head.appendChild(themeStyle);
+  
+  // Listen for theme changes from other tabs/windows
+  window.addEventListener('storage', function(event) {
+    if (event.key === 'twitter-theme') {
+      window.location.reload();
+    }
+  });
+  
+  // Optional: Add theme switcher controls
+  function addThemeSwitcher() {
+    const switcher = document.createElement('div');
+    switcher.id = 'theme-switcher';
+    switcher.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      gap: 8px;
+      z-index: 10000;
+      background: ${colors.background};
+      padding: 8px;
+      border-radius: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    `;
+    
+    const themes = [
+      { name: 'light', label: 'Light' },
+      { name: 'dim', label: 'Dim' },
+      { name: 'dark', label: 'Dark' }
+    ];
+    
+    themes.forEach(theme => {
+      const button = document.createElement('button');
+      button.textContent = theme.label;
+      button.style.cssText = `
+        padding: 6px 12px;
+        border-radius: 20px;
+        border: none;
+        background: ${theme.name === 'light' ? '#f7f9fa' : 
+                    theme.name === 'dim' ? '#15202b' : '#000000'};
+        color: ${theme.name === 'light' ? '#14171A' : '#ffffff'};
+        cursor: pointer;
+        font-size: 12px;
+        opacity: ${theme.name === themePreference ? '1' : '0.7'};
+        transition: opacity 0.3s;
+      `;
+      
+      button.addEventListener('click', () => {
+        localStorage.setItem('twitter-theme', theme.name);
+        window.location.reload();
+      });
+      
+      switcher.appendChild(button);
+    });
+    
+    document.body.appendChild(switcher);
+  }
+  
+  // Uncomment to enable theme switcher
+  // addThemeSwitcher();
+})();
+</script>
 </body>
 </html>
