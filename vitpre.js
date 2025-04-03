@@ -1,3 +1,4 @@
+ <script>
 // Create and append styles
 const styleSheet = document.createElement('style');
 styleSheet.textContent = `
@@ -360,65 +361,65 @@ function handleStart(e) {
 }
 
 function handleMove(e) {
-    if (!isDragging) return;
-    
-    const touch = e.touches ? e.touches[0] : e;
-    currentY = touch.clientY;
-    currentX = touch.clientX;
-    
-    const deltaY = currentY - startY;
-    const deltaX = currentX - startX;
-    const rotation = deltaX * 0.1;
-    
-    const content = modal.querySelector('.media-content');
-    const scale = Math.max(0.5, 1 - (Math.abs(deltaY) / window.innerHeight) * 0.5);
-    const opacity = 1 - (Math.abs(deltaY) / window.innerHeight);
-    
-    modal.style.background = `rgba(0, 0, 0, ${opacity * 0.95})`;
-    content.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(${scale}) rotate(${rotation}deg)`;
+  if (!isDragging) return;
+  
+  const touch = e.touches ? e.touches[0] : e;
+  currentY = touch.clientY;
+  currentX = touch.clientX;
+  
+  const deltaY = currentY - startY;
+  const deltaX = currentX - startX;
+  const rotation = deltaX * 0.1;
+  
+  const content = modal.querySelector('.media-content');
+  const scale = Math.max(0.5, 1 - (Math.abs(deltaY) / window.innerHeight) * 0.5);
+  const opacity = 1 - (Math.abs(deltaY) / window.innerHeight);
+  
+  modal.style.background = `rgba(0, 0, 0, ${opacity * 0.95})`;
+  content.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(${scale}) rotate(${rotation}deg)`;
 }
 
 function handleEnd() {
-    if (!isDragging) return;
-    
-    const deltaY = currentY - startY;
-    const content = modal.querySelector('.media-content');
-    content.classList.remove('dragging');
-    content.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-    
-    if (Math.abs(deltaY) > window.innerHeight / 4) {
-        closeModal();
-    } else {
-        // Spring back animation
-        modal.style.background = '';
-        content.style.transform = '';
-    }
-    isDragging = false;
+  if (!isDragging) return;
+  
+  const deltaY = currentY - startY;
+  const content = modal.querySelector('.media-content');
+  content.classList.remove('dragging');
+  content.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+  
+  if (Math.abs(deltaY) > window.innerHeight / 4) {
+    closeModal();
+  } else {
+    // Spring back animation
+    modal.style.background = '';
+    content.style.transform = '';
+  }
+  isDragging = false;
 }
 
 function closeModal() {
-    const content = modal.querySelector('.media-content');
-    
-    // Animate back to original position
-    content.style.transform = `
+  const content = modal.querySelector('.media-content');
+  
+  // Animate back to original position
+  content.style.transform = `
         translate(${originalRect.left}px, ${originalRect.top}px) 
         scale(${originalRect.width / content.offsetWidth})
     `;
-    modal.style.background = 'rgba(0, 0, 0, 0)';
-    
-    setTimeout(() => {
-        modal.classList.remove('active');
-        content.innerHTML = '';
-        if (sourceElement) {
-            sourceElement.style.visibility = 'visible';
-            sourceElement = null;
-        }
-        if (currentVideo) {
-            currentVideo.pause();
-            currentVideo = null;
-        }
-        document.body.style.overflow = '';
-    }, 300);
+  modal.style.background = 'rgba(0, 0, 0, 0)';
+  
+  setTimeout(() => {
+    modal.classList.remove('active');
+    content.innerHTML = '';
+    if (sourceElement) {
+      sourceElement.style.visibility = 'visible';
+      sourceElement = null;
+    }
+    if (currentVideo) {
+      currentVideo.pause();
+      currentVideo = null;
+    }
+    document.body.style.overflow = '';
+  }, 300);
 }
 
 // Event listeners
@@ -432,24 +433,27 @@ modal.addEventListener('mouseleave', handleEnd);
 
 // Handle media clicks
 document.addEventListener('click', (e) => {
-    const mediaElement = e.target.closest('.post-media');
-    if (!mediaElement) return;
-
-    const post = mediaElement.closest('.message');
-    if (!post) return;
-
-    // Use SVG icons instead of emojis for reactions
-    const reactions = Array.from(post.querySelectorAll('.reaction')).map(reaction => ({
-        icon: reaction.querySelector('svg')?.innerHTML || '<path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>',
-        count: reaction.querySelector('.reaction-count').textContent
-    }));
-
-    showMedia(mediaElement, { reactions });
+  const mediaElement = e.target.closest('.post-media');
+  if (!mediaElement) return;
+  
+  const post = mediaElement.closest('.message');
+  if (!post) return;
+  
+  // Use SVG icons instead of emojis for reactions
+  const reactions = Array.from(post.querySelectorAll('.reaction')).map(reaction => ({
+    icon: reaction.querySelector('svg')?.innerHTML || '<path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>',
+    count: reaction.querySelector('.reaction-count').textContent
+  }));
+  
+  showMedia(mediaElement, { reactions });
 });
 
 // Close on escape key
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && modal.classList.contains('active')) {
-        closeModal();
-    }
+  if (e.key === 'Escape' && modal.classList.contains('active')) {
+    closeModal();
+  }
 });
+</script>
+<script src="theme.js"></script>
+  

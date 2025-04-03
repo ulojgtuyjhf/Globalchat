@@ -1,380 +1,559 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="https://firebasestorage.googleapis.com/v0/b/chatnot-e5b4e.firebasestorage.app/o/Black%20and%20Blue%20Initials%20Creative%20Logo_20250214_091517_0000.png?alt=media&token=e420af56-8bd5-4691-b246-b0485c30dccd">
-    <title>Feedback </title>
+    <title>Feed View</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
 
-        body {
-            min-height: 100vh;
-            background-color: #f5f5f5;
-            display: flex;
-            overflow-x: hidden;
-        }
+body {
+    background-color: #f5f8fa;
+    color: #14171a;
+    overflow-x: hidden;
+    height: 100vh;
+}
 
-        .feedback-container {
-            display: flex;
-            width: 100vw;
-            height: 100vh;
-            position: relative;
-        }
+/* Top header - small and minimal */
+.top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 16px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(29, 161, 242, 0.1);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1001;
+    height: 40px; /* Smaller height */
+}
 
-        .feedback-background {
-            position: fixed;
-            width: 50%;
-            height: 100%;
-            background: linear-gradient(135deg, #000 0%, #333 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            padding: 40px;
-            display: none;
-        }
+/* Profile icon on far left */
+.profile-icon {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+}
 
-        .feedback-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            background: white;
-            position: relative;
-            transition: transform 0.5s ease;
-        }
+/* Center logo */
+.logo-container {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 40px;
-            color: black;
-        }
+.logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: #1da1f2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+}
 
-        .form-container {
-            width: 100%;
-            max-width: 600px;
-            animation: fadeIn 0.5s ease;
-        }
+/* Empty element for balance */
+.right-spacer {
+    width: 24px;
+}
 
-        .feedback-form {
-            animation: fadeIn 0.5s ease;
-        }
+/* Tab container - smaller and minimal */
+.tab-container {
+    position: fixed;
+    top: 40px; /* Match header height */
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(29, 161, 242, 0.1);
+    height: 36px; /* Smaller height */
+}
 
-        .input-group {
-            margin-bottom: 20px;
-            position: relative;
-        }
+.tabs {
+    display: flex;
+    width: 100%;
+    max-width: 10000px;
+    justify-content: center;
+}
 
-        .error-message {
-            color: #dc3545;
-            font-size: 14px;
-            margin-top: 5px;
-            display: none;
-        }
+/* Updated tab styles for horizontal fit, even borders, and shadow animation */
+.tab {
+    flex: 1;
+    text-align: center;
+    padding: 0 16px;
+    height: 100%;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    position: relative;
+    color: #657786;
+    transition: color 0.2s, box-shadow 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border-right: 1px solid rgba(29, 161, 242, 0.2);
+}
 
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
-        }
+.tab:last-child {
+    border-right: none;
+}
 
-        input, textarea, select {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #eee;
-            border-radius: 12px;
-            font-size: 16px;
-            transition: all 0.3s;
-            background: #f8f8f8;
-        }
+.tab:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
 
-        textarea {
-            min-height: 150px;
-            resize: vertical;
-        }
+.tab.active {
+    color: #1da1f2;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
 
-        input:focus, textarea:focus, select:focus {
-            border-color: black;
-            background: white;
-            outline: none;
-        }
+.tab-icon {
+    width: 16px;
+    height: 16px;
+}
 
-        .rating-group {
-            display: flex;
-            gap: 10px;
-            margin: 10px 0;
-        }
+.indicator {
+    position: absolute;
+    bottom: -1px;
+    height: 2px;
+    width: 60%;
+    background-color: #1da1f2;
+    border-radius: 2px 2px 0 0;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    left: 50%;
+    transform: translateX(-50%) scaleX(0);
+}
 
-        .rating-button {
-            flex: 1;
-            padding: 10px;
-            border: 2px solid #eee;
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
+.tab.active .indicator {
+    transform: translateX(-50%) scaleX(1);
+}
 
-        .rating-button.selected {
-            background: black;
-            color: white;
-            border-color: black;
-        }
+/* Content area - full height and width */
+.content-container {
+    position: relative;
+    height: 100vh;
+    width: 100vw;
+    padding-top: 76px; /* Header + Tab height */
+    overflow: hidden;
+}
 
-        button {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 12px;
-            background-color: black;
-            color: white;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 10px;
-            position: relative;
-            overflow: hidden;
-        }
+.content {
+    position: absolute;
+    width: 100%;
+    height: calc(100% - 0px);
+    visibility: hidden;
+    opacity: 0;
+    transition: all 0.2s ease-out;
+}
 
-        button:hover {
-            background-color: #333;
-            transform: translateY(-2px);
-        }
+.content.active {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(0) !important;
+}
 
-        button:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-            transform: none;
-        }
+#forYouContent {
+    transform: translateX(-3%);
+}
 
-        .button-spinner {
-            display: none;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #ffffff;
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 1s linear infinite;
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
+#followingContent {
+    transform: translateX(3%);
+}
 
-        .skip-button {
-            background: transparent;
-            color: #666;
-            border: 2px solid #eee;
-            margin-top: 10px;
-        }
-
-        .skip-button:hover {
-            background: #f5f5f5;
-            color: #333;
-        }
-
-        @keyframes spin {
-            to { transform: translateY(-50%) rotate(360deg); }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @media (min-width: 768px) {
-            .feedback-background {
-                display: flex;
-            }
-            
-            .feedback-content {
-                width: 50%;
-                margin-left: 50%;
-            }
-        }
-    </style>
+.content-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    outline: none;
+}
+</style>
 </head>
 <body>
-    <div class="feedback-container">
-        <div class="feedback-background">
-            <div class="brand-content">
-                <h1>We Value Your Feedback</h1>
-                <p>Help us improve nmedea with your thoughts</p>
-            </div>
+    <!-- Top header with logo and profile -->
+    <div class="top-header">
+        <!-- Profile icon on left -->
+        <svg class="profile-icon" viewBox="0 0 24 24" fill="none" stroke="#657786" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        
+        <!-- Logo in center -->
+        <div class="logo-container">
+            <div class="logo">N</div>
         </div>
+        
+        <!-- Right spacer for balance -->
+        <div class="right-spacer"></div>
+    </div>
 
-        <div class="feedback-content">
-            <div class="logo">nmedea  Feedback</div>
-            
-            <div class="form-container">
-                <form class="feedback-form" id="feedback-form">
-                    <div class="input-group">
-                        <label>How satisfied are you with nmedea?</label>
-                        <div class="rating-group">
-                            <button type="button" class="rating-button" data-rating="1">1</button>
-                            <button type="button" class="rating-button" data-rating="2">2</button>
-                            <button type="button" class="rating-button" data-rating="3">3</button>
-                            <button type="button" class="rating-button" data-rating="4">4</button>
-                            <button type="button" class="rating-button" data-rating="5">5</button>
-                        </div>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="feedback-type">What type of feedback do you have?</label>
-                        <select id="feedback-type" required>
-                            <option value="">Select feedback type</option>
-                            <option value="bug">Bug Report</option>
-                            <option value="feature">Feature Request</option>
-                            <option value="improvement">Improvement Suggestion</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="feedback-text">Your Feedback</label>
-                        <textarea id="feedback-text" placeholder="Please share your thoughts..." required></textarea>
-                        <div class="error-message" id="feedback-text-error"></div>
-                    </div>
-
-                    <button type="submit">
-                        Submit Feedback
-                        <div class="button-spinner"></div>
-                    </button>
-                    
-                    <button type="button" class="skip-button" onclick="skipFeedback()">
-                        Skip Feedback
-                    </button>
-                </form>
+    <!-- Tab navigation -->
+    <div class="tab-container">
+        <div class="tabs">
+            <div id="forYouTab" class="tab active">
+                <!-- For You Icon -->
+                <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                For You
+                <div class="indicator"></div>
+            </div>
+            <div id="followingTab" class="tab">
+                <!-- Following Icon -->
+                <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                Following
+                <div class="indicator"></div>
             </div>
         </div>
     </div>
+    
+    <!-- Content sections -->
+    <div class="content-container">
+        <div id="forYouContent" class="content active">
+            <iframe class="content-frame" src="globalchat.html" scrolling="yes"></iframe>
+        </div>
+        <div id="followingContent" class="content">
+            <iframe class="content-frame" src="following.html" scrolling="yes"></iframe>
+        </div>
+    </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, addDoc, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
-            authDomain: "globalchat-2d669.firebaseapp.com",
-            projectId: "globalchat-2d669",
-            storageBucket: "globalchat-2d669.firebasestorage.app",
-            messagingSenderId: "178714711978",
-            appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
-            measurementId: "G-LYZP41ZJ46"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        let selectedRating = 0;
-
-        // Check authentication
-        auth.onAuthStateChanged((user) => {
-            if (!user) {
-                window.location.href = 'login.html';
-            }
-        });
-
-        // Rating buttons functionality
-        document.querySelectorAll('.rating-button').forEach(button => {
-            button.addEventListener('click', () => {
-                document.querySelectorAll('.rating-button').forEach(btn => {
-                    btn.classList.remove('selected');
-                });
-                button.classList.add('selected');
-                selectedRating = parseInt(button.dataset.rating);
-            });
-        });
-
-        // Form submission
-        document.getElementById('feedback-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const forYouTab = document.getElementById('forYouTab');
+            const followingTab = document.getElementById('followingTab');
+            const forYouContent = document.getElementById('forYouContent');
+            const followingContent = document.getElementById('followingContent');
             
-            const feedbackText = document.getElementById('feedback-text').value.trim();
-            const feedbackType = document.getElementById('feedback-type').value;
-            const button = e.target.querySelector('button[type="submit"]');
-            const spinner = button.querySelector('.button-spinner');
-
-            if (!feedbackText) {
-                document.getElementById('feedback-text-error').textContent = 'Please provide your feedback';
-                document.getElementById('feedback-text-error').style.display = 'block';
-                return;
+            // Tab switching with smooth animation
+            forYouTab.addEventListener('click', function() {
+                switchTab(forYouTab, followingTab, forYouContent, followingContent);
+            });
+            
+            followingTab.addEventListener('click', function() {
+                switchTab(followingTab, forYouTab, followingContent, forYouContent);
+            });
+            
+            function switchTab(activeTab, inactiveTab, activeContent, inactiveContent) {
+                // Don't do anything if already active
+                if (activeTab.classList.contains('active')) return;
+                
+                // Update tab status
+                activeTab.classList.add('active');
+                inactiveTab.classList.remove('active');
+                
+                // Smooth content transition
+                inactiveContent.style.transition = 'all 0.2s ease-out';
+                inactiveContent.classList.remove('active');
+                
+                // Short delay for smoother transition between content panes
+                setTimeout(() => {
+                    activeContent.style.transition = 'all 0.2s ease-out';
+                    activeContent.classList.add('active');
+                }, 50);
             }
-
-            button.disabled = true;
-            spinner.style.display = 'block';
-
-            try {
-                const user = auth.currentUser;
-                await addDoc(collection(db, 'feedback'), {
-                    userId: user.uid,
-                    rating: selectedRating,
-                    type: feedbackType,
-                    feedback: feedbackText,
-                    timestamp: new Date().toISOString()
+            
+            // Enhance glassmorphic effect on scroll
+            let lastScrollY = 0;
+            let ticking = false;
+            
+            window.addEventListener('scroll', function() {
+                lastScrollY = window.scrollY;
+                
+                if (!ticking) {
+                    window.requestAnimationFrame(() => {
+                        updateHeadersOnScroll(lastScrollY);
+                        ticking = false;
+                    });
+                    
+                    ticking = true;
+                }
+            });
+            
+            function updateHeadersOnScroll(scrollY) {
+                const topHeader = document.querySelector('.top-header');
+                const tabContainer = document.querySelector('.tab-container');
+                
+                if (scrollY > 5) {
+                    topHeader.style.background = 'rgba(255, 255, 255, 0.95)';
+                    topHeader.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+                    tabContainer.style.background = 'rgba(255, 255, 255, 0.9)';
+                    tabContainer.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.03)';
+                } else {
+                    topHeader.style.background = 'rgba(255, 255, 255, 0.8)';
+                    topHeader.style.boxShadow = 'none';
+                    tabContainer.style.background = 'rgba(255, 255, 255, 0.7)';
+                    tabContainer.style.boxShadow = 'none';
+                }
+            }
+            
+            // Ensure content fits perfectly without overlap
+            function adjustContentSize() {
+                const headerHeight = document.querySelector('.top-header').offsetHeight;
+                const tabHeight = document.querySelector('.tab-container').offsetHeight;
+                const totalOffset = headerHeight + tabHeight;
+                
+                document.querySelector('.content-container').style.paddingTop = `${totalOffset}px`;
+                
+                const contentHeight = window.innerHeight - totalOffset;
+                document.querySelectorAll('.content').forEach(content => {
+                    content.style.height = `${contentHeight}px`;
                 });
-
-                // Redirect after successful submission
-                window.location.href = 'half.html';
-            } catch (error) {
-                console.error('Error submitting feedback:', error);
-                button.disabled = false;
-                spinner.style.display = 'none';
             }
-        });
-
-        // Skip feedback function
-        window.skipFeedback = function() {
-            window.location.href = 'half.html';
-        };
-
-        // Clear error on input
-        document.getElementById('feedback-text').addEventListener('input', () => {
-            document.getElementById('feedback-text-error').style.display = 'none';
+            
+            // Call on load and resize
+            adjustContentSize();
+            window.addEventListener('resize', adjustContentSize);
+            
+            // Preload iframe content for instant switching
+            const forYouFrame = forYouContent.querySelector('iframe');
+            const followingFrame = followingContent.querySelector('iframe');
+            
+            // Fix potential iframe issues
+            forYouFrame.onload = function() {
+                try {
+                    // Ensure iframe content is scaled properly
+                    const frameDoc = forYouFrame.contentDocument || forYouFrame.contentWindow.document;
+                    if (frameDoc) {
+                        const viewportMeta = frameDoc.querySelector('meta[name="viewport"]');
+                        if (!viewportMeta) {
+                            const meta = frameDoc.createElement('meta');
+                            meta.name = 'viewport';
+                            meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0';
+                            frameDoc.head.appendChild(meta);
+                        }
+                    }
+                } catch (e) {
+                    // Handle cross-origin restrictions silently
+                }
+            };
+            
+            followingFrame.onload = function() {
+                try {
+                    const frameDoc = followingFrame.contentDocument || followingFrame.contentWindow.document;
+                    if (frameDoc) {
+                        const viewportMeta = frameDoc.querySelector('meta[name="viewport"]');
+                        if (!viewportMeta) {
+                            const meta = frameDoc.createElement('meta');
+                            meta.name = 'viewport';
+                            meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0';
+                            frameDoc.head.appendChild(meta);
+                        }
+                    }
+                } catch (e) {
+                    // Handle cross-origin restrictions silently
+                }
+            };
         });
     </script>
-    <script>
-    if (window !== window.top) {
-        document.body.innerHTML = "<h2>Embedding is not allowed</h2>";
-    }
-</script>
-<script>
-    // Function to apply the theme
+   <script>
+// Menu Theme Switcher - Self-contained module
+(function() {
+    'use strict';
+    
+    // Configuration
+    const THEME_KEY = 'twitter-theme';
+    const DEFAULT_THEME = 'light';
+    
+    // Theme definitions
+    const themes = {
+        light: {
+            background: '#f5f8fa',
+            headerBg: 'rgba(255, 255, 255, 0.8)',
+            tabBg: 'rgba(255, 255, 255, 0.7)',
+            text: '#14171a',
+            textSecondary: '#657786',
+            border: 'rgba(29, 161, 242, 0.1)',
+            activeColor: '#1da1f2',
+            logoBg: '#1da1f2',
+            logoText: 'white',
+            iconColor: '#657786'
+        },
+        dim: {
+            background: '#15202b',
+            headerBg: 'rgba(30, 39, 50, 0.8)',
+            tabBg: 'rgba(30, 39, 50, 0.7)',
+            text: 'white',
+            textSecondary: '#8899a6',
+            border: 'rgba(29, 161, 242, 0.1)',
+            activeColor: '#1da1f2',
+            logoBg: '#1da1f2',
+            logoText: 'white',
+            iconColor: '#8899a6'
+        },
+        dark: {
+            background: '#000000',
+            headerBg: 'rgba(22, 24, 28, 0.8)',
+            tabBg: 'rgba(22, 24, 28, 0.7)',
+            text: 'white',
+            textSecondary: '#6e767d',
+            border: 'rgba(29, 161, 242, 0.1)',
+            activeColor: '#1da1f2',
+            logoBg: '#1da1f2',
+            logoText: 'white',
+            iconColor: '#6e767d'
+        }
+    };
+    
+    // Get current theme from localStorage or use default
+    let currentTheme = localStorage.getItem(THEME_KEY) || DEFAULT_THEME;
+    
+    // Apply theme styles
     function applyTheme(theme) {
-        const body = document.body;
-        if (theme === 'dark') {
-            body.classList.add('dark-mode');
-        } else {
-            body.classList.remove('dark-mode');
+        const style = themes[theme] || themes[DEFAULT_THEME];
+        
+        // Create or update style element
+        let styleElement = document.getElementById('menu-theme-styles');
+        if (!styleElement) {
+            styleElement = document.createElement('style');
+            styleElement.id = 'menu-theme-styles';
+            document.head.appendChild(styleElement);
         }
+        
+        // Generate CSS
+        styleElement.textContent = `
+            body {
+                background-color: ${style.background};
+                color: ${style.text};
+            }
+            
+            .top-header {
+                background: ${style.headerBg};
+                border-bottom-color: ${style.border};
+            }
+            
+            .tab-container {
+                background: ${style.tabBg};
+                border-bottom-color: ${style.border};
+            }
+            
+            .tab {
+                color: ${style.textSecondary};
+                border-right-color: ${style.border};
+            }
+            
+            .tab.active {
+                color: ${style.activeColor};
+            }
+            
+            .profile-icon {
+                stroke: ${style.iconColor};
+            }
+            
+            .logo {
+                background-color: ${style.logoBg};
+                color: ${style.logoText};
+            }
+            
+            .tab-icon {
+                stroke: currentColor;
+            }
+            
+            .indicator {
+                background-color: ${style.activeColor};
+            }
+            
+            /* Scroll effects */
+            .top-header.scrolled {
+                background: ${theme === 'light' ? 'rgba(255, 255, 255, 0.95)' : 
+                              theme === 'dim' ? 'rgba(30, 39, 50, 0.95)' : 'rgba(22, 24, 28, 0.95)'};
+            }
+            
+            .tab-container.scrolled {
+                background: ${theme === 'light' ? 'rgba(255, 255, 255, 0.9)' : 
+                                theme === 'dim' ? 'rgba(30, 39, 50, 0.9)' : 'rgba(22, 24, 28, 0.9)'};
+            }
+        `;
     }
-
-    // Initialize the theme when the page loads
-    document.addEventListener('DOMContentLoaded', () => {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        applyTheme(savedTheme);
-    });
-
-    // Listen for theme changes from other pages
-    window.addEventListener('storage', (event) => {
-        if (event.key === 'theme') {
-            applyTheme(event.newValue);
+    
+    // Initialize theme
+    applyTheme(currentTheme);
+    
+    // Listen for theme changes from other windows/tabs
+    window.addEventListener('storage', function(event) {
+        if (event.key === THEME_KEY) {
+            currentTheme = event.newValue || DEFAULT_THEME;
+            applyTheme(currentTheme);
         }
     });
+    
+    // Optional: Add theme switcher UI
+    function addThemeSwitcher() {
+        const switcher = document.createElement('div');
+        switcher.className = 'theme-switcher';
+        switcher.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 10000;
+            background: rgba(0,0,0,0.7);
+            padding: 8px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        `;
+        
+        Object.keys(themes).forEach(theme => {
+            const button = document.createElement('button');
+            button.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
+            button.style.cssText = `
+                padding: 6px 12px;
+                border-radius: 16px;
+                border: none;
+                background: ${themes[theme].background};
+                color: ${themes[theme].text};
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: bold;
+                opacity: ${theme === currentTheme ? '1' : '0.7'};
+                transition: opacity 0.2s;
+            `;
+            
+            button.addEventListener('click', () => {
+                currentTheme = theme;
+                localStorage.setItem(THEME_KEY, theme);
+                applyTheme(theme);
+                // Update button states
+                switcher.querySelectorAll('button').forEach(btn => {
+                    btn.style.opacity = btn === button ? '1' : '0.7';
+                });
+            });
+            
+            switcher.appendChild(button);
+        });
+        
+        document.body.appendChild(switcher);
+    }
+    
+    // Uncomment to enable the theme switcher UI
+    // addThemeSwitcher();
+})();
 </script>
 </body>
 </html>
