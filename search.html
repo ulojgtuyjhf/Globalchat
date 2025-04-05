@@ -541,506 +541,814 @@ body.theme-dim .error {
     <div class="chat-container" id="chat-container"></div>
     <div class="header-space"></div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, query, orderBy, limit, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot, startAfter, where, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+   
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
-            authDomain: "globalchat-2d669.firebaseapp.com",
-            projectId: "globalchat-2d669",
-            storageBucket: "globalchat-2d669.firebasestorage.app",
-            messagingSenderId: "178714711978",
-            appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
-        };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, query, orderBy, limit, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot, startAfter, where, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const MESSAGES_PER_PAGE = 20;
-        let lastVisible = null;
-        let loading = false;
-        let realtimeUnsubscribe = null;
-        let hasMoreMessages = true;
+    const firebaseConfig = {
+        apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+        authDomain: "globalchat-2d669.firebaseapp.com",
+        projectId: "globalchat-2d669",
+        storageBucket: "globalchat-2d669.firebasestorage.app",
+        messagingSenderId: "178714711978",
+        appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
+    };
 
-        const commonEmojis = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-        // Intersection Observer for media loading
-        const mediaObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const mediaWrapper = entry.target;
-                    const mediaElement = mediaWrapper.querySelector('img, video');
-                    
-                    if (mediaElement && mediaElement.dataset.src) {
-                        mediaElement.src = mediaElement.dataset.src;
-                        mediaElement.onload = () => {
-                            mediaWrapper.classList.remove('media-loading');
-                        };
-                        mediaElement.onerror = () => {
-                            mediaWrapper.classList.remove('media-loading');
-                            mediaWrapper.classList.add('media-error');
-                        };
-                        mediaObserver.unobserve(mediaWrapper);
-                    }
-                }
-            });
-        }, {
-            rootMargin: '100px',
-            threshold: 0.1
-        });
+    const MESSAGES_PER_PAGE = 15;
+    let lastVisible = null;
+    let loading = false;
+    let realtimeUnsubscribe = null;
+    let hasMoreMessages = true;
+    let userProfileCache = {};
+    let followStatusCache = {};
+    let allLoadedPosts = []; // Store all loaded posts for randomization
 
-        // Scroll Observer for Infinite Loading
-        const scrollObserver = new IntersectionObserver((entries) => {
-            const lastEntry = entries[0];
-            if (lastEntry.isIntersecting && hasMoreMessages && !loading) {
-                loadMessages(false);
-            }
-        }, {
-            rootMargin: '200px',
-            threshold: 0.1
-        });
+    const commonEmojis = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+    const chatContainer = document.getElementById('chat-container');
 
-        async function getUserProfile(userId) {
-            try {
-                const userDocRef = doc(db, 'users', userId);
-                const userDoc = await getDoc(userDocRef);
-                return userDoc.exists() ? userDoc.data() : null;
-            } catch (error) {
-                console.error('Error fetching user profile:', error);
-                return null;
-            }
-        }
-
-        async function isFollowing(currentUserId, targetUserId) {
-            try {
-                const followQuery = query(
-                    collection(db, 'follows'),
-                    where('followerUserId', '==', currentUserId),
-                    where('followedUserId', '==', targetUserId)
-                );
+    // Intersection Observer for media loading
+    const mediaObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const mediaWrapper = entry.target;
+                const mediaElement = mediaWrapper.querySelector('img, video');
                 
-                const followSnapshot = await getDocs(followQuery);
-                return !followSnapshot.empty;
-            } catch (error) {
-                console.error('Error checking follow status:', error);
-                return false;
+                if (mediaElement && mediaElement.dataset.src) {
+                    mediaElement.src = mediaElement.dataset.src;
+                    mediaElement.onload = () => {
+                        mediaWrapper.classList.remove('media-loading');
+                    };
+                    mediaElement.onerror = () => {
+                        mediaWrapper.classList.remove('media-loading');
+                        mediaWrapper.classList.add('media-error');
+                    };
+                    mediaObserver.unobserve(mediaWrapper);
+                }
+            }
+        });
+    }, {
+        rootMargin: '200px',
+        threshold: 0.1
+    });
+
+    // Scroll Observer for Infinite Loading
+    const scrollObserver = new IntersectionObserver((entries) => {
+        const lastEntry = entries[0];
+        if (lastEntry.isIntersecting && hasMoreMessages && !loading) {
+            loadMessages(false);
+        }
+    }, {
+        rootMargin: '300px',
+        threshold: 0.1
+    });
+
+    async function getUserProfile(userId) {
+        if (userProfileCache[userId]) {
+            return userProfileCache[userId];
+        }
+        
+        try {
+            const userDocRef = doc(db, 'users', userId);
+            const userDoc = await getDoc(userDocRef);
+            const userData = userDoc.exists() ? userDoc.data() : null;
+            
+            if (userData) {
+                userProfileCache[userId] = userData;
+            }
+            
+            return userData;
+        } catch (error) {
+            console.error('Error fetching user profile:', error);
+            return null;
+        }
+    }
+
+    async function isFollowing(currentUserId, targetUserId) {
+        if (!currentUserId || !targetUserId || currentUserId === targetUserId) {
+            return false;
+        }
+        
+        const cacheKey = `${currentUserId}_${targetUserId}`;
+        if (followStatusCache[cacheKey] !== undefined) {
+            return followStatusCache[cacheKey];
+        }
+        
+        try {
+            const followQuery = query(
+                collection(db, 'follows'),
+                where('followerUserId', '==', currentUserId),
+                where('followedUserId', '==', targetUserId)
+            );
+            
+            const followSnapshot = await getDocs(followQuery);
+            const result = !followSnapshot.empty;
+            
+            followStatusCache[cacheKey] = result;
+            
+            return result;
+        } catch (error) {
+            console.error('Error checking follow status:', error);
+            return false;
+        }
+    }
+
+    async function toggleFollow(userId, userName, button) {
+        const currentUser = auth.currentUser;
+        
+        if (!currentUser) {
+            alert('Please log in to follow users');
+            return;
+        }
+
+        try {
+            button.disabled = true;
+            button.innerHTML = '<span class="loading-spinner"></span>';
+
+            const cacheKey = `${currentUser.uid}_${userId}`;
+            
+            const followQuery = query(
+                collection(db, 'follows'),
+                where('followerUserId', '==', currentUser.uid),
+                where('followedUserId', '==', userId)
+            );
+            
+            const followSnapshot = await getDocs(followQuery);
+
+            if (followSnapshot.empty) {
+                await addDoc(collection(db, 'follows'), {
+                    followerUserId: currentUser.uid,
+                    followedUserId: userId,
+                    followedUserName: userName,
+                    timestamp: new Date()
+                });
+                
+                followStatusCache[cacheKey] = true;
+                
+                setTimeout(() => {
+                    button.innerHTML = 'Following';
+                    button.classList.add('followed');
+                    button.disabled = false;
+                }, 300);
+            } else {
+                followSnapshot.forEach(async (doc) => {
+                    await deleteDoc(doc.ref);
+                });
+                
+                followStatusCache[cacheKey] = false;
+                
+                setTimeout(() => {
+                    button.innerHTML = 'Follow';
+                    button.classList.remove('followed');
+                    button.disabled = false;
+                }, 300);
+            }
+        } catch (error) {
+            console.error('Follow/Unfollow error:', error);
+            button.disabled = false;
+            button.innerHTML = 'Follow';
+            button.classList.remove('followed');
+        }
+    }
+
+    function formatTimestamp(timestamp) {
+        if (!timestamp) return '';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+        
+        return date.toLocaleDateString();
+    }
+    
+    function getDateHeader(timestamp) {
+        if (!timestamp) return '';
+        
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const now = new Date();
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        if (date.toDateString() === now.toDateString()) {
+            return 'Today';
+        }
+        
+        if (date.toDateString() === yesterday.toDateString()) {
+            return 'Yesterday';
+        }
+        
+        const diffDays = Math.floor((now - date) / (24 * 60 * 60 * 1000));
+        if (diffDays < 7) {
+            return date.toLocaleDateString(undefined, { weekday: 'long' });
+        }
+        
+        if (date.getFullYear() === now.getFullYear()) {
+            return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
+        }
+        
+        return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
+    async function toggleReaction(postId, emoji, userId) {
+        try {
+            const postRef = doc(db, 'posts', postId);
+            const postDoc = await getDoc(postRef);
+            
+            if (!postDoc.exists()) return;
+            
+            const reactions = postDoc.data().reactions || {};
+            const reactionUsers = reactions[emoji] || [];
+            
+            if (reactionUsers.includes(userId)) {
+                await updateDoc(postRef, {
+                    [`reactions.${emoji}`]: arrayRemove(userId)
+                });
+            } else {
+                await updateDoc(postRef, {
+                    [`reactions.${emoji}`]: arrayUnion(userId)
+                });
+            }
+        } catch (error) {
+            console.error('Error toggling reaction:', error);
+        }
+    }
+
+    function createEmojiPicker(postId, userId) {
+        const picker = document.createElement('div');
+        picker.className = 'emoji-picker';
+        
+        commonEmojis.forEach(emoji => {
+            const option = document.createElement('div');
+            option.className = 'emoji-option';
+            option.textContent = emoji;
+            option.onclick = (e) => {
+                e.stopPropagation();
+                toggleReaction(postId, emoji, userId);
+                picker.remove();
+            };
+            picker.appendChild(option);
+        });
+        
+        return picker;
+    }
+
+    function renderReactions(reactions = {}, postId, userId) {
+        const container = document.createElement('div');
+        container.className = 'reactions-container';
+        
+        Object.entries(reactions).forEach(([emoji, users]) => {
+            if (users.length > 0) {
+                const reaction = document.createElement('div');
+                reaction.className = 'reaction';
+                reaction.classList.toggle('user-reacted', users.includes(userId));
+                reaction.innerHTML = `
+                    ${emoji}
+                    <span class="reaction-count">${users.length}</span>
+                `;
+                reaction.onclick = () => toggleReaction(postId, emoji, userId);
+                container.appendChild(reaction);
+            }
+        });
+        
+        const addReaction = document.createElement('div');
+        addReaction.className = 'add-reaction';
+        addReaction.innerHTML = '😊';
+        addReaction.onclick = (e) => {
+            e.stopPropagation();
+            const existing = document.querySelector('.emoji-picker');
+            if (existing) existing.remove();
+            
+            const picker = createEmojiPicker(postId, userId);
+            addReaction.appendChild(picker);
+            
+            document.addEventListener('click', () => picker.remove(), { once: true });
+        };
+        
+        // Share button with SVG icons
+        const shareButton = document.createElement('div');
+        shareButton.className = 'share-button';
+        shareButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                <polyline points="16 6 12 2 8 6"></polyline>
+                <line x1="12" y1="2" x2="12" y2="15"></line>
+            </svg>
+        `;
+        shareButton.onclick = (e) => {
+            e.stopPropagation();
+            sharePost(postId);
+        };
+        
+        container.appendChild(addReaction);
+        container.appendChild(shareButton);
+        
+        return container;
+    }
+
+    function sharePost(postId) {
+        // Create a URL to share
+        const shareUrl = `${window.location.origin}/post.html?id=${postId}`;
+        
+        // Check if Web Share API is supported
+        if (navigator.share) {
+            navigator.share({
+                title: 'Check out this post',
+                url: shareUrl
+            }).catch(console.error);
+        } else {
+            // Fallback - copy to clipboard
+            navigator.clipboard.writeText(shareUrl)
+                .then(() => {
+                    // Show toast notification
+                    const toast = document.createElement('div');
+                    toast.className = 'toast';
+                    toast.textContent = 'Link copied to clipboard!';
+                    document.body.appendChild(toast);
+                    
+                    // Remove toast after 3 seconds
+                    setTimeout(() => {
+                        toast.classList.add('toast-hide');
+                        setTimeout(() => toast.remove(), 300);
+                    }, 3000);
+                })
+                .catch(err => console.error('Failed to copy: ', err));
+        }
+    }
+
+    function createMediaElement(post) {
+        if (!post.mediaUrl) return null;
+
+        const mediaWrapper = document.createElement('div');
+        mediaWrapper.className = 'media-wrapper media-loading';
+
+        const isVideo = post.mediaType?.startsWith('video/') || post.mediaUrl?.match(/\.(mp4|webm|ogg)$/i);
+        
+        if (isVideo) {
+            const video = document.createElement('video');
+            video.className = 'post-media post-video';
+            video.controls = false;
+            video.preload = 'none';
+            video.autoplay = true;
+            video.muted = true;
+            video.dataset.src = post.mediaUrl;
+            video.playsInline = true;
+            
+            if (post.thumbnailUrl) {
+                video.poster = post.thumbnailUrl;
+            }
+
+            video.onloadeddata = () => {
+                mediaWrapper.classList.remove('media-loading');
+            };
+
+            mediaWrapper.appendChild(video);
+        } else {
+            const img = document.createElement('img');
+            img.className = 'post-media post-image';
+            img.dataset.src = post.mediaUrl;
+            img.alt = "Posted image";
+            
+            mediaWrapper.appendChild(img);
+        }
+
+        mediaObserver.observe(mediaWrapper);
+        return mediaWrapper;
+    }
+
+    function createDateSeparator(dateText) {
+        const separator = document.createElement('div');
+        separator.className = 'date-separator';
+        separator.innerHTML = `<span>${dateText}</span>`;
+        return separator;
+    }
+
+    async function createMessageElement(post, userId) {
+        const userProfile = await getUserProfile(post.userId);
+        const username = userProfile?.displayName || `User ${post.userId.slice(0, 4)}`;
+        const profilePic = userProfile?.photoURL || "/api/placeholder/40/40";
+        
+        const followingStatus = post.userId !== userId ? await isFollowing(userId, post.userId) : false;
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message';
+        messageDiv.dataset.postId = post.id;
+        messageDiv.dataset.userId = post.userId;
+        messageDiv.dataset.timestamp = post.createdAt?.toDate ? post.createdAt.toDate().getTime() : 0;
+        
+        // Add a random offset value for display order
+        messageDiv.dataset.randomOrder = Math.random();
+        
+        const followButton = document.createElement('button');
+        followButton.className = 'follow-btn';
+        if (followingStatus) {
+            followButton.classList.add('followed');
+            followButton.textContent = 'Following';
+        } else {
+            followButton.textContent = 'Follow';
+        }
+        
+        const showFollowButton = post.userId !== userId;
+        
+        const messageHeader = document.createElement('div');
+        messageHeader.className = 'user-header';
+        
+        messageHeader.innerHTML = `
+            <div class="user-info">
+                <div class="status-indicator"></div>
+                <span class="username">${username}</span>
+                <span class="timestamp">${formatTimestamp(post.createdAt)}</span>
+            </div>
+        `;
+        
+        if (showFollowButton) {
+            followButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleFollow(post.userId, username, followButton);
+            });
+            messageHeader.appendChild(followButton);
+        }
+        
+        const messageBubble = document.createElement('div');
+        messageBubble.className = 'message-bubble';
+        messageBubble.appendChild(messageHeader);
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        
+        if (post.text) {
+            const textElement = document.createElement('p');
+            textElement.className = 'text-content';
+            textElement.textContent = post.text;
+            messageContent.appendChild(textElement);
+        }
+        
+        messageBubble.appendChild(messageContent);
+        
+        messageDiv.innerHTML = `<img src="${profilePic}" alt="Profile" class="profile-pic">`;
+        messageDiv.appendChild(messageBubble);
+        
+        if (post.mediaUrl) {
+            const mediaElement = createMediaElement(post);
+            if (mediaElement) {
+                messageContent.appendChild(mediaElement);
             }
         }
 
-        async function toggleFollow(userId, userName, button) {
-            const currentUser = auth.currentUser;
+        messageBubble.appendChild(renderReactions(post.reactions, post.id, userId));
+
+        return messageDiv;
+    }
+
+    function updateMessage(post, userId) {
+        const existingMessage = document.querySelector(`.message[data-post-id="${post.id}"]`);
+        if (existingMessage) {
+            const messageBubble = existingMessage.querySelector('.message-bubble');
+            const oldReactions = messageBubble.querySelector('.reactions-container');
+            if (oldReactions) {
+                oldReactions.replaceWith(renderReactions(post.reactions, post.id, userId));
+            }
+        }
+    }
+
+    function createLoadingSpinner() {
+        const spinner = document.createElement('div');
+        spinner.className = 'loading-spinner';
+        spinner.id = 'loading-spinner';
+        spinner.innerHTML = `
+            <div class="spinner-inner">
+                <div class="spinner-circle"></div>
+            </div>
+        `;
+        return spinner;
+    }
+
+    // Shuffle array using Fisher-Yates algorithm
+    function shuffleArray(array) {
+        const newArray = [...array];
+        for (let i = newArray.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+        }
+        return newArray;
+    }
+
+    // Display posts in a random order
+    function displayRandomizedPosts(container, messageElements) {
+        // Clear container first
+        container.innerHTML = '';
+        
+        // Shuffle the message elements
+        const shuffledElements = shuffleArray(messageElements);
+        
+        // Group by date, but still maintain randomization within dates
+        let lastDate = null;
+        
+        // Sort only by date, but maintain randomization within each date
+        shuffledElements.sort((a, b) => {
+            const aDate = new Date(parseInt(a.dataset.timestamp)).toDateString();
+            const bDate = new Date(parseInt(b.dataset.timestamp)).toDateString();
             
-            if (!currentUser) {
-                alert('Please log in to follow users');
+            if (aDate === bDate) {
+                // For same date, use the random value
+                return parseFloat(a.dataset.randomOrder) - parseFloat(b.dataset.randomOrder);
+            }
+            
+            // For different dates, sort by date
+            return parseInt(a.dataset.timestamp) - parseInt(b.dataset.timestamp);
+        });
+        
+        // Add elements with date separators
+        shuffledElements.forEach(element => {
+            const timestamp = parseInt(element.dataset.timestamp);
+            if (!timestamp) {
+                container.appendChild(element);
                 return;
             }
-
-            try {
-                // Show loading state on button
-                button.disabled = true;
-                button.innerHTML = '<span class="loading-spinner"></span>';
-
-                // Check if follow relationship already exists
-                const followQuery = query(
-                    collection(db, 'follows'),
-                    where('followerUserId', '==', currentUser.uid),
-                    where('followedUserId', '==', userId)
-                );
-                
-                const followSnapshot = await getDocs(followQuery);
-
-                if (followSnapshot.empty) {
-                    // Follow the user - create a new follow record
-                    await addDoc(collection(db, 'follows'), {
-                        followerUserId: currentUser.uid,
-                        followedUserId: userId,
-                        followedUserName: userName,
-                        timestamp: new Date()
-                    });
-                    
-                    // Update button to "Following" state after success
-                    setTimeout(() => {
-                        button.innerHTML = 'Following';
-                        button.classList.add('followed');
-                        button.disabled = false;
-                    }, 500);
-                } else {
-                    // Unfollow the user - delete the existing follow record(s)
-                    followSnapshot.forEach(async (doc) => {
-                        await deleteDoc(doc.ref);
-                    });
-                    
-                    // Update button back to "Follow" state after success
-                    setTimeout(() => {
-                        button.innerHTML = 'Follow';
-                        button.classList.remove('followed');
-                        button.disabled = false;
-                    }, 500);
-                }
-            } catch (error) {
-                console.error('Follow/Unfollow error:', error);
-                // Reset button to original state on error
-                button.disabled = false;
-                button.innerHTML = 'Follow';
-                button.classList.remove('followed');
-            }
-        }
-
-        function formatTimestamp(timestamp) {
-            if (!timestamp) return '';
-            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-            const now = new Date();
-            const diffMs = now - date;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMins / 60);
-            const diffDays = Math.floor(diffHours / 24);
-
-            if (diffMins < 1) return 'Just now';
-            if (diffMins < 60) return `${diffMins}m ago`;
-            if (diffHours < 24) return `${diffHours}h ago`;
-            if (diffDays < 7) return `${diffDays}d ago`;
             
-            return date.toLocaleDateString();
-        }
-
-        async function toggleReaction(postId, emoji, userId) {
-            try {
-                const postRef = doc(db, 'posts', postId);
-                const postDoc = await getDoc(postRef);
-                
-                if (!postDoc.exists()) return;
-                
-                const reactions = postDoc.data().reactions || {};
-                const reactionUsers = reactions[emoji] || [];
-                
-                if (reactionUsers.includes(userId)) {
-                    await updateDoc(postRef, {
-                        [`reactions.${emoji}`]: arrayRemove(userId)
-                    });
-                } else {
-                    await updateDoc(postRef, {
-                        [`reactions.${emoji}`]: arrayUnion(userId)
-                    });
-                }
-            } catch (error) {
-                console.error('Error toggling reaction:', error);
-            }
-        }
-
-        function createEmojiPicker(postId, userId) {
-            const picker = document.createElement('div');
-            picker.className = 'emoji-picker';
+            const messageDate = new Date(timestamp);
+            const dateHeader = getDateHeader(messageDate);
             
-            commonEmojis.forEach(emoji => {
-                const option = document.createElement('div');
-                option.className = 'emoji-option';
-                option.textContent = emoji;
-                option.onclick = (e) => {
-                    e.stopPropagation();
-                    toggleReaction(postId, emoji, userId);
-                    picker.remove();
-                };
-                picker.appendChild(option);
-            });
-            
-            return picker;
-        }
-
-        function renderReactions(reactions = {}, postId, userId) {
-            const container = document.createElement('div');
-            container.className = 'reactions-container';
-            
-            Object.entries(reactions).forEach(([emoji, users]) => {
-                if (users.length > 0) {
-                    const reaction = document.createElement('div');
-                    reaction.className = 'reaction';
-                    reaction.classList.toggle('user-reacted', users.includes(userId));
-                    reaction.innerHTML = `
-                        ${emoji}
-                        <span class="reaction-count">${users.length}</span>
-                    `;
-                    reaction.onclick = () => toggleReaction(postId, emoji, userId);
-                    container.appendChild(reaction);
-                }
-            });
-            
-            const addReaction = document.createElement('div');
-            addReaction.className = 'add-reaction';
-            addReaction.innerHTML = '😊';
-            addReaction.onclick = (e) => {
-                e.stopPropagation();
-                const existing = document.querySelector('.emoji-picker');
-                if (existing) existing.remove();
-                
-                const picker = createEmojiPicker(postId, userId);
-                addReaction.appendChild(picker);
-                
-                document.addEventListener('click', () => picker.remove(), { once: true });
-            };
-            
-            container.appendChild(addReaction);
-            return container;
-        }
-
-        function createMediaElement(post) {
-            if (!post.mediaUrl) return null;
-
-            const mediaWrapper = document.createElement('div');
-            mediaWrapper.className = 'media-wrapper media-loading';
-
-            const isVideo = post.mediaType?.startsWith('video/') || post.mediaUrl?.match(/\.(mp4|webm|ogg)$/i);
-            
-            if (isVideo) {
-                const video = document.createElement('video');
-                video.className = 'post-media post-video';
-                video.controls = false;
-                video.preload = 'none';
-                video.autoplay = true;
-                video.muted = true;
-                video.dataset.src = post.mediaUrl;
-                video.playsInline = true;
-                
-                if (post.thumbnailUrl) {
-                    video.poster = post.thumbnailUrl;
-                }
-
-                video.onloadeddata = () => {
-                    mediaWrapper.classList.remove('media-loading');
-                };
-
-                mediaWrapper.appendChild(video);
-            } else {
-                const img = document.createElement('img');
-                img.className = 'post-media post-image';
-                img.dataset.src = post.mediaUrl;
-                img.alt = "Posted image";
-                
-                mediaWrapper.appendChild(img);
-            }
-
-            mediaObserver.observe(mediaWrapper);
-            return mediaWrapper;
-        }
-
-        async function createMessageElement(post, userId) {
-            const userProfile = await getUserProfile(post.userId);
-            const username = userProfile?.displayName || `User ${post.userId.slice(0, 4)}`;
-            const profilePic = userProfile?.photoURL || "/api/placeholder/40/40";
-            
-            // Check if the current user is following this post's author
-            const followingStatus = await isFollowing(userId, post.userId);
-
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message';
-            messageDiv.dataset.postId = post.id;
-            messageDiv.dataset.userId = post.userId;
-            
-            // Create the follow button
-            const followButton = document.createElement('button');
-            followButton.className = 'follow-btn';
-            if (followingStatus) {
-                followButton.classList.add('followed');
-                followButton.textContent = 'Following';
-            } else {
-                followButton.textContent = 'Follow';
+            if (dateHeader !== lastDate) {
+                container.appendChild(createDateSeparator(dateHeader));
+                lastDate = dateHeader;
             }
             
-            // Skip follow button for current user's posts
-            const showFollowButton = post.userId !== userId;
-            
-            const messageHeader = document.createElement('div');
-            messageHeader.className = 'user-header';
-            
-            messageHeader.innerHTML = `
-                <div class="user-info">
-                    <div class="status-indicator"></div>
-                    <span class="username">${username}</span>
-                    <span class="timestamp">${formatTimestamp(post.createdAt)}</span>
-                </div>
-            `;
-            
-            if (showFollowButton) {
-                followButton.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    toggleFollow(post.userId, username, followButton);
-                });
-                messageHeader.appendChild(followButton);
-            }
-            
-            const messageBubble = document.createElement('div');
-            messageBubble.className = 'message-bubble';
-            messageBubble.appendChild(messageHeader);
-            
-            const messageContent = document.createElement('div');
-            messageContent.className = 'message-content';
-            
-            if (post.text) {
-                const textElement = document.createElement('p');
-                textElement.className = 'text-content';
-                textElement.textContent = post.text;
-                messageContent.appendChild(textElement);
-            }
-            
-            messageBubble.appendChild(messageContent);
-            
-            messageDiv.innerHTML = `<img src="${profilePic}" alt="Profile" class="profile-pic">`;
-            messageDiv.appendChild(messageBubble);
-            
-            if (post.mediaUrl) {
-                const mediaElement = createMediaElement(post);
-                if (mediaElement) {
-                    messageContent.appendChild(mediaElement);
-                }
-            }
-
-            messageBubble.appendChild(renderReactions(post.reactions, post.id, userId));
-
-            return messageDiv;
-        }
-
-        function updateMessage(post, userId) {
-            const existingMessage = document.querySelector(`.message[data-post-id="${post.id}"]`);
-            if (existingMessage) {
-                const messageBubble = existingMessage.querySelector('.message-bubble');
-                const oldReactions = messageBubble.querySelector('.reactions-container');
-                if (oldReactions) {
-                    oldReactions.replaceWith(renderReactions(post.reactions, post.id, userId));
-                }
-            }
-        }
-
-        function createLoadingSpinner() {
-            const spinner = document.createElement('div');
-            spinner.className = 'loading-spinner';
-            spinner.innerHTML = `
-                <div class="spinner-inner">
-                    <div class="spinner-circle"></div>
-                </div>
-            `;
-            return spinner;
-        }
-
-        async function loadMessages(initial = true) {
-            if (loading || (!initial && !hasMoreMessages)) return;
-            loading = true;
-
-            const container = document.getElementById('chat-container');
-            const loadingSpinner = createLoadingSpinner();
-            
-            if (initial) {
-                container.innerHTML = '';
-                container.appendChild(loadingSpinner);
-                
-                if (realtimeUnsubscribe) {
-                    realtimeUnsubscribe();
-                }
-            } else {
-                container.appendChild(loadingSpinner);
-            }
-
-            try {
-                let messagesQuery = query(
-                    collection(db, 'posts'),
-                    orderBy('createdAt', 'desc'),
-                    limit(MESSAGES_PER_PAGE)
-                );
-
-                if (!initial && lastVisible) {
-                    messagesQuery = query(
-                        collection(db, 'posts'),
-                        orderBy('createdAt', 'desc'),
-                        startAfter(lastVisible),
-                        limit(MESSAGES_PER_PAGE)
-                    );
-                }
-
-                const snapshot = await getDocs(messagesQuery);
-                
-                if (snapshot.empty || snapshot.docs.length < MESSAGES_PER_PAGE) {
-                    hasMoreMessages = false;
-                }
-
-                if (snapshot.empty) {
-                    loadingSpinner.remove();
-                    loading = false;
-                    return;
-                }
-
-                lastVisible = snapshot.docs[snapshot.docs.length - 1];
-
-                if (initial) {
-                    container.innerHTML = '';
-                    
-                    realtimeUnsubscribe = onSnapshot(
-                        query(collection(db, 'posts'), orderBy('createdAt', 'desc')),
-                        (snapshot) => {
-                            const currentUser = auth.currentUser;
-                            
-                            snapshot.docChanges().forEach((change) => {
-                                const post = { id: change.doc.id, ...change.doc.data() };
-                                if (change.type === 'modified') {
-                                    updateMessage(post, currentUser.uid);
-                                }
-                            });
-                        }
-                    );
-                }
-
-                const currentUser = auth.currentUser;
-                const fragment = document.createDocumentFragment();
-                
-                for (const doc of snapshot.docs) {
-                    const post = { id: doc.id, ...doc.data() };
-                    const messageElement = await createMessageElement(post, currentUser.uid);
-                    fragment.appendChild(messageElement);
-                }
-
-                loadingSpinner.remove();
-                container.appendChild(fragment);
-
-                if (hasMoreMessages) {
-                    const lastMessage = container.lastElementChild;
-                    if (lastMessage) {
-                        scrollObserver.observe(lastMessage);
-                    }
-                }
-
-            } catch (error) {
-                console.error('Messages loading error:', error);
-                loadingSpinner.remove();
-                if (initial) {
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'error';
-                    errorDiv.textContent = 'Error loading messages';
-                    container.appendChild(errorDiv);
-                }
-            }
-
-            loading = false;
-        }
-
-        // Initialize the chat
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                loadMessages(true);
-            } else {
-                window.location.href = 'login.html';
-            }
+            container.appendChild(element);
         });
+        
+        return shuffledElements;
+    }
 
-        // Clean up
-        window.addEventListener('unload', () => {
+    async function loadMessages(initial = true) {
+        if (loading || (!initial && !hasMoreMessages)) return;
+        loading = true;
+
+        const container = document.getElementById('chat-container');
+        const loadingSpinner = createLoadingSpinner();
+        
+        if (initial) {
+            container.innerHTML = '';
+            container.appendChild(loadingSpinner);
+            
             if (realtimeUnsubscribe) {
                 realtimeUnsubscribe();
             }
-            mediaObserver.disconnect();
-            scrollObserver.disconnect();
-        });
-    </script>
+            
+            // Reset stored posts on initial load
+            allLoadedPosts = [];
+        } else {
+            container.appendChild(loadingSpinner);
+        }
 
+        try {
+            let messagesQuery = query(
+                collection(db, 'posts'),
+                orderBy('createdAt', 'desc'),
+                limit(MESSAGES_PER_PAGE)
+            );
+
+            if (!initial && lastVisible) {
+                messagesQuery = query(
+                    collection(db, 'posts'),
+                    orderBy('createdAt', 'desc'),
+                    startAfter(lastVisible),
+                    limit(MESSAGES_PER_PAGE)
+                );
+            }
+
+            const snapshot = await getDocs(messagesQuery);
+            
+            if (snapshot.empty || snapshot.docs.length < MESSAGES_PER_PAGE) {
+                hasMoreMessages = false;
+            }
+
+            if (snapshot.empty) {
+                const spinner = document.getElementById('loading-spinner');
+                if (spinner) spinner.remove();
+                loading = false;
+                
+                if (initial && allLoadedPosts.length === 0) {
+                    const emptyMessage = document.createElement('div');
+                    emptyMessage.className = 'empty-state';
+                    emptyMessage.textContent = 'No posts yet. Be the first to share something!';
+                    container.appendChild(emptyMessage);
+                }
+                
+                return;
+            }
+
+            lastVisible = snapshot.docs[snapshot.docs.length - 1];
+
+            if (initial) {
+                realtimeUnsubscribe = onSnapshot(
+                    query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(30)),
+                    (snapshot) => {
+                        const currentUser = auth.currentUser;
+                        
+                        snapshot.docChanges().forEach((change) => {
+                            const post = { id: change.doc.id, ...change.doc.data() };
+                            if (change.type === 'modified') {
+                                updateMessage(post, currentUser.uid);
+                            }
+                        });
+                    }
+                );
+            }
+
+            const currentUser = auth.currentUser;
+            const messagePromises = [];
+            
+            // Create message elements concurrently
+            for (const doc of snapshot.docs) {
+                const post = { id: doc.id, ...doc.data() };
+                messagePromises.push(createMessageElement(post, currentUser.uid));
+            }
+            
+            // Wait for all message elements to be created
+            const newMessageElements = await Promise.all(messagePromises);
+            
+            // Add new elements to the collection of all loaded posts
+            allLoadedPosts = [...allLoadedPosts, ...newMessageElements];
+            
+            // Remove the loading spinner after messages are ready
+            const spinner = document.getElementById('loading-spinner');
+            if (spinner) spinner.remove();
+            
+            // Display randomized posts
+            const displayedElements = displayRandomizedPosts(container, allLoadedPosts);
+            
+            // Observe the last element for infinite scrolling
+            if (hasMoreMessages && displayedElements.length > 0) {
+                // Use the actual last element in the DOM after randomization
+                const lastElement = container.querySelector('.message:last-child');
+                if (lastElement) {
+                    scrollObserver.observe(lastElement);
+                }
+            }
+
+        } catch (error) {
+            console.error('Messages loading error:', error);
+            const spinner = document.getElementById('loading-spinner');
+            if (spinner) spinner.remove();
+            
+            if (initial) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.textContent = 'Error loading messages. Please try again later.';
+                container.appendChild(errorDiv);
+            }
+        }
+
+        loading = false;
+    }
+
+    // Add CSS for new elements
+    const styleSheet = document.createElement("style");
+    styleSheet.innerHTML = `
+        .date-separator {
+            text-align: center;
+            margin: 15px 0;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .date-separator::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background-color: rgba(0, 0, 0, 0.1);
+            z-index: -1;
+        }
+        
+        body.theme-dark .date-separator::before,
+        body.theme-dim .date-separator::before {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .date-separator span {
+            background-color: #ffffff;
+            padding: 0 10px;
+            font-size: 12px;
+            color: #657786;
+            font-weight: 500;
+            border-radius: 10px;
+            display: inline-block;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        body.theme-dark .date-separator span {
+            background-color: #16181c;
+            color: #8899a6;
+        }
+        
+        body.theme-dim .date-separator span {
+            background-color: #192734;
+            color: #8899a6;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #657786;
+            font-size: 16px;
+        }
+        
+        .share-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 2px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            transition: all 0.2s ease;
+            margin-left: 4px;
+        }
+        
+        .share-button:hover {
+            background: #f0f3f5;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        body.theme-dark .share-button {
+            background: #16181c;
+            border-color: #2f3336;
+            color: #e6e9ea;
+        }
+        
+        body.theme-dark .share-button:hover {
+            background: #1d2023;
+        }
+        
+        body.theme-dim .share-button {
+            background: #192734;
+            border-color: #38444d;
+            color: #e6e9ea;
+        }
+        
+        body.theme-dim .share-button:hover {
+            background: #1e2c3a;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            z-index: 1000;
+            font-size: 14px;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+        
+        .toast-hide {
+            opacity: 0;
+        }
+    `;
+    document.head.appendChild(styleSheet);
+
+    // Initialize the chat
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            loadMessages(true);
+        } else {
+            window.location.href = 'login.html';
+        }
+    });
+
+    // Clean up
+    window.addEventListener('unload', () => {
+        if (realtimeUnsubscribe) {
+            realtimeUnsubscribe();
+        }
+        mediaObserver.disconnect();
+        scrollObserver.disconnect();
+    });
+</script>
 
 <script>
   (function() {
