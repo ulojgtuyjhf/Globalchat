@@ -2116,5 +2116,568 @@ body.theme-dim .error {
 })();
 
 </script>
+
+<script>
+// Create and append styles
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `
+.media-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.media-modal.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.media-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.media-content {
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    max-width: 95%;
+    max-height: 80%;
+}
+
+.media-content.dragging {
+    cursor: grabbing;
+    transition: none;
+}
+
+.media-content img,
+.media-content video {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.video-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 10;
+}
+
+.media-content:hover .video-controls {
+    opacity: 1;
+}
+
+.video-progress {
+    flex-grow: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+}
+
+.video-progress-bar {
+    height: 100%;
+    background: #1DA1F2; /* Twitter blue */
+    border-radius: 2px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition: width 0.1s linear;
+}
+
+.video-button {
+    background: none;
+    border: none;
+    color: white;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.video-button:hover {
+    transform: scale(1.1);
+}
+
+.video-button svg {
+    width: 24px;
+    height: 24px;
+}
+
+.video-time {
+    color: white;
+    font-size: 14px;
+    font-family: monospace;
+}
+
+.media-reactions {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.media-text {
+    color: white;
+    max-width: 80%;
+    margin-top: 15px;
+    font-size: 16px;
+    line-height: 1.5;
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(5px);
+}
+
+.reaction-item {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(8px);
+    padding: 8px 16px;
+    border-radius: 20px;
+    color: white;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    animation: fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    opacity: 0;
+    cursor: pointer;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.reaction-item:hover {
+    transform: translateY(-3px);
+    background: rgba(255, 255, 255, 0.3);
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.reaction-icon {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+}
+
+.reaction-count {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.drag-indicator {
+    width: 40px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 3px;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+    .media-reactions {
+        overflow-x: auto;
+        justify-content: flex-start;
+        padding: 10px 20px;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+    }
+    
+    .reaction-item {
+        scroll-snap-align: start;
+        flex-shrink: 0;
+    }
+}
+`;
+document.head.appendChild(styleSheet);
+
+// Create modal HTML
+const modal = document.createElement('div');
+modal.className = 'media-modal';
+modal.innerHTML = `
+    <div class="media-container">
+        <div class="drag-indicator"></div>
+        <div class="media-content">
+            <div class="video-controls">
+                <button class="video-button play-pause">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+                </button>
+                <div class="video-progress">
+                    <div class="video-progress-bar"></div>
+                </div>
+                <span class="video-time">0:00 / 0:00</span>
+                <button class="video-button volume">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                </button>
+            </div>
+        </div>
+        <div class="media-text"></div>
+        <div class="media-reactions"></div>
+    </div>
+`;
+document.body.appendChild(modal);
+
+// Variables for handling interactions
+let startY = 0;
+let currentY = 0;
+let startX = 0;
+let currentX = 0;
+let isDragging = false;
+let originalRect = null;
+let sourceElement = null;
+let currentVideo = null;
+let sourcePost = null;
+
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    seconds = Math.floor(seconds % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function setupVideoControls(video) {
+    const controls = modal.querySelector('.video-controls');
+    const playPauseBtn = controls.querySelector('.play-pause');
+    const progressBar = controls.querySelector('.video-progress-bar');
+    const progress = controls.querySelector('.video-progress');
+    const timeDisplay = controls.querySelector('.video-time');
+    const volumeBtn = controls.querySelector('.volume');
+
+    // Update play/pause button
+    function updatePlayButton() {
+        playPauseBtn.innerHTML = video.paused ? 
+            '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>' :
+            '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+    }
+
+    // Play/Pause toggle
+    playPauseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (video.paused) video.play();
+        else video.pause();
+    });
+
+    // Progress bar updates
+    video.addEventListener('timeupdate', () => {
+        const progress = (video.currentTime / video.duration) * 100;
+        progressBar.style.width = `${progress}%`;
+        timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+    });
+
+    // Click to seek
+    progress.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const rect = progress.getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        video.currentTime = pos * video.duration;
+    });
+
+    // Volume toggle
+    volumeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        video.muted = !video.muted;
+        volumeBtn.innerHTML = video.muted ?
+            '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>' :
+            '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>';
+    });
+
+    // Event listeners for play/pause updates
+    video.addEventListener('play', updatePlayButton);
+    video.addEventListener('pause', updatePlayButton);
+}
+
+function showMedia(element, info) {
+    sourceElement = element;
+    sourcePost = info.post;
+    originalRect = element.getBoundingClientRect();
+    const modalContent = modal.querySelector('.media-content');
+    const mediaText = modal.querySelector('.media-text');
+    
+    // Clone media and hide original
+    const clone = element.cloneNode(true);
+    sourceElement.style.visibility = 'hidden';
+    
+    if (clone.tagName === 'VIDEO') {
+        clone.controls = false;
+        clone.muted = false;
+        clone.playsInline = true;
+        clone.autoplay = true;
+        
+        modalContent.innerHTML = `
+            <div class="video-controls">
+                <button class="video-button play-pause">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+                </button>
+                <div class="video-progress">
+                    <div class="video-progress-bar"></div>
+                </div>
+                <span class="video-time">0:00 / 0:00</span>
+                <button class="video-button volume">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                </button>
+            </div>
+        `;
+        modalContent.appendChild(clone);
+        currentVideo = clone;
+        setupVideoControls(clone);
+    } else {
+        modalContent.innerHTML = '';
+        modalContent.appendChild(clone);
+    }
+
+    // Display text if available
+    const postTextElement = info.post.querySelector('.text-content');
+    if (postTextElement && postTextElement.textContent.trim()) {
+        mediaText.textContent = postTextElement.textContent;
+        mediaText.style.display = 'block';
+    } else {
+        mediaText.style.display = 'none';
+    }
+
+    // Set initial position
+    modalContent.style.width = `${originalRect.width}px`;
+    modalContent.style.height = `${originalRect.height}px`;
+    modalContent.style.transform = `translate(${originalRect.left - window.innerWidth/2 + originalRect.width/2}px, ${originalRect.top - window.innerHeight/2 + originalRect.height/2}px)`;
+
+    // Lock body scroll
+    document.body.style.overflow = 'hidden';
+
+    // Show modal
+    modal.classList.add('active');
+
+    // Animate to center
+    requestAnimationFrame(() => {
+        modalContent.style.width = '';
+        modalContent.style.height = '';
+        modalContent.style.transform = 'translate(0, 0)';
+    });
+
+    // Update reactions with actual reaction elements from the post
+    const mediaReactions = modal.querySelector('.media-reactions');
+    mediaReactions.innerHTML = '';
+    
+    const originalReactions = Array.from(info.post.querySelectorAll('.reaction'));
+    originalReactions.forEach((reaction, index) => {
+        const clonedReaction = reaction.cloneNode(true);
+        clonedReaction.className = 'reaction-item';
+        clonedReaction.style.animationDelay = `${index * 0.1}s`;
+        
+        // Preserve the click functionality
+        clonedReaction.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Find and click the original reaction to trigger the same action
+            reaction.click();
+            
+            // Update the reaction count locally for immediate feedback
+            const count = reaction.querySelector('.reaction-count');
+            if (count) {
+                clonedReaction.querySelector('.reaction-count').textContent = count.textContent;
+            }
+        });
+        
+        mediaReactions.appendChild(clonedReaction);
+    });
+    
+    // Add the "add reaction" button
+    const addReactionBtn = info.post.querySelector('.add-reaction');
+    if (addReactionBtn) {
+        const clonedAddBtn = addReactionBtn.cloneNode(true);
+        clonedAddBtn.className = 'reaction-item';
+        clonedAddBtn.style.animationDelay = `${originalReactions.length * 0.1}s`;
+        
+        clonedAddBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            addReactionBtn.click();
+        });
+        
+        mediaReactions.appendChild(clonedAddBtn);
+    }
+}
+
+// Touch and mouse event handlers
+function handleStart(e) {
+    if (e.target.closest('.video-controls') || e.target.closest('.reaction-item')) {
+        return; // Don't initiate drag if clicking controls or reactions
+    }
+    
+    const touch = e.touches ? e.touches[0] : e;
+    startY = touch.clientY;
+    startX = touch.clientX;
+    isDragging = true;
+    modal.querySelector('.media-content').classList.add('dragging');
+    
+    // Prevent default only for mouse to avoid text selection
+    if (!e.touches) {
+        e.preventDefault();
+    }
+}
+
+function handleMove(e) {
+    if (!isDragging) return;
+    
+    // Prevent default to stop scrolling while dragging
+    e.preventDefault();
+    
+    const touch = e.touches ? e.touches[0] : e;
+    currentY = touch.clientY;
+    currentX = touch.clientX;
+    
+    const deltaY = currentY - startY;
+    const deltaX = currentX - startX;
+    const rotation = deltaX * 0.05; // Reduced rotation effect
+    
+    const content = modal.querySelector('.media-content');
+    const scale = Math.max(0.6, 1 - (Math.abs(deltaY) / window.innerHeight) * 0.4);
+    const opacity = 1 - (Math.abs(deltaY) / window.innerHeight) * 0.8;
+    
+    modal.style.background = `rgba(0, 0, 0, ${Math.max(0.1, opacity * 0.95)})`;
+    content.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(${scale}) rotate(${rotation}deg)`;
+    
+    // Also update visibility of other elements
+    const text = modal.querySelector('.media-text');
+    const reactions = modal.querySelector('.media-reactions');
+    if (text) text.style.opacity = opacity;
+    if (reactions) reactions.style.opacity = opacity;
+}
+
+function handleEnd(e) {
+    if (!isDragging) return;
+    
+    const deltaY = currentY - startY;
+    const content = modal.querySelector('.media-content');
+    content.classList.remove('dragging');
+    content.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    
+    // Also reset transition for other elements
+    const text = modal.querySelector('.media-text');
+    const reactions = modal.querySelector('.media-reactions');
+    if (text) text.style.transition = 'opacity 0.3s ease';
+    if (reactions) reactions.style.transition = 'opacity 0.3s ease';
+    
+    // Close if dragged far enough
+    if (Math.abs(deltaY) > window.innerHeight / 5) {
+        closeModal();
+    } else {
+        // Spring back animation
+        modal.style.background = '';
+        content.style.transform = '';
+        if (text) text.style.opacity = '';
+        if (reactions) reactions.style.opacity = '';
+    }
+    isDragging = false;
+}
+
+function closeModal() {
+    const content = modal.querySelector('.media-content');
+    const text = modal.querySelector('.media-text');
+    const reactions = modal.querySelector('.media-reactions');
+    
+    // Animate back to original position
+    content.style.transform = `
+        translate(${originalRect.left - window.innerWidth/2 + originalRect.width/2}px, 
+                 ${originalRect.top - window.innerHeight/2 + originalRect.height/2}px) 
+        scale(${originalRect.width / content.offsetWidth})
+    `;
+    modal.style.background = 'rgba(0, 0, 0, 0)';
+    
+    // Fade out other elements
+    if (text) text.style.opacity = '0';
+    if (reactions) reactions.style.opacity = '0';
+    
+    setTimeout(() => {
+        modal.classList.remove('active');
+        content.innerHTML = '';
+        text.textContent = '';
+        reactions.innerHTML = '';
+        
+        if (sourceElement) {
+            sourceElement.style.visibility = 'visible';
+            sourceElement = null;
+        }
+        if (currentVideo) {
+            currentVideo.pause();
+            currentVideo = null;
+        }
+        
+        document.body.style.overflow = '';
+        sourcePost = null;
+    }, 300);
+}
+
+// Event listeners using passive option for better performance
+modal.addEventListener('mousedown', handleStart, { passive: false });
+modal.addEventListener('touchstart', handleStart, { passive: true });
+modal.addEventListener('mousemove', handleMove, { passive: false });
+modal.addEventListener('touchmove', handleMove, { passive: false });
+modal.addEventListener('mouseup', handleEnd, { passive: true });
+modal.addEventListener('touchend', handleEnd, { passive: true });
+modal.addEventListener('mouseleave', handleEnd, { passive: true });
+
+// Handle media clicks - use capturing to get events early
+document.addEventListener('click', (e) => {
+    const mediaElement = e.target.closest('.post-media');
+    if (!mediaElement) return;
+    
+    const post = mediaElement.closest('.message');
+    if (!post) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    showMedia(mediaElement, { post });
+}, { capture: true });
+
+// Close on escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('active')) {
+        closeModal();
+    }
+});
+
+// Prevent conflicts by using unique class names and contained scope
+(function() {
+    // Additional initialization if needed
+})();
+</script>
+
+
 </body>
 </html>
