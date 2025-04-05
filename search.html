@@ -1280,7 +1280,197 @@ body.theme-dim .error {
   })();
 </script>
 
+  <script>
 
+
+(function() {
+  // Search Page Profile Placeholder Generator
+  const SearchProfilePlaceholderGenerator = {
+    // Color palette based on first letter (26 colors for 26 letters)
+    letterColors: {
+      'a': '#F44336', 'b': '#E91E63', 'c': '#9C27B0', 'd': '#673AB7',
+      'e': '#3F51B5', 'f': '#2196F3', 'g': '#03A9F4', 'h': '#00BCD4',
+      'i': '#009688', 'j': '#4CAF50', 'k': '#8BC34A', 'l': '#CDDC39',
+      'm': '#FFEB3B', 'n': '#FFC107', 'o': '#FF9800', 'p': '#FF5722',
+      'q': '#795548', 'r': '#9E9E9E', 's': '#607D8B', 't': '#3949AB',
+      'u': '#D32F2F', 'v': '#C2185B', 'w': '#7B1FA2', 'x': '#512DA8',
+      'y': '#303F9F', 'z': '#1976D2'
+    },
+    
+    // Lighter background colors that need dark text
+    needsDarkText: ['l', 'm', 'n'],
+    
+    init: function() {
+      // Use a unique namespace for this search page functionality
+      if (window.searchProfilePlaceholdersInitialized) return;
+      window.searchProfilePlaceholdersInitialized = true;
+      
+      // Initial processing with delay to ensure DOM is fully loaded
+      setTimeout(() => {
+        this.processSearchPageImages();
+      }, 500);
+      
+      // Set up observer for dynamically added content
+      this.setupSearchObserver();
+    },
+    
+    processSearchPageImages: function() {
+      // Process all profile pictures in the search container
+      document.querySelectorAll('.chat-container .profile-pic').forEach(img => {
+        this.processProfileImage(img);
+      });
+    },
+    
+    processProfileImage: function(imgElement) {
+      // Use a different data attribute to avoid conflicts
+      if (imgElement.dataset.searchPlaceholderApplied === 'true') return;
+      
+      // Mark as processed with our unique attribute
+      imgElement.dataset.searchPlaceholderApplied = 'true';
+      
+      // Get image source
+      const imgSrc = imgElement.getAttribute('src');
+      
+      // Check if it's a default, placeholder or error profile image
+      const isDefaultImage = !imgSrc || 
+                             imgSrc.includes('default_profile') || 
+                             imgSrc.includes('placeholder') ||
+                             imgSrc === '' || 
+                             imgSrc === 'undefined';
+      
+      if (isDefaultImage) {
+        const name = this.getNameFromContext(imgElement);
+        if (name) {
+          this.createProfilePlaceholder(imgElement, name);
+        }
+      }
+      
+      // Also handle image error cases
+      imgElement.onerror = () => {
+        const name = this.getNameFromContext(imgElement);
+        if (name) {
+          this.createProfilePlaceholder(imgElement, name);
+          // Prevent infinite error loop
+          imgElement.onerror = null;
+        }
+      };
+    },
+    
+    getNameFromContext: function(imgElement) {
+      let name = '';
+      
+      // Try to extract name from username element
+      const messageElement = imgElement.closest('.message');
+      if (messageElement) {
+        const usernameElement = messageElement.querySelector('.username');
+        if (usernameElement && usernameElement.textContent) {
+          name = usernameElement.textContent.trim();
+        }
+      }
+      
+      // Fallback to alt attribute
+      if (!name && imgElement.alt) {
+        name = imgElement.alt;
+      }
+      
+      return name || 'User';
+    },
+    
+    createProfilePlaceholder: function(imgElement, name) {
+      // Get first letter (normalized to lowercase for color mapping)
+      const firstLetter = name.trim().charAt(0).toLowerCase();
+      
+      // Get background color based on first letter
+      const backgroundColor = this.letterColors[firstLetter] || '#607D8B';
+      
+      // Determine text color (white or dark gray)
+      const textColor = this.needsDarkText.includes(firstLetter) ? '#202124' : '#FFFFFF';
+      
+      // Create canvas element
+      const canvas = document.createElement('canvas');
+      const size = Math.max(imgElement.width || 40, imgElement.height || 40, 40);
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      
+      // Draw circular background
+      ctx.fillStyle = backgroundColor;
+      ctx.beginPath();
+      ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Draw letter
+      ctx.fillStyle = textColor;
+      ctx.font = `bold ${size * 0.45}px Arial, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(name.charAt(0).toUpperCase(), size/2, size/2);
+      
+      // Replace image source with canvas data URL
+      imgElement.src = canvas.toDataURL('image/png');
+    },
+    
+    setupSearchObserver: function() {
+      // Create mutation observer specific for search page
+      const searchObserver = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+          // Check for new nodes
+          if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach(node => {
+              // Check if node is an element
+              if (node.nodeType === 1) {
+                // Check for profile pictures inside the added node
+                const profileImages = node.querySelectorAll('.profile-pic');
+                if (profileImages.length > 0) {
+                  profileImages.forEach(img => this.processProfileImage(img));
+                }
+                
+                // If the node itself is a profile picture
+                if (node.classList && node.classList.contains('profile-pic')) {
+                  this.processProfileImage(node);
+                }
+              }
+            });
+          }
+          
+          // Check for attribute changes that might indicate new src
+          if (mutation.type === 'attributes' && 
+              mutation.attributeName === 'src' && 
+              mutation.target.classList && 
+              mutation.target.classList.contains('profile-pic')) {
+            this.processProfileImage(mutation.target);
+          }
+        });
+      });
+      
+      // Start observing the chat container
+      const chatContainer = document.getElementById('chat-container');
+      if (chatContainer) {
+        searchObserver.observe(chatContainer, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['src']
+        });
+      }
+    }
+  };
+  
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      SearchProfilePlaceholderGenerator.init();
+    });
+  } else {
+    // If DOM is already loaded, initialize with delay
+    setTimeout(() => {
+      SearchProfilePlaceholderGenerator.init();
+    }, 100);
+  }
+})();
+
+
+  </script>
 
 </body>
 </html>
