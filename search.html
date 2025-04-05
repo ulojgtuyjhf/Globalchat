@@ -7,7 +7,7 @@
     <title>Enhanced Chat Gallery</title>
     
     <style>
-
+    
 * {
     box-sizing: border-box;
     margin: 0;
@@ -79,8 +79,6 @@ body {
     border: 1px solid rgba(0, 0, 0, 0.08);
     transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
-
-
 
 @media (min-width: 768px) {
     .message-bubble {
@@ -179,20 +177,20 @@ body {
 .reactions-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 10px;
-    padding-top: 10px;
+    gap: 4px;
+    margin-top: 8px;
+    padding-top: 8px;
     border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .reaction {
     background: #ffffff;
-    border-radius: 16px;
-    padding: 4px 12px;
-    font-size: 13px;
+    border-radius: 14px;
+    padding: 2px 8px;
+    font-size: 12px;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 3px;
     cursor: pointer;
     border: 1px solid rgba(0, 0, 0, 0.08);
     transition: all 0.2s ease;
@@ -215,21 +213,20 @@ body {
 }
 
 .loading-spinner {
-    width: 100%;
-    height: 80px;
     display: flex;
     justify-content: center;
     align-items: center;
     margin: 20px 0;
+    height: 40px;
 }
 
 .spinner-inner {
-    width: 40px;
-    height: 40px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    border: 3px solid rgba(29, 161, 242, 0.1);
+    border: 2px solid rgba(29, 161, 242, 0.1);
     border-top-color: #1da1f2;
-    animation: spin 1s linear infinite;
+    animation: spin 0.8s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
 }
 
 @keyframes spin {
@@ -244,10 +241,10 @@ body {
     left: 0;
     background: #ffffff;
     border-radius: 16px;
-    padding: 12px;
+    padding: 8px;
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    gap: 8px;
+    gap: 4px;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
     z-index: 1000;
     border: 1px solid rgba(0, 0, 0, 0.08);
@@ -267,11 +264,11 @@ body {
 
 .emoji-option {
     cursor: pointer;
-    padding: 8px;
-    border-radius: 8px;
+    padding: 6px;
+    border-radius: 6px;
     text-align: center;
     transition: all 0.2s ease;
-    font-size: 18px;
+    font-size: 16px;
     line-height: 1;
 }
 
@@ -281,13 +278,14 @@ body {
 }
 
 .add-reaction {
-    padding: 4px 10px;
+    padding: 2px 8px;
     cursor: pointer;
     border-radius: 14px;
     background: #ffffff;
     border: 1px solid rgba(0, 0, 0, 0.08);
     transition: all 0.2s ease;
     position: relative;
+    font-size: 14px;
 }
 
 .add-reaction:hover {
@@ -449,516 +447,825 @@ body.theme-dim .error {
     color: #f4a5be;
 }
 
-</style>
+/* Follow button styles */
+.follow-btn {
+    background-color: transparent;
+    color: #626262;
+    border: 1px solid #626262;
+    border-radius: 9999px;
+    padding: 3px 12px;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+    position: relative;
+    overflow: hidden;
+    min-width: 70px;
+    margin-left: auto;
+}
+
+.follow-btn.followed {
+    background: linear-gradient(
+        135deg,  
+        #0f0f0f 0%,  
+        #1c1c1c 15%,  
+        #3a3a3a 30%,  
+        #4d4d4d 45%,  
+        #626262 60%,  
+        #787878 75%,  
+        #8f8f8f 90%,  
+        #a6a6a6 100%
+    );
+    color: white;
+    border: 1px solid transparent;
+}
+
+.follow-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.follow-btn:active {
+    transform: translateY(0px);
+}
+
+.follow-btn .loading-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(98, 98, 98, 0.1);
+    border-radius: 50%;
+    border-top-color: #626262;
+    animation: spin 0.8s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
+    margin: 0;
+}
+
+.follow-btn.followed .loading-spinner {
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #ffffff;
+}
+
+.user-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+}
+
+/* Responsive improvements */
+@media (max-width: 480px) {
+    .follow-btn {
+        padding: 2px 8px;
+        font-size: 11px;
+        min-width: 60px;
+    }
+    
+    .reaction {
+        padding: 1px 6px;
+        font-size: 11px;
+    }
+    
+    .emoji-picker {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+    </style>
 </head>
 <body>
     <div class="chat-container" id="chat-container"></div>
     <div class="header-space"></div>
 
-    <!-- Your existing JavaScript code remains the same -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, limit, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot, startAfter } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, query, orderBy, limit, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot, startAfter, where, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const firebaseConfig = {
-    apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
-    authDomain: "globalchat-2d669.firebaseapp.com",
-    projectId: "globalchat-2d669",
-    storageBucket: "globalchat-2d669.firebasestorage.app",
-    messagingSenderId: "178714711978",
-    appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+            authDomain: "globalchat-2d669.firebaseapp.com",
+            projectId: "globalchat-2d669",
+            storageBucket: "globalchat-2d669.firebasestorage.app",
+            messagingSenderId: "178714711978",
+            appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
+        };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-const MESSAGES_PER_PAGE = 20;
-let lastVisible = null;
-let loading = false;
-let realtimeUnsubscribe = null;
-let hasMoreMessages = true;
+        const MESSAGES_PER_PAGE = 20;
+        let lastVisible = null;
+        let loading = false;
+        let realtimeUnsubscribe = null;
+        let hasMoreMessages = true;
 
-const commonEmojis = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+        const commonEmojis = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
-// Intersection Observer for media loading
-const mediaObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            const mediaWrapper = entry.target;
-            const mediaElement = mediaWrapper.querySelector('img, video');
-            
-            if (mediaElement && mediaElement.dataset.src) {
-                mediaElement.src = mediaElement.dataset.src;
-                mediaElement.onload = () => {
-                    mediaWrapper.classList.remove('media-loading');
-                };
-                mediaElement.onerror = () => {
-                    mediaWrapper.classList.remove('media-loading');
-                    mediaWrapper.classList.add('media-error');
-                };
-                mediaObserver.unobserve(mediaWrapper);
+        // Intersection Observer for media loading
+        const mediaObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const mediaWrapper = entry.target;
+                    const mediaElement = mediaWrapper.querySelector('img, video');
+                    
+                    if (mediaElement && mediaElement.dataset.src) {
+                        mediaElement.src = mediaElement.dataset.src;
+                        mediaElement.onload = () => {
+                            mediaWrapper.classList.remove('media-loading');
+                        };
+                        mediaElement.onerror = () => {
+                            mediaWrapper.classList.remove('media-loading');
+                            mediaWrapper.classList.add('media-error');
+                        };
+                        mediaObserver.unobserve(mediaWrapper);
+                    }
+                }
+            });
+        }, {
+            rootMargin: '100px',
+            threshold: 0.1
+        });
+
+        // Scroll Observer for Infinite Loading
+        const scrollObserver = new IntersectionObserver((entries) => {
+            const lastEntry = entries[0];
+            if (lastEntry.isIntersecting && hasMoreMessages && !loading) {
+                loadMessages(false);
+            }
+        }, {
+            rootMargin: '200px',
+            threshold: 0.1
+        });
+
+        async function getUserProfile(userId) {
+            try {
+                const userDocRef = doc(db, 'users', userId);
+                const userDoc = await getDoc(userDocRef);
+                return userDoc.exists() ? userDoc.data() : null;
+            } catch (error) {
+                console.error('Error fetching user profile:', error);
+                return null;
             }
         }
-    });
-}, {
-    rootMargin: '100px',
-    threshold: 0.1
-});
 
-// Scroll Observer for Infinite Loading
-const scrollObserver = new IntersectionObserver((entries) => {
-    const lastEntry = entries[0];
-    if (lastEntry.isIntersecting && hasMoreMessages && !loading) {
-        loadMessages(false);
-    }
-}, {
-    rootMargin: '200px',
-    threshold: 0.1
-});
-
-async function getUserProfile(userId) {
-    try {
-        const userDocRef = doc(db, 'users', userId);
-        const userDoc = await getDoc(userDocRef);
-        return userDoc.exists() ? userDoc.data() : null;
-    } catch (error) {
-        console.error('Error fetching user profile:', error);
-        return null;
-    }
-}
-
-function formatTimestamp(timestamp) {
-    if (!timestamp) return '';
-    const date = timestamp.toDate();
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    
-    return date.toLocaleDateString();
-}
-
-async function toggleReaction(postId, emoji, userId) {
-    try {
-        const postRef = doc(db, 'posts', postId);
-        const postDoc = await getDoc(postRef);
-        
-        if (!postDoc.exists()) return;
-        
-        const reactions = postDoc.data().reactions || {};
-        const reactionUsers = reactions[emoji] || [];
-        
-        if (reactionUsers.includes(userId)) {
-            await updateDoc(postRef, {
-                [`reactions.${emoji}`]: arrayRemove(userId)
-            });
-        } else {
-            await updateDoc(postRef, {
-                [`reactions.${emoji}`]: arrayUnion(userId)
-            });
-        }
-    } catch (error) {
-        console.error('Error toggling reaction:', error);
-    }
-}
-
-function createEmojiPicker(postId, userId) {
-    const picker = document.createElement('div');
-    picker.className = 'emoji-picker';
-    
-    commonEmojis.forEach(emoji => {
-        const option = document.createElement('div');
-        option.className = 'emoji-option';
-        option.textContent = emoji;
-        option.onclick = (e) => {
-            e.stopPropagation();
-            toggleReaction(postId, emoji, userId);
-            picker.remove();
-        };
-        picker.appendChild(option);
-    });
-    
-    return picker;
-}
-
-function renderReactions(reactions = {}, postId, userId) {
-    const container = document.createElement('div');
-    container.className = 'reactions-container';
-    
-    Object.entries(reactions).forEach(([emoji, users]) => {
-        if (users.length > 0) {
-            const reaction = document.createElement('div');
-            reaction.className = 'reaction';
-            reaction.classList.toggle('user-reacted', users.includes(userId));
-            reaction.innerHTML = `
-                ${emoji}
-                <span class="reaction-count">${users.length}</span>
-            `;
-            reaction.onclick = () => toggleReaction(postId, emoji, userId);
-            container.appendChild(reaction);
-        }
-    });
-    
-    const addReaction = document.createElement('div');
-    addReaction.className = 'add-reaction';
-    addReaction.innerHTML = '😊';
-    addReaction.onclick = (e) => {
-        e.stopPropagation();
-        const existing = document.querySelector('.emoji-picker');
-        if (existing) existing.remove();
-        
-        const picker = createEmojiPicker(postId, userId);
-        addReaction.appendChild(picker);
-        
-        document.addEventListener('click', () => picker.remove(), { once: true });
-    };
-    
-    container.appendChild(addReaction);
-    return container;
-}
-
-function createMediaElement(post) {
-    if (!post.mediaUrl) return null;
-
-    const mediaWrapper = document.createElement('div');
-    mediaWrapper.className = 'media-wrapper media-loading';
-
-    const isVideo = post.mediaType?.startsWith('video/') || post.mediaUrl?.match(/\.(mp4|webm|ogg)$/i);
-    
-    if (isVideo) {
-        const video = document.createElement('video');
-        video.className = 'post-media post-video';
-        video.controls = false;
-        video.preload = 'none';
-        video.autoplay = true;
-        video.muted = true;
-        video.dataset.src = post.mediaUrl;
-        video.playsInline = true;
-        
-        if (post.thumbnailUrl) {
-            video.poster = post.thumbnailUrl;
+        async function isFollowing(currentUserId, targetUserId) {
+            try {
+                const followQuery = query(
+                    collection(db, 'follows'),
+                    where('followerUserId', '==', currentUserId),
+                    where('followedUserId', '==', targetUserId)
+                );
+                
+                const followSnapshot = await getDocs(followQuery);
+                return !followSnapshot.empty;
+            } catch (error) {
+                console.error('Error checking follow status:', error);
+                return false;
+            }
         }
 
-        video.onloadeddata = () => {
-            mediaWrapper.classList.remove('media-loading');
-        };
-
-        mediaWrapper.appendChild(video);
-    } else {
-        const img = document.createElement('img');
-        img.className = 'post-media post-image';
-        img.dataset.src = post.mediaUrl;
-        img.alt = "Posted image";
-        
-        mediaWrapper.appendChild(img);
-    }
-
-    mediaObserver.observe(mediaWrapper);
-    return mediaWrapper;
-}
-
-async function createMessageElement(post, userId) {
-    const userProfile = await getUserProfile(post.userId);
-    const username = userProfile?.displayName || `User ${post.userId.slice(0, 4)}`;
-    const profilePic = userProfile?.photoURL || "/api/placeholder/40/40";
-
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'message';
-    messageDiv.dataset.postId = post.id;
-    
-    const messageContent = `
-        <img src="${profilePic}" alt="Profile" class="profile-pic">
-        <div class="message-bubble">
-            <div class="message-header">
-                <div class="status-indicator"></div>
-                <span class="username">${username}</span>
-                <span class="timestamp">${formatTimestamp(post.createdAt)}</span>
-            </div>
-            <div class="message-content">
-                ${post.text ? `<p class="text-content">${post.text}</p>` : ''}
-            </div>
-        </div>
-    `;
-    
-    messageDiv.innerHTML = messageContent;
-    
-    if (post.mediaUrl) {
-        const mediaElement = createMediaElement(post);
-        if (mediaElement) {
-            messageDiv.querySelector('.message-content').appendChild(mediaElement);
-        }
-    }
-
-    const messageBubble = messageDiv.querySelector('.message-bubble');
-    messageBubble.appendChild(renderReactions(post.reactions, post.id, userId));
-
-    return messageDiv;
-}
-
-function updateMessage(post, userId) {
-    const existingMessage = document.querySelector(`.message[data-post-id="${post.id}"]`);
-    if (existingMessage) {
-        const messageBubble = existingMessage.querySelector('.message-bubble');
-        const oldReactions = messageBubble.querySelector('.reactions-container');
-        if (oldReactions) {
-            oldReactions.replaceWith(renderReactions(post.reactions, post.id, userId));
-        }
-    }
-}
-
-function createLoadingSpinner() {
-    const spinner = document.createElement('div');
-    spinner.className = 'loading-spinner';
-    spinner.innerHTML = `
-        <div class="spinner-inner">
-            <div class="spinner-circle"></div>
-        </div>
-    `;
-    return spinner;
-}
-
-async function loadMessages(initial = true) {
-    if (loading || (!initial && !hasMoreMessages)) return;
-    loading = true;
-
-    const container = document.getElementById('chat-container');
-    const loadingSpinner = createLoadingSpinner();
-    
-    if (initial) {
-        container.innerHTML = '';
-        container.appendChild(loadingSpinner);
-        
-        if (realtimeUnsubscribe) {
-            realtimeUnsubscribe();
-        }
-    } else {
-        container.appendChild(loadingSpinner);
-    }
-
-    try {
-        let messagesQuery = query(
-            collection(db, 'posts'),
-            orderBy('createdAt', 'desc'),
-            limit(MESSAGES_PER_PAGE)
-        );
-
-        if (!initial && lastVisible) {
-            messagesQuery = query(
-                collection(db, 'posts'),
-                orderBy('createdAt', 'desc'),
-                startAfter(lastVisible),
-                limit(MESSAGES_PER_PAGE)
-            );
-        }
-
-        const snapshot = await getDocs(messagesQuery);
-        
-        if (snapshot.empty || snapshot.docs.length < MESSAGES_PER_PAGE) {
-            hasMoreMessages = false;
-        }
-
-        if (snapshot.empty) {
-            loadingSpinner.remove();
-            loading = false;
-            return;
-        }
-
-        lastVisible = snapshot.docs[snapshot.docs.length - 1];
-
-        if (initial) {
-            container.innerHTML = '';
+        async function toggleFollow(userId, userName, button) {
+            const currentUser = auth.currentUser;
             
-            realtimeUnsubscribe = onSnapshot(
-                query(collection(db, 'posts'), orderBy('createdAt', 'desc')),
-                (snapshot) => {
-                    const currentUser = auth.currentUser;
-                    snapshot.docChanges().forEach((change) => {
-                        const post = { id: change.doc.id, ...change.doc.data() };
-                        if (change.type === 'modified') {
-                            updateMessage(post, currentUser.uid);
-                        }
+            if (!currentUser) {
+                alert('Please log in to follow users');
+                return;
+            }
+
+            try {
+                // Show loading state on button
+                button.disabled = true;
+                button.innerHTML = '<span class="loading-spinner"></span>';
+
+                // Check if follow relationship already exists
+                const followQuery = query(
+                    collection(db, 'follows'),
+                    where('followerUserId', '==', currentUser.uid),
+                    where('followedUserId', '==', userId)
+                );
+                
+                const followSnapshot = await getDocs(followQuery);
+
+                if (followSnapshot.empty) {
+                    // Follow the user - create a new follow record
+                    await addDoc(collection(db, 'follows'), {
+                        followerUserId: currentUser.uid,
+                        followedUserId: userId,
+                        followedUserName: userName,
+                        timestamp: new Date()
+                    });
+                    
+                    // Update button to "Following" state after success
+                    setTimeout(() => {
+                        button.innerHTML = 'Following';
+                        button.classList.add('followed');
+                        button.disabled = false;
+                    }, 500);
+                } else {
+                    // Unfollow the user - delete the existing follow record(s)
+                    followSnapshot.forEach(async (doc) => {
+                        await deleteDoc(doc.ref);
+                    });
+                    
+                    // Update button back to "Follow" state after success
+                    setTimeout(() => {
+                        button.innerHTML = 'Follow';
+                        button.classList.remove('followed');
+                        button.disabled = false;
+                    }, 500);
+                }
+            } catch (error) {
+                console.error('Follow/Unfollow error:', error);
+                // Reset button to original state on error
+                button.disabled = false;
+                button.innerHTML = 'Follow';
+                button.classList.remove('followed');
+            }
+        }
+
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return '';
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            
+            return date.toLocaleDateString();
+        }
+
+        async function toggleReaction(postId, emoji, userId) {
+            try {
+                const postRef = doc(db, 'posts', postId);
+                const postDoc = await getDoc(postRef);
+                
+                if (!postDoc.exists()) return;
+                
+                const reactions = postDoc.data().reactions || {};
+                const reactionUsers = reactions[emoji] || [];
+                
+                if (reactionUsers.includes(userId)) {
+                    await updateDoc(postRef, {
+                        [`reactions.${emoji}`]: arrayRemove(userId)
+                    });
+                } else {
+                    await updateDoc(postRef, {
+                        [`reactions.${emoji}`]: arrayUnion(userId)
                     });
                 }
-            );
-        }
-
-        const currentUser = auth.currentUser;
-        const fragment = document.createDocumentFragment();
-        
-        for (const doc of snapshot.docs) {
-            const post = { id: doc.id, ...doc.data() };
-            const messageElement = await createMessageElement(post, currentUser.uid);
-            fragment.appendChild(messageElement);
-        }
-
-        loadingSpinner.remove();
-        container.appendChild(fragment);
-
-        if (hasMoreMessages) {
-            const lastMessage = container.lastElementChild;
-            if (lastMessage) {
-                scrollObserver.observe(lastMessage);
+            } catch (error) {
+                console.error('Error toggling reaction:', error);
             }
         }
 
-    } catch (error) {
-        console.error('Messages loading error:', error);
-        loadingSpinner.remove();
-        if (initial) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error';
-            errorDiv.textContent = 'Error loading messages';
-            container.appendChild(errorDiv);
+        function createEmojiPicker(postId, userId) {
+            const picker = document.createElement('div');
+            picker.className = 'emoji-picker';
+            
+            commonEmojis.forEach(emoji => {
+                const option = document.createElement('div');
+                option.className = 'emoji-option';
+                option.textContent = emoji;
+                option.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleReaction(postId, emoji, userId);
+                    picker.remove();
+                };
+                picker.appendChild(option);
+            });
+            
+            return picker;
         }
-    }
 
-    loading = false;
-}
+        function renderReactions(reactions = {}, postId, userId) {
+            const container = document.createElement('div');
+            container.className = 'reactions-container';
+            
+            Object.entries(reactions).forEach(([emoji, users]) => {
+                if (users.length > 0) {
+                    const reaction = document.createElement('div');
+                    reaction.className = 'reaction';
+                    reaction.classList.toggle('user-reacted', users.includes(userId));
+                    reaction.innerHTML = `
+                        ${emoji}
+                        <span class="reaction-count">${users.length}</span>
+                    `;
+                    reaction.onclick = () => toggleReaction(postId, emoji, userId);
+                    container.appendChild(reaction);
+                }
+            });
+            
+            const addReaction = document.createElement('div');
+            addReaction.className = 'add-reaction';
+            addReaction.innerHTML = '😊';
+            addReaction.onclick = (e) => {
+                e.stopPropagation();
+                const existing = document.querySelector('.emoji-picker');
+                if (existing) existing.remove();
+                
+                const picker = createEmojiPicker(postId, userId);
+                addReaction.appendChild(picker);
+                
+                document.addEventListener('click', () => picker.remove(), { once: true });
+            };
+            
+            container.appendChild(addReaction);
+            return container;
+        }
 
-// Initialize the chat
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        loadMessages(true);
-    } else {
-        window.location.href = 'login.html';
-    }
-});
+        function createMediaElement(post) {
+            if (!post.mediaUrl) return null;
 
-// Clean up
-window.addEventListener('unload', () => {
-    if (realtimeUnsubscribe) {
-        realtimeUnsubscribe();
-    }
-    mediaObserver.disconnect();
-    scrollObserver.disconnect();
-});
+            const mediaWrapper = document.createElement('div');
+            mediaWrapper.className = 'media-wrapper media-loading';
+
+            const isVideo = post.mediaType?.startsWith('video/') || post.mediaUrl?.match(/\.(mp4|webm|ogg)$/i);
+            
+            if (isVideo) {
+                const video = document.createElement('video');
+                video.className = 'post-media post-video';
+                video.controls = false;
+                video.preload = 'none';
+                video.autoplay = true;
+                video.muted = true;
+                video.dataset.src = post.mediaUrl;
+                video.playsInline = true;
+                
+                if (post.thumbnailUrl) {
+                    video.poster = post.thumbnailUrl;
+                }
+
+                video.onloadeddata = () => {
+                    mediaWrapper.classList.remove('media-loading');
+                };
+
+                mediaWrapper.appendChild(video);
+            } else {
+                const img = document.createElement('img');
+                img.className = 'post-media post-image';
+                img.dataset.src = post.mediaUrl;
+                img.alt = "Posted image";
+                
+                mediaWrapper.appendChild(img);
+            }
+
+            mediaObserver.observe(mediaWrapper);
+            return mediaWrapper;
+        }
+
+        async function createMessageElement(post, userId) {
+            const userProfile = await getUserProfile(post.userId);
+            const username = userProfile?.displayName || `User ${post.userId.slice(0, 4)}`;
+            const profilePic = userProfile?.photoURL || "/api/placeholder/40/40";
+            
+            // Check if the current user is following this post's author
+            const followingStatus = await isFollowing(userId, post.userId);
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.dataset.postId = post.id;
+            messageDiv.dataset.userId = post.userId;
+            
+            // Create the follow button
+            const followButton = document.createElement('button');
+            followButton.className = 'follow-btn';
+            if (followingStatus) {
+                followButton.classList.add('followed');
+                followButton.textContent = 'Following';
+            } else {
+                followButton.textContent = 'Follow';
+            }
+            
+            // Skip follow button for current user's posts
+            const showFollowButton = post.userId !== userId;
+            
+            const messageHeader = document.createElement('div');
+            messageHeader.className = 'user-header';
+            
+            messageHeader.innerHTML = `
+                <div class="user-info">
+                    <div class="status-indicator"></div>
+                    <span class="username">${username}</span>
+                    <span class="timestamp">${formatTimestamp(post.createdAt)}</span>
+                </div>
+            `;
+            
+            if (showFollowButton) {
+                followButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleFollow(post.userId, username, followButton);
+                });
+                messageHeader.appendChild(followButton);
+            }
+            
+            const messageBubble = document.createElement('div');
+            messageBubble.className = 'message-bubble';
+            messageBubble.appendChild(messageHeader);
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            
+            if (post.text) {
+                const textElement = document.createElement('p');
+                textElement.className = 'text-content';
+                textElement.textContent = post.text;
+                messageContent.appendChild(textElement);
+            }
+            
+            messageBubble.appendChild(messageContent);
+            
+            messageDiv.innerHTML = `<img src="${profilePic}" alt="Profile" class="profile-pic">`;
+            messageDiv.appendChild(messageBubble);
+            
+            if (post.mediaUrl) {
+                const mediaElement = createMediaElement(post);
+                if (mediaElement) {
+                    messageContent.appendChild(mediaElement);
+                }
+            }
+
+            messageBubble.appendChild(renderReactions(post.reactions, post.id, userId));
+
+            return messageDiv;
+        }
+
+        function updateMessage(post, userId) {
+            const existingMessage = document.querySelector(`.message[data-post-id="${post.id}"]`);
+            if (existingMessage) {
+                const messageBubble = existingMessage.querySelector('.message-bubble');
+                const oldReactions = messageBubble.querySelector('.reactions-container');
+                if (oldReactions) {
+                    oldReactions.replaceWith(renderReactions(post.reactions, post.id, userId));
+                }
+            }
+        }
+
+        function createLoadingSpinner() {
+            const spinner = document.createElement('div');
+            spinner.className = 'loading-spinner';
+            spinner.innerHTML = `
+                <div class="spinner-inner">
+                    <div class="spinner-circle"></div>
+                </div>
+            `;
+            return spinner;
+        }
+
+        async function loadMessages(initial = true) {
+            if (loading || (!initial && !hasMoreMessages)) return;
+            loading = true;
+
+            const container = document.getElementById('chat-container');
+            const loadingSpinner = createLoadingSpinner();
+            
+            if (initial) {
+                container.innerHTML = '';
+                container.appendChild(loadingSpinner);
+                
+                if (realtimeUnsubscribe) {
+                    realtimeUnsubscribe();
+                }
+            } else {
+                container.appendChild(loadingSpinner);
+            }
+
+            try {
+                let messagesQuery = query(
+                    collection(db, 'posts'),
+                    orderBy('createdAt', 'desc'),
+                    limit(MESSAGES_PER_PAGE)
+                );
+
+                if (!initial && lastVisible) {
+                    messagesQuery = query(
+                        collection(db, 'posts'),
+                        orderBy('createdAt', 'desc'),
+                        startAfter(lastVisible),
+                        limit(MESSAGES_PER_PAGE)
+                    );
+                }
+
+                const snapshot = await getDocs(messagesQuery);
+                
+                if (snapshot.empty || snapshot.docs.length < MESSAGES_PER_PAGE) {
+                    hasMoreMessages = false;
+                }
+
+                if (snapshot.empty) {
+                    loadingSpinner.remove();
+                    loading = false;
+                    return;
+                }
+
+                lastVisible = snapshot.docs[snapshot.docs.length - 1];
+
+                if (initial) {
+                    container.innerHTML = '';
+                    
+                    realtimeUnsubscribe = onSnapshot(
+                        query(collection(db, 'posts'), orderBy('createdAt', 'desc')),
+                        (snapshot) => {
+                            const currentUser = auth.currentUser;
+                            
+                            snapshot.docChanges().forEach((change) => {
+                                const post = { id: change.doc.id, ...change.doc.data() };
+                                if (change.type === 'modified') {
+                                    updateMessage(post, currentUser.uid);
+                                }
+                            });
+                        }
+                    );
+                }
+
+                const currentUser = auth.currentUser;
+                const fragment = document.createDocumentFragment();
+                
+                for (const doc of snapshot.docs) {
+                    const post = { id: doc.id, ...doc.data() };
+                    const messageElement = await createMessageElement(post, currentUser.uid);
+                    fragment.appendChild(messageElement);
+                }
+
+                loadingSpinner.remove();
+                container.appendChild(fragment);
+
+                if (hasMoreMessages) {
+                    const lastMessage = container.lastElementChild;
+                    if (lastMessage) {
+                        scrollObserver.observe(lastMessage);
+                    }
+                }
+
+            } catch (error) {
+                console.error('Messages loading error:', error);
+                loadingSpinner.remove();
+                if (initial) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error';
+                    errorDiv.textContent = 'Error loading messages';
+                    container.appendChild(errorDiv);
+                }
+            }
+
+            loading = false;
+        }
+
+        // Initialize the chat
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loadMessages(true);
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        // Clean up
+        window.addEventListener('unload', () => {
+            if (realtimeUnsubscribe) {
+                realtimeUnsubscribe();
+            }
+            mediaObserver.disconnect();
+            scrollObserver.disconnect();
+        });
     </script>
 
+
 <script>
-  // Theme Manager for Search Page (isolated implementation)
   (function() {
-    const searchThemeManager = {
-      // Theme definitions (same as mobile interface)
-      themes: {
+    const GlobalChatThemeManager = {
+      themeConfig: {
         light: {
-          name: 'light',
-          bg: '#ffffff',
-          card: '#f7f9fa',
-          line: '#ebeef0',
-          text: '#14171a',
-          secondaryText: '#657786',
-          border: '#ebeef0',
-          blue: '#1da1f2',
-          lightBlue: '#1a91da'
+          '--bg-color': '#ffffff',
+          '--text-primary': '#0f1419',
+          '--text-secondary': '#657786',
+          '--message-bubble': '#f7f9fa',
+          '--border-color': 'rgba(0, 0, 0, 0.08)',
+          '--message-hover': 'rgba(0, 0, 0, 0.02)',
+          '--reaction-bg': '#ffffff',
+          '--reaction-hover': '#f0f3f5',
+          '--media-bg': '#f7f9fa',
+          '--emoji-picker-bg': '#ffffff',
+          '--emoji-hover': '#f0f3f5',
+          '--status-indicator': '#1da1f2',
+          '--profile-pic-border': 'rgba(0, 0, 0, 0.08)',
+          
+          // Follow button (your exact branding)
+          '--follow-btn-text': '#626262',
+          '--follow-btn-border': '#626262',
+          '--follow-btn-hover': 'rgba(98, 98, 98, 0.08)',
+          '--followed-btn-gradient': 'linear-gradient(135deg, #0f0f0f 0%, #1c1c1c 15%, #3a3a3a 30%, #4d4d4d 45%, #626262 60%, #787878 75%, #8f8f8f 90%, #a6a6a6 100%)',
+          '--followed-btn-text': '#ffffff',
+          '--follow-spinner': 'rgba(98, 98, 98, 0.1)',
+          '--follow-spinner-top': '#626262'
         },
         dim: {
-          name: 'dim',
-          bg: '#15202b',
-          card: '#192734',
-          line: '#38444d',
-          text: '#ffffff',
-          secondaryText: '#8899a6',
-          border: '#38444d',
-          blue: '#1da1f2',
-          lightBlue: '#1a91da'
+          '--bg-color': '#15202b',
+          '--text-primary': '#ffffff',
+          '--text-secondary': '#8899a6',
+          '--message-bubble': '#192734',
+          '--border-color': '#38444d',
+          '--message-hover': 'rgba(29, 161, 242, 0.05)',
+          '--reaction-bg': '#192734',
+          '--reaction-hover': '#1e2c3a',
+          '--media-bg': '#192734',
+          '--emoji-picker-bg': '#192734',
+          '--emoji-hover': '#1e2c3a',
+          '--status-indicator': '#1da1f2',
+          '--profile-pic-border': '#38444d',
+          
+          // Follow button (your exact branding)
+          '--follow-btn-text': '#ffffff',
+          '--follow-btn-border': '#8899a6',
+          '--follow-btn-hover': 'rgba(136, 153, 166, 0.1)',
+          '--followed-btn-gradient': 'linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 15%, #d8d8d8 30%, #c8c8c8 45%, #b8b8b8 60%, #a8a8a8 75%, #989898 90%, #888888 100%)',
+          '--followed-btn-text': '#000000',
+          '--follow-spinner': 'rgba(136, 153, 166, 0.1)',
+          '--follow-spinner-top': '#8899a6'
         },
         dark: {
-          name: 'dark',
-          bg: '#000000',
-          card: '#16181c',
-          line: '#2f3336',
-          text: '#ffffff',
-          secondaryText: '#8899a6',
-          border: '#2f3336',
-          blue: '#1da1f2',
-          lightBlue: '#1a91da'
-        }
+          '--bg-color': '#000000',
+          '--text-primary': '#ffffff',
+          '--text-secondary': '#a6a6a6',
+          '--message-bubble': '#16181c',
+          '--border-color': '#2f3336',
+          '--message-hover': 'rgba(29, 161, 242, 0.05)',
+          '--reaction-bg': '#16181c',
+          '--reaction-hover': '#1d2023',
+          '--media-bg': '#16181c',
+          '--emoji-picker-bg': '#16181c',
+          '--emoji-hover': '#1d2023',
+          '--status-indicator': '#1da1f2',
+          '--profile-pic-border': '#2f3336',
+          
+         // Follow button (your exact branding)
+'--follow-btn-text': '#ffffff',
+'--follow-btn-border': '#8899a6',
+'--follow-btn-hover': 'rgba(136, 153, 166, 0.1)',
+'--followed-btn-gradient': 'linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 15%, #d8d8d8 30%, #c8c8c8 45%, #b8b8b8 60%, #a8a8a8 75%, #989898 90%, #888888 100%)',
+'--followed-btn-text': '#000000',
+'--follow-spinner': 'rgba(136, 153, 166, 0.1)',
+'--follow-spinner-top': '#8899a6'
+}
       },
       
-      // Current theme state
+      styleElementId: 'global-chat-theme-styles',
       currentTheme: 'light',
       
-      // Apply theme to search interface
+      initialize: function() {
+        this.createStyleElement();
+        this.currentTheme = localStorage.getItem('twitter-theme') || 'light';
+        this.applyTheme(this.currentTheme);
+        this.setupEventListeners();
+      },
+      
+      createStyleElement: function() {
+        const existingStyle = document.getElementById(this.styleElementId);
+        if (existingStyle) existingStyle.remove();
+        
+        const styleElement = document.createElement('style');
+        styleElement.id = this.styleElementId;
+        document.head.appendChild(styleElement);
+      },
+      
       applyTheme: function(themeName) {
-        const theme = this.themes[themeName] || this.themes.light;
+        const theme = this.themeConfig[themeName] || this.themeConfig.light;
         this.currentTheme = themeName;
-        
-        // Apply to body and main container
-        document.body.className = `theme-${themeName}`;
-        
-        // Update all message bubbles
-        document.querySelectorAll('.message-bubble').forEach(bubble => {
-          bubble.style.backgroundColor = theme.card;
-          bubble.style.borderColor = theme.border;
-        });
-        
-        // Update reaction elements
-        document.querySelectorAll('.reaction').forEach(reaction => {
-          reaction.style.backgroundColor = theme.card;
-          reaction.style.borderColor = theme.border;
-          reaction.style.color = theme.text;
-          
-          if (reaction.classList.contains('user-reacted')) {
-            reaction.style.backgroundColor = `rgba(29, 161, 242, ${themeName === 'light' ? 0.1 : 0.2})`;
-            reaction.style.color = theme.blue;
-          }
-        });
-        
-        // Update media wrappers
-        document.querySelectorAll('.media-wrapper').forEach(wrapper => {
-          wrapper.style.backgroundColor = theme.card;
-          wrapper.style.borderColor = theme.border;
-        });
-        
-        // Update add reaction button
-        document.querySelectorAll('.add-reaction').forEach(button => {
-          button.style.backgroundColor = theme.card;
-          button.style.borderColor = theme.border;
-        });
-        
-        // Update text colors
-        document.querySelectorAll('.username, .text-content').forEach(el => {
-          el.style.color = theme.text;
-        });
-        
-        document.querySelectorAll('.timestamp').forEach(el => {
-          el.style.color = theme.secondaryText;
-        });
-        
-        // Store theme preference
         localStorage.setItem('twitter-theme', themeName);
+        
+        const styleElement = document.getElementById(this.styleElementId);
+        if (!styleElement) {
+          this.createStyleElement();
+          return this.applyTheme(themeName);
+        }
+        
+        // Generate CSS variables
+        let css = ':root {';
+        for (const [key, value] of Object.entries(theme)) {
+          css += `${key}: ${value};`;
+        }
+        css += '}';
+        
+        // Add comprehensive component styles
+        css += `
+          body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+          }
+          
+          .message-bubble {
+            background-color: var(--message-bubble);
+            border-color: var(--border-color);
+          }
+          
+          .message:hover {
+            background-color: var(--message-hover);
+          }
+          
+          .reaction {
+            background-color: var(--reaction-bg);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+          }
+          
+          .reaction:hover {
+            background-color: var(--reaction-hover);
+          }
+          
+          .reaction.user-reacted {
+            background: rgba(29, 161, 242, 0.1);
+            color: #1da1f2;
+            border-color: rgba(29, 161, 242, 0.2);
+          }
+          
+          .media-wrapper {
+            background-color: var(--media-bg);
+            border-color: var(--border-color);
+          }
+          
+          .username, .text-content {
+            color: var(--text-primary);
+          }
+          
+          .timestamp {
+            color: var(--text-secondary);
+          }
+          
+          .status-indicator {
+            background-color: var(--status-indicator);
+            box-shadow: 0 0 0 rgba(29, 161, 242, 0.4);
+          }
+          
+          .profile-pic {
+            border-color: var(--profile-pic-border);
+          }
+          
+          .emoji-picker {
+            background-color: var(--emoji-picker-bg);
+            border-color: var(--border-color);
+          }
+          
+          .emoji-option:hover {
+            background-color: var(--emoji-hover);
+          }
+          
+          /* Follow button styles - your exact branding */
+          .follow-btn {
+            background-color: transparent;
+            color: var(--follow-btn-text);
+            border: 1px solid var(--follow-btn-border);
+          }
+          
+          .follow-btn:hover {
+            background-color: var(--follow-btn-hover);
+          }
+          
+          .follow-btn.followed {
+            background: var(--followed-btn-gradient);
+            color: var(--followed-btn-text);
+            border: 1px solid transparent;
+          }
+          
+          .follow-btn .loading-spinner {
+            border: 2px solid var(--follow-spinner);
+            border-top-color: var(--follow-spinner-top);
+          }
+          
+          .follow-btn.followed .loading-spinner {
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top-color: #ffffff;
+          }
+        `;
+        
+        styleElement.textContent = css;
+        
+        // Add theme class to body
+        document.body.className = `theme-${themeName}`;
       },
       
-      // Initialize theme from localStorage
-      init: function() {
-        const savedTheme = localStorage.getItem('twitter-theme') || 'light';
-        this.applyTheme(savedTheme);
-        
-        // Listen for theme changes from other tabs
-        window.addEventListener('storage', (event) => {
-          if (event.key === 'twitter-theme') {
-            this.applyTheme(event.newValue || 'light');
+      setupEventListeners: function() {
+        window.addEventListener('storage', (e) => {
+          if (e.key === 'twitter-theme') {
+            this.applyTheme(e.newValue || 'light');
           }
         });
         
-        // Poll for theme changes (fallback)
-        this.startPolling();
-      },
-      
-      // Poll for theme changes (redundancy)
-      startPolling: function() {
+        // Setup periodic check for theme changes
         setInterval(() => {
-          const newTheme = localStorage.getItem('twitter-theme');
-          if (newTheme && newTheme !== this.currentTheme) {
-            this.applyTheme(newTheme);
+          const storedTheme = localStorage.getItem('twitter-theme') || 'light';
+          if (storedTheme !== this.currentTheme) {
+            this.applyTheme(storedTheme);
           }
         }, 1000);
       }
@@ -966,12 +1273,14 @@ window.addEventListener('unload', () => {
     
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => searchThemeManager.init());
+      document.addEventListener('DOMContentLoaded', () => GlobalChatThemeManager.initialize());
     } else {
-      searchThemeManager.init();
+      GlobalChatThemeManager.initialize();
     }
   })();
 </script>
+
+
 
 </body>
 </html>
