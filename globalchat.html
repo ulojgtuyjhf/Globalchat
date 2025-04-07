@@ -3113,3 +3113,270 @@ document.addEventListener('scroll', () => {
   init();
 })();
 </script>
+<script>
+  // Pagination Solution - Add this to a separate JavaScript file
+(function() {
+  // Configuration
+  const MESSAGES_PER_PAGE = 20;
+  const SCROLL_THRESHOLD = 200; // pixels from top to trigger loading more
+  
+  // State
+  let currentPage = 1;
+  let isLoading = false;
+  let allMessagesLoaded = false;
+  let messageCache = [];
+  
+  // DOM references
+  let chatContainer;
+  
+  // Initialize pagination
+  function initPagination() {
+    chatContainer = document.getElementById('chatContainer');
+    if (!chatContainer) {
+      console.error('Chat container not found');
+      return;
+    }
+    
+    // Add scroll event to load more messages
+    chatContainer.addEventListener('scroll', handleScroll);
+    
+    // Override the original message loading function
+    overrideMessageLoading();
+    
+    // Add loading indicator
+    createLoadingIndicator();
+    
+    // Initialize with first page
+    loadInitialMessages();
+  }
+  
+  // Create loading indicator for pagination
+  function createLoadingIndicator() {
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.id = 'paginationLoading';
+    loadingIndicator.className = 'pagination-loading';
+    loadingIndicator.innerHTML = 'Loading older messages...';
+    loadingIndicator.style.padding = '10px';
+    loadingIndicator.style.textAlign = 'center';
+    loadingIndicator.style.color = '#8899a6';
+    loadingIndicator.style.display = 'none';
+    
+    // Insert at the top of chat container
+    if (chatContainer.firstChild) {
+      chatContainer.insertBefore(loadingIndicator, chatContainer.firstChild);
+    } else {
+      chatContainer.appendChild(loadingIndicator);
+    }
+  }
+  
+  // Handle scroll event to load more messages
+  function handleScroll() {
+    if (isLoading || allMessagesLoaded) return;
+    
+    // If scrolled near the top, load previous messages
+    if (chatContainer.scrollTop < SCROLL_THRESHOLD) {
+      loadPreviousMessages();
+    }
+  }
+  
+  // Load initial messages (most recent)
+  function loadInitialMessages() {
+    isLoading = true;
+    
+    try {
+      // Get messages from localStorage
+      const storedMessages = localStorage.getItem('localMessages');
+      if (storedMessages) {
+        messageCache = JSON.parse(storedMessages);
+        
+        // Sort by timestamp (newest first)
+        messageCache.sort((a, b) => b.timestamp - a.timestamp);
+        
+        // Render first page
+        renderMessagesPage(1);
+      }
+      
+      // Also listen for real-time messages
+      // This doesn't need to change as new messages should appear regardless of pagination
+    } catch (error) {
+      console.error('Error loading initial messages:', error);
+    }
+    
+    isLoading = false;
+  }
+  
+  // Load previous (older) messages
+  function loadPreviousMessages() {
+    if (isLoading || allMessagesLoaded) return;
+    
+    isLoading = true;
+    showLoadingIndicator(true);
+    
+    // Remember scroll position
+    const scrollHeight = chatContainer.scrollHeight;
+    const scrollPosition = chatContainer.scrollTop;
+    
+    // Load next page
+    currentPage++;
+    const hasMoreMessages = renderMessagesPage(currentPage);
+    
+    if (!hasMoreMessages) {
+      allMessagesLoaded = true;
+      showLoadingIndicator(false);
+    }
+    
+    // Restore scroll position
+    setTimeout(() => {
+      const newScrollHeight = chatContainer.scrollHeight;
+      chatContainer.scrollTop = scrollPosition + (newScrollHeight - scrollHeight);
+      isLoading = false;
+      showLoadingIndicator(false);
+    }, 100);
+  }
+  
+  // Render a specific page of messages
+  function renderMessagesPage(page) {
+    const startIndex = (page - 1) * MESSAGES_PER_PAGE;
+    const endIndex = startIndex + MESSAGES_PER_PAGE;
+    const messagesToRender = messageCache.slice(startIndex, endIndex);
+    
+    if (messagesToRender.length === 0) {
+      return false;
+    }
+    
+    // If this is a new page (not first page), we add messages to the top
+    if (page > 1) {
+      let fragment = document.createDocumentFragment();
+      
+      // Create message elements in reverse order (oldest first)
+      // to maintain chronological order when inserting
+      for (let i = messagesToRender.length - 1; i >= 0; i--) {
+        const message = messagesToRender[i];
+        // Skip if message is already displayed
+        if (!document.querySelector(`[data-message-id="${message.id}"]`)) {
+          const messageElement = createMessageElementOptimized(message);
+          fragment.appendChild(messageElement);
+        }
+      }
+      
+      // Insert at the top (after loading indicator)
+      const loadingIndicator = document.getElementById('paginationLoading');
+      if (loadingIndicator && loadingIndicator.nextSibling) {
+        chatContainer.insertBefore(fragment, loadingIndicator.nextSibling);
+      } else {
+        chatContainer.prepend(fragment);
+      }
+    } else {
+      // For first page, just render at the bottom
+      messagesToRender.forEach(message => {
+        // Skip if message is already displayed
+        if (!document.querySelector(`[data-message-id="${message.id}"]`)) {
+          const messageElement = createMessageElementOptimized(message);
+          chatContainer.appendChild(messageElement);
+        }
+      });
+      
+      // Scroll to bottom for first page
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    
+    return messagesToRender.length === MESSAGES_PER_PAGE;
+  }
+  
+  // Create optimized message element (simplified version of original)
+  function createMessageElementOptimized(message) {
+    // Reference the original createMessageElement function if possible
+    if (typeof window.createMessageElement === 'function') {
+      return window.createMessageElement(message, message.id);
+    }
+    
+    // Fallback implementation if original function is not accessible
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('message');
+    messageElement.setAttribute('data-message-id', message.id);
+    
+    // Simplified message rendering - expand this as needed
+    messageElement.innerHTML = `
+      <img src="${message.photoURL}" class="profile-image" alt="Profile">
+      <div class="message-content">
+        <div class="message-header">
+          <span class="user-name">${message.name}</span>
+          <span class="message-time">${formatTimestamp(message.timestamp)}</span>
+        </div>
+        <div class="message-text">${message.text || ''}</div>
+        ${renderMessageMedia(message)}
+      </div>
+    `;
+    
+    return messageElement;
+  }
+  
+  // Helper to render message media
+  function renderMessageMedia(message) {
+    if (!message.media || message.media.length === 0) return '';
+    
+    let mediaHTML = '<div class="media-container">';
+    message.media.forEach(media => {
+      if (media && media.url) {
+        if (media.type === 'image') {
+          mediaHTML += `<img src="${media.url}" class="message-image" onclick="showFullImage('${media.url}')">`;
+        } else if (media.type === 'video') {
+          mediaHTML += `<video src="${media.url}" class="message-video" controls></video>`;
+        }
+      }
+    });
+    mediaHTML += '</div>';
+    return mediaHTML;
+  }
+  
+  // Format timestamp helper
+  function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+  
+  // Show/hide loading indicator
+  function showLoadingIndicator(show) {
+    const indicator = document.getElementById('paginationLoading');
+    if (indicator) {
+      indicator.style.display = show ? 'block' : 'none';
+    }
+  }
+  
+  // Override original message loading to work with pagination
+  function overrideMessageLoading() {
+    // Save reference to original functions if needed
+    if (typeof window.loadLocalMessages === 'function') {
+      const originalLoadLocalMessages = window.loadLocalMessages;
+      
+      // Override with paginated version
+      window.loadLocalMessages = function() {
+        // Don't do anything here, our pagination handles it
+        console.log('Pagination active: loadLocalMessages intercepted');
+        // Let original function load data but not render
+        try {
+          originalLoadLocalMessages();
+        } catch (e) {
+          console.error('Error in original loadLocalMessages:', e);
+        }
+      };
+    }
+    
+    // Similarly override other message rendering functions if needed
+  }
+  
+  // Initialize when DOM is ready
+  function onDOMReady(callback) {
+    if (document.readyState !== 'loading') {
+      callback();
+    } else {
+      document.addEventListener('DOMContentLoaded', callback);
+    }
+  }
+  
+  // Start initialization
+  onDOMReady(initPagination);
+})();
+</script>
