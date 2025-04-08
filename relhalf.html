@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-     <!-- Favicon -->
+    <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="stylesheet" href="login.css">
@@ -20,7 +20,8 @@
     box-sizing: border-box;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
-/* Prevent scrolling */
+
+/* Prevent scrolling on main container */
 html, body {
     overflow: hidden;
     height: 100%;
@@ -34,26 +35,45 @@ body {
     overflow: hidden;
 }
 
+/* Hide scrollbar for Chrome, Safari and Opera */
+::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+* {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
 .container {
     display: flex;
     height: 100vh;
     width: 100%;
 }
 
-/* Left sidebar styles - slightly reduced width */
+/* Left sidebar styles */
 .sidebar {
-    width: 300px;
-    padding: 0 16px;
+    width: 275px;
+    padding: 0 12px;
     display: flex;
     flex-direction: column;
     border-right: 1px solid #eff3f4;
     height: 100%;
+    flex-shrink: 0;
+    transition: width 0.3s ease;
+    z-index: 10;
 }
 
-/* Logo styles - updated to match your splash screen */
+/* Logo styles with improved responsiveness */
 .logo-container {
     margin: 12px 0;
-    padding: 10px 12px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    transition: all 0.3s ease;
 }
 
 .logo {
@@ -68,9 +88,9 @@ body {
     font-weight: bold;
     font-size: 28px;
     cursor: pointer;
-    transition: filter 0.2s ease;
+    transition: all 0.3s ease;
     outline: none;
-    margin-left: 8px;
+    margin-left: 6px;
     position: relative;
 }
 
@@ -90,6 +110,7 @@ body {
     border: 8px solid transparent;
     z-index: 1;
     padding: 2px;
+    transition: all 0.3s ease;
 }
 
 /* Logo text with gradient */
@@ -104,6 +125,7 @@ body {
     font-size: 28px;
     font-weight: 700;
     letter-spacing: -1px;
+    transition: all 0.3s ease;
 }
 
 .logo:hover,
@@ -120,7 +142,7 @@ body {
 .menu {
     display: flex;
     flex-direction: column;
-    margin-top: 10px;
+    margin-top: 8px;
 }
 
 .menu-item {
@@ -128,7 +150,7 @@ body {
     align-items: center;
     padding: 12px;
     border-radius: 50px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     color: #0f1419;
     text-decoration: none;
     font-size: 18px;
@@ -137,7 +159,7 @@ body {
     transition: background-color 0.2s ease;
     outline: none;
     width: 90%;
-    margin-left: 8px;
+    margin-left: 6px;
 }
 
 /* Fixed hover animation to persist until finger/mouse is removed */
@@ -154,6 +176,7 @@ body {
     margin-right: 20px;
     width: 24px;
     height: 24px;
+    flex-shrink: 0;
 }
 
 .menu-item.active svg {
@@ -176,7 +199,7 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     outline: none;
     width: 90%;
-    margin-left: 8px;
+    margin-left: 6px;
 }
 
 .post-btn:hover,
@@ -186,7 +209,14 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-/* Content sections - updated for iframe alignment */
+/* Content sections */
+.main-content-wrapper {
+    flex-grow: 1;
+    display: flex;
+    height: 100%;
+    overflow: hidden;
+}
+
 .content-section {
     position: relative;
     height: 100%;
@@ -199,12 +229,14 @@ body {
     height: 100%;
     border-right: 1px solid #eff3f4;
     padding: 0;
+    transition: width 0.3s ease;
 }
 
 .widgets {
     width: 350px;
     height: 100%;
     padding: 0;
+    transition: width 0.3s ease, opacity 0.3s ease;
 }
 
 .section-container {
@@ -229,6 +261,7 @@ body {
     left: 0;
 }
 
+/* Improved WhatsApp-style loading animation with bounce effect */
 .loader {
     position: absolute;
     top: 50%;
@@ -236,19 +269,43 @@ body {
     transform: translate(-50%, -50%);
     z-index: 2;
     display: none;
+    width: 70px;
+    height: 20px;
+    text-align: center;
 }
 
-.loader svg {
-    animation: spin 1s linear infinite;
+.loader-dot {
+    width: 8px;
+    height: 8px;
+    margin: 0 3px;
+    display: inline-block;
+    border-radius: 50%;
+    background-color: #4d4d4d;
+    opacity: 0.6;
 }
 
-.loader svg path, .loader svg circle {
-    fill: #4d4d4d !important;
+/* WhatsApp typing-style animation with bounce */
+.loader-dot:nth-child(1) {
+    animation: dot-bounce 1.4s infinite 0s;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+.loader-dot:nth-child(2) {
+    animation: dot-bounce 1.4s infinite 0.2s;
+}
+
+.loader-dot:nth-child(3) {
+    animation: dot-bounce 1.4s infinite 0.4s;
+}
+
+@keyframes dot-bounce {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.6;
+    }
+    30% {
+        transform: translateY(-6px);
+        opacity: 1;
+    }
 }
 
 /* Tweet compose modal */
@@ -312,13 +369,19 @@ body.dim .menu-item:hover {
 }
 
 /* Responsive styles */
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
     .widgets {
         width: 290px;
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
+    .widgets {
+        width: 250px;
+    }
+}
+
+@media (max-width: 850px) {
     .sidebar {
         width: 80px;
         padding: 0 8px;
@@ -332,6 +395,20 @@ body.dim .menu-item:hover {
     
     .logo {
         margin-left: 0;
+        width: 42px;
+        height: 42px;
+    }
+    
+    .logo::before {
+        top: -6px;
+        left: -1px;
+        right: -18px;
+        bottom: -6px;
+        border: 6px solid transparent;
+    }
+    
+    .logo::after {
+        font-size: 24px;
     }
     
     .menu-item {
@@ -372,14 +449,114 @@ body.dim .menu-item:hover {
     .sidebar .post-btn span {
         display: none;
     }
+    
+    .content {
+        flex-grow: 1;
+    }
+    
+    .widgets {
+        width: 220px;
+    }
+}
+
+@media (max-width: 700px) {
+    .widgets {
+        width: 0;
+        opacity: 0;
+        overflow: hidden;
+    }
 }
 
 @media (max-width: 500px) {
-    .widgets {
-        display: none;
+    .sidebar {
+        width: 60px;
+        padding: 0 5px;
+    }
+    
+    .menu-item {
+        width: 45px;
+        height: 45px;
+    }
+    
+    .menu-item svg {
+        width: 22px;
+        height: 22px;
+    }
+    
+    .sidebar .post-btn {
+        width: 45px;
+        height: 45px;
+    }
+    
+    .logo {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .logo::before {
+        top: -5px;
+        left: -1px;
+        right: -16px;
+        bottom: -5px;
+        border: 5px solid transparent;
+    }
+    
+    .logo::after {
+        font-size: 20px;
+    }
+    
+    .loader {
+        width: 60px;
+        height: 16px;
+    }
+    
+    .loader-dot {
+        width: 6px;
+        height: 6px;
+        margin: 0 3px;
+    }
+}
+
+@media (max-width: 350px) {
+    .sidebar {
+        width: 50px;
+        padding: 0 2px;
+    }
+    
+    .menu-item {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .menu-item svg {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .sidebar .post-btn {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .logo {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .logo::before {
+        top: -4px;
+        left: -1px;
+        right: -14px;
+        bottom: -4px;
+        border: 4px solid transparent;
+    }
+    
+    .logo::after {
+        font-size: 18px;
     }
 }
 </style>
+
 </head>
 <body>
     <div class="container">
@@ -430,39 +607,46 @@ body.dim .menu-item:hover {
             </button>
         </div>
 
-        <!-- Middle section (dynamic content) -->
-        <div class="content content-section">
-            <!-- All sections are preloaded but hidden -->
-            <div id="home-section" class="section-container active">
-                <iframe src="globalchat.html" frameborder="0" width="100%" height="100%"></iframe>
+        <div class="main-content-wrapper">
+            <!-- Middle section (dynamic content) -->
+            <div class="content content-section">
+                <!-- All sections are preloaded but hidden -->
+                <div id="home-section" class="section-container active">
+                    <iframe src="globalchat.html" frameborder="0" width="100%" height="100%"></iframe>
+                </div>
+                <div id="explore-section" class="section-container">
+                    <iframe src="search.html" frameborder="0" width="100%" height="100%"></iframe>
+                </div>
+                <div id="notifications-section" class="section-container">
+                    <iframe src="localst.html" frameborder="0" width="100%" height="100%"></iframe>
+                </div>
+                <div id="messages-section" class="section-container">
+                    <iframe src="messages.html" frameborder="0" width="100%" height="100%"></iframe>
+                </div>
+                <div id="bookmarks-section" class="section-container">
+                    <iframe src="bookmarks.html" frameborder="0" width="100%" height="100%"></iframe>
+                </div>
+                <div id="profile-section" class="section-container">
+                    <iframe src="profileview.html" frameborder="0" width="100%" height="100%"></iframe>
+                </div>
+                
+                <!-- New WhatsApp-style loader -->
+                <div class="loader" id="content-loader">
+                    <div class="loader-dot"></div>
+                    <div class="loader-dot"></div>
+                    <div class="loader-dot"></div>
+                </div>
             </div>
-            <div id="explore-section" class="section-container">
-                <iframe src="search.html" frameborder="0" width="100%" height="100%"></iframe>
-            </div>
-            <div id="notifications-section" class="section-container">
-                <iframe src="localst.html" frameborder="0" width="100%" height="100%"></iframe>
-            </div>
-            <div id="messages-section" class="section-container">
-                <iframe src="messages.html" frameborder="0" width="100%" height="100%"></iframe>
-            </div>
-            <div id="bookmarks-section" class="section-container">
-                <iframe src="bookmarks.html" frameborder="0" width="100%" height="100%"></iframe>
-            </div>
-            <div id="profile-section" class="section-container">
-                <iframe src="profileview.html" frameborder="0" width="100%" height="100%"></iframe>
-            </div>
-            
-            <!-- Loader -->
-            <div class="loader" id="content-loader">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="#1d9bf0">
-                    <circle cx="12" cy="12" r="10" opacity="0.1" fill="#1d9bf0"/>
-                    <path d="M12 22c5.523 0 10-4.477 10-10h-3c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7V2C6.477 2 2 6.477 2 12s4.477 10 10 10z"></path>
-                </svg>
-            </div>
-        </div>
 
-        <!-- Right widgets section -->
-        
+            <!-- Right widgets section -->
+            <div class="widgets content-section">
+                <iframe id="widgets-frame" src="fed.html" frameborder="0" width="100%" height="100%"></iframe>
+                <div class="loader" id="widgets-loader">
+                    <div class="loader-dot"></div>
+                    <div class="loader-dot"></div>
+                    <div class="loader-dot"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -471,7 +655,19 @@ body.dim .menu-item:hover {
             const menuItems = document.querySelectorAll('.menu-item');
             const sections = document.querySelectorAll('.section-container');
             const contentLoader = document.getElementById('content-loader');
+            const widgetsLoader = document.getElementById('widgets-loader');
             const logo = document.getElementById('home-logo');
+            const widgetsFrame = document.getElementById('widgets-frame');
+            
+            // Map sections to corresponding widget content
+            const widgetContentMap = {
+                'home-section': 'fed.html',
+                'explore-section': 'trending.html',
+                'notifications-section': 'notifications.html',
+                'messages-section': 'suggestions.html',
+                'bookmarks-section': 'bookmarks-widget.html',
+                'profile-section': 'profile-widget.html'
+            };
             
             // Add logo click handler to return to home
             logo.addEventListener('click', function() {
@@ -480,7 +676,7 @@ body.dim .menu-item:hover {
             
             // Track loaded sections to avoid reloading
             const loadedSections = {
-                'home-section': false,
+                'home-section': true,
                 'explore-section': false,
                 'notifications-section': false,
                 'messages-section': false,
@@ -488,23 +684,57 @@ body.dim .menu-item:hover {
                 'profile-section': false
             };
             
-            // Set home section as loaded
-            loadedSections['home-section'] = true;
+            // Track loaded widgets to avoid reloading
+            const loadedWidgets = {
+                'fed.html': true,
+                'trending.html': false,
+                'notifications.html': false,
+                'suggestions.html': false,
+                'bookmarks-widget.html': false,
+                'profile-widget.html': false
+            };
+            
+            // Window resize handler for responsive layout
+            function handleResize() {
+                const windowWidth = window.innerWidth;
+                const widgetsSection = document.querySelector('.widgets');
+                
+                if (windowWidth <= 700) {
+                    widgetsSection.style.width = '0';
+                    widgetsSection.style.opacity = '0';
+                } else if (windowWidth <= 850) {
+                    widgetsSection.style.width = '220px';
+                    widgetsSection.style.opacity = '1';
+                } else if (windowWidth <= 1024) {
+                    widgetsSection.style.width = '250px';
+                    widgetsSection.style.opacity = '1';
+                } else if (windowWidth <= 1200) {
+                    widgetsSection.style.width = '290px';
+                    widgetsSection.style.opacity = '1';
+                } else {
+                    widgetsSection.style.width = '350px';
+                    widgetsSection.style.opacity = '1';
+                }
+            }
+            
+            // Initialize responsive layout
+            handleResize();
+            window.addEventListener('resize', handleResize);
             
             // Load a section only the first time it's accessed
             function loadSection(sectionId) {
                 if (!loadedSections[sectionId]) {
                     try {
-                        // Mark section as loaded - this happens before the actual load
-                        // to prevent multiple load attempts on errors
+                        // Mark section as loaded
                         loadedSections[sectionId] = true;
                         
                         // Show loader while section initializes
-                        contentLoader.style.display = 'block';
+                        contentLoader.style.display = 'flex';
                         
                         // On first load, initialize the section
                         const section = document.getElementById(sectionId);
                         const iframe = section.querySelector('iframe');
+                        
                         
                         iframe.onload = function() {
                             // Hide loader when iframe is loaded
@@ -523,7 +753,7 @@ body.dim .menu-item:hover {
                         
                         // Add additional error handling with timeout
                         setTimeout(function() {
-                            if (contentLoader.style.display === 'block') {
+                            if (contentLoader.style.display === 'flex') {
                                 // Still loading after timeout - probably an error
                                 contentLoader.style.display = 'none';
                             }
@@ -538,28 +768,83 @@ body.dim .menu-item:hover {
                 }
             }
             
+            // Load a widget section only the first time it's accessed
+            function loadWidgetContent(sectionId) {
+                const widgetSrc = widgetContentMap[sectionId];
+                
+                if (!widgetSrc) return;
+                
+                if (!loadedWidgets[widgetSrc]) {
+                    try {
+                        // Mark widget as loaded
+                        loadedWidgets[widgetSrc] = true;
+                        
+                        // Show loader while widget initializes
+                        widgetsLoader.style.display = 'flex';
+                        
+                        // Change the src of the widgets iframe
+                        widgetsFrame.src = widgetSrc;
+                        
+                        widgetsFrame.onload = function() {
+                            // Hide loader when iframe is loaded
+                            widgetsLoader.style.display = 'none';
+                        };
+                        
+                        widgetsFrame.onerror = function() {
+                            // Handle load error
+                            console.error(`Failed to load widget content for ${sectionId}`);
+                            widgetsLoader.style.display = 'none';
+                        };
+                        
+                        // Add additional error handling with timeout
+                        setTimeout(function() {
+                            if (widgetsLoader.style.display === 'flex') {
+                                // Still loading after timeout - probably an error
+                                widgetsLoader.style.display = 'none';
+                            }
+                        }, 5000);
+                    } catch (error) {
+                        console.error("Error initializing widget:", error);
+                        widgetsLoader.style.display = 'none';
+                    }
+                } else {
+                    // Widget already loaded, just show it
+                    widgetsFrame.src = widgetSrc;
+                    widgetsLoader.style.display = 'none';
+                }
+            }
+            
             // Switch to a section
             function switchToSection(sectionId) {
+                // Show loaders while switching
+                contentLoader.style.display = 'flex';
+                widgetsLoader.style.display = 'flex';
+                
                 // Hide all sections
                 sections.forEach(section => {
                     section.classList.remove('active');
                 });
                 
-                // Show selected section
-                const selectedSection = document.getElementById(sectionId);
-                selectedSection.classList.add('active');
-                
-                // Load content if first visit
-                loadSection(sectionId);
-                
-                // Update menu
-                menuItems.forEach(item => {
-                    if (item.getAttribute('data-section') === sectionId) {
-                        item.classList.add('active');
-                    } else {
-                        item.classList.remove('active');
-                    }
-                });
+                // Show selected section after a short delay for smoother transition
+                setTimeout(() => {
+                    const selectedSection = document.getElementById(sectionId);
+                    selectedSection.classList.add('active');
+                    
+                    // Load content if first visit
+                    loadSection(sectionId);
+                    
+                    // Load corresponding widget content
+                    loadWidgetContent(sectionId);
+                    
+                    // Update menu
+                    menuItems.forEach(item => {
+                        if (item.getAttribute('data-section') === sectionId) {
+                            item.classList.add('active');
+                        } else {
+                            item.classList.remove('active');
+                        }
+                    });
+                }, 100);
             }
             
             // Add click handlers to menu items
@@ -569,6 +854,40 @@ body.dim .menu-item:hover {
                     const sectionId = this.getAttribute('data-section');
                     switchToSection(sectionId);
                 });
+            });
+            
+            // Ensure iframes don't have their own scrollbars
+            document.querySelectorAll('iframe').forEach(iframe => {
+                iframe.onload = function() {
+                    try {
+                        // Try to access iframe document to modify its scrollbar
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        
+                        // Create a style element
+                        const style = iframeDoc.createElement('style');
+                        style.textContent = `
+                            ::-webkit-scrollbar {
+                                width: 0px;
+                                background: transparent;
+                            }
+                            
+                            * {
+                                -ms-overflow-style: none;
+                                scrollbar-width: none;
+                            }
+                            
+                            html, body {
+                                overflow-x: hidden;
+                            }
+                        `;
+                        
+                        // Append the style to the iframe's head
+                        iframeDoc.head.appendChild(style);
+                    } catch (e) {
+                        // Cross-origin restrictions might prevent this
+                        console.warn('Could not modify iframe scrollbars:', e);
+                    }
+                };
             });
         });
     </script>
