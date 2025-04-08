@@ -653,8 +653,9 @@ body.dim .menu-item:hover {
     <script>
        
 
+
 (function() {
-    // Wait for DOM to be fully loaded
+    // Wait for DOM to be ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initApp);
     } else {
@@ -662,16 +663,14 @@ body.dim .menu-item:hover {
     }
     
     function initApp() {
-        // Core DOM elements
+        // Cache DOM elements
         const menuItems = document.querySelectorAll('.menu-item');
         const sections = document.querySelectorAll('.section-container');
         const contentLoader = document.getElementById('content-loader');
         const widgetsLoader = document.getElementById('widgets-loader');
         const logo = document.getElementById('home-logo');
         const widgetsFrame = document.getElementById('widgets-frame');
-        
-        // Current active section tracking
-        let currentSectionId = document.querySelector('.section-container.active')?.id || 'home-section';
+        const mainContent = document.querySelector('.main-content-wrapper');
         
         // Section to widget mapping
         const widgetContentMap = {
@@ -683,103 +682,19 @@ body.dim .menu-item:hover {
             'profile-section': 'profile-widget.html'
         };
         
-        // Track loaded state - TRUE LAZY LOADING
-        const loadedSections = {
-            'home-section': false,
-            'explore-section': false,
-            'notifications-section': false,
-            'messages-section': false,
-            'bookmarks-section': false,
-            'profile-section': false
-        };
+        // Track current section and loaded state
+        let currentSectionId = null;
+        const loadedSections = {};
+        const loadedIframes = {};
         
-        const loadedWidgets = {
-            'fed.html': false,
-            'trending.html': false,
-            'notifications.html': false,
-            'suggestions.html': false,
-            'bookmarks-widget.html': false,
-            'profile-widget.html': false
-        };
-        
-        // Initialize ONLY the currently active section
+        // Find and set current active section
         const activeSection = document.querySelector('.section-container.active');
         if (activeSection) {
-            const sectionId = activeSection.id;
-            
-            // Set up lazy loading for the active section
-            const iframe = activeSection.querySelector('iframe');
-            if (iframe && iframe.getAttribute('data-src')) {
-                // Load the iframe content
-                iframe.src = iframe.getAttribute('data-src');
-                loadedSections[sectionId] = true;
-                initializeFrame(iframe, false);
-                
-                // Also load the corresponding widget
-                const widgetSrc = widgetContentMap[sectionId];
-                if (widgetSrc && widgetsFrame) {
-                    widgetsFrame.src = widgetSrc;
-                    loadedWidgets[widgetSrc] = true;
-                    initializeFrame(widgetsFrame, true);
-                }
-            }
-        }
-        
-        // Initialize frames only when needed
-        function initializeFrame(iframe, isWidget) {
-            if (!iframe) return;
-            
-            const loader = isWidget ? widgetsLoader : contentLoader;
-            loader.style.display = 'flex';
-            
-            function onFrameLoad() {
-                try {
-                    // Apply scrollbar styles if possible
-                    const doc = iframe.contentDocument || iframe.contentWindow.document;
-                    const style = doc.createElement('style');
-                    style.textContent = `
-                        ::-webkit-scrollbar { display: none !important; }
-                        * { scrollbar-width: none !important; }
-                        html, body { overflow-x: hidden !important; }
-                    `;
-                    doc.head.appendChild(style);
-                } catch (e) {
-                    // Silent fail for cross-origin content
-                }
-                
-                // Hide loader
-                loader.style.display = 'none';
-                
-                // Clean up
-                iframe.removeEventListener('load', onFrameLoad);
-                iframe.removeEventListener('error', onFrameError);
-                clearTimeout(timeoutId);
-            }
-            
-            function onFrameError() {
-                console.warn(`Failed to load iframe content: ${iframe.src}`);
-                loader.style.display = 'none';
-                
-                // Clean up
-                iframe.removeEventListener('load', onFrameLoad);
-                iframe.removeEventListener('error', onFrameError);
-                clearTimeout(timeoutId);
-            }
-            
-            // Timeout for loading
-            const timeoutId = setTimeout(() => {
-                loader.style.display = 'none';
-                iframe.removeEventListener('load', onFrameLoad);
-                iframe.removeEventListener('error', onFrameError);
-            }, 8000);
-            
-            // Set up event listeners
-            iframe.addEventListener('load', onFrameLoad);
-            iframe.addEventListener('error', onFrameError);
+            currentSectionId = activeSection.id;
         }
         
         // Handle responsive layout
-        function adjustLayout() {
+        function handleResize() {
             const width = window.innerWidth;
             const widgets = document.querySelector('.widgets');
             
@@ -801,114 +716,290 @@ body.dim .menu-item:hover {
             }
         }
         
-        // Initialize responsive layout
-        adjustLayout();
-        window.addEventListener('resize', adjustLayout);
+        // Setup iframe for lazy loading
+        function setupLazyIframe(iframe, sectionId) {
+            if (!iframe || loadedIframes[iframe.id]) return;
+            
+            // Set original source and clear iframe src
+            iframe.setAttribute('data-src', iframe.src);
+            iframe.removeAttribute('src');
+            iframe.setAttribute('data-section', sectionId);
+            iframe.id = iframe.id || 'iframe-' + sectionId;
+            loadedIframes[iframe.id] = false;
+        }
         
-        // Switch to a section - TRULY lazy loading
+        // Load iframe content only when needed
+        function loadIframeContent(iframe, isWidget = false) {
+            if (!iframe || !iframe.getAttribute('data-src')) return;
+            
+            const loader = isWidget ? widgetsLoader : contentLoader;
+            const iframeId = iframe.id || iframe.getAttribute('data-section');
+            
+            // Only load if not already loaded
+            if (!loadedIframes[iframeId]) {
+                loader.style.display = 'flex';
+                
+                // Set the src to trigger loading
+                iframe.src = iframe.getAttribute('data-src');
+                
+                // Handle load event
+                iframe.onload = function() {
+                    try {
+                        // Apply scrollbar sync and styling
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        
+                        // Add style to hide scrollbars and sync with parent
+                        const style = iframeDoc.createElement('style');
+                        style.textContent = `
+                            ::-webkit-scrollbar { display: none !important; }
+                            * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+                            html, body { 
+                                overflow-x: hidden !important;
+                                height: 100% !important;
+                                margin: 0 !important;
+                                padding: 0 !important;
+                                overflow-y: hidden !important;
+                            }
+                            body { 
+                                position: absolute !important;
+                                top: 0 !important;
+                                left: 0 !important;
+                                right: 0 !important;
+                                bottom: 0 !important;
+                            }
+                        `;
+                        iframeDoc.head.appendChild(style);
+                        
+                        // Set up scroll synchronization
+                        const iframeBody = iframeDoc.body;
+                        
+                        // Create scroll container in iframe
+                        const scrollContainer = iframeDoc.createElement('div');
+                        scrollContainer.style.cssText = `
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            right: 0;
+                            bottom: 0;
+                            overflow-y: auto;
+                            overflow-x: hidden;
+                            -webkit-overflow-scrolling: touch;
+                        `;
+                        
+                        // Move all body children to scroll container
+                        while (iframeBody.firstChild) {
+                            scrollContainer.appendChild(iframeBody.firstChild);
+                        }
+                        
+                        iframeBody.appendChild(scrollContainer);
+                        
+                        // Sync scroll between main content and iframe
+                        mainContent.addEventListener('scroll', () => {
+                            if (iframe.closest('.section-container').classList.contains('active')) {
+                                const scrollRatio = mainContent.scrollTop / (mainContent.scrollHeight - mainContent.clientHeight);
+                                const iframeScrollMax = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+                                scrollContainer.scrollTop = scrollRatio * iframeScrollMax;
+                            }
+                        }, { passive: true });
+                        
+                        scrollContainer.addEventListener('scroll', () => {
+                            if (iframe.closest('.section-container').classList.contains('active')) {
+                                const scrollRatio = scrollContainer.scrollTop / (scrollContainer.scrollHeight - scrollContainer.clientHeight);
+                                const mainScrollMax = mainContent.scrollHeight - mainContent.clientHeight;
+                                mainContent.scrollTop = scrollRatio * mainScrollMax;
+                            }
+                        }, { passive: true });
+                    } catch (e) {
+                        // Silently handle cross-origin restrictions
+                    }
+                    
+                    // Mark as loaded and hide loader
+                    loadedIframes[iframeId] = true;
+                    setTimeout(() => {
+                        loader.style.display = 'none';
+                    }, 200);
+                };
+                
+                iframe.onerror = function() {
+                    console.warn('Failed to load iframe:', iframe.getAttribute('data-src'));
+                    loader.style.display = 'none';
+                    loadedIframes[iframeId] = false; // Allow retry
+                };
+                
+                // Safety timeout to hide loader
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                }, 5000);
+            } else {
+                // Already loaded
+                loader.style.display = 'none';
+            }
+        }
+        
+        // Set up lazy loading for all iframes
+        sections.forEach(section => {
+            const iframe = section.querySelector('iframe');
+            if (iframe) {
+                setupLazyIframe(iframe, section.id);
+            }
+        });
+        
+        // Set up lazy loading for widgets iframe
+        if (widgetsFrame) {
+            widgetsFrame.id = 'widgets-frame';
+            setupLazyIframe(widgetsFrame, 'widgets');
+        }
+        
+        // Only load active section on initial page load
+        if (currentSectionId) {
+            const section = document.getElementById(currentSectionId);
+            if (section) {
+                const iframe = section.querySelector('iframe');
+                if (iframe) {
+                    loadIframeContent(iframe, false);
+                    loadedSections[currentSectionId] = true;
+                }
+                
+                // Load corresponding widget
+                const widgetSrc = widgetContentMap[currentSectionId];
+                if (widgetSrc && widgetsFrame) {
+                    widgetsFrame.setAttribute('data-src', widgetSrc);
+                    loadIframeContent(widgetsFrame, true);
+                }
+            }
+        }
+        
+        // Switch to a section
         function switchToSection(sectionId) {
-            // Don't reload current section
+            // Skip if already on this section
             if (currentSectionId === sectionId) return;
             
             // Update tracking
             currentSectionId = sectionId;
             
-            // Update UI
+            // Update UI state
             sections.forEach(section => section.classList.remove('active'));
             menuItems.forEach(item => item.classList.remove('active'));
             
             const section = document.getElementById(sectionId);
             section.classList.add('active');
             
-            document.querySelector(`.menu-item[data-section="${sectionId}"]`)?.classList.add('active');
+            const menuItem = document.querySelector(`.menu-item[data-section="${sectionId}"]`);
+            if (menuItem) menuItem.classList.add('active');
             
-            // Load section content ONLY if not already loaded
+            // Show loaders
             if (!loadedSections[sectionId]) {
-                const iframe = section.querySelector('iframe');
-                
-                // Check if we need to set the src (true lazy loading)
-                if (iframe && (!iframe.src || iframe.src === 'about:blank' || iframe.src.endsWith('blank'))) {
-                    // Get the src from data-src attribute or from the original src
-                    const iframeSrc = iframe.getAttribute('data-src') || iframe.getAttribute('src');
-                    if (iframeSrc) {
-                        iframe.src = iframeSrc;
-                        loadedSections[sectionId] = true;
-                        initializeFrame(iframe, false);
-                    }
-                }
-            } else {
-                // Section already loaded, no need to show loader
-                contentLoader.style.display = 'none';
+                contentLoader.style.display = 'flex';
             }
             
-            // Handle widget content
-            const widgetSrc = widgetContentMap[sectionId];
-            if (widgetSrc) {
-                if (!loadedWidgets[widgetSrc]) {
-                    // First time loading this widget
-                    widgetsFrame.src = widgetSrc;
-                    loadedWidgets[widgetSrc] = true;
-                    initializeFrame(widgetsFrame, true);
-                } else if (widgetsFrame.src.indexOf(widgetSrc) === -1) {
-                    // Widget loaded before but we need to switch to it
-                    widgetsFrame.src = widgetSrc;
-                    
-                    // Brief loading indication
-                    widgetsLoader.style.display = 'flex';
-                    setTimeout(() => {
-                        widgetsLoader.style.display = 'none';
-                    }, 300);
+            // Load section content if needed
+            if (!loadedSections[sectionId]) {
+                const iframe = section.querySelector('iframe');
+                if (iframe) {
+                    loadIframeContent(iframe, false);
+                    loadedSections[sectionId] = true;
                 }
+            }
+            
+            // Update widget content
+            const widgetSrc = widgetContentMap[sectionId];
+            if (widgetSrc && widgetsFrame) {
+                if (widgetsFrame.getAttribute('data-src') !== widgetSrc) {
+                    widgetsLoader.style.display = 'flex';
+                    widgetsFrame.setAttribute('data-src', widgetSrc);
+                    
+                    // Clear previous content before loading new
+                    if (widgetsFrame.src) {
+                        widgetsFrame.src = 'about:blank';
+                        setTimeout(() => {
+                            loadIframeContent(widgetsFrame, true);
+                        }, 50);
+                    } else {
+                        loadIframeContent(widgetsFrame, true);
+                    }
+                }
+            }
+            
+            // Optimize scrollbars once section is active
+            optimizeScrollbars();
+        }
+        
+        // Optimize and sync scrollbars
+        function optimizeScrollbars() {
+            // Make main container scrollable
+            mainContent.style.overflowY = 'auto';
+            mainContent.style.overflowX = 'hidden';
+            mainContent.style.webkitOverflowScrolling = 'touch';
+            
+            // Create global style for better scrollbars
+            if (!document.getElementById('optimized-scrollbars')) {
+                const style = document.createElement('style');
+                style.id = 'optimized-scrollbars';
+                style.textContent = `
+                    /* Modern scrollbar styling */
+                    .main-content-wrapper::-webkit-scrollbar {
+                        width: 5px;
+                    }
+                    .main-content-wrapper::-webkit-scrollbar-track {
+                        background: transparent;
+                    }
+                    .main-content-wrapper::-webkit-scrollbar-thumb {
+                        background-color: rgba(0, 0, 0, 0.2);
+                        border-radius: 10px;
+                    }
+                    .main-content-wrapper {
+                        scrollbar-width: thin;
+                        scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+                    }
+                    
+                    /* SPA-like transitions */
+                    .section-container {
+                        transition: opacity 0.2s ease;
+                        will-change: opacity;
+                    }
+                    .section-container:not(.active) {
+                        opacity: 0;
+                        pointer-events: none;
+                        position: absolute;
+                        visibility: hidden;
+                    }
+                    .section-container.active {
+                        opacity: 1;
+                        position: relative;
+                        visibility: visible;
+                    }
+                `;
+                document.head.appendChild(style);
             }
         }
         
-        // Add click handlers to menu items
+        // Set up event listeners
         menuItems.forEach(item => {
             item.addEventListener('click', function(e) {
                 e.preventDefault();
                 const sectionId = this.getAttribute('data-section');
-                switchToSection(sectionId);
+                requestAnimationFrame(() => {
+                    switchToSection(sectionId);
+                });
             });
         });
         
-        // Add logo click handler
         logo.addEventListener('click', function() {
             switchToSection('home-section');
         });
         
-        // Add styles
-        const styleEl = document.createElement('style');
-        styleEl.textContent = `
-            .section-container {
-                transition: opacity 0.15s ease;
-            }
-            .section-container:not(.active) {
-                opacity: 0;
-                pointer-events: none;
-                visibility: hidden;
-            }
-            .section-container.active {
-                opacity: 1;
-                visibility: visible;
-            }
-        `;
-        document.head.appendChild(styleEl);
+        // Initialize responsive layout
+        handleResize();
+        window.addEventListener('resize', handleResize);
         
-        // Set up true lazy loading on all iframes
-        sections.forEach(section => {
-            const iframe = section.querySelector('iframe');
-            if (iframe && section.id !== currentSectionId) {
-                // Store the original src in data-src and set src to empty
-                const originalSrc = iframe.src;
-                iframe.setAttribute('data-src', originalSrc);
-                iframe.src = 'about:blank';
-            }
-        });
+        // Initial optimization
+        optimizeScrollbars();
         
-        // Load the current section
-        switchToSection(currentSectionId);
+        // Debug info
+        console.log('SPA interface initialized with true lazy loading');
     }
 })();
+
 
 
     </script>
