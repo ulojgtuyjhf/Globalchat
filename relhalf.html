@@ -896,549 +896,658 @@ body.dim .menu-item:hover {
 
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Retrieve the post button from the sidebar
-  const postBtn = document.querySelector('.post-btn');
-  if (!postBtn) return;
-  
-  let optionsVisible = false;
-  
-  // Create the container for the two option buttons
-  const optionsContainer = document.createElement('div');
-  optionsContainer.className = 'post-options-container';
-  
-  // Position it absolutely relative to the post button
-  const postBtnRect = postBtn.getBoundingClientRect();
-  optionsContainer.style.cssText = `
-    position: absolute;
-    bottom: ${postBtnRect.height + 10}px;
-    left: ${postBtnRect.left}px;
-    width: ${postBtnRect.width}px;
-    background: var(--options-bg, #fff);
-    border: 1px solid var(--options-border, rgba(0, 0, 0, 0.1));
-    border-radius: 16px;
-    box-shadow: 0 4px 12px var(--options-shadow, rgba(0, 0, 0, 0.15));
-    overflow: hidden;
-    opacity: 0;
-    transform: translateY(10px);
-    visibility: hidden;
-    transition: all 0.2s cubic-bezier(0.2, 0, 0.2, 1);
-    z-index: 100;
-    display: flex;
-    flex-direction: column;
-  `;
-  
-  // Create "Post" option
-  const postOption = document.createElement('button');
-  postOption.className = 'post-option post-btn-option';
-  postOption.style.cssText = `
-    padding: 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
-    background-color: inherit;
-    font-weight: 600;
-    color: var(--options-text, #0f1419);
-    border: none;
-    transition: background 0.2s ease;
-    font-size: 15px;
-  `;
-  postOption.innerHTML = `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M23 3c-6.62-.1-10.38 2.421-13 5.76C7.38 5.42 3.62 2.9 0 3v2c3.62-.1 7.38 2.1 10 4.76C12.62 7.1 16.38 4.9 20 5v2c-3.62.1-7.38 2.1-10 4.76c-2.62-2.66-6.38-4.86-10-4.76v2c3.62-.1 7.38 2.1 10 4.76c-2.62 2.66-6.38 4.86-10 4.76v2c6.62-.1 10.38-2.421 13-5.76c2.62 3.34 6.38 5.66 10 5.76v-2c-3.62.1-7.38-2.1-10-4.76c2.62-2.66 6.38-4.86 10-4.76V3z"/>
-    </svg>
-    <span>Post</span>
-  `;
-  
-  // Create "Appearance" option
-  const appearanceOption = document.createElement('button');
-  appearanceOption.className = 'post-option appearance-btn-option';
-  appearanceOption.style.cssText = `
-    padding: 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
-    background-color: inherit;
-    font-weight: 600;
-    color: var(--options-text, #0f1419);
-    border: none;
-    transition: background 0.2s ease;
-    font-size: 15px;
-  `;
-  appearanceOption.innerHTML = `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm0-18c4.42 0 8 3.58 8 8 0 1.85-.63 3.55-1.69 4.9L7.1 5.69C8.45 4.63 10.15 4 12 4zM5.69 7.1L16.9 18.31C15.55 19.37 13.85 20 12 20c-4.42 0-8-3.58-8-8 0-1.85.63-3.55 1.69-4.9z"/>
-    </svg>
-    <span>Appearance</span>
-  `;
-  
-  // Append options and add hover effects
-  optionsContainer.appendChild(postOption);
-  
-  // Add divider
-  const divider = document.createElement('div');
-  divider.style.cssText = `
-    height: 1px;
-    background: var(--options-divider, rgba(0, 0, 0, 0.1));
-    width: 100%;
-    margin: 0;
-  `;
-  optionsContainer.appendChild(divider);
-  optionsContainer.appendChild(appearanceOption);
-  
-  // Add hover effects
-  [postOption, appearanceOption].forEach(option => {
-    option.addEventListener('mouseenter', () => {
-      option.style.backgroundColor = 'var(--options-hover, rgba(0, 0, 0, 0.05))';
-    });
-    option.addEventListener('mouseleave', () => {
-      option.style.backgroundColor = 'inherit';
-    });
-  });
-  
-  // Insert the options container right after the post button
-  postBtn.parentNode.insertBefore(optionsContainer, postBtn.nextSibling);
-  
-  // Function to update position (for responsive adjustments)
-  function updateOptionsPosition() {
-    const postBtnRect = postBtn.getBoundingClientRect();
-    optionsContainer.style.left = `${postBtnRect.left}px`;
-    optionsContainer.style.bottom = `${postBtnRect.height + 10}px`;
-    optionsContainer.style.width = `${postBtnRect.width}px`;
-  }
-  
-  // --- Toggle Options ---
-  function toggleOptions() {
-    updateOptionsPosition();
-    
-    if (optionsVisible) {
-      // Close animation
-      optionsContainer.style.opacity = '0';
-      optionsContainer.style.transform = 'translateY(10px)';
-      setTimeout(() => {
-        optionsContainer.style.visibility = 'hidden';
-      }, 200);
-    } else {
-      // Open animation
-      optionsContainer.style.visibility = 'visible';
-      optionsContainer.style.opacity = '1';
-      optionsContainer.style.transform = 'translateY(0)';
-    }
-    optionsVisible = !optionsVisible;
-  }
-  
-  // --- Modal Creation with Beautiful Loading Animations ---
-  function createModalHeader(closeCallback) {
-    const header = document.createElement('div');
-    header.style.cssText = `
-      width: 100%;
-      height: 53px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      border-bottom: 1px solid var(--modal-border, rgba(0, 0, 0, 0.1));
-      background: var(--modal-header-bg, #fff);
-    `;
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = `
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--modal-close, #536471)">
-        <path d="M10.59 12L4.54 5.96l1.42-1.42L12 10.59l6.04-6.05 1.42 1.42L13.41 12l6.05 6.04-1.42 1.42L12 13.41l-6.04 6.05-1.42-1.42L10.59 12z"/>
-      </svg>
-    `;
-    closeBtn.style.cssText = `
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      padding: 8px;
-      border-radius: 50%;
-      transition: background 0.2s ease;
-    `;
-    closeBtn.addEventListener('mouseenter', () => {
-      closeBtn.style.backgroundColor = 'var(--modal-close-hover, rgba(0, 0, 0, 0.05))';
-    });
-    closeBtn.addEventListener('mouseleave', () => {
-      closeBtn.style.backgroundColor = 'transparent';
-    });
-    closeBtn.addEventListener('click', closeCallback);
-    header.appendChild(closeBtn);
-    
-    return header;
-  }
-  
-  // Create the Post Modal with Loading Animation
-  const postModal = document.createElement('div');
-  postModal.className = 'tweet-compose-modal';
-  postModal.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.4);
-    display: none;
-    justify-content: flex-end;
-    align-items: center;
-    z-index: 1000;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  `;
-  
-  const postModalContent = document.createElement('div');
-  postModalContent.className = 'tweet-compose-content';
-  postModalContent.style.cssText = `
-    background: var(--modal-bg, #fff);
-    border-radius: 16px 0 0 16px;
-    width: 600px;
-    max-width: 90%;
-    height: 100%;
-    overflow: hidden;
-    position: relative;
-    transform: translateX(100%);
-    transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
-    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.15);
-    display: flex;
-    flex-direction: column;
-  `;
-  
-  const postHeader = createModalHeader(closePostModal);
-  const postContentArea = document.createElement('div');
-  postContentArea.style.cssText = `
-    flex: 1;
-    position: relative;
-  `;
-  
-  // Create the beautiful loading animation for post modal
-  const postLoader = document.createElement('div');
-  postLoader.className = 'tweet-compose-loader';
-  postLoader.style.cssText = `
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    padding: 20px;
-  `;
-  postLoader.innerHTML = `
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="var(--loader-color, #1d9bf0)">
-      <circle cx="12" cy="12" r="10" opacity="0.1" fill="var(--loader-color, #1d9bf0)"/>
-      <path d="M12 22c5.523 0 10-4.477 10-10h-3c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7V2C6.477 2 2 6.477 2 12s4.477 10 10 10z">
-        <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
-      </path>
-    </svg>
-  `;
-  
-  const postIframeContainer = document.createElement('div');
-  postIframeContainer.className = 'tweet-compose-iframe';
-  postIframeContainer.style.cssText = `
-    width: 100%;
-    height: calc(100% - 53px);
-    display: none;
-    position: relative;
-  `;
-  
-  const postIframe = document.createElement('iframe');
-  postIframe.src = 'upload.html';
-  postIframe.style.cssText = `
-    width: 100%;
-    height: 100%;
-    border: none;
-  `;
-  
-  postIframeContainer.appendChild(postIframe);
-  postContentArea.appendChild(postLoader);
-  postContentArea.appendChild(postIframeContainer);
-  postModalContent.appendChild(postHeader);
-  postModalContent.appendChild(postContentArea);
-  postModal.appendChild(postModalContent);
-  document.body.appendChild(postModal);
-  
-  // Create the Appearance Modal with Loading Animation
-  const appearanceModal = document.createElement('div');
-  appearanceModal.className = 'appearance-modal';
-  appearanceModal.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.4);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  `;
-  
-  const appearanceModalContent = document.createElement('div');
-  appearanceModalContent.className = 'appearance-content';
-  appearanceModalContent.style.cssText = `
-    background: var(--modal-bg, #fff);
-    border-radius: 16px;
-    width: 600px;
-    max-width: 90%;
-    max-height: 90vh;
-    overflow: hidden;
-    position: relative;
-    transform: translateY(20px);
-    transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    display: flex;
-    flex-direction: column;
-  `;
-  
-  const appearanceHeader = createModalHeader(closeAppearanceModal);
-  const appearanceContentArea = document.createElement('div');
-  appearanceContentArea.style.cssText = `
-    flex: 1;
-    position: relative;
-  `;
-  
-  // Create the beautiful loading animation for appearance modal
-  const appearanceLoader = document.createElement('div');
-  appearanceLoader.className = 'appearance-loader';
-  appearanceLoader.style.cssText = `
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    padding: 20px;
-  `;
-  appearanceLoader.innerHTML = `
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="var(--loader-color, #1d9bf0)">
-      <circle cx="12" cy="12" r="10" opacity="0.1" fill="var(--loader-color, #1d9bf0)"/>
-      <path d="M12 22c5.523 0 10-4.477 10-10h-3c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7V2C6.477 2 2 6.477 2 12s4.477 10 10 10z">
-        <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
-      </path>
-    </svg>
-  `;
-  
-  const appearanceIframeContainer = document.createElement('div');
-  appearanceIframeContainer.className = 'appearance-iframe';
-  appearanceIframeContainer.style.cssText = `
-    width: 100%;
-    height: 500px;
-    display: none;
-    position: relative;
-  `;
-  
-  const appearanceIframe = document.createElement('iframe');
-  appearanceIframe.src = 'chats.html';
-  appearanceIframe.style.cssText = `
-    width: 100%;
-    height: 100%;
-    border: none;
-  `;
-  
-  appearanceIframeContainer.appendChild(appearanceIframe);
-  appearanceContentArea.appendChild(appearanceLoader);
-  appearanceContentArea.appendChild(appearanceIframeContainer);
-  appearanceModalContent.appendChild(appearanceHeader);
-  appearanceModalContent.appendChild(appearanceContentArea);
-  appearanceModal.appendChild(appearanceModalContent);
-  document.body.appendChild(appearanceModal);
-  
-  // --- Modal Open/Close Functions with Loading Animations ---
-  function openPostModal() {
-    document.body.style.overflow = 'hidden';
-    postModal.style.display = 'flex';
-    void postModal.offsetWidth; // Force reflow
-    postModal.style.opacity = '1';
-    postModalContent.style.transform = 'translateX(0)';
-    
-    // Show loader initially
-    postLoader.style.display = 'flex';
-    postIframeContainer.style.display = 'none';
-    
-    // Hide options
-    optionsContainer.style.opacity = '0';
-    optionsContainer.style.visibility = 'hidden';
-    optionsContainer.style.transform = 'translateY(10px)';
-    optionsVisible = false;
-    
-    // Simulate loading (in real app, this would be when iframe loads)
-    setTimeout(() => {
-      postLoader.style.display = 'none';
-      postIframeContainer.style.display = 'block';
-    }, 800);
-  }
-  
-  function closePostModal() {
-    postModal.style.opacity = '0';
-    postModalContent.style.transform = 'translateX(100%)';
-    setTimeout(() => {
-      postModal.style.display = 'none';
-      document.body.style.overflow = '';
+
+(function() {
+  // Wait for DOM to be fully loaded before executing
+  document.addEventListener('DOMContentLoaded', function() {
+    // Use a unique identifier for this functionality
+    const postMenuManager = {
+      init: function() {
+        // Retrieve the post button from the sidebar
+        const postBtn = document.querySelector('.post-btn');
+        if (!postBtn) return;
+        
+        this.postBtn = postBtn;
+        this.optionsVisible = false;
+        this.createOptionsContainer();
+        this.createModals();
+        this.setupEventListeners();
+        this.updateThemeVariables();
+      },
       
-      // Reset for next open
-      postLoader.style.display = 'flex';
-      postIframeContainer.style.display = 'none';
-    }, 300);
-  }
-  
-  function openAppearanceModal() {
-    document.body.style.overflow = 'hidden';
-    appearanceModal.style.display = 'flex';
-    void appearanceModal.offsetWidth; // Force reflow
-    appearanceModal.style.opacity = '1';
-    appearanceModalContent.style.transform = 'translateY(0)';
-    
-    // Show loader initially
-    appearanceLoader.style.display = 'flex';
-    appearanceIframeContainer.style.display = 'none';
-    
-    // Hide options
-    optionsContainer.style.opacity = '0';
-    optionsContainer.style.visibility = 'hidden';
-    optionsContainer.style.transform = 'translateY(10px)';
-    optionsVisible = false;
-    
-    // Simulate loading (in real app, this would be when iframe loads)
-    setTimeout(() => {
-      appearanceLoader.style.display = 'none';
-      appearanceIframeContainer.style.display = 'block';
-    }, 800);
-  }
-  
-  function closeAppearanceModal() {
-    appearanceModal.style.opacity = '0';
-    appearanceModalContent.style.transform = 'translateY(20px)';
-    setTimeout(() => {
-      appearanceModal.style.display = 'none';
-      document.body.style.overflow = '';
+      createOptionsContainer: function() {
+        // Create the container for the option buttons
+        const optionsContainer = document.createElement('div');
+        optionsContainer.className = 'neural-post-options-container';
+        optionsContainer.style.cssText = `
+          position: absolute;
+          background: var(--options-bg, #fff);
+          border: 1px solid var(--options-border, rgba(0, 0, 0, 0.1));
+          border-radius: 16px;
+          box-shadow: 0 4px 12px var(--options-shadow, rgba(0, 0, 0, 0.15));
+          overflow: hidden;
+          opacity: 0;
+          transform: translateY(10px);
+          visibility: hidden;
+          transition: all 0.2s cubic-bezier(0.2, 0, 0.2, 1);
+          z-index: 100;
+          display: flex;
+          flex-direction: column;
+        `;
+        
+        // Create "Post" option
+        const postOption = document.createElement('button');
+        postOption.className = 'neural-post-option neural-post-btn-option';
+        postOption.style.cssText = `
+          padding: 16px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+          background-color: inherit;
+          font-weight: 600;
+          color: var(--options-text, #0f1419);
+          border: none;
+          transition: background 0.2s ease;
+          font-size: 15px;
+        `;
+        postOption.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M23 3c-6.62-.1-10.38 2.421-13 5.76C7.38 5.42 3.62 2.9 0 3v2c3.62-.1 7.38 2.1 10 4.76C12.62 7.1 16.38 4.9 20 5v2c-3.62.1-7.38 2.1-10 4.76c-2.62-2.66-6.38-4.86-10-4.76v2c3.62-.1 7.38 2.1 10 4.76c-2.62 2.66-6.38 4.86-10 4.76v2c6.62-.1 10.38-2.421 13-5.76c2.62 3.34 6.38 5.66 10 5.76v-2c-3.62.1-7.38-2.1-10-4.76c2.62-2.66 6.38-4.86 10-4.76V3z"/>
+          </svg>
+          <span>Post</span>
+        `;
+        
+        // Create "Appearance" option
+        const appearanceOption = document.createElement('button');
+        appearanceOption.className = 'neural-post-option neural-appearance-btn-option';
+        appearanceOption.style.cssText = `
+          padding: 16px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+          background-color: inherit;
+          font-weight: 600;
+          color: var(--options-text, #0f1419);
+          border: none;
+          transition: background 0.2s ease;
+          font-size: 15px;
+        `;
+        appearanceOption.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm0-18c4.42 0 8 3.58 8 8 0 1.85-.63 3.55-1.69 4.9L7.1 5.69C8.45 4.63 10.15 4 12 4zM5.69 7.1L16.9 18.31C15.55 19.37 13.85 20 12 20c-4.42 0-8-3.58-8-8 0-1.85.63-3.55 1.69-4.9z"/>
+          </svg>
+          <span>Appearance</span>
+        `;
+        
+        // Append options and add hover effects
+        optionsContainer.appendChild(postOption);
+        
+        // Add divider
+        const divider = document.createElement('div');
+        divider.style.cssText = `
+          height: 1px;
+          background: var(--options-divider, rgba(0, 0, 0, 0.1));
+          width: 100%;
+          margin: 0;
+        `;
+        optionsContainer.appendChild(divider);
+        optionsContainer.appendChild(appearanceOption);
+        
+        // Add hover effects
+        [postOption, appearanceOption].forEach(option => {
+          option.addEventListener('mouseenter', () => {
+            option.style.backgroundColor = 'var(--options-hover, rgba(0, 0, 0, 0.05))';
+          });
+          option.addEventListener('mouseleave', () => {
+            option.style.backgroundColor = 'inherit';
+          });
+        });
+        
+        // Insert the options container into the DOM
+        document.body.appendChild(optionsContainer);
+        
+        // Store references
+        this.optionsContainer = optionsContainer;
+        this.postOption = postOption;
+        this.appearanceOption = appearanceOption;
+        
+        // Set up click handlers
+        postOption.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.openPostModal();
+        });
+        
+        appearanceOption.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.openAppearanceModal();
+        });
+      },
       
-      // Reset for next open
-      appearanceLoader.style.display = 'flex';
-      appearanceIframeContainer.style.display = 'none';
-    }, 300);
-  }
-  
-  // --- Event Listeners ---
-  postBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    toggleOptions();
-  });
-  
-  postOption.addEventListener('click', function(e) {
-    e.stopPropagation();
-    openPostModal();
-  });
-  
-  appearanceOption.addEventListener('click', function(e) {
-    e.stopPropagation();
-    openAppearanceModal();
-  });
-  
-  // Close options when clicking outside
-  document.addEventListener('click', function(e) {
-    if (optionsVisible && !optionsContainer.contains(e.target) && e.target !== postBtn) {
-      optionsContainer.style.opacity = '0';
-      optionsContainer.style.visibility = 'hidden';
-      optionsContainer.style.transform = 'translateY(10px)';
-      optionsVisible = false;
-    }
-  });
-  
-  // Close modals when clicking outside the content
-  postModal.addEventListener('click', function(e) {
-    if (e.target === postModal) closePostModal();
-  });
-  
-  appearanceModal.addEventListener('click', function(e) {
-    if (e.target === appearanceModal) closeAppearanceModal();
-  });
-  
-  // Close any open modals/options on Escape key
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-      if (postModal.style.display === 'flex') closePostModal();
-      if (appearanceModal.style.display === 'flex') closeAppearanceModal();
-      if (optionsVisible) {
-        optionsContainer.style.opacity = '0';
-        optionsContainer.style.visibility = 'hidden';
-        optionsContainer.style.transform = 'translateY(10px)';
-        optionsVisible = false;
+      updateOptionsPosition: function() {
+        const btnRect = this.postBtn.getBoundingClientRect();
+        const containerRect = this.optionsContainer.getBoundingClientRect();
+        
+        // Position above the post button
+        this.optionsContainer.style.bottom = `${window.innerHeight - btnRect.top + 5}px`;
+        this.optionsContainer.style.left = `${btnRect.left + (btnRect.width/2) - (containerRect.width/2)}px`;
+        
+        // Make sure it stays within viewport
+        const rect = this.optionsContainer.getBoundingClientRect();
+        if (rect.left < 10) {
+          this.optionsContainer.style.left = '10px';
+        } else if (rect.right > window.innerWidth - 10) {
+          this.optionsContainer.style.left = `${window.innerWidth - rect.width - 10}px`;
+        }
+      },
+      
+      createModals: function() {
+        // Create Post Modal
+        const postModal = document.createElement('div');
+        postModal.className = 'neural-tweet-compose-modal';
+        postModal.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.4);
+          display: none;
+          justify-content: flex-end;
+          align-items: center;
+          z-index: 1000;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        `;
+        
+        const postModalContent = document.createElement('div');
+        postModalContent.className = 'neural-tweet-compose-content';
+        postModalContent.style.cssText = `
+          background: var(--modal-bg, #fff);
+          border-radius: 16px 0 0 16px;
+          width: 600px;
+          max-width: 90%;
+          height: 100%;
+          overflow: hidden;
+          position: relative;
+          transform: translateX(100%);
+          transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+          box-shadow: -5px 0 20px rgba(0, 0, 0, 0.15);
+          display: flex;
+          flex-direction: column;
+        `;
+        
+        const postHeader = this.createModalHeader(() => this.closePostModal());
+        const postContentArea = document.createElement('div');
+        postContentArea.style.cssText = `
+          flex: 1;
+          position: relative;
+        `;
+        
+        // Create the three-dot loading animation
+        const postLoader = document.createElement('div');
+        postLoader.className = 'neural-tweet-compose-loader';
+        postLoader.style.cssText = `
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100%;
+          padding: 20px;
+        `;
+        postLoader.innerHTML = `
+          <div style="display: flex; gap: 8px;">
+            <span class="loading-dot" style="
+              width: 10px;
+              height: 10px;
+              background-color: var(--loader-color, #1d9bf0);
+              border-radius: 50%;
+              display: inline-block;
+              animation: pulse 1.4s infinite ease-in-out;
+              animation-delay: 0s;
+            "></span>
+            <span class="loading-dot" style="
+              width: 10px;
+              height: 10px;
+              background-color: var(--loader-color, #1d9bf0);
+              border-radius: 50%;
+              display: inline-block;
+              animation: pulse 1.4s infinite ease-in-out;
+              animation-delay: 0.2s;
+            "></span>
+            <span class="loading-dot" style="
+              width: 10px;
+              height: 10px;
+              background-color: var(--loader-color, #1d9bf0);
+              border-radius: 50%;
+              display: inline-block;
+              animation: pulse 1.4s infinite ease-in-out;
+              animation-delay: 0.4s;
+            "></span>
+          </div>
+        `;
+        
+        // Add pulse animation
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = `
+          @keyframes pulse {
+            0%, 80%, 100% { 
+              transform: scale(0.6);
+              opacity: 0.6;
+            }
+            40% { 
+              transform: scale(1);
+              opacity: 1;
+            }
+          }
+        `;
+        document.head.appendChild(styleSheet);
+        
+        const postIframeContainer = document.createElement('div');
+        postIframeContainer.className = 'neural-tweet-compose-iframe';
+        postIframeContainer.style.cssText = `
+          width: 100%;
+          height: calc(100% - 53px);
+          display: none;
+          position: relative;
+        `;
+        
+        const postIframe = document.createElement('iframe');
+        postIframe.src = 'upload.html';
+        postIframe.style.cssText = `
+          width: 100%;
+          height: 100%;
+          border: none;
+        `;
+        
+        postIframeContainer.appendChild(postIframe);
+        postContentArea.appendChild(postLoader);
+        postContentArea.appendChild(postIframeContainer);
+        postModalContent.appendChild(postHeader);
+        postModalContent.appendChild(postContentArea);
+        postModal.appendChild(postModalContent);
+        document.body.appendChild(postModal);
+        
+        // Create the Appearance Modal
+        const appearanceModal = document.createElement('div');
+        appearanceModal.className = 'neural-appearance-modal';
+        appearanceModal.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.4);
+          display: none;
+          justify-content: center;
+          align-items: center;
+          z-index: 1000;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        `;
+        
+        const appearanceModalContent = document.createElement('div');
+        appearanceModalContent.className = 'neural-appearance-content';
+        appearanceModalContent.style.cssText = `
+          background: var(--modal-bg, #fff);
+          border-radius: 16px;
+          width: 600px;
+          max-width: 90%;
+          max-height: 90vh;
+          overflow: hidden;
+          position: relative;
+          transform: translateY(20px);
+          transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+          display: flex;
+          flex-direction: column;
+        `;
+        
+        const appearanceHeader = this.createModalHeader(() => this.closeAppearanceModal());
+        const appearanceContentArea = document.createElement('div');
+        appearanceContentArea.style.cssText = `
+          flex: 1;
+          position: relative;
+        `;
+        
+        // Create the three-dot loading animation
+        const appearanceLoader = document.createElement('div');
+        appearanceLoader.className = 'neural-appearance-loader';
+        appearanceLoader.style.cssText = `
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100%;
+          padding: 20px;
+        `;
+        appearanceLoader.innerHTML = `
+          <div style="display: flex; gap: 8px;">
+            <span class="loading-dot" style="
+              width: 10px;
+              height: 10px;
+              background-color: var(--loader-color, #1d9bf0);
+              border-radius: 50%;
+              display: inline-block;
+              animation: pulse 1.4s infinite ease-in-out;
+              animation-delay: 0s;
+            "></span>
+            <span class="loading-dot" style="
+              width: 10px;
+              height: 10px;
+              background-color: var(--loader-color, #1d9bf0);
+              border-radius: 50%;
+              display: inline-block;
+              animation: pulse 1.4s infinite ease-in-out;
+              animation-delay: 0.2s;
+            "></span>
+            <span class="loading-dot" style="
+              width: 10px;
+              height: 10px;
+              background-color: var(--loader-color, #1d9bf0);
+              border-radius: 50%;
+              display: inline-block;
+              animation: pulse 1.4s infinite ease-in-out;
+              animation-delay: 0.4s;
+            "></span>
+          </div>
+        `;
+        
+        const appearanceIframeContainer = document.createElement('div');
+        appearanceIframeContainer.className = 'neural-appearance-iframe';
+        appearanceIframeContainer.style.cssText = `
+          width: 100%;
+          height: 500px;
+          display: none;
+          position: relative;
+        `;
+        
+        const appearanceIframe = document.createElement('iframe');
+        appearanceIframe.src = 'chats.html';
+        appearanceIframe.style.cssText = `
+          width: 100%;
+          height: 100%;
+          border: none;
+        `;
+        
+        appearanceIframeContainer.appendChild(appearanceIframe);
+        appearanceContentArea.appendChild(appearanceLoader);
+        appearanceContentArea.appendChild(appearanceIframeContainer);
+        appearanceModalContent.appendChild(appearanceHeader);
+        appearanceModalContent.appendChild(appearanceContentArea);
+        appearanceModal.appendChild(appearanceModalContent);
+        document.body.appendChild(appearanceModal);
+        
+        // Store references
+        this.postModal = postModal;
+        this.postModalContent = postModalContent;
+        this.postLoader = postLoader;
+        this.postIframeContainer = postIframeContainer;
+        this.appearanceModal = appearanceModal;
+        this.appearanceModalContent = appearanceModalContent;
+        this.appearanceLoader = appearanceLoader;
+        this.appearanceIframeContainer = appearanceIframeContainer;
+        
+        // Set up modal click handlers
+        postModal.addEventListener('click', (e) => {
+          if (e.target === postModal) this.closePostModal();
+        });
+        
+        appearanceModal.addEventListener('click', (e) => {
+          if (e.target === appearanceModal) this.closeAppearanceModal();
+        });
+      },
+      
+      createModalHeader: function(closeCallback) {
+        const header = document.createElement('div');
+        header.style.cssText = `
+          width: 100%;
+          height: 53px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 16px;
+          border-bottom: 1px solid var(--modal-border, rgba(0, 0, 0, 0.1));
+          background: var(--modal-header-bg, #fff);
+        `;
+        
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = `
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--modal-close, #536471)">
+            <path d="M10.59 12L4.54 5.96l1.42-1.42L12 10.59l6.04-6.05 1.42 1.42L13.41 12l6.05 6.04-1.42 1.42L12 13.41l-6.04 6.05-1.42-1.42L10.59 12z"/>
+          </svg>
+        `;
+        closeBtn.style.cssText = `
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          padding: 8px;
+          border-radius: 50%;
+          transition: background 0.2s ease;
+        `;
+        closeBtn.addEventListener('mouseenter', () => {
+          closeBtn.style.backgroundColor = 'var(--modal-close-hover, rgba(0, 0, 0, 0.05))';
+        });
+        closeBtn.addEventListener('mouseleave', () => {
+          closeBtn.style.backgroundColor = 'transparent';
+        });
+        closeBtn.addEventListener('click', closeCallback);
+        header.appendChild(closeBtn);
+        
+        return header;
+      },
+      
+      toggleOptions: function() {
+        this.updateOptionsPosition();
+        
+        if (this.optionsVisible) {
+          // Close animation
+          this.optionsContainer.style.opacity = '0';
+          this.optionsContainer.style.transform = 'translateY(10px)';
+          setTimeout(() => {
+            this.optionsContainer.style.visibility = 'hidden';
+          }, 200);
+        } else {
+          // Show container and update position
+          this.optionsContainer.style.visibility = 'visible';
+          
+          // Force layout recalculation to get accurate dimensions
+          void this.optionsContainer.offsetWidth;
+          
+          // Update position again now that it's visible and has dimensions
+          this.updateOptionsPosition();
+          
+          // Open animation
+          this.optionsContainer.style.opacity = '1'; 
+          this.optionsContainer.style.transform = 'translateY(0)';
+        }
+        
+        this.optionsVisible = !this.optionsVisible;
+      },
+      
+      openPostModal: function() {
+        document.body.style.overflow = 'hidden';
+        this.postModal.style.display = 'flex';
+        void this.postModal.offsetWidth; // Force reflow
+        this.postModal.style.opacity = '1';
+        this.postModalContent.style.transform = 'translateX(0)';
+        
+        // Show loader initially
+        this.postLoader.style.display = 'flex';
+        this.postIframeContainer.style.display = 'none';
+        
+        // Hide options
+        this.optionsContainer.style.opacity = '0';
+        this.optionsContainer.style.visibility = 'hidden';
+        this.optionsContainer.style.transform = 'translateY(10px)';
+        this.optionsVisible = false;
+        
+        // Simulate loading (in real app, this would be when iframe loads)
+        setTimeout(() => {
+          this.postLoader.style.display = 'none';
+          this.postIframeContainer.style.display = 'block';
+        }, 1500);
+      },
+      
+      closePostModal: function() {
+        this.postModal.style.opacity = '0';
+        this.postModalContent.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          this.postModal.style.display = 'none';
+          document.body.style.overflow = '';
+          
+          // Reset for next open
+          this.postLoader.style.display = 'flex';
+          this.postIframeContainer.style.display = 'none';
+        }, 300);
+      },
+      
+      openAppearanceModal: function() {
+        document.body.style.overflow = 'hidden';
+        this.appearanceModal.style.display = 'flex';
+        void this.appearanceModal.offsetWidth; // Force reflow
+        this.appearanceModal.style.opacity = '1';
+        this.appearanceModalContent.style.transform = 'translateY(0)';
+        
+        // Show loader initially
+        this.appearanceLoader.style.display = 'flex';
+        this.appearanceIframeContainer.style.display = 'none';
+        
+        // Hide options
+        this.optionsContainer.style.opacity = '0';
+        this.optionsContainer.style.visibility = 'hidden';
+        this.optionsContainer.style.transform = 'translateY(10px)';
+        this.optionsVisible = false;
+        
+        // Simulate loading (in real app, this would be when iframe loads)
+        setTimeout(() => {
+          this.appearanceLoader.style.display = 'none';
+          this.appearanceIframeContainer.style.display = 'block';
+        }, 1500);
+      },
+      
+      closeAppearanceModal: function() {
+        this.appearanceModal.style.opacity = '0';
+        this.appearanceModalContent.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+          this.appearanceModal.style.display = 'none';
+          document.body.style.overflow = '';
+          
+          // Reset for next open
+          this.appearanceLoader.style.display = 'flex';
+          this.appearanceIframeContainer.style.display = 'none';
+        }, 300);
+      },
+      
+      setupEventListeners: function() {
+        // Toggle options on post button click
+        this.postBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.toggleOptions();
+        });
+        
+        // Close options when clicking outside
+        document.addEventListener('click', (e) => {
+          if (this.optionsVisible && 
+              !this.optionsContainer.contains(e.target) && 
+              e.target !== this.postBtn) {
+            this.optionsContainer.style.opacity = '0';
+            this.optionsContainer.style.visibility = 'hidden';
+            this.optionsContainer.style.transform = 'translateY(10px)';
+            this.optionsVisible = false;
+          }
+        });
+        
+        // Close any open modals/options on Escape key
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            if (this.postModal.style.display === 'flex') this.closePostModal();
+            if (this.appearanceModal.style.display === 'flex') this.closeAppearanceModal();
+            if (this.optionsVisible) {
+              this.optionsContainer.style.opacity = '0';
+              this.optionsContainer.style.visibility = 'hidden';
+              this.optionsContainer.style.transform = 'translateY(10px)';
+              this.optionsVisible = false;
+            }
+          }
+        });
+        
+        // Update positioning on resize
+        window.addEventListener('resize', () => {
+          if (this.optionsVisible) {
+            this.updateOptionsPosition();
+          }
+        });
+        
+        // Watch for theme changes
+        const observer = new MutationObserver((mutations) => {
+          mutations.forEach((mutation) => {
+            if (mutation.attributeName === 'class') {
+              this.updateThemeVariables();
+            }
+          });
+        });
+        
+        observer.observe(document.body, {
+          attributes: true,
+          attributeFilter: ['class']
+        });
+      },
+      
+      updateThemeVariables: function() {
+        const isDark = document.body.classList.contains('dark');
+        const isDim = document.body.classList.contains('dim');
+        
+        if (isDark) {
+          // Dark theme variables
+          document.documentElement.style.setProperty('--options-bg', '#000');
+          document.documentElement.style.setProperty('--options-border', 'rgba(255, 255, 255, 0.1)');
+          document.documentElement.style.setProperty('--options-shadow', 'rgba(255, 255, 255, 0.1)');
+          document.documentElement.style.setProperty('--options-text', '#fff');
+          document.documentElement.style.setProperty('--options-hover', 'rgba(255, 255, 255, 0.1)');
+          document.documentElement.style.setProperty('--options-divider', 'rgba(255, 255, 255, 0.1)');
+          document.documentElement.style.setProperty('--modal-bg', '#000');
+          document.documentElement.style.setProperty('--modal-border', 'rgba(255, 255, 255, 0.1)');
+          document.documentElement.style.setProperty('--modal-header-bg', '#000');
+          document.documentElement.style.setProperty('--modal-close', '#71767b');
+          document.documentElement.style.setProperty('--modal-close-hover', 'rgba(255, 255, 255, 0.1)');
+          document.documentElement.style.setProperty('--loader-color', '#1d9bf0');
+        } else if (isDim) {
+          // Dim theme variables
+          document.documentElement.style.setProperty('--options-bg', '#15202b');
+          document.documentElement.style.setProperty('--options-border', 'rgba(255, 255, 255, 0.1)');
+          document.documentElement.style.setProperty('--options-shadow', 'rgba(255, 255, 255, 0.1)');
+          document.documentElement.style.setProperty('--options-text', '#f7f9f9');
+          document.documentElement.style.setProperty('--options-hover', 'rgba(255, 255, 255, 0.1)');
+          document.documentElement.style.setProperty('--options-divider', 'rgba(255, 255, 255, 0.1)');
+          document.documentElement.style.setProperty('--modal-bg', '#15202b');
+          document.documentElement.style.setProperty('--modal-border', 'rgba(255, 255, 255, 0.1)');
+          document.documentElement.style.setProperty('--modal-header-bg', '#15202b');
+          document.documentElement.style.setProperty('--modal-close', '#8b98a5');
+          document.documentElement.style.setProperty('--modal-close-hover', 'rgba(255, 255, 255, 0.1)');
+          document.documentElement.style.setProperty('--loader-color', '#1d9bf0');
+        } else {
+          // Light theme variables (default)
+          document.documentElement.style.setProperty('--options-bg', '#fff');
+          document.documentElement.style.setProperty('--options-border', 'rgba(0, 0, 0, 0.1)');
+          document.documentElement.style.setProperty('--options-shadow', 'rgba(0, 0, 0, 0.15)');
+          document.documentElement.style.setProperty('--options-text', '#0f1419');
+          document.documentElement.style.setProperty('--options-hover', 'rgba(0, 0, 0, 0.05)');
+          document.documentElement.style.setProperty('--options-divider', 'rgba(0, 0, 0, 0.1)');
+          document.documentElement.style.setProperty('--modal-bg', '#fff');
+          document.documentElement.style.setProperty('--modal-border', 'rgba(0, 0, 0, 0.1)');
+          document.documentElement.style.setProperty('--modal-header-bg', '#fff');
+          document.documentElement.style.setProperty('--modal-close', '#536471');
+          document.documentElement.style.setProperty('--modal-close-hover', 'rgba(0, 0, 0, 0.05)');
+          document.documentElement.style.setProperty('--loader-color', '#1d9bf0');
+        }
       }
-    }
-  });
-  
-  // Update CSS variables based on theme
-  function updateThemeVariables() {
-    const isDark = document.body.classList.contains('dark');
-    const isDim = document.body.classList.contains('dim');
+    };
     
-    if (isDark) {
-      // Dark theme variables
-      document.documentElement.style.setProperty('--options-bg', '#000');
-      document.documentElement.style.setProperty('--options-border', 'rgba(255, 255, 255, 0.1)');
-      document.documentElement.style.setProperty('--options-shadow', 'rgba(255, 255, 255, 0.1)');
-      document.documentElement.style.setProperty('--options-text', '#fff');
-      document.documentElement.style.setProperty('--options-hover', 'rgba(255, 255, 255, 0.1)');
-      document.documentElement.style.setProperty('--options-divider', 'rgba(255, 255, 255, 0.1)');
-      document.documentElement.style.setProperty('--modal-bg', '#000');
-      document.documentElement.style.setProperty('--modal-border', 'rgba(255, 255, 255, 0.1)');
-      document.documentElement.style.setProperty('--modal-header-bg', '#000');
-      document.documentElement.style.setProperty('--modal-close', '#71767b');
-      document.documentElement.style.setProperty('--modal-close-hover', 'rgba(255, 255, 255, 0.1)');
-      document.documentElement.style.setProperty('--loader-color', '#1d9bf0');
-    } else if (isDim) {
-      // Dim theme variables
-      document.documentElement.style.setProperty('--options-bg', '#15202b');
-      document.documentElement.style.setProperty('--options-border', 'rgba(255, 255, 255, 0.1)');
-      document.documentElement.style.setProperty('--options-shadow', 'rgba(255, 255, 255, 0.1)');
-      document.documentElement.style.setProperty('--options-text', '#f7f9f9');
-      document.documentElement.style.setProperty('--options-hover', 'rgba(255, 255, 255, 0.1)');
-      document.documentElement.style.setProperty('--options-divider', 'rgba(255, 255, 255, 0.1)');
-      document.documentElement.style.setProperty('--modal-bg', '#15202b');
-      document.documentElement.style.setProperty('--modal-border', 'rgba(255, 255, 255, 0.1)');
-      document.documentElement.style.setProperty('--modal-header-bg', '#15202b');
-      document.documentElement.style.setProperty('--modal-close', '#8b98a5');
-      document.documentElement.style.setProperty('--modal-close-hover', 'rgba(255, 255, 255, 0.1)');
-      document.documentElement.style.setProperty('--loader-color', '#1d9bf0');
-    } else {
-      // Light theme variables (default)
-      document.documentElement.style.setProperty('--options-bg', '#fff');
-      document.documentElement.style.setProperty('--options-border', 'rgba(0, 0, 0, 0.1)');
-      document.documentElement.style.setProperty('--options-shadow', 'rgba(0, 0, 0, 0.15)');
-      document.documentElement.style.setProperty('--options-text', '#0f1419');
-      document.documentElement.style.setProperty('--options-hover', 'rgba(0, 0, 0, 0.05)');
-      document.documentElement.style.setProperty('--options-divider', 'rgba(0, 0, 0, 0.1)');
-      document.documentElement.style.setProperty('--modal-bg', '#fff');
-      document.documentElement.style.setProperty('--modal-border', 'rgba(0, 0, 0, 0.1)');
-      document.documentElement.style.setProperty('--modal-header-bg', '#fff');
-      document.documentElement.style.setProperty('--modal-close', '#536471');
-      document.documentElement.style.setProperty('--modal-close-hover', 'rgba(0, 0, 0, 0.05)');
-      document.documentElement.style.setProperty('--loader-color', '#1d9bf0');
-    }
-  }
-  
-  // Initialize theme variables
-  updateThemeVariables();
-  
-  // Watch for theme changes (if you have a theme toggle elsewhere)
-  const observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(mutation) {
-      if (mutation.attributeName === 'class') {
-        updateThemeVariables();
-      }
-    });
+    // Initialize the post menu manager
+    postMenuManager.init();
   });
-  
-  observer.observe(document.body, {
-    attributes: true,
-    attributeFilter: ['class']
-  });
-  
-  // Update position on resize
-  window.addEventListener('resize', function() {
-    if (optionsVisible) {
-      updateOptionsPosition();
-    }
-  });
-});
+})();
+
 </script>
 
 
