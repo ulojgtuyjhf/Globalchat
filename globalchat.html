@@ -3385,3 +3385,108 @@ document.addEventListener('scroll', () => {
   onDOMReady(initPagination);
 })();
 </script>
+<script>
+  // WhatsApp-style right-aligned messages for current user
+  (() => {
+    // Function to apply right-side styling to user's own messages
+    function styleMyMessages() {
+      // Get all messages
+      const messages = document.querySelectorAll('.message:not([data-processed])');
+      
+      messages.forEach(message => {
+        // Mark as processed
+        message.setAttribute('data-processed', 'true');
+        
+        // Find follow button - if display:none, this is the current user's message
+        const followBtn = message.querySelector('.follow-btn');
+        if (followBtn && followBtn.style.display === 'none') {
+          // Get message ID to remember in localStorage
+          const messageId = message.getAttribute('data-message-id');
+          if (messageId) {
+            localStorage.setItem(`my-message-${messageId}`, 'true');
+          }
+          
+          // Apply right-side styling
+          applyMyMessageStyle(message);
+        } else {
+          // Check if this was previously identified as user's message
+          const messageId = message.getAttribute('data-message-id');
+          if (messageId && localStorage.getItem(`my-message-${messageId}`) === 'true') {
+            applyMyMessageStyle(message);
+          }
+        }
+      });
+    }
+    
+    // Apply styling to a message that's from the current user
+    function applyMyMessageStyle(message) {
+      // Right-align the message
+      message.style.flexDirection = 'row-reverse';
+      
+      // Hide profile image
+      const profileImage = message.querySelector('.profile-image');
+      if (profileImage) {
+        profileImage.style.display = 'none';
+      }
+      
+      // Hide username
+      const userName = message.querySelector('.user-name');
+      if (userName) {
+        userName.style.display = 'none';
+      }
+      
+      // Right-align message content
+      const messageContent = message.querySelector('.message-content');
+      if (messageContent) {
+        messageContent.style.alignItems = 'flex-end';
+      }
+      
+      // Add special background to message text
+      
+      
+      // Move action buttons to match right alignment
+      const actionButtons = message.querySelector('.action-buttons');
+      if (actionButtons) {
+        actionButtons.style.justifyContent = 'flex-start';
+        actionButtons.style.flexDirection = 'row-reverse';
+      }
+    }
+    
+    // Process messages when they appear
+    function setupObserver() {
+      const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+          if (mutation.addedNodes.length) {
+            styleMyMessages();
+          }
+        });
+      });
+      
+      const chatContainer = document.getElementById('chatContainer');
+      if (chatContainer) {
+        observer.observe(chatContainer, { childList: true, subtree: true });
+        styleMyMessages(); // Process existing messages
+      }
+    }
+    
+    // Initial processing + observe for new messages
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupObserver);
+    } else {
+      setupObserver();
+    }
+    
+    // Process messages again when chat container loads
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    if (loadingIndicator) {
+      const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+          if (mutation.target === loadingIndicator && loadingIndicator.style.display === 'none') {
+            styleMyMessages();
+          }
+        });
+      });
+      observer.observe(loadingIndicator, { attributes: true, attributeFilter: ['style'] });
+    }
+  })();
+</script>
