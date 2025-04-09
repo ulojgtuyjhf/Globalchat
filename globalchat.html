@@ -3387,189 +3387,129 @@ document.addEventListener('scroll', () => {
 </script>
 
 <script>
-(() => {
-  // Function to apply right-side styling to user's own messages
-  function styleMyMessages() {
-    // Get all messages that haven't been processed yet
-    const messages = document.querySelectorAll('.message:not([data-processed])');
+
+// Self-executing function to avoid conflicts with existing code
+(function() {
+  // Wait for DOM to be fully loaded
+  function enhanceChat() {
+    // Track processed messages to avoid duplicates
+    const processedMessages = new Set();
     
-    messages.forEach(message => {
-      // Mark as processed to avoid reprocessing
-      message.setAttribute('data-processed', 'true');
-      
-      // Find follow button - if hidden, this is the current user's message
-      const followBtn = message.querySelector('.follow-btn');
-      if (followBtn && followBtn.style.display === 'none') {
-        // Store message ID in localStorage for persistence
+    // Process all messages
+    function processMessages() {
+      document.querySelectorAll('.message').forEach(message => {
+        // Skip if already processed
         const messageId = message.getAttribute('data-message-id');
-        if (messageId) {
-          localStorage.setItem(`my-message-${messageId}`, 'true');
-        }
+        if (!messageId || processedMessages.has(messageId)) return;
+        processedMessages.add(messageId);
         
-        // Apply user message styling
-        applyMyMessageStyle(message);
+        // Get profile picture
+        const profileImg = message.querySelector('.profile-image');
+        if (!profileImg) return;
         
-        // Only hide flags on the current user's messages
-        const flag = message.querySelector('.country-flag');
-        if (flag) {
-          flag.style.display = 'none';
-        }
-      } else {
-        // Check if this message was previously identified as user's message
-        const messageId = message.getAttribute('data-message-id');
-        if (messageId && localStorage.getItem(`my-message-${messageId}`) === 'true') {
-          applyMyMessageStyle(message);
-          
-          // Hide flag for previously identified own messages
-          const flag = message.querySelector('.country-flag');
-          if (flag) {
-            flag.style.display = 'none';
+        // Determine if this is user's message (outgoing)
+        const followBtn = message.querySelector('.follow-btn');
+        const isUserMessage = followBtn && followBtn.style.display === 'none';
+        
+        // Get message content element
+        const messageContent = message.querySelector('.message-content');
+        if (!messageContent) return;
+        
+        // Extract background color from profile image
+        if (profileImg.src.startsWith('data:image')) {
+          // Extract color from data URL
+          try {
+            // Create a temp canvas to get the color
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            img.src = profileImg.src;
+            
+            // Once image loads, get its color
+            img.onload = function() {
+              canvas.width = 1;
+              canvas.height = 1;
+              ctx.drawImage(img, 0, 0, 1, 1);
+              const pixelData = ctx.getImageData(0, 0, 1, 1).data;
+              const color = `rgb(${pixelData[0]}, ${pixelData[1]}, ${pixelData[2]})`;
+              
+              // Apply border based on message type
+              if (isUserMessage) {
+                // User's message - border on right
+                messageContent.style.borderLeft = '1px solid var(--border-color)';
+                messageContent.style.borderRight = `3px solid ${color}`;
+              } else {
+                // Others' message - border on left
+                messageContent.style.borderRight = '1px solid var(--border-color)';
+                messageContent.style.borderLeft = `3px solid ${color}`;
+              }
+            };
+          } catch (e) {
+            // Fallback to default color if extraction fails
+            applyDefaultBorder(messageContent, isUserMessage);
           }
+        } else {
+          // For external images, use default color
+          applyDefaultBorder(messageContent, isUserMessage);
         }
+      });
+    }
+    
+    // Apply default border when color extraction fails
+    function applyDefaultBorder(messageContent, isUserMessage) {
+      if (isUserMessage) {
+        messageContent.style.borderLeft = '1px solid var(--border-color)';
+        messageContent.style.borderRight = '3px solid #626262';
+      } else {
+        messageContent.style.borderRight = '1px solid var(--border-color)';
+        messageContent.style.borderLeft = '3px solid #626262';
       }
-    });
-  }
-  
-  // Apply styling to messages from the current user
-  function applyMyMessageStyle(message) {
-    // Right-align the message
-    message.style.flexDirection = 'row-reverse';
-    
-    // Hide profile image for your own messages
-    const profileImage = message.querySelector('.profile-image');
-    if (profileImage) {
-      profileImage.style.display = 'none';
     }
     
-    // Hide username for your own messages
-    const userName = message.querySelector('.user-name');
-    if (userName) {
-      userName.style.display = 'none';
-    }
+    // Process existing messages
+    processMessages();
     
-    // Right-align message content
-    const messageContent = message.querySelector('.message-content');
-    if (messageContent) {
-      messageContent.style.alignItems = 'flex-end';
-    }
-    
-    // Move action buttons to match right alignment
-    const actionButtons = message.querySelector('.action-buttons');
-    if (actionButtons) {
-      actionButtons.style.justifyContent = 'flex-start';
-      actionButtons.style.flexDirection = 'row-reverse';
-    }
-  }
-  
-  // Set up observer to detect when new messages are added
-  function setupObserver() {
+    // Set up observer with low priority
     const observer = new MutationObserver(mutations => {
-      mutations.forEach(mutation => {
-        if (mutation.addedNodes.length) {
-          // Use requestAnimationFrame to optimize performance
-          requestAnimationFrame(() => {
-            styleMyMessages();
-          });
+      // Use requestAnimationFrame to avoid blocking the main thread
+      requestAnimationFrame(() => {
+        let hasNewMessages = false;
+        
+        // Check if any new messages were added
+        mutations.forEach(mutation => {
+          if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach(node => {
+              if (node.nodeType === 1 && node.classList.contains('message')) {
+                hasNewMessages = true;
+              }
+            });
+          }
+        });
+        
+        // Only process if there are new messages
+        if (hasNewMessages) {
+          processMessages();
         }
       });
     });
     
+    // Start observing with a configuration that minimizes work
     const chatContainer = document.getElementById('chatContainer');
     if (chatContainer) {
-      observer.observe(chatContainer, { childList: true, subtree: true });
-      // Process existing messages on startup
-      styleMyMessages();
+      observer.observe(chatContainer, { 
+        childList: true, 
+        subtree: false // Don't watch entire subtree for better performance
+      });
     }
   }
   
-  // Throttle function to limit how often a function can run
-  function throttle(func, limit) {
-    let inThrottle;
-    return function() {
-      const args = arguments;
-      const context = this;
-      if (!inThrottle) {
-        func.apply(context, args);
-        inThrottle = true;
-        setTimeout(() => inThrottle = false, limit);
-      }
-    };
-  }
-  
-  // For scroll events, use throttling to improve performance
-  const throttledStyleMyMessages = throttle(styleMyMessages, 100);
-  
-  // Initialize observers based on document readiness
+  // Run after a short delay to ensure chat is loaded
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupObserver);
+    document.addEventListener('DOMContentLoaded', () => setTimeout(enhanceChat, 300));
   } else {
-    setupObserver();
-  }
-  
-  // Handle when chat container finishes loading (loading indicator disappears)
-  const loadingIndicator = document.getElementById('loadingIndicator');
-  if (loadingIndicator) {
-    const observer = new MutationObserver(mutations => {
-      mutations.forEach(mutation => {
-        if (mutation.target === loadingIndicator && loadingIndicator.style.display === 'none') {
-          // Use setTimeout with 0 delay to push to next event loop cycle
-          setTimeout(styleMyMessages, 0);
-        }
-      });
-    });
-    observer.observe(loadingIndicator, { attributes: true, attributeFilter: ['style'] });
-  }
-  
-  // Handle previously loaded messages when scrolling
-  const chatContainer = document.getElementById('chatContainer');
-  if (chatContainer) {
-    chatContainer.addEventListener('scroll', throttledStyleMyMessages);
+    setTimeout(enhanceChat, 300);
   }
 })();
-</script>
-
-<script>
-  
-function setupMessageBorders() {
-  // Simple style that only adds right border to user messages
-  const style = document.createElement('style');
-  style.textContent = `
-    .message .message-content {
-      border-left: none;
-      border-right: none;
-    }
-    .message[data-is-user=true] .message-content {
-      border-right: 3px solid #626262;
-    }
-    .message:not([data-is-user=true]) .message-content {
-      border-left: 3px solid #626262;
-    }
-  `;
-  document.head.appendChild(style);
-  
-  // Simple check for user messages
-  function updateMessages() {
-    document.querySelectorAll('.message').forEach(msg => {
-      const followBtn = msg.querySelector('.follow-btn');
-      if (followBtn && followBtn.style.display === 'none') {
-        msg.setAttribute('data-is-user', 'true');
-      } else {
-        msg.removeAttribute('data-is-user');
-      }
-    });
-  }
-  
-  // Initial update
-  updateMessages();
-  
-  // Watch for new messages
-  const chatContainer = document.getElementById('chatContainer');
-  if (chatContainer) {
-    new MutationObserver(updateMessages).observe(chatContainer, { childList: true });
-  }
-}
-
-// Call the function to initialize
-setupMessageBorders();
 
 </script>
+
