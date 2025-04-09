@@ -3528,3 +3528,48 @@ document.addEventListener('scroll', () => {
 })();
 </script>
 
+<script>
+  
+function setupMessageBorders() {
+  // Simple style that only adds right border to user messages
+  const style = document.createElement('style');
+  style.textContent = `
+    .message .message-content {
+      border-left: none;
+      border-right: none;
+    }
+    .message[data-is-user=true] .message-content {
+      border-right: 3px solid #626262;
+    }
+    .message:not([data-is-user=true]) .message-content {
+      border-left: 3px solid #626262;
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // Simple check for user messages
+  function updateMessages() {
+    document.querySelectorAll('.message').forEach(msg => {
+      const followBtn = msg.querySelector('.follow-btn');
+      if (followBtn && followBtn.style.display === 'none') {
+        msg.setAttribute('data-is-user', 'true');
+      } else {
+        msg.removeAttribute('data-is-user');
+      }
+    });
+  }
+  
+  // Initial update
+  updateMessages();
+  
+  // Watch for new messages
+  const chatContainer = document.getElementById('chatContainer');
+  if (chatContainer) {
+    new MutationObserver(updateMessages).observe(chatContainer, { childList: true });
+  }
+}
+
+// Call the function to initialize
+setupMessageBorders();
+
+</script>
