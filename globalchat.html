@@ -3386,30 +3386,23 @@ document.addEventListener('scroll', () => {
 })();
 </script>
 <script>
-  // WhatsApp-style right-aligned messages for current user
   (() => {
-    // Function to apply right-side styling to user's own messages
+    // Function to apply right-side inline styling for current user's messages
     function styleMyMessages() {
-      // Get all messages
       const messages = document.querySelectorAll('.message:not([data-processed])');
-      
       messages.forEach(message => {
-        // Mark as processed
+        // Mark this message as processed so we avoid reprocessing it
         message.setAttribute('data-processed', 'true');
-        
-        // Find follow button - if display:none, this is the current user's message
         const followBtn = message.querySelector('.follow-btn');
+        // If the follow button is hidden, then this is a current user's message
         if (followBtn && followBtn.style.display === 'none') {
-          // Get message ID to remember in localStorage
           const messageId = message.getAttribute('data-message-id');
           if (messageId) {
             localStorage.setItem(`my-message-${messageId}`, 'true');
           }
-          
-          // Apply right-side styling
           applyMyMessageStyle(message);
         } else {
-          // Check if this was previously identified as user's message
+          // Otherwise check if this message was identified earlier as current user's message
           const messageId = message.getAttribute('data-message-id');
           if (messageId && localStorage.getItem(`my-message-${messageId}`) === 'true') {
             applyMyMessageStyle(message);
@@ -3418,33 +3411,19 @@ document.addEventListener('scroll', () => {
       });
     }
     
-    // Apply styling to a message that's from the current user
+    // Inline styles for right alignment of current user's message components
     function applyMyMessageStyle(message) {
-      // Right-align the message
+      // Set container flex direction to row-reverse to push content to the right
       message.style.flexDirection = 'row-reverse';
-      
-      // Hide profile image
+      // Hide the profile image and username in current user's messages
       const profileImage = message.querySelector('.profile-image');
-      if (profileImage) {
-        profileImage.style.display = 'none';
-      }
-      
-      // Hide username
+      if (profileImage) { profileImage.style.display = 'none'; }
       const userName = message.querySelector('.user-name');
-      if (userName) {
-        userName.style.display = 'none';
-      }
-      
-      // Right-align message content
+      if (userName) { userName.style.display = 'none'; }
+      // Align the message content to the right
       const messageContent = message.querySelector('.message-content');
-      if (messageContent) {
-        messageContent.style.alignItems = 'flex-end';
-      }
-      
-      // Add special background to message text
-      
-      
-      // Move action buttons to match right alignment
+      if (messageContent) { messageContent.style.alignItems = 'flex-end'; }
+      // Adjust action buttons to match right alignment
       const actionButtons = message.querySelector('.action-buttons');
       if (actionButtons) {
         actionButtons.style.justifyContent = 'flex-start';
@@ -3452,41 +3431,79 @@ document.addEventListener('scroll', () => {
       }
     }
     
-    // Process messages when they appear
-    function setupObserver() {
-      const observer = new MutationObserver(mutations => {
-        mutations.forEach(mutation => {
-          if (mutation.addedNodes.length) {
-            styleMyMessages();
+    // Function to process messages and assign incoming/outgoing classes
+    function processMessages() {
+      const messages = document.querySelectorAll('.message:not([data-aligned])');
+      messages.forEach(message => {
+        message.setAttribute('data-aligned', 'true');
+        const followBtn = message.querySelector('.follow-btn');
+        if (followBtn && followBtn.style.display === 'none') {
+          // Mark as current user's message
+          const messageId = message.getAttribute('data-message-id');
+          if (messageId) {
+            localStorage.setItem(`user-msg-${messageId}`, 'true');
           }
-        });
+          message.classList.add('outgoing');
+        } else {
+          const messageId = message.getAttribute('data-message-id');
+          if (messageId && localStorage.getItem(`user-msg-${messageId}`) === 'true') {
+            message.classList.add('outgoing');
+          } else {
+            message.classList.add('incoming');
+          }
+        }
       });
-      
+    }
+    
+    // Combined function to run both styling processes
+    function runMessageStyling() {
+      styleMyMessages();
+      processMessages();
+    }
+    
+    // Observe the chat container for any new messages
+    function setupObserver() {
       const chatContainer = document.getElementById('chatContainer');
       if (chatContainer) {
+        const observer = new MutationObserver(mutations => {
+          let shouldProcess = false;
+          mutations.forEach(mutation => {
+            if (mutation.addedNodes.length) {
+              shouldProcess = true;
+            }
+          });
+          if (shouldProcess) {
+            runMessageStyling();
+          }
+        });
         observer.observe(chatContainer, { childList: true, subtree: true });
-        styleMyMessages(); // Process existing messages
+        runMessageStyling(); // Process existing messages
       }
     }
     
-    // Initial processing + observe for new messages
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', setupObserver);
-    } else {
-      setupObserver();
+    // Observe the loading indicator for style changes and process messages when it disappears
+    function setupLoadingObserver() {
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      if (loadingIndicator) {
+        const observer = new MutationObserver(mutations => {
+          mutations.forEach(() => {
+            if (loadingIndicator.style.display === 'none') {
+              runMessageStyling();
+            }
+          });
+        });
+        observer.observe(loadingIndicator, { attributes: true, attributeFilter: ['style'] });
+      }
     }
     
-    // Process messages again when chat container loads
-    const loadingIndicator = document.getElementById('loadingIndicator');
-    if (loadingIndicator) {
-      const observer = new MutationObserver(mutations => {
-        mutations.forEach(mutation => {
-          if (mutation.target === loadingIndicator && loadingIndicator.style.display === 'none') {
-            styleMyMessages();
-          }
-        });
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        setupObserver();
+        setupLoadingObserver();
       });
-      observer.observe(loadingIndicator, { attributes: true, attributeFilter: ['style'] });
+    } else {
+      setupObserver();
+      setupLoadingObserver();
     }
   })();
 </script>
