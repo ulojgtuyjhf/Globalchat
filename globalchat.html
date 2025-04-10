@@ -3514,143 +3514,133 @@ document.addEventListener('scroll', () => {
 </script>
 
 <script>
-  (() => {
-  // Function to apply right-side styling to user's own messages
-  function styleMyMessages() {
-    // Get all messages that haven't been processed yet
-    const messages = document.querySelectorAll('.message:not([data-processed])');
+  (function() {
+    "use strict";
     
-    messages.forEach(message => {
-      // Mark as processed to avoid reprocessing
-      message.setAttribute('data-processed', 'true');
-      
-      // Find follow button - if hidden, this is the current user's message
-      const followBtn = message.querySelector('.follow-btn');
-      if (followBtn && followBtn.style.display === 'none') {
-        // Store message ID in localStorage for persistence
-        const messageId = message.getAttribute('data-message-id');
-        if (messageId) {
-          localStorage.setItem(`my-message-${messageId}`, 'true');
-        }
+    // Constant key prefix for localStorage persistence
+    const MY_MESSAGE_KEY_PREFIX = 'my-message-';
+    
+    // Function to style the messages of the current user
+    function styleMyMessages() {
+      // Select all messages that have not been processed yet
+      const messages = document.querySelectorAll('.message:not([data-processed])');
+      messages.forEach(message => {
+        // Mark as processed so that it isn’t reprocessed again
+        message.setAttribute('data-processed', 'true');
         
-        // Apply user message styling
-        applyMyMessageStyle(message);
-        
-        // Only hide flags on the current user's messages
-        const flag = message.querySelector('.country-flag');
-        if (flag) {
-          flag.style.display = 'none';
-        }
-      } else {
-        // Check if this message was previously identified as user's message
         const messageId = message.getAttribute('data-message-id');
-        if (messageId && localStorage.getItem(`my-message-${messageId}`) === 'true') {
+        const followBtn = message.querySelector('.follow-btn');
+        // Check if follow button is hidden or if we have stored that this is the user's own message
+        if ((followBtn && followBtn.style.display === 'none') ||
+          (messageId && localStorage.getItem(MY_MESSAGE_KEY_PREFIX + messageId) === 'true')) {
+          
+          // Store user message indicator (only if messageId exists)
+          if (messageId) {
+            localStorage.setItem(MY_MESSAGE_KEY_PREFIX + messageId, 'true');
+          }
+          
+          // Apply the specific styling for the user’s own message
           applyMyMessageStyle(message);
           
-          // Hide flag for previously identified own messages
+          // Hide the country flag for user's messages
           const flag = message.querySelector('.country-flag');
           if (flag) {
             flag.style.display = 'none';
           }
         }
-      }
-    });
-  }
-  
-  // Apply styling to messages from the current user
-  function applyMyMessageStyle(message) {
-    // Right-align the message
-    message.style.flexDirection = 'row-reverse';
-    
-    // Hide profile image for your own messages
-    const profileImage = message.querySelector('.profile-image');
-    if (profileImage) {
-      profileImage.style.display = 'none';
-    }
-    
-    // Hide username for your own messages
-    const userName = message.querySelector('.user-name');
-    if (userName) {
-      userName.style.display = 'none';
-    }
-    
-    // Right-align message content
-    const messageContent = message.querySelector('.message-content');
-    if (messageContent) {
-      messageContent.style.alignItems = 'flex-end';
-    }
-    
-    // Move action buttons to match right alignment
-    const actionButtons = message.querySelector('.action-buttons');
-    if (actionButtons) {
-      actionButtons.style.justifyContent = 'flex-start';
-      actionButtons.style.flexDirection = 'row-reverse';
-    }
-  }
-  
-  // Set up observer to detect when new messages are added
-  function setupObserver() {
-    const observer = new MutationObserver(mutations => {
-      mutations.forEach(mutation => {
-        if (mutation.addedNodes.length) {
-          // Use requestAnimationFrame to optimize performance
-          requestAnimationFrame(() => {
-            styleMyMessages();
-          });
-        }
       });
-    });
+    }
     
-    const chatContainer = document.getElementById('chatContainer');
-    if (chatContainer) {
+    // Function to apply styling to individual messages from the current user
+    function applyMyMessageStyle(message) {
+      // Reverse the layout direction so that the message is right-aligned
+      message.style.flexDirection = 'row-reverse';
+      
+      // Hide the profile image and user name for own messages
+      const profileImage = message.querySelector('.profile-image');
+      if (profileImage) {
+        profileImage.style.display = 'none';
+      }
+      const userName = message.querySelector('.user-name');
+      if (userName) {
+        userName.style.display = 'none';
+      }
+      
+      // Right-align the message content
+      const messageContent = message.querySelector('.message-content');
+      if (messageContent) {
+        messageContent.style.alignItems = 'flex-end';
+      }
+      
+      // Reposition action buttons to match the right alignment
+      const actionButtons = message.querySelector('.action-buttons');
+      if (actionButtons) {
+        actionButtons.style.justifyContent = 'flex-start';
+        actionButtons.style.flexDirection = 'row-reverse';
+      }
+    }
+    
+    // Set up MutationObserver to detect new messages
+    function setupObserver() {
+      const chatContainer = document.getElementById('chatContainer');
+      if (!chatContainer) {
+        return;
+      }
+      
+      // Observe changes within the chat container and its subtree
+      const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+          if (mutation.addedNodes.length > 0) {
+            // Schedule styling update on next repaint for smoother performance
+            requestAnimationFrame(styleMyMessages);
+          }
+        });
+      });
+      
       observer.observe(chatContainer, { childList: true, subtree: true });
-      // Process existing messages on startup
+      // Process any existing messages at startup
       styleMyMessages();
     }
-  }
-  
-  // Throttle function to limit how often a function can run
-  function throttle(func, limit) {
-    let inThrottle;
-    return function() {
-      const args = arguments;
-      const context = this;
-      if (!inThrottle) {
-        func.apply(context, args);
-        inThrottle = true;
-        setTimeout(() => inThrottle = false, limit);
-      }
-    };
-  }
-  
-  // For scroll events, use throttling to improve performance
-  const throttledStyleMyMessages = throttle(styleMyMessages, 100);
-  
-  // Initialize observers based on document readiness
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupObserver);
-  } else {
-    setupObserver();
-  }
-  
-  // Handle when chat container finishes loading (loading indicator disappears)
-  const loadingIndicator = document.getElementById('loadingIndicator');
-  if (loadingIndicator) {
-    const observer = new MutationObserver(mutations => {
-      mutations.forEach(mutation => {
-        if (mutation.target === loadingIndicator && loadingIndicator.style.display === 'none') {
-          // Use setTimeout with 0 delay to push to next event loop cycle
-          setTimeout(styleMyMessages, 0);
+    
+    // Throttle function to limit how often the provided function can run
+    function throttle(func, limit) {
+      let inThrottle;
+      return function() {
+        if (!inThrottle) {
+          func.apply(this, arguments);
+          inThrottle = true;
+          setTimeout(() => inThrottle = false, limit);
         }
+      };
+    }
+    
+    // Throttle the execution of styleMyMessages to optimize scroll performance
+    const throttledStyleMyMessages = throttle(styleMyMessages, 100);
+    
+    // Initialize the observer on DOM readiness
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupObserver);
+    } else {
+      setupObserver();
+    }
+    
+    // Handle the loading indicator (if present) to ensure messages are updated after loading
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    if (loadingIndicator) {
+      const loadingObserver = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+          if (mutation.target === loadingIndicator && loadingIndicator.style.display === 'none') {
+            setTimeout(styleMyMessages, 0);
+          }
+        });
       });
-    });
-    observer.observe(loadingIndicator, { attributes: true, attributeFilter: ['style'] });
-  }
-  
-  // Handle previously loaded messages when scrolling
-  const chatContainer = document.getElementById('chatContainer');
-  if (chatContainer) {
-    chatContainer.addEventListener('scroll', throttledStyleMyMessages);
-  }
-})();
+      loadingObserver.observe(loadingIndicator, { attributes: true, attributeFilter: ['style'] });
+    }
+    
+    // Re-check styling on scroll events for messages that may have been loaded
+    const chatContainer = document.getElementById('chatContainer');
+    if (chatContainer) {
+      chatContainer.addEventListener('scroll', throttledStyleMyMessages);
+    }
+  })();
 </script>
