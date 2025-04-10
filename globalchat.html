@@ -3513,3 +3513,144 @@ document.addEventListener('scroll', () => {
 
 </script>
 
+<script>
+  (() => {
+  // Function to apply right-side styling to user's own messages
+  function styleMyMessages() {
+    // Get all messages that haven't been processed yet
+    const messages = document.querySelectorAll('.message:not([data-processed])');
+    
+    messages.forEach(message => {
+      // Mark as processed to avoid reprocessing
+      message.setAttribute('data-processed', 'true');
+      
+      // Find follow button - if hidden, this is the current user's message
+      const followBtn = message.querySelector('.follow-btn');
+      if (followBtn && followBtn.style.display === 'none') {
+        // Store message ID in localStorage for persistence
+        const messageId = message.getAttribute('data-message-id');
+        if (messageId) {
+          localStorage.setItem(`my-message-${messageId}`, 'true');
+        }
+        
+        // Apply user message styling
+        applyMyMessageStyle(message);
+        
+        // Only hide flags on the current user's messages
+        const flag = message.querySelector('.country-flag');
+        if (flag) {
+          flag.style.display = 'none';
+        }
+      } else {
+        // Check if this message was previously identified as user's message
+        const messageId = message.getAttribute('data-message-id');
+        if (messageId && localStorage.getItem(`my-message-${messageId}`) === 'true') {
+          applyMyMessageStyle(message);
+          
+          // Hide flag for previously identified own messages
+          const flag = message.querySelector('.country-flag');
+          if (flag) {
+            flag.style.display = 'none';
+          }
+        }
+      }
+    });
+  }
+  
+  // Apply styling to messages from the current user
+  function applyMyMessageStyle(message) {
+    // Right-align the message
+    message.style.flexDirection = 'row-reverse';
+    
+    // Hide profile image for your own messages
+    const profileImage = message.querySelector('.profile-image');
+    if (profileImage) {
+      profileImage.style.display = 'none';
+    }
+    
+    // Hide username for your own messages
+    const userName = message.querySelector('.user-name');
+    if (userName) {
+      userName.style.display = 'none';
+    }
+    
+    // Right-align message content
+    const messageContent = message.querySelector('.message-content');
+    if (messageContent) {
+      messageContent.style.alignItems = 'flex-end';
+    }
+    
+    // Move action buttons to match right alignment
+    const actionButtons = message.querySelector('.action-buttons');
+    if (actionButtons) {
+      actionButtons.style.justifyContent = 'flex-start';
+      actionButtons.style.flexDirection = 'row-reverse';
+    }
+  }
+  
+  // Set up observer to detect when new messages are added
+  function setupObserver() {
+    const observer = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
+        if (mutation.addedNodes.length) {
+          // Use requestAnimationFrame to optimize performance
+          requestAnimationFrame(() => {
+            styleMyMessages();
+          });
+        }
+      });
+    });
+    
+    const chatContainer = document.getElementById('chatContainer');
+    if (chatContainer) {
+      observer.observe(chatContainer, { childList: true, subtree: true });
+      // Process existing messages on startup
+      styleMyMessages();
+    }
+  }
+  
+  // Throttle function to limit how often a function can run
+  function throttle(func, limit) {
+    let inThrottle;
+    return function() {
+      const args = arguments;
+      const context = this;
+      if (!inThrottle) {
+        func.apply(context, args);
+        inThrottle = true;
+        setTimeout(() => inThrottle = false, limit);
+      }
+    };
+  }
+  
+  // For scroll events, use throttling to improve performance
+  const throttledStyleMyMessages = throttle(styleMyMessages, 100);
+  
+  // Initialize observers based on document readiness
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupObserver);
+  } else {
+    setupObserver();
+  }
+  
+  // Handle when chat container finishes loading (loading indicator disappears)
+  const loadingIndicator = document.getElementById('loadingIndicator');
+  if (loadingIndicator) {
+    const observer = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
+        if (mutation.target === loadingIndicator && loadingIndicator.style.display === 'none') {
+          // Use setTimeout with 0 delay to push to next event loop cycle
+          setTimeout(styleMyMessages, 0);
+        }
+      });
+    });
+    observer.observe(loadingIndicator, { attributes: true, attributeFilter: ['style'] });
+  }
+  
+  // Handle previously loaded messages when scrolling
+  const chatContainer = document.getElementById('chatContainer');
+  if (chatContainer) {
+    chatContainer.addEventListener('scroll', throttledStyleMyMessages);
+  }
+})();
+</script>
