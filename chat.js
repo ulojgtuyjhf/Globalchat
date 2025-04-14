@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getDatabase, ref, push, set, onChildAdded, onValue, update, get, onDisconnect, query as dbQuery, limitToLast, orderByChild } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, push, set, onChildAdded, onValue, update, get, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -29,18 +29,16 @@ const chatRef = ref(database, 'messages');
 const typingRef = ref(database, 'typing');
 const rateLimitRef = ref(database, 'rateLimit');
 
-// DOM elements - Use document.getElementById once to avoid repeated DOM lookups
-const elements = {
-  chatContainer: document.getElementById('chatContainer'),
-  messageInput: document.getElementById('messageInput'),
-  imageInput: document.getElementById('imageInput'),
-  videoInput: document.getElementById('videoInput'),
-  imageButton: document.getElementById('imageButton'),
-  videoButton: document.getElementById('videoButton'),
-  mediaPreview: document.getElementById('mediaPreview'),
-  sendButton: document.getElementById('sendButton'),
-  loadingIndicator: document.getElementById('loadingIndicator')
-};
+// DOM Elements - Cache for performance
+const chatContainer = document.getElementById('chatContainer');
+const messageInput = document.getElementById('messageInput');
+const imageInput = document.getElementById('imageInput');
+const videoInput = document.getElementById('videoInput');
+const imageButton = document.getElementById('imageButton');
+const videoButton = document.getElementById('videoButton');
+const mediaPreview = document.getElementById('mediaPreview');
+const sendButton = document.getElementById('sendButton');
+const loadingIndicator = document.getElementById('loadingIndicator');
 
 // Application state variables
 let currentUser = null;
@@ -50,29 +48,29 @@ const followedUsers = new Set();
 let typingTimeout = null;
 const typingUsers = new Map();
 let globalRateLimit = Date.now();
-let isLoadingMoreMessages = false;
-let allMessagesLoaded = false;
-let lastVisibleMessageTimestamp = 0;
 
-// Constants
-const MAX_FIREBASE_MESSAGES = 100; // Increased message limit for better chat experience
-const MESSAGES_PER_PAGE = 20; // Number of messages to load per page
+// Message management optimization variables
+const MAX_FIREBASE_MESSAGES = 50; // Increased from 4 for better history
 const LOCAL_STORAGE_MESSAGES_KEY = 'localMessages';
 const LOCAL_STORAGE_CONVERSATION_STATUS_KEY = 'conversationStatus';
-const IMAGE_COMPRESSION_QUALITY = 0.7; // Image compression quality (0.0-1.0)
-const MAX_IMAGE_DIMENSION = 1200; // Maximum image dimension for resizing
 let conversationStatus = {};
+const MESSAGE_BATCH_SIZE = 20; // Number of messages to load at once
+let lastLoadedMessageTimestamp = 0;
+let isLoadingMoreMessages = false;
+let allMessagesLoaded = false;
+let visibleMessages = new Map(); // Track which messages are rendered in DOM
+const MESSAGE_RENDER_BUFFER = 50; // Keep this many messages in DOM
 
 // Virtual scrolling variables
-const messageElementCache = new Map(); // Cache message DOM elements
-const visibleMessageIds = new Set(); // Currently visible message IDs
-const MESSAGE_THRESHOLD = 100; // Max number of message elements to keep in DOM
+let scrollObserver;
+let lastScrollPosition = 0;
+let ticking = false;
+let pendingMessageBatch = [];
+let messageRenderQueue = [];
+let isRendering = false;
 
 // Initialize app
 function initApp() {
-  // Create intersection observer for infinite scrolling
-  createIntersectionObserver();
-  
   // Load conversation status from local storage
   loadConversationStatus();
   
@@ -80,341 +78,173 @@ function initApp() {
   initMessageInput();
   
   // Media upload event listeners
-  elements.imageButton.addEventListener('click', () => elements.imageInput.click());
-  elements.videoButton.addEventListener('click', () => elements.videoInput.click());
-  elements.imageInput.addEventListener('change', handleMediaSelection);
-  elements.videoInput.addEventListener('change', handleMediaSelection);
+  imageButton.addEventListener('click', () => imageInput.click());
+  videoButton.addEventListener('click', () => videoInput.click());
+  imageInput.addEventListener('change', handleMediaSelection);
+  videoInput.addEventListener('change', handleMediaSelection);
   
-  // Send Button Event Listener - Use passive event listener for better performance
-  elements.sendButton.addEventListener('click', sendMessage, { passive: true });
+  // Send Button Event Listener
+  sendButton.addEventListener('click', () => {
+    sendMessage();
+  });
   
   // Enter key to send message (Shift+Enter for new line)
-  elements.messageInput.addEventListener('keydown', (e) => {
+  messageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (!elements.sendButton.disabled) {
+      if (!sendButton.disabled) {
         sendMessage();
       }
     }
   });
   
-  // Add scroll event listener for loading more messages
-  elements.chatContainer.addEventListener('scroll', debounce(handleScroll, 100), { passive: true });
-  
   // Listen for typing indicators
   listenForTypingIndicators();
   
-  // Load messages from local storage first for immediate display
+  // Set up virtual scrolling
+  setupVirtualScrolling();
+  
+  // Load messages from local storage first for instant display
   loadLocalMessages();
   
-  // Then load recent messages from Firebase with pagination
-  loadInitialMessages();
+  // Then listen for new messages from Firebase
+  listenForRecentMessages();
   
   // Listen for global rate limit
   listenForRateLimit();
+  
+  // Add scroll event listener for pagination
+  chatContainer.addEventListener('scroll', handleScroll);
+  
+  // Update reaction icon in comment button
+  updateCommentButtonIcon();
 }
 
-// Create intersection observer for lazy loading images and detecting visible messages
-function createIntersectionObserver() {
-  // Create observer for lazy loading images and videos
-  const mediaObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const mediaElement = entry.target;
-        if (mediaElement.dataset.src) {
-          // Set the actual src when the element is visible
-          mediaElement.src = mediaElement.dataset.src;
-          delete mediaElement.dataset.src;
-          mediaObserver.unobserve(mediaElement);
-        }
-      }
-    });
-  }, {
-    rootMargin: '200px', // Load media 200px before they come into view
-    threshold: 0.01
+// Update the comment button icon to show emoji icon
+function updateCommentButtonIcon() {
+  // Find all reply buttons and update their inner SVG to emoji icon
+  const replyButtons = document.querySelectorAll('.reply-btn');
+  
+  replyButtons.forEach(button => {
+    // Keep the count text
+    const countText = button.textContent.trim();
+    
+    // Replace with emoji SVG
+    button.innerHTML = `
+      <svg viewBox="0 0 24 24" width="16" height="16">
+        <path d="M12 22.75C6.072 22.75 1.25 17.928 1.25 12S6.072 1.25 12 1.25 22.75 6.072 22.75 12 17.928 22.75 12 22.75zm0-20C6.9 2.75 2.75 6.9 2.75 12S6.9 21.25 12 21.25s9.25-4.15 9.25-9.25S17.1 2.75 12 2.75z"></path>
+        <path d="M12 17.115c-2.83 0-5.12-2.3-5.12-5.13s2.29-5.13 5.12-5.13c2.82 0 5.12 2.3 5.12 5.13s-2.3 5.13-5.12 5.13zm-3.07-5.13c0 1.7 1.38 3.09 3.07 3.09s3.06-1.39 3.06-3.09c0-1.71-1.37-3.09-3.06-3.09s-3.07 1.38-3.07 3.09z"></path>
+        <path d="M8.93 13.8c-.53 0-.95-.42-.95-.95s.42-.95.95-.95.95.42.95.95-.42.95-.95.95zm6.18 0c-.53 0-.95-.42-.95-.95s.42-.95.95-.95.95.42.95.95-.42.95-.95.95z"></path>
+      </svg>
+      ${countText}
+    `;
   });
+}
 
-  // Observer for tracking visible messages
-  const messageObserver = new IntersectionObserver((entries) => {
+// Set up virtual scrolling with Intersection Observer
+function setupVirtualScrolling() {
+  // Clean up existing observer if any
+  if (scrollObserver) {
+    scrollObserver.disconnect();
+  }
+  
+  // Create new IntersectionObserver
+  scrollObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
-      const messageId = entry.target.dataset.messageId;
+      const messageId = entry.target.getAttribute('data-message-id');
+      
       if (entry.isIntersecting) {
-        visibleMessageIds.add(messageId);
+        // Mark message as visible
+        visibleMessages.set(messageId, true);
       } else {
-        visibleMessageIds.delete(messageId);
+        // Mark message as not visible
+        visibleMessages.set(messageId, false);
       }
     });
     
-    // Clean up invisible messages if we have too many in the DOM
-    if (document.querySelectorAll('.message').length > MESSAGE_THRESHOLD) {
-      cleanupInvisibleMessages();
-    }
+    // Clean up invisible messages beyond buffer
+    scheduleCleanupInvisibleMessages();
   }, {
-    rootMargin: '50px',
-    threshold: 0.01
+    root: chatContainer,
+    rootMargin: '300px 0px', // Load messages before they come into view
+    threshold: 0.1
   });
-  
-  // Store observers in window to access them globally
-  window.mediaObserver = mediaObserver;
-  window.messageObserver = messageObserver;
 }
 
-// Debounce function to limit how often a function is called
-function debounce(func, wait) {
-  let timeout;
-  return function() {
-    const context = this, args = arguments;
-    clearTimeout(timeout);
-    timeout = setTimeout(() => {
-      func.apply(context, args);
-    }, wait);
-  };
-}
-
-// Handle scroll event for infinite scrolling
-function handleScroll() {
-  const { scrollTop } = elements.chatContainer;
-  
-  // If scrolled near top and not already loading more messages
-  if (scrollTop < 100 && !isLoadingMoreMessages && !allMessagesLoaded) {
-    loadMoreMessages();
+// Schedule cleanup of invisible messages to prevent too frequent DOM updates
+let cleanupTimeout = null;
+function scheduleCleanupInvisibleMessages() {
+  if (cleanupTimeout) {
+    clearTimeout(cleanupTimeout);
   }
+  
+  cleanupTimeout = setTimeout(() => {
+    cleanupInvisibleMessages();
+  }, 1000); // Cleanup every second at most
 }
 
-// Clean up invisible messages to reduce DOM size
+// Clean up messages that are far from viewport to reduce DOM nodes
 function cleanupInvisibleMessages() {
-  const messages = document.querySelectorAll('.message');
-  const messagesToRemove = [];
+  // Count visible messages
+  let visibleCount = 0;
+  const visibleIds = [];
   
-  // Find messages that are outside the visible area and not recently visible
-  messages.forEach(msg => {
-    const messageId = msg.dataset.messageId;
-    if (!visibleMessageIds.has(messageId) && messageElementCache.has(messageId)) {
-      messagesToRemove.push(msg);
+  visibleMessages.forEach((isVisible, id) => {
+    if (isVisible) {
+      visibleCount++;
+      visibleIds.push(id);
     }
   });
   
-  // Keep most recent invisible messages
-  messagesToRemove.slice(0, -20).forEach(msg => {
-    const messageId = msg.dataset.messageId;
-    // Store the message element in the cache before removing from DOM
-    messageElementCache.set(messageId, msg.cloneNode(true));
-    msg.remove();
-  });
-}
-
-// Load initial batch of messages
-async function loadInitialMessages() {
-  try {
-    isLoadingMoreMessages = true;
-    // Query to get the most recent MESSAGES_PER_PAGE messages
-    const messagesQuery = dbQuery(chatRef, orderByChild('timestamp'), limitToLast(MESSAGES_PER_PAGE));
+  // If we have more than our buffer limit, remove some far ones
+  if (document.querySelectorAll('.message').length > MESSAGE_RENDER_BUFFER) {
+    const allMessages = Array.from(document.querySelectorAll('.message'));
     
-    // Clear any existing messages first
-    const existingMessages = document.querySelectorAll('.message:not(.locally-stored)');
-    existingMessages.forEach(msg => msg.remove());
-    
-    // Get messages
-    const snapshot = await get(messagesQuery);
-    if (!snapshot.exists()) {
-      allMessagesLoaded = true;
-      isLoadingMoreMessages = false;
-      return;
-    }
-    
-    let messages = [];
-    snapshot.forEach((child) => {
-      messages.push({
-        id: child.key,
-        ...child.val()
-      });
+    // Sort messages by position in chat
+    allMessages.sort((a, b) => {
+      const aPos = a.offsetTop;
+      const bPos = b.offsetTop;
+      return aPos - bPos;
     });
     
-    // Sort by timestamp
-    messages.sort((a, b) => a.timestamp - b.timestamp);
+    // Get scroll position
+    const scrollPos = chatContainer.scrollTop;
     
-    // Update lastVisibleMessageTimestamp for pagination
-    if (messages.length > 0) {
-      lastVisibleMessageTimestamp = messages[0].timestamp;
+    // Find messages far from viewport
+    const messagesToRemove = allMessages.filter(msg => {
+      const msgId = msg.getAttribute('data-message-id');
+      const msgPos = msg.offsetTop;
+      const distance = Math.abs(msgPos - scrollPos);
+      
+      // Keep messages close to viewport and recent messages
+      return distance > 2000 && !visibleIds.includes(msgId);
+    });
+    
+    // Remove furthest messages but keep at least min number
+    if (allMessages.length - messagesToRemove.length >= MESSAGE_RENDER_BUFFER / 2) {
+      messagesToRemove.slice(0, messagesToRemove.length / 2).forEach(msg => {
+        msg.remove();
+        visibleMessages.delete(msg.getAttribute('data-message-id'));
+      });
     }
-    
-    // Create message elements
-    let fragment = document.createDocumentFragment();
-    messages.forEach(message => {
-      if (!document.querySelector(`[data-message-id="${message.id}"]`)) {
-        const messageElement = createMessageElement(message, message.id);
-        // Save to local storage for future retrieval
-        saveMessageToLocalStorage(message, message.id);
-        fragment.appendChild(messageElement);
+  }
+}
+
+// Efficiently handle scroll events for pagination
+function handleScroll() {
+  lastScrollPosition = chatContainer.scrollTop;
+  
+  // Use requestAnimationFrame to limit scroll event handling
+  if (!ticking) {
+    window.requestAnimationFrame(() => {
+      // If user scrolls near top and we're not already loading, load more messages
+      if (lastScrollPosition < 200 && !isLoadingMoreMessages && !allMessagesLoaded) {
+        loadMoreMessages();
       }
+      ticking = false;
     });
-    
-    // Add to chat container
-    elements.chatContainer.appendChild(fragment);
-    
-    // Scroll to bottom after initial load
-    elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
-    
-    // Start listening for new messages
-    listenForNewMessages();
-    
-  } catch (error) {
-    console.error('Error loading initial messages:', error);
-  } finally {
-    isLoadingMoreMessages = false;
+    ticking = true;
   }
-}
-
-// Load more messages when scrolling up
-async function loadMoreMessages() {
-  try {
-    if (isLoadingMoreMessages || allMessagesLoaded) return;
-    
-    isLoadingMoreMessages = true;
-    
-    // Show loading indicator at top of chat
-    const loadingIndicator = document.createElement('div');
-    loadingIndicator.className = 'loading-more-indicator';
-    loadingIndicator.textContent = 'Loading more messages...';
-    elements.chatContainer.prepend(loadingIndicator);
-    
-    // Query messages before the oldest one we have
-    const messagesQuery = dbQuery(
-      chatRef, 
-      orderByChild('timestamp'), 
-      // Use endAt to get messages older than the oldest visible message
-      lastVisibleMessageTimestamp > 0 ? dbQuery.endAt(lastVisibleMessageTimestamp - 1) : null,
-      limitToLast(MESSAGES_PER_PAGE)
-    );
-    
-    const snapshot = await get(messagesQuery);
-    
-    // Remove loading indicator
-    loadingIndicator.remove();
-    
-    if (!snapshot.exists() || snapshot.size === 0) {
-      allMessagesLoaded = true;
-      isLoadingMoreMessages = false;
-      return;
-    }
-    
-    let messages = [];
-    snapshot.forEach((child) => {
-      messages.push({
-        id: child.key,
-        ...child.val()
-      });
-    });
-    
-    // Sort by timestamp (oldest first)
-    messages.sort((a, b) => a.timestamp - b.timestamp);
-    
-    if (messages.length > 0) {
-      // Update last visible timestamp for next pagination
-      lastVisibleMessageTimestamp = messages[0].timestamp;
-      
-      // Create message elements
-      let fragment = document.createDocumentFragment();
-      
-      // Remember scroll height and first child
-      const oldScrollHeight = elements.chatContainer.scrollHeight;
-      const oldFirstChild = elements.chatContainer.firstChild;
-      
-      messages.forEach(message => {
-        if (!document.querySelector(`[data-message-id="${message.id}"]`)) {
-          // Check if we have this message in cache
-          let messageElement;
-          if (messageElementCache.has(message.id)) {
-            messageElement = messageElementCache.get(message.id);
-            messageElementCache.delete(message.id);
-          } else {
-            messageElement = createMessageElement(message, message.id);
-            // Save to local storage
-            saveMessageToLocalStorage(message, message.id);
-          }
-          fragment.appendChild(messageElement);
-        }
-      });
-      
-      // Insert at the top of the chat container
-      elements.chatContainer.prepend(fragment);
-      
-      // Maintain scroll position
-      const newScrollHeight = elements.chatContainer.scrollHeight;
-      const scrollDiff = newScrollHeight - oldScrollHeight;
-      elements.chatContainer.scrollTop = scrollDiff;
-    } else {
-      allMessagesLoaded = true;
-    }
-  } catch (error) {
-    console.error('Error loading more messages:', error);
-  } finally {
-    isLoadingMoreMessages = false;
-  }
-}
-
-// Listen for new messages in real-time
-function listenForNewMessages() {
-  // Use the timestamp of the most recent message as a starting point
-  const recentMessagesQuery = dbQuery(chatRef, orderByChild('timestamp'), limitToLast(1));
-  
-  onChildAdded(recentMessagesQuery, (snapshot) => {
-    const message = snapshot.val();
-    const messageId = snapshot.key;
-    
-    // Don't re-render existing messages
-    if (document.querySelector(`[data-message-id="${messageId}"]`)) {
-      return;
-    }
-    
-    // Only show messages that came after our initial load
-    if (message.timestamp && message.timestamp > lastMessageTime) {
-      // Create the message element
-      const messageElement = createMessageElement(message, messageId);
-      elements.chatContainer.appendChild(messageElement);
-      
-      // Save message to local storage for future retrieval
-      saveMessageToLocalStorage(message, messageId);
-      
-      // Scroll to bottom if user was already near bottom
-      const isNearBottom = elements.chatContainer.scrollHeight - elements.chatContainer.scrollTop - elements.chatContainer.clientHeight < 200;
-      if (isNearBottom) {
-        elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
-      } else {
-        // Show a "new message" indicator
-        showNewMessageIndicator();
-      }
-    }
-  });
-}
-
-// Show a visual indicator when new messages arrive but user is scrolled up
-function showNewMessageIndicator() {
-  let indicator = document.getElementById('newMessageIndicator');
-  
-  if (!indicator) {
-    indicator = document.createElement('div');
-    indicator.id = 'newMessageIndicator';
-    indicator.className = 'new-message-indicator';
-    indicator.innerHTML = 'New messages ↓';
-    indicator.addEventListener('click', () => {
-      elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
-      indicator.style.display = 'none';
-    });
-    document.body.appendChild(indicator);
-  }
-  
-  indicator.style.display = 'block';
-  
-  // Hide indicator when user scrolls to bottom
-  const checkScrollBottom = () => {
-    const isAtBottom = elements.chatContainer.scrollHeight - elements.chatContainer.scrollTop - elements.chatContainer.clientHeight < 20;
-    if (isAtBottom && indicator.style.display !== 'none') {
-      indicator.style.display = 'none';
-    }
-  };
-  
-  elements.chatContainer.addEventListener('scroll', debounce(checkScrollBottom, 100), { passive: true });
 }
 
 // Load conversation status from local storage
@@ -439,84 +269,202 @@ function saveConversationStatus() {
   }
 }
 
-// Load messages from local storage
+// Load messages from local storage with optimization
 function loadLocalMessages() {
   try {
     const localMessages = localStorage.getItem(LOCAL_STORAGE_MESSAGES_KEY);
     if (localMessages) {
       const messages = JSON.parse(localMessages);
       
-      // Create a document fragment for batch DOM operation
-      const fragment = document.createDocumentFragment();
+      // Sort messages by timestamp
+      messages.sort((a, b) => b.timestamp - a.timestamp);
       
-      messages.forEach(message => {
-        if (!document.querySelector(`[data-message-id="${message.id}"]`)) {
-          const messageEl = createMessageElement(message, message.id);
-          messageEl.classList.add('locally-stored');
-          fragment.appendChild(messageEl);
-        }
-      });
+      // Take only the most recent batch
+      const recentMessages = messages.slice(0, MESSAGE_BATCH_SIZE);
       
-      // Add all messages at once
-      elements.chatContainer.appendChild(fragment);
+      // Track the oldest message timestamp for pagination
+      if (recentMessages.length > 0) {
+        lastLoadedMessageTimestamp = recentMessages[recentMessages.length - 1].timestamp;
+      }
       
-      // Scroll to bottom
-      elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+      // Batch render messages for performance
+      batchRenderMessages(recentMessages);
     }
   } catch (error) {
     console.error('Error loading local messages:', error);
   }
 }
 
-// Save message to local storage with LRU caching (Least Recently Used)
+// Batch render messages for better performance
+function batchRenderMessages(messages) {
+  // Sort messages by timestamp (newest last for chat display)
+  messages.sort((a, b) => a.timestamp - b.timestamp);
+  
+  // Use DocumentFragment for better performance
+  const fragment = document.createDocumentFragment();
+  
+  // Process messages in batches
+  for (const message of messages) {
+    if (!document.querySelector(`[data-message-id="${message.id}"]`)) {
+      const messageElement = createMessageElementOffscreen(message, message.id);
+      fragment.appendChild(messageElement);
+    }
+  }
+  
+  // Add all messages to DOM at once
+  chatContainer.appendChild(fragment);
+  
+  // Observe all new messages for virtual scrolling
+  document.querySelectorAll('.message:not([data-observed="true"])').forEach(element => {
+    scrollObserver.observe(element);
+    element.setAttribute('data-observed', 'true');
+  });
+  
+  // Update emoji icon in comment buttons
+  updateCommentButtonIcon();
+  
+  // Scroll to bottom for new messages if user was at bottom
+  if (chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight - 200) {
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
+}
+
+// Process message render queue to avoid UI blocking
+function processRenderQueue() {
+  if (isRendering || messageRenderQueue.length === 0) return;
+  
+  isRendering = true;
+  
+  // Get a batch of messages to render
+  const batch = messageRenderQueue.splice(0, 5);
+  
+  // Create a document fragment
+  const fragment = document.createDocumentFragment();
+  
+  // Add each message to the fragment
+  batch.forEach(item => {
+    const { message, messageId } = item;
+    if (!document.querySelector(`[data-message-id="${messageId}"]`)) {
+      const element = createMessageElementOffscreen(message, messageId);
+      fragment.appendChild(element);
+    }
+  });
+  
+  // Add fragment to DOM
+  chatContainer.appendChild(fragment);
+  
+  // Observe new elements
+  batch.forEach(item => {
+    const element = document.querySelector(`[data-message-id="${item.messageId}"]`);
+    if (element && !element.hasAttribute('data-observed')) {
+      scrollObserver.observe(element);
+      element.setAttribute('data-observed', 'true');
+    }
+  });
+  
+  // Update emoji icon in comment buttons
+  updateCommentButtonIcon();
+  
+  isRendering = false;
+  
+  // If more messages in queue, continue processing
+  if (messageRenderQueue.length > 0) {
+    setTimeout(processRenderQueue, 10);
+  }
+}
+
+// Queue message for rendering
+function queueMessageForRendering(message, messageId) {
+  messageRenderQueue.push({ message, messageId });
+  
+  // Start processing queue if not already processing
+  if (!isRendering) {
+    processRenderQueue();
+  }
+}
+
+// Save message to local storage with optimization
 function saveMessageToLocalStorage(message, messageId) {
   try {
+    // Get existing messages
     const localMessages = localStorage.getItem(LOCAL_STORAGE_MESSAGES_KEY);
     let messages = localMessages ? JSON.parse(localMessages) : [];
     
-    // Add the message ID to the message object
+    // Add message ID to the message object
     const messageWithId = { ...message, id: messageId };
     
-    // Add new message to the array
-    messages.push(messageWithId);
+    // Check if message already exists (avoid duplicates)
+    const existingIndex = messages.findIndex(m => m.id === messageId);
+    if (existingIndex >= 0) {
+      messages[existingIndex] = messageWithId;
+    } else {
+      // Add new message to the array
+      messages.push(messageWithId);
+    }
     
-    // Keep only the most recent 50 messages in local storage
-    if (messages.length > 50) {
-      messages = messages.slice(-50);
+    // Sort by timestamp (newest first)
+    messages.sort((a, b) => b.timestamp - a.timestamp);
+    
+    // Limit the number of messages in localStorage to prevent exceeding quota
+    if (messages.length > 200) {
+      messages = messages.slice(0, 200);
     }
     
     // Store in local storage
     localStorage.setItem(LOCAL_STORAGE_MESSAGES_KEY, JSON.stringify(messages));
   } catch (error) {
     console.error('Error saving message to local storage:', error);
+    
+    // If quota exceeded, clear some old messages
+    if (error.name === 'QuotaExceededError') {
+      try {
+        const localMessages = localStorage.getItem(LOCAL_STORAGE_MESSAGES_KEY);
+        if (localMessages) {
+          let messages = JSON.parse(localMessages);
+          // Keep only recent messages
+          messages = messages.slice(0, 50);
+          localStorage.setItem(LOCAL_STORAGE_MESSAGES_KEY, JSON.stringify(messages));
+        }
+      } catch (clearError) {
+        console.error('Failed to clear message storage:', clearError);
+      }
+    }
   }
 }
 
 // Initialize message input with typing indicator
 function initMessageInput() {
-  // Use ResizeObserver instead of the input event for height adjustment
-  const resizeObserver = new ResizeObserver(entries => {
+  // Use a more efficient approach for input height adjustment
+  let inputResizeObserver = new ResizeObserver(entries => {
     for (let entry of entries) {
-      const target = entry.target;
-      target.style.height = 'auto';
-      target.style.height = (target.scrollHeight) + 'px';
+      if (entry.target === messageInput) {
+        messageInput.style.height = 'auto';
+        messageInput.style.height = (messageInput.scrollHeight) + 'px';
+      }
     }
   });
   
-  resizeObserver.observe(elements.messageInput);
+  inputResizeObserver.observe(messageInput);
   
-  elements.messageInput.addEventListener('input', function() {
+  // Use debounced input handler for better performance
+  let inputDebounceTimer;
+  messageInput.addEventListener('input', function() {
+    // Clear previous timer
+    clearTimeout(inputDebounceTimer);
+    
     // Enable/disable send button based on content
     const hasText = this.value.trim().length > 0;
     const hasMedia = selectedMedia.length > 0;
-    elements.sendButton.disabled = !(hasText || hasMedia);
+    sendButton.disabled = !(hasText || hasMedia);
     
-    // Update typing indicator
-    updateTypingStatus();
+    // Use debounce for typing indicator to reduce network calls
+    inputDebounceTimer = setTimeout(() => {
+      updateTypingStatus();
+    }, 300);
   });
   
   // When user stops typing
-  elements.messageInput.addEventListener('blur', function() {
+  messageInput.addEventListener('blur', function() {
     if (currentUser) {
       const userTypingRef = ref(database, `typing/${currentUser.uid}`);
       set(userTypingRef, null);
@@ -545,9 +493,17 @@ function updateTypingStatus() {
   }, 3000);
 }
 
-// Listen for typing indicators
+// Listen for typing indicators with optimization
 function listenForTypingIndicators() {
+  // Use value event with throttling
+  let lastTypingUpdate = 0;
+  
   onValue(typingRef, (snapshot) => {
+    const now = Date.now();
+    // Throttle updates to once per 500ms for better performance
+    if (now - lastTypingUpdate < 500) return;
+    lastTypingUpdate = now;
+    
     const data = snapshot.val() || {};
     
     // Clear old typists
@@ -559,7 +515,7 @@ function listenForTypingIndicators() {
       if (userId === currentUser?.uid) return;
       
       // Only show recent typing (last 3 seconds)
-      if (Date.now() - userData.timestamp < 3000) {
+      if (now - userData.timestamp < 3000) {
         typingUsers.set(userId, userData.name);
       }
     });
@@ -620,11 +576,12 @@ function listenForRateLimit() {
   });
 }
 
-// Function to handle media selection with image optimization
-async function handleMediaSelection(e) {
+// Optimized media selection handler
+function handleMediaSelection(e) {
   const files = e.target.files;
   if (!files.length) return;
 
+  // Use image compression before preview to save memory
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     const fileType = file.type.split('/')[0]; // 'image' or 'video'
@@ -640,120 +597,101 @@ async function handleMediaSelection(e) {
       continue;
     }
 
-    try {
-      // Optimize images before preview
-      if (fileType === 'image' && file.type !== 'image/gif') {
-        const optimizedImage = await optimizeImage(file);
-        addMediaPreview(optimizedImage, fileType, selectedMedia.length);
-        selectedMedia.push({
-          file: optimizedImage,
-          type: fileType
-        });
-      } else {
-        // For videos and GIFs, use original file
-        addMediaPreview(file, fileType, selectedMedia.length);
-        selectedMedia.push({
-          file: file,
-          type: fileType
-        });
-      }
-    } catch (error) {
-      console.error('Error processing media:', error);
-      // Fallback to original file
-      addMediaPreview(file, fileType, selectedMedia.length);
-      selectedMedia.push({
-        file: file,
-        type: fileType
-      });
+    // Create optimized preview
+    if (fileType === 'image') {
+      createOptimizedImagePreview(file, selectedMedia.length);
+    } else if (fileType === 'video') {
+      createVideoPreview(file, selectedMedia.length);
     }
     
-    // Enable send button if there's media
-    elements.sendButton.disabled = false;
+    // Add to selected media array
+    selectedMedia.push({
+      file: file,
+      type: fileType
+    });
+  }
+
+  // Enable send button if there's media
+  if (selectedMedia.length > 0) {
+    sendButton.disabled = false;
   }
 
   // Reset the file input
   e.target.value = '';
 }
 
-// Create and add media preview
-function addMediaPreview(file, fileType, index) {
-  const reader = new FileReader();
-  reader.onload = function(e) {
+// Create optimized image preview
+function createOptimizedImagePreview(file, index) {
+  // Create a new image element
+  const img = new Image();
+  
+  // Create URL for the file
+  const url = URL.createObjectURL(file);
+  
+  // Set up onload handler
+  img.onload = function() {
+    // Create canvas for resizing
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Calculate new dimensions (max 800px width)
+    let width = img.width;
+    let height = img.height;
+    const maxWidth = 800;
+    
+    if (width > maxWidth) {
+      height = (height * maxWidth) / width;
+      width = maxWidth;
+    }
+    
+    // Set canvas dimensions
+    canvas.width = width;
+    canvas.height = height;
+    
+    // Draw image on canvas
+    ctx.drawImage(img, 0, 0, width, height);
+    
+    // Convert to optimized data URL
+    const optimizedUrl = canvas.toDataURL('image/jpeg', 0.7);
+    
+    // Create preview element
     const previewItem = document.createElement('div');
     previewItem.className = 'preview-item';
-    
-    if (fileType === 'image') {
-      previewItem.innerHTML = `
-        <img src="${e.target.result}" class="preview-image">
-        <button class="remove-media" data-index="${index}">×</button>
-      `;
-    } else if (fileType === 'video') {
-      previewItem.innerHTML = `
-        <video src="${e.target.result}" class="preview-video"></video>
-        <button class="remove-media" data-index="${index}">×</button>
-      `;
-    }
-    
-    elements.mediaPreview.appendChild(previewItem);
+    previewItem.innerHTML = `
+      <img src="${optimizedUrl}" class="preview-image">
+      <button class="remove-media" data-index="${index}">×</button>
+    `;
+    mediaPreview.appendChild(previewItem);
     
     // Add event listener to remove button
-    const removeButton = previewItem.querySelector('.remove-media');
-    if (removeButton) {
-      removeButton.addEventListener('click', function() {
-        const index = parseInt(this.getAttribute('data-index'));
-        removeMedia(index);
-      });
-    }
+    previewItem.querySelector('.remove-media').addEventListener('click', function() {
+      removeMedia(parseInt(this.getAttribute('data-index')));
+    });
+    
+    // Revoke the original object URL to free memory
+    URL.revokeObjectURL(url);
   };
   
-  reader.readAsDataURL(file);
+  img.src = url;
 }
 
-// Optimize images before upload using canvas
-async function optimizeImage(file) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      // Calculate new dimensions while maintaining aspect ratio
-      let width = img.width;
-      let height = img.height;
-      
-      if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
-        if (width > height) {
-          height = Math.round(height * (MAX_IMAGE_DIMENSION / width));
-          width = MAX_IMAGE_DIMENSION;
-        } else {
-          width = Math.round(width * (MAX_IMAGE_DIMENSION / height));
-          height = MAX_IMAGE_DIMENSION;
-        }
-      }
-      
-      // Create canvas and resize image
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-      
-      // Convert to Blob with reduced quality
-      canvas.toBlob((blob) => {
-        if (blob) {
-          // Create a new File object from the Blob
-          const optimizedFile = new File(
-            [blob], 
-            file.name, 
-            { type: file.type }
-          );
-          resolve(optimizedFile);
-        } else {
-          reject(new Error('Image optimization failed'));
-        }
-      }, file.type, IMAGE_COMPRESSION_QUALITY);
-    };
-    
-    img.onerror = () => reject(new Error('Failed to load image'));
-    
-    img.src = URL.createObjectURL(file);
+// Create video preview
+function createVideoPreview(file, index) {
+  const url = URL.createObjectURL(file);
+  
+  const previewItem = document.createElement('div');
+  previewItem.className = 'preview-item';
+  previewItem.innerHTML = `
+    <video src="${url}" class="preview-video"></video>
+    <button class="remove-media" data-index="${index}">×</button>
+  `;
+  mediaPreview.appendChild(previewItem);
+  
+  // Add event listener to remove button
+  previewItem.querySelector('.remove-media').addEventListener('click', function() {
+    const index = parseInt(this.getAttribute('data-index'));
+    removeMedia(index);
+    URL.revokeObjectURL(url);
   });
 }
 
@@ -763,29 +701,61 @@ function removeMedia(index) {
   updateMediaPreview();
   
   // Disable send button if no content
-  if (selectedMedia.length === 0 && elements.messageInput.value.trim() === '') {
-    elements.sendButton.disabled = true;
+  if (selectedMedia.length === 0 && messageInput.value.trim() === '') {
+    sendButton.disabled = true;
   }
 }
 
-// Update media preview after removal
+// Update media preview after removal - Optimized
 function updateMediaPreview() {
-  elements.mediaPreview.innerHTML = '';
+  // Clear preview container
+  mediaPreview.innerHTML = '';
   
   selectedMedia.forEach((media, index) => {
-    addMediaPreview(media.file, media.type, index);
+    const previewItem = document.createElement('div');
+    previewItem.className = 'preview-item';
+    
+    if (media.type === 'image') {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        previewItem.innerHTML = `
+          <img src="${e.target.result}" class="preview-image">
+          <button class="remove-media" data-index="${index}">×</button>
+        `;
+        mediaPreview.appendChild(previewItem);
+        
+        // Add event listener to remove button
+        previewItem.querySelector('.remove-media').addEventListener('click', function() {
+          removeMedia(index);
+        });
+      };
+      // Use smaller chunk size for progressive loading
+      reader.readAsDataURL(media.file);
+    } else if (media.type === 'video') {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        previewItem.innerHTML = `
+          <video src="${e.target.result}" class="preview-video"></video>
+          <button class="remove-media" data-index="${index}">×</button>
+        `;
+        mediaPreview.appendChild(previewItem);
+        
+        // Add event listener to remove button
+        previewItem.querySelector('.remove-media').addEventListener('click', function() {
+          removeMedia(index);
+        });
+      };
+      reader.readAsDataURL(media.file);
+    }
   });
 }
 
 // Geolocation and Flag Service
 async function getCountryFromIP() {
   try {
-    // Use a cached version if available
+    // Cache the country code in localStorage to reduce API calls
     const cachedCountry = localStorage.getItem('userCountry');
-    const cachedTimestamp = localStorage.getItem('userCountryTimestamp');
-    
-    // If we have a cached value that's less than 24 hours old, use it
-    if (cachedCountry && cachedTimestamp && (Date.now() - cachedTimestamp < 24 * 60 * 60 * 1000)) {
+    if (cachedCountry) {
       return cachedCountry;
     }
     
@@ -793,9 +763,8 @@ async function getCountryFromIP() {
     const data = await response.json();
     const countryCode = data.country_code.toLowerCase();
     
-    // Cache the result
+    // Cache for future use
     localStorage.setItem('userCountry', countryCode);
-    localStorage.setItem('userCountryTimestamp', Date.now().toString());
     
     return countryCode;
   } catch (error) {
@@ -812,8 +781,226 @@ function formatTimestamp(timestamp) {
   return `${hours}:${minutes}`;
 }
 
-// Create message element with performance optimization
-function createMessageElement(message, messageId) {
+// Listen for new messages - Optimized for pagination and performance
+function listenForRecentMessages() {
+  // Query only the most recent messages
+  const messagesQuery = ref(database, 'messages');
+  
+  // Use onChildAdded to efficiently get only new messages
+  onChildAdded(messagesQuery, (snapshot) => {
+    const message = snapshot.val();
+    const messageId = snapshot.key;
+    
+    // Don't re-render existing messages
+    if (document.querySelector(`[data-message-id="${messageId}"]`)) {
+      return;
+    }
+    
+    // Add to pending batch for efficient rendering
+    pendingMessageBatch.push({ message, messageId });
+    
+    // If this is first message in batch, schedule batch processing
+    if (pendingMessageBatch.length === 1) {
+      setTimeout(processPendingMessageBatch, 100);
+    }
+    
+    // Save message to local storage for future retrieval
+    saveMessageToLocalStorage(message, messageId);
+  });
+}
+
+// Process pending message batch
+function processPendingMessageBatch() {
+  if (pendingMessageBatch.length === 0) return;
+  
+  const batch = [...pendingMessageBatch];
+  pendingMessageBatch = [];
+  
+  // Sort by timestamp (oldest first for chat display)
+  batch.sort((a, b) => a.message.timestamp - b.message.timestamp);
+  
+  // Use DocumentFragment for better performance
+  const fragment = document.createDocumentFragment();
+  
+  batch.forEach(({ message, messageId }) => {
+    if (!document.querySelector(`[data-message-id="${messageId}"]`)) {
+      const messageElement = createMessageElementOffscreen(message, messageId);
+      fragment.appendChild(messageElement);
+    }
+  });
+  
+  // Append all messages at once
+  chatContainer.appendChild(fragment);
+  
+  // Observe new messages for virtual scrolling
+  batch.forEach(({ messageId }) => {
+    const element = document.querySelector(`[data-message-id="${messageId}"]`);
+    
+    
+    if (element && !element.hasAttribute('data-observed')) {
+      scrollObserver.observe(element);
+      element.setAttribute('data-observed', 'true');
+    }
+  });
+  
+  // Update emoji icon in comment buttons
+  updateCommentButtonIcon();
+  
+  // Check if user is near bottom to auto-scroll
+  const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 200;
+  if (isNearBottom) {
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
+}
+
+// Load more messages (pagination) when scrolling up
+async function loadMoreMessages() {
+  if (isLoadingMoreMessages || allMessagesLoaded) return;
+  
+  isLoadingMoreMessages = true;
+  
+  try {
+    // Get local messages first
+    const localMessages = localStorage.getItem(LOCAL_STORAGE_MESSAGES_KEY);
+    const messages = localMessages ? JSON.parse(localMessages) : [];
+    
+    // Find messages older than lastLoadedMessageTimestamp
+    const olderMessages = messages.filter(msg => msg.timestamp < lastLoadedMessageTimestamp);
+    olderMessages.sort((a, b) => b.timestamp - a.timestamp);
+    
+    // Get next batch
+    const nextBatch = olderMessages.slice(0, MESSAGE_BATCH_SIZE);
+    
+    if (nextBatch.length > 0) {
+      // Update last loaded timestamp
+      lastLoadedMessageTimestamp = nextBatch[nextBatch.length - 1].timestamp;
+      
+      // Remember current scroll height
+      const oldScrollHeight = chatContainer.scrollHeight;
+      
+      // Render older messages at the top
+      const fragment = document.createDocumentFragment();
+      nextBatch.sort((a, b) => a.timestamp - b.timestamp); // Oldest first for chronological order
+      
+      nextBatch.forEach(message => {
+        if (!document.querySelector(`[data-message-id="${message.id}"]`)) {
+          const messageElement = createMessageElementOffscreen(message, message.id);
+          fragment.appendChild(messageElement);
+        }
+      });
+      
+      // Insert at the beginning
+      chatContainer.insertBefore(fragment, chatContainer.firstChild);
+      
+      // Maintain scroll position so it doesn't jump
+      chatContainer.scrollTop = chatContainer.scrollHeight - oldScrollHeight;
+      
+      // Observe new messages
+      nextBatch.forEach(message => {
+        const element = document.querySelector(`[data-message-id="${message.id}"]`);
+        if (element && !element.hasAttribute('data-observed')) {
+          scrollObserver.observe(element);
+          element.setAttribute('data-observed', 'true');
+        }
+      });
+      
+      // Update emoji icons
+      updateCommentButtonIcon();
+    } else {
+      // If no more local messages, try to load from Firebase
+      await loadOlderMessagesFromFirebase();
+    }
+  } catch (error) {
+    console.error('Error loading more messages:', error);
+  } finally {
+    isLoadingMoreMessages = false;
+  }
+}
+
+// Load older messages from Firebase when local storage is exhausted
+async function loadOlderMessagesFromFirebase() {
+  try {
+    // Create query for older messages
+    const messagesRef = ref(database, 'messages');
+    const snapshot = await get(messagesRef);
+    
+    if (snapshot.exists()) {
+      const firebaseMessages = [];
+      snapshot.forEach(childSnapshot => {
+        const message = childSnapshot.val();
+        const messageId = childSnapshot.key;
+        firebaseMessages.push({ ...message, id: messageId });
+      });
+      
+      // Filter for messages older than what we already have
+      const olderMessages = firebaseMessages.filter(msg => 
+        msg.timestamp < lastLoadedMessageTimestamp && 
+        !document.querySelector(`[data-message-id="${msg.id}"]`)
+      );
+      
+      // Sort by timestamp (newest first)
+      olderMessages.sort((a, b) => b.timestamp - a.timestamp);
+      
+      // Take the next batch
+      const nextBatch = olderMessages.slice(0, MESSAGE_BATCH_SIZE);
+      
+      if (nextBatch.length > 0) {
+        // Update last loaded timestamp
+        const oldestInBatch = nextBatch[nextBatch.length - 1];
+        lastLoadedMessageTimestamp = oldestInBatch.timestamp;
+        
+        // Remember current scroll height
+        const oldScrollHeight = chatContainer.scrollHeight;
+        
+        // Add to local storage
+        nextBatch.forEach(message => {
+          saveMessageToLocalStorage(message, message.id);
+        });
+        
+        // Sort for display (oldest first)
+        nextBatch.sort((a, b) => a.timestamp - b.timestamp);
+        
+        // Create fragment
+        const fragment = document.createDocumentFragment();
+        nextBatch.forEach(message => {
+          if (!document.querySelector(`[data-message-id="${message.id}"]`)) {
+            const messageElement = createMessageElementOffscreen(message, message.id);
+            fragment.appendChild(messageElement);
+          }
+        });
+        
+        // Insert at the beginning
+        chatContainer.insertBefore(fragment, chatContainer.firstChild);
+        
+        // Maintain scroll position
+        chatContainer.scrollTop = chatContainer.scrollHeight - oldScrollHeight;
+        
+        // Observe new messages
+        nextBatch.forEach(message => {
+          const element = document.querySelector(`[data-message-id="${message.id}"]`);
+          if (element && !element.hasAttribute('data-observed')) {
+            scrollObserver.observe(element);
+            element.setAttribute('data-observed', 'true');
+          }
+        });
+        
+        // Update emoji icons
+        updateCommentButtonIcon();
+      } else {
+        // No more messages to load
+        allMessagesLoaded = true;
+      }
+    } else {
+      // No messages in Firebase
+      allMessagesLoaded = true;
+    }
+  } catch (error) {
+    console.error('Error loading older messages from Firebase:', error);
+  }
+}
+
+// Create message element without adding to DOM (for better performance)
+function createMessageElementOffscreen(message, messageId) {
   const messageElement = document.createElement('div');
   messageElement.classList.add('message');
   messageElement.setAttribute('data-message-id', messageId);
@@ -826,18 +1013,16 @@ function createMessageElement(message, messageId) {
   // Check if conversation is marked as "full" (followed)
   const isConversationFull = conversationStatus[message.userId] === 'full';
 
-  // Improved media handling with lazy loading
+  // Optimized media handling - lazy load images and videos
   let mediaHTML = '';
   if (message.media && message.media.length > 0) {
     mediaHTML = '<div class="media-container">';
     message.media.forEach(media => {
       if (media && media.url) {
         if (media.type === 'image') {
-          // Use data-src for lazy loading
-          mediaHTML += `<img class="message-image" data-src="${media.url}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" onclick="showFullImage('${media.url}')">`;
+          mediaHTML += `<img src="${media.url}" class="message-image" loading="lazy" onclick="showFullImage('${media.url}')">`;
         } else if (media.type === 'video') {
-          
-          mediaHTML += `<video class="message-video" data-src="${media.url}" controls preload="none" poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E"></video>`;
+          mediaHTML += `<video src="${media.url}" class="message-video" preload="metadata" controls></video>`;
         }
       }
     });
@@ -845,11 +1030,11 @@ function createMessageElement(message, messageId) {
   }
 
   messageElement.innerHTML = `
-    <img src="${message.photoURL}" class="profile-image" alt="Profile">
+    <img src="${message.photoURL}" class="profile-image" alt="Profile" loading="lazy">
     <div class="message-content">
       <div class="message-header">
         <span class="user-name">${message.name}</span>
-        <img data-src="${flagUrl}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" class="country-flag" alt="Flag" onerror="this.src='default-flag.png'">
+        <img src="${flagUrl}" class="country-flag" alt="Flag" loading="lazy" onerror="this.src='default-flag.png'">
         <span class="message-time">${messageTime}</span>
         <button class="follow-btn ${isFollowing || isConversationFull ? 'followed' : ''}" 
           data-user-id="${message.userId}" 
@@ -862,8 +1047,10 @@ function createMessageElement(message, messageId) {
       ${mediaHTML}
       <div class="action-buttons">
         <button class="action-button reply-btn">
-          <svg viewBox="0 0 24 24">
-            <path d="M14.046 2.242l-4.148-.01h-.002c-4.374 0-7.8 3.427-7.8 7.802 0 4.098 3.186 7.206 7.465 7.37v3.828a.85.85 0 0 0 .12.403.744.744 0 0 0 1.034.229c.264-.168 6.473-4.14 8.088-5.506 1.902-1.61 3.04-3.97 3.043-6.312v-.017c-.006-4.367-3.43-7.787-7.8-7.788zm3.787 12.972c-1.134.96-4.862 3.405-6.772 4.643V16.67a.75.75 0 0 0-.75-.75h-.396c-3.66 0-6.318-2.476-6.318-5.886 0-3.534 2.768-6.302 6.3-6.302l4.147.01h.002c3.532 0 6.3 2.766 6.302 6.296-.003 1.91-.942 3.844-2.514 5.176z"></path>
+          <svg viewBox="0 0 24 24" width="16" height="16">
+            <path d="M12 22.75C6.072 22.75 1.25 17.928 1.25 12S6.072 1.25 12 1.25 22.75 6.072 22.75 12 17.928 22.75 12 22.75zm0-20C6.9 2.75 2.75 6.9 2.75 12S6.9 21.25 12 21.25s9.25-4.15 9.25-9.25S17.1 2.75 12 2.75z"></path>
+            <path d="M12 17.115c-2.83 0-5.12-2.3-5.12-5.13s2.29-5.13 5.12-5.13c2.82 0 5.12 2.3 5.12 5.13s-2.3 5.13-5.12 5.13zm-3.07-5.13c0 1.7 1.38 3.09 3.07 3.09s3.06-1.39 3.06-3.09c0-1.71-1.37-3.09-3.06-3.09s-3.07 1.38-3.07 3.09z"></path>
+            <path d="M8.93 13.8c-.53 0-.95-.42-.95-.95s.42-.95.95-.95.95.42.95.95-.42.95-.95.95zm6.18 0c-.53 0-.95-.42-.95-.95s.42-.95.95-.95.95.42.95.95-.42.95-.95.95z"></path>
           </svg>
           ${message.replyCount || 0}
         </button>
@@ -871,89 +1058,73 @@ function createMessageElement(message, messageId) {
     </div>
   `;
 
-  // Observe the message element to track visibility
-  if (window.messageObserver) {
-    window.messageObserver.observe(messageElement);
-  }
-  
-  // Observe media elements for lazy loading
-  if (window.mediaObserver) {
-    const mediaElements = messageElement.querySelectorAll('[data-src]');
-    mediaElements.forEach(element => {
-      window.mediaObserver.observe(element);
-    });
-  }
-
   return messageElement;
 }
 
-// Show full image in modal with memory leak prevention
+// Show full image in modal - optimized version
 window.showFullImage = function(url) {
-  const modal = document.createElement('div');
-  modal.style.position = 'fixed';
-  modal.style.top = '0';
-  modal.style.left = '0';
-  modal.style.width = '100%';
-  modal.style.height = '100%';
-  modal.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
-  modal.style.display = 'flex';
-  modal.style.alignItems = 'center';
-  modal.style.justifyContent = 'center';
-  modal.style.zIndex = '1000';
-  modal.style.cursor = 'pointer';
+  // Check if modal already exists to prevent duplicates
+  let modal = document.getElementById('image-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'image-modal';
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    modal.style.zIndex = '1000';
+    modal.style.cursor = 'pointer';
+    
+    document.body.appendChild(modal);
+    
+    // Add close handler
+    modal.addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+  } else {
+    // Clear existing content
+    modal.innerHTML = '';
+  }
   
+  // Create loading indicator
+  const loader = document.createElement('div');
+  loader.style.color = 'white';
+  loader.style.fontSize = '20px';
+  loader.textContent = 'Loading...';
+  modal.appendChild(loader);
+  
+  // Create image with loading handling
   const img = new Image();
-  
-  // Set up loading placeholder
-  const placeholder = document.createElement('div');
-  placeholder.style.color = 'white';
-  placeholder.style.textAlign = 'center';
-  placeholder.textContent = 'Loading image...';
-  modal.appendChild(placeholder);
-  
-  // Listen for image load
-  img.onload = function() {
-    modal.removeChild(placeholder);
-    modal.appendChild(img);
-  };
-  
-  img.src = url;
   img.style.maxWidth = '90%';
   img.style.maxHeight = '90%';
   img.style.objectFit = 'contain';
+  img.style.display = 'none'; // Hide until loaded
   
-  document.body.appendChild(modal);
+  img.onload = () => {
+    // Remove loader and show image
+    modal.removeChild(loader);
+    img.style.display = 'block';
+  };
   
-  // Remove modal when clicked
-  modal.addEventListener('click', () => {
-    document.body.removeChild(modal);
-  });
+  img.onerror = () => {
+    loader.textContent = 'Failed to load image';
+  };
   
-  // Memory cleanup when modal is closed
-  modal.addEventListener('remove', () => {
-    img.src = '';
-    URL.revokeObjectURL(url);
-  });
+  img.src = url;
+  modal.appendChild(img);
 };
 
 // Authentication State Observer
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     try {
-      // Get user data from cache first if available
-      const cachedUserData = localStorage.getItem(`userData_${user.uid}`);
-      let userData = null;
-      
-      if (cachedUserData) {
-        userData = JSON.parse(cachedUserData);
-      } else {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        userData = userDoc.data() || {};
-        
-        // Cache user data
-        localStorage.setItem(`userData_${user.uid}`, JSON.stringify(userData));
-      }
-      
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userData = userDoc.data() || {};
       const countryCode = await getCountryFromIP();
 
       currentUser = {
@@ -964,7 +1135,7 @@ onAuthStateChanged(auth, async (user) => {
       };
 
       // Create user in database if not exists
-      if (!userData?.createdAt) {
+      if (!userDoc.exists()) {
         await setDoc(doc(db, 'users', user.uid), {
           displayName: currentUser.displayName,
           photoURL: currentUser.photoURL,
@@ -979,23 +1150,23 @@ onAuthStateChanged(auth, async (user) => {
       setupPresence(user.uid);
       
       // Hide loading indicator once auth is complete
-      elements.loadingIndicator.style.display = 'none';
+      loadingIndicator.style.display = 'none';
       
     } catch (error) {
       console.error('Error fetching user data:', error);
-      elements.loadingIndicator.style.display = 'none';
+      loadingIndicator.style.display = 'none';
     }
   } else {
     // Sign in anonymously if no user
     signInAnonymously(auth)
       .catch((error) => {
         console.error('Anonymous auth error:', error);
-        elements.loadingIndicator.style.display = 'none';
+        loadingIndicator.style.display = 'none';
       });
   }
 });
 
-// Set up user presence with optimized write operations
+// Set up user presence - Optimized
 function setupPresence(userId) {
   const userStatusRef = ref(database, `presence/${userId}`);
   
@@ -1005,7 +1176,7 @@ function setupPresence(userId) {
     lastSeen: Date.now()
   };
   
-  // Set user as offline when disconnected
+  // Use a more efficient approach with connection monitoring
   const connectedRef = ref(database, '.info/connected');
   onValue(connectedRef, (snapshot) => {
     if (snapshot.val() === true) {
@@ -1019,33 +1190,40 @@ function setupPresence(userId) {
       });
     }
   });
+  
+  // Update lastSeen periodically to keep presence fresh, but not too often
+  setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      update(userStatusRef, { lastSeen: Date.now() });
+    }
+  }, 60000); // Update every minute when visible
 }
 
-// Fetch Followed Users
+// Fetch Followed Users - Optimized with caching
 async function fetchFollowedUsers() {
   if (!currentUser) return;
 
   try {
-    // Check local cache first
-    const cachedFollows = localStorage.getItem(`follows_${currentUser.uid}`);
+    // Try to get from cache first
+    const cachedFollows = localStorage.getItem(`followedUsers_${currentUser.uid}`);
     if (cachedFollows) {
-      const followData = JSON.parse(cachedFollows);
+      const parsedFollows = JSON.parse(cachedFollows);
       
-      // Check if cache is still valid (less than 5 minutes old)
-      if (followData.timestamp && (Date.now() - followData.timestamp < 5 * 60 * 1000)) {
-        followedUsers.clear();
-        followData.users.forEach(userId => {
-          followedUsers.add(userId);
-          conversationStatus[userId] = 'full';
+      // Check if cache is fresh (less than 5 minutes old)
+      if (parsedFollows.timestamp && Date.now() - parsedFollows.timestamp < 300000) {
+        parsedFollows.userIds.forEach(id => followedUsers.add(id));
+        
+        // Update conversation status
+        parsedFollows.userIds.forEach(id => {
+          conversationStatus[id] = 'full';
         });
         
         updateFollowButtons();
-        saveConversationStatus();
         return;
       }
     }
 
-    // Fetch from Firestore if no valid cache
+    // If no cache or it's stale, fetch from Firestore
     const followQuery = query(
       collection(db, 'follows'),
       where('followerUserId', '==', currentUser.uid)
@@ -1053,8 +1231,8 @@ async function fetchFollowedUsers() {
 
     const followSnapshot = await getDocs(followQuery);
     followedUsers.clear();
-    
     const followedUserIds = [];
+    
     followSnapshot.docs.forEach(doc => {
       const followedUserId = doc.data().followedUserId;
       followedUsers.add(followedUserId);
@@ -1064,14 +1242,14 @@ async function fetchFollowedUsers() {
       conversationStatus[followedUserId] = 'full';
     });
     
-    // Save to local cache
-    localStorage.setItem(`follows_${currentUser.uid}`, JSON.stringify({
-      users: followedUserIds,
-      timestamp: Date.now()
-    }));
-    
     // Save updated conversation status
     saveConversationStatus();
+    
+    // Cache the follows data
+    localStorage.setItem(`followedUsers_${currentUser.uid}`, JSON.stringify({
+      userIds: followedUserIds,
+      timestamp: Date.now()
+    }));
 
     updateFollowButtons();
   } catch (error) {
@@ -1079,22 +1257,25 @@ async function fetchFollowedUsers() {
   }
 }
 
-// Update Follow Buttons
+// Update Follow Buttons - More efficient implementation
 function updateFollowButtons() {
-  document.querySelectorAll('.follow-btn').forEach(btn => {
-    const userId = btn.getAttribute('data-user-id');
-    const isFollowed = followedUsers.has(userId) || conversationStatus[userId] === 'full';
-    
-    if (userId === currentUser?.uid) {
-      btn.style.display = 'none'; // Hide follow button for own messages
-    } else {
-      btn.textContent = isFollowed ? 'Following' : 'Follow';
-      btn.classList.toggle('followed', isFollowed);
-    }
+  // Use requestAnimationFrame for better performance
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.follow-btn').forEach(btn => {
+      const userId = btn.getAttribute('data-user-id');
+      const isFollowed = followedUsers.has(userId) || conversationStatus[userId] === 'full';
+      
+      if (userId === currentUser?.uid) {
+        btn.style.display = 'none'; // Hide follow button for own messages
+      } else {
+        btn.textContent = isFollowed ? 'Following' : 'Follow';
+        btn.classList.toggle('followed', isFollowed);
+      }
+    });
   });
 }
 
-// Follow/Unfollow User
+// Follow/Unfollow User - Optimized
 window.toggleFollow = async function(userId, userName) {
   if (!currentUser) {
     alert('Please log in to follow users');
@@ -1102,35 +1283,25 @@ window.toggleFollow = async function(userId, userName) {
   }
 
   try {
+    // Update UI immediately for responsiveness
     const isCurrentlyFollowing = followedUsers.has(userId);
     
-    // Optimistic UI update
-    if (isCurrentlyFollowing) {
-      followedUsers.delete(userId);
-      delete conversationStatus[userId];
-    } else {
+    if (!isCurrentlyFollowing) {
+      // Optimistically add to followed set
       followedUsers.add(userId);
       conversationStatus[userId] = 'full';
-    }
-    
-    // Update buttons immediately
-    updateFollowButtons();
-    saveConversationStatus();
-    
-    // Update local cache
-    const cachedFollows = localStorage.getItem(`follows_${currentUser.uid}`);
-    let followData = cachedFollows ? JSON.parse(cachedFollows) : { users: [], timestamp: Date.now() };
-    
-    if (isCurrentlyFollowing) {
-      followData.users = followData.users.filter(id => id !== userId);
+      saveConversationStatus();
     } else {
-      followData.users.push(userId);
+      // Optimistically remove from followed set
+      followedUsers.delete(userId);
+      delete conversationStatus[userId];
+      saveConversationStatus();
     }
     
-    followData.timestamp = Date.now();
-    localStorage.setItem(`follows_${currentUser.uid}`, JSON.stringify(followData));
+    // Update UI immediately
+    updateFollowButtons();
 
-    // Perform database operation
+    // Then perform the actual database operation
     const followQuery = query(
       collection(db, 'follows'),
       where('followerUserId', '==', currentUser.uid),
@@ -1139,99 +1310,265 @@ window.toggleFollow = async function(userId, userName) {
 
     const followSnapshot = await getDocs(followQuery);
 
-    if (isCurrentlyFollowing) {
-      // Unfollow
-      followSnapshot.docs.forEach(async (followDoc) => {
-        await deleteDoc(doc(db, 'follows', followDoc.id));
+    if (followSnapshot.empty && !isCurrentlyFollowing) {
+      // Follow the user
+      await addDoc(collection(db, 'follows'), {
+        followerUserId: currentUser.uid,
+        followedUserId: userId,
+        followedUserName: userName,
+        timestamp: Date.now()
       });
-    } else {
-      // Follow
-      if (followSnapshot.empty) {
-        await addDoc(collection(db, 'follows'), {
-          followerUserId: currentUser.uid,
-          followedUserId: userId,
-          followedUserName: userName,
+      
+      // Update cached follows data
+      const cachedFollows = localStorage.getItem(`followedUsers_${currentUser.uid}`);
+      if (cachedFollows) {
+        const parsedFollows = JSON.parse(cachedFollows);
+        parsedFollows.userIds.push(userId);
+        localStorage.setItem(`followedUsers_${currentUser.uid}`, JSON.stringify({
+          userIds: parsedFollows.userIds,
           timestamp: Date.now()
-        });
+        }));
+      }
+    } else if (!followSnapshot.empty && isCurrentlyFollowing) {
+      // Unfollow the user
+      for (const doc of followSnapshot.docs) {
+        await deleteDoc(doc.ref);
+      }
+      
+      // Update cached follows data
+      const cachedFollows = localStorage.getItem(`followedUsers_${currentUser.uid}`);
+      if (cachedFollows) {
+        const parsedFollows = JSON.parse(cachedFollows);
+        parsedFollows.userIds = parsedFollows.userIds.filter(id => id !== userId);
+        localStorage.setItem(`followedUsers_${currentUser.uid}`, JSON.stringify({
+          userIds: parsedFollows.userIds,
+          timestamp: Date.now()
+        }));
       }
     }
   } catch (error) {
     console.error('Follow/Unfollow error:', error);
-    // Revert optimistic updates if there was an error
-    alert('Error updating follow status. Please try again.');
-    await fetchFollowedUsers(); // Refresh actual follow status
+    // Revert UI changes if the operation failed
+    if (followedUsers.has(userId)) {
+      followedUsers.delete(userId);
+      delete conversationStatus[userId];
+    } else {
+      followedUsers.add(userId);
+      conversationStatus[userId] = 'full';
+    }
+    saveConversationStatus();
+    updateFollowButtons();
   }
 };
 
-// Optimized media upload function with retry logic
+// Optimized media upload with compression
 async function uploadMedia(file) {
-  const MAX_RETRIES = 3;
-  let retries = 0;
-  
-  while (retries < MAX_RETRIES) {
-    try {
-      // Create a unique filename with timestamp and random string to avoid collisions
-      const randomStr = Math.random().toString(36).substring(2, 10);
-      const fileName = `${Date.now()}_${randomStr}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-      const fileType = file.type.split('/')[0]; // 'image' or 'video'
-      
-      // Upload file to Firebase Storage via a Cloud Function proxy
-      const uploadEndpoint = `https://us-central1-globalchat-2d669.cloudfunctions.net/uploadMedia`;
-      
-      // Create form data for upload
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('userId', currentUser.uid);
-      formData.append('fileName', fileName);
-      
-      const response = await fetch(uploadEndpoint, {
-        method: 'POST',
-        body: formData
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Upload failed with status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      return {
-        url: result.url,
-        type: fileType
-      };
-    } catch (error) {
-      console.error(`Media upload error (attempt ${retries + 1}):`, error);
-      retries++;
-      
-      if (retries >= MAX_RETRIES) {
-        // If all retries fail, use data URL as fallback
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            console.warn('Using data URL fallback for media');
-            resolve({
-              url: event.target.result,
-              type: file.type.split('/')[0]
-            });
-          };
-          reader.readAsDataURL(file);
-        });
-      }
-      
-      // Wait before retry (exponential backoff)
-      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries)));
+  try {
+    // Compress image files before upload
+    let fileToUpload = file;
+    
+    if (file.type.startsWith('image/')) {
+      fileToUpload = await compressImage(file);
     }
+    
+    // Create a unique filename
+    const fileName = `${Date.now()}_${file.name}`;
+    const fileType = file.type.split('/')[0]; // 'image' or 'video'
+    
+    // Upload file to Firebase Storage via a Cloud Function proxy
+    const uploadEndpoint = `https://us-central1-globalchat-2d669.cloudfunctions.net/uploadMedia`;
+    
+    // Create form data for upload
+    const formData = new FormData();
+    formData.append('file', fileToUpload);
+    formData.append('userId', currentUser.uid);
+    formData.append('fileName', fileName);
+    
+    const response = await fetch(uploadEndpoint, {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Upload failed with status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    
+    return {
+      url: result.url,
+      type: fileType
+    };
+  } catch (error) {
+    console.error('Media upload error:', error);
+    
+    // FALLBACK: If Cloud Function upload fails, compress and use data URL
+    return await createOptimizedDataUrl(file);
   }
 }
 
-// Send Message Function with Media Support and rate limiting
+// Compress image file
+async function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    
+    reader.onload = function(event) {
+      const img = new Image();
+      img.src = event.target.result;
+      
+      img.onload = function() {
+        // Create canvas for resizing
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Calculate new dimensions (max 1200px width for uploads)
+        let width = img.width;
+        let height = img.height;
+        const maxWidth = 1200;
+        
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        // Set canvas dimensions
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw image on canvas
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to blob with reduced quality
+        canvas.toBlob(blob => {
+          if (blob) {
+            // Create a new file from the blob
+            const newFile = new File([blob], file.name, { 
+              type: 'image/jpeg', 
+              lastModified: Date.now()
+            });
+            resolve(newFile);
+          } else {
+            // If compression fails, use original file
+            resolve(file);
+          }
+        }, 'image/jpeg', 0.75); // 75% quality
+      };
+      
+      img.onerror = function() {
+        // If image loading fails, use original file
+        resolve(file);
+      };
+    };
+    
+    reader.onerror = function() {
+      reject(new Error('Failed to read file'));
+    };
+  });
+}
+
+// Create optimized data URL as fallback upload method
+async function createOptimizedDataUrl(file) {
+  return new Promise((resolve) => {
+    const fileType = file.type.split('/')[0]; // 'image' or 'video'
+    
+    if (fileType === 'image') {
+      // For images, compress using canvas
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Resize if needed
+          let width = img.width;
+          let height = img.height;
+          const maxDimension = 800; // Limit size for data URLs
+          
+          if (width > height && width > maxDimension) {
+            height = (height * maxDimension) / width;
+            width = maxDimension;
+          } else if (height > maxDimension) {
+            width = (width * maxDimension) / height;
+            height = maxDimension;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Get compressed data URL
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          resolve({
+            url: dataUrl,
+            type: 'image'
+          });
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // For video, use data URL directly (might be large)
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        resolve({
+          url: event.target.result,
+          type: 'video'
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+}
+
+// Manage messages in Firebase (limit to MAX_FIREBASE_MESSAGES)
+async function manageFirebaseMessages() {
+  try {
+    const messagesRef = ref(database, 'messages');
+    const snapshot = await get(messagesRef);
+    
+    if (snapshot.exists()) {
+      const messages = snapshot.val();
+      const messageEntries = Object.entries(messages);
+      
+      // If we have more than MAX_FIREBASE_MESSAGES, remove the oldest ones
+      if (messageEntries.length > MAX_FIREBASE_MESSAGES) {
+        // Sort by timestamp (oldest first)
+        messageEntries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+        
+        // Keep only the newest MAX_FIREBASE_MESSAGES
+        const messagesToRemove = messageEntries.slice(0, messageEntries.length - MAX_FIREBASE_MESSAGES);
+        
+        // Remove in batches for better performance
+        const removePromises = [];
+        for (let i = 0; i < messagesToRemove.length; i += 10) {
+          const batch = messagesToRemove.slice(i, i + 10);
+          for (const [messageId] of batch) {
+            removePromises.push(set(ref(database, `messages/${messageId}`), null));
+          }
+          // Small pause between batches to avoid rate limiting
+          if (i + 10 < messagesToRemove.length) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        }
+        
+        await Promise.all(removePromises);
+      }
+    }
+  } catch (error) {
+    console.error('Error managing Firebase messages:', error);
+  }
+}
+
+// Send Message Function with Media Support - Optimized
 async function sendMessage(parentMessageId = null) {
   if (!currentUser) {
     alert('You must log in to continue');
     return;
   }
 
-  const messageText = elements.messageInput.value.trim();
+  const messageText = messageInput.value.trim();
   const currentTime = Date.now();
   const hasMedia = selectedMedia.length > 0;
 
@@ -1253,7 +1590,7 @@ async function sendMessage(parentMessageId = null) {
 
   try {
     // Show loading indicator
-    elements.loadingIndicator.style.display = 'flex';
+    loadingIndicator.style.display = 'flex';
     
     // Update global rate limit timestamp
     await set(rateLimitRef, currentTime);
@@ -1262,36 +1599,15 @@ async function sendMessage(parentMessageId = null) {
     const userTypingRef = ref(database, `typing/${currentUser.uid}`);
     set(userTypingRef, null);
     
-    // Upload all media files with progress tracking
-    const mediaUrls = [];
+    // Upload all media files in parallel for better performance
+    const mediaPromises = [];
     if (hasMedia) {
-      // Create progress indicator
-      const progressContainer = document.createElement('div');
-      progressContainer.className = 'upload-progress-container';
-      progressContainer.innerHTML = '<div class="upload-progress-label">Uploading media: 0%</div><div class="upload-progress-bar"><div class="upload-progress-fill" style="width: 0%"></div></div>';
-      elements.mediaPreview.appendChild(progressContainer);
-      
-      // Process uploads sequentially to avoid overwhelming the connection
-      for (let i = 0; i < selectedMedia.length; i++) {
-        const media = selectedMedia[i];
-        
-        // Update progress indicator
-        const progressLabel = progressContainer.querySelector('.upload-progress-label');
-        const progressFill = progressContainer.querySelector('.upload-progress-fill');
-        progressLabel.textContent = `Uploading media ${i + 1}/${selectedMedia.length}`;
-        
-        // Upload the media
-        const uploadResult = await uploadMedia(media.file);
-        mediaUrls.push(uploadResult);
-        
-        // Update progress
-        const progress = ((i + 1) / selectedMedia.length) * 100;
-        progressFill.style.width = `${progress}%`;
+      for (const media of selectedMedia) {
+        mediaPromises.push(uploadMedia(media.file));
       }
-      
-      // Remove progress indicator
-      progressContainer.remove();
     }
+    
+    const mediaUrls = await Promise.all(mediaPromises);
 
     // Create new message
     const newMessageRef = push(chatRef);
@@ -1317,13 +1633,12 @@ async function sendMessage(parentMessageId = null) {
     // Add message to database
     await set(newMessageRef, messageData);
     
-    // Optimistically render the message immediately
-    const messageElement = createMessageElement(messageData, newMessageRef.key);
-    elements.chatContainer.appendChild(messageElement);
-    elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
-    
     // Save message to local storage
     saveMessageToLocalStorage(messageData, newMessageRef.key);
+    
+    // Manage Firebase messages (keep only MAX_FIREBASE_MESSAGES)
+    // Run this in background without awaiting
+    manageFirebaseMessages().catch(console.error);
     
     // Update parent message reply count if this is a reply
     if (parentMessageId) {
@@ -1337,91 +1652,33 @@ async function sendMessage(parentMessageId = null) {
     }
 
     // Reset UI
-    elements.messageInput.value = '';
-    elements.messageInput.style.height = 'auto';
+    messageInput.value = '';
+    messageInput.style.height = 'auto';
     selectedMedia = [];
-    elements.mediaPreview.innerHTML = '';
-    elements.sendButton.disabled = true;
+    mediaPreview.innerHTML = '';
+    sendButton.disabled = true;
     lastMessageTime = currentTime;
     
   } catch (error) {
     console.error('Error sending message:', error);
     alert('Failed to send message. Please try again.');
   } finally {
-    elements.loadingIndicator.style.display = 'none';
+    loadingIndicator.style.display = 'none';
   }
 }
 
-// Add style element for new UI components
-(function addStyles() {
-  const style = document.createElement('style');
-  style.textContent = `
-    .upload-progress-container {
-      width: 100%;
-      margin: 8px 0;
-      padding: 8px;
-      background: rgba(0,0,0,0.05);
-      border-radius: 8px;
-    }
-    
-    .upload-progress-label {
-      font-size: 14px;
-      margin-bottom: 4px;
-    }
-    
-    .upload-progress-bar {
-      height: 8px;
-      background: #eee;
-      border-radius: 4px;
-      overflow: hidden;
-    }
-    
-    .upload-progress-fill {
-      height: 100%;
-      background: #1da1f2;
-      width: 0%;
-      transition: width 0.3s;
-    }
-    
-    .new-message-indicator {
-      position: fixed;
-      bottom: 80px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1da1f2;
-      color: white;
-      padding: 8px 16px;
-      border-radius: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      cursor: pointer;
-      display: none;
-      z-index: 100;
-      transition: all 0.3s;
-    }
-    
-    .new-message-indicator:hover {
-      background: #0c85d0;
-    }
-    
-    .loading-more-indicator {
-      text-align: center;
-      padding: 10px;
-      color: #657786;
-      font-size: 14px;
-    }
-    
-    .message {
-      will-change: transform;
-      contain: content;
-    }
-    
-    .message-image, .message-video {
-      contain: content;
-      background-color: #eee;
-    }
-  `;
-  document.head.appendChild(style);
-})();
+// Add window event listeners for memory management
+window.addEventListener('blur', () => {
+  // When app loses focus, we can free up resources
+  cleanupInvisibleMessages();
+});
+
+window.addEventListener('focus', () => {
+  // When app gains focus, refresh data
+  if (chatContainer.scrollTop < 200) {
+    loadMoreMessages();
+  }
+});
 
 // Initialize the app
-initApp();
+document.addEventListener('DOMContentLoaded', initApp)
