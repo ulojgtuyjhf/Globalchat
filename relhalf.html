@@ -645,6 +645,7 @@ body.dim .menu-item:hover {
 
     <script>
 
+
 (function() {
     // Execute when DOM is ready or immediately if already loaded
     if (document.readyState === 'loading') {
@@ -681,6 +682,33 @@ body.dim .menu-item:hover {
             'bookmarks-section': 'bookmarks-widget.html',
             'profile-section': 'profile-widget.html'
         };
+        
+        // PROFILE PRELOADING: Load profile immediately for authentication
+        function preloadProfileForAuth() {
+            const profileSection = document.getElementById('profile-section');
+            const profileFrame = profileSection ? profileSection.querySelector('iframe') : null;
+            
+            if (profileFrame && profileFrame.src) {
+                // Create a hidden clone for fast authentication
+                const authFrame = document.createElement('iframe');
+                authFrame.src = profileFrame.src;
+                authFrame.id = 'auth-frame';
+                authFrame.style.position = 'absolute';
+                authFrame.style.width = '1px';
+                authFrame.style.height = '1px';
+                authFrame.style.opacity = '0';
+                authFrame.style.pointerEvents = 'none';
+                authFrame.style.visibility = 'hidden';
+                
+                // Add to DOM immediately
+                document.body.appendChild(authFrame);
+                
+                // Mark as loaded
+                state.loadedSections['profile-section'] = true;
+                
+                console.log("Profile authentication preloaded for faster chat operation");
+            }
+        }
         
         // Initialize only the visible section at startup
         if (state.currentSection) {
@@ -987,6 +1015,18 @@ body.dim .menu-item:hover {
                 .content, .widgets {
                     contain: layout style;
                 }
+                
+                /* Hidden auth frame */
+                #auth-frame {
+                    position: absolute;
+                    top: -9999px;
+                    left: -9999px;
+                    width: 1px;
+                    height: 1px;
+                    opacity: 0;
+                    pointer-events: none;
+                    z-index: -999;
+                }
             `;
             document.head.appendChild(style);
         }
@@ -995,6 +1035,9 @@ body.dim .menu-item:hover {
         function initializeApp() {
             // Set up UI optimizations
             injectPerformanceStyles();
+            
+            // CRITICAL: Preload profile authentication immediately
+            preloadProfileForAuth();
             
             // Set up event handling
             setupEventListeners();
