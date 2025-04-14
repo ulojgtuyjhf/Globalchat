@@ -50,7 +50,7 @@ const typingUsers = new Map();
 let globalRateLimit = Date.now();
 
 // Message management optimization variables
-const MAX_FIREBASE_MESSAGES = 50; // Increased from 4 for better history
+const MAX_FIREBASE_MESSAGES = 1; // Increased from 4 for better history
 const LOCAL_STORAGE_MESSAGES_KEY = 'localMessages';
 const LOCAL_STORAGE_CONVERSATION_STATUS_KEY = 'conversationStatus';
 let conversationStatus = {};
