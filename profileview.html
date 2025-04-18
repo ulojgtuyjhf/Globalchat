@@ -1461,137 +1461,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000);
   });
 </script>
-<script>
-(function() {
-  // Define a unique color for each letter A–Z
-  const letterColors = {
-    A: "#1abc9c", B: "#2ecc71", C: "#3498db", D: "#9b59b6", E: "#34495e",
-    F: "#16a085", G: "#27ae60", H: "#2980b9", I: "#8e44ad", J: "#2c3e50",
-    K: "#f1c40f", L: "#e67e22", M: "#e74c3c", N: "#ecf0f1", O: "#95a5a6",
-    P: "#f39c12", Q: "#d35400", R: "#c0392b", S: "#bdc3c7", T: "#7f8c8d",
-    U: "#ff5733", V: "#33ff57", W: "#3357ff", X: "#ff33a6", Y: "#a633ff", Z: "#33fff5"
-  };
 
-  // Generate an avatar image using a canvas
-  function generateLetterAvatar(username) {
-    const trimmed = username.trim();
-    const letter = trimmed.charAt(0).toUpperCase();
-    const color = letterColors[letter] || "#000000";
-    
-    const canvas = document.createElement('canvas');
-    canvas.width = 100;
-    canvas.height = 100;
-    const context = canvas.getContext('2d');
-
-    // Draw background
-    context.fillStyle = color;
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Draw the letter in white
-    context.fillStyle = "#FFFFFF";
-    context.font = "bold 50px Arial";
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    context.fillText(letter, canvas.width / 2, canvas.height / 2);
-
-    return canvas.toDataURL("image/png");
-  }
-
-  // Apply the avatar to a specific image element if it's using the default image
-  function applyAvatarIfNeeded(imageElement, username) {
-    if (imageElement) {
-      const currentSrc = imageElement.src;
-      const isDefaultImage = currentSrc.includes('default-profile.png') || currentSrc === '';
-
-      if (isDefaultImage) {
-        // Only apply the avatar if the image is default
-        const avatarDataUrl = generateLetterAvatar(username);
-        imageElement.src = avatarDataUrl;
-      }
-    }
-  }
-
-  // Observe changes to an image element and reapply the avatar if necessary
-  function observeImageChanges(imageElement, username) {
-    if (imageElement) {
-      const observer = new MutationObserver((mutationsList) => {
-        for (const mutation of mutationsList) {
-          if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
-            // Reapply the avatar only if the new src is the default image
-            applyAvatarIfNeeded(imageElement, username);
-          }
-        }
-      });
-
-      // Start observing the image for attribute changes
-      observer.observe(imageElement, { attributes: true });
-    }
-  }
-
-  // Apply avatars to all user profile images in the Followers and Following lists
-  function applyAvatarsToUserLists() {
-    const userListItems = document.querySelectorAll('.user-list-item');
-
-    userListItems.forEach((userItem) => {
-      const profileImageEl = userItem.querySelector('img');
-      const usernameEl = userItem.querySelector('.user-list-item-name');
-
-      if (profileImageEl && usernameEl) {
-        const username = usernameEl.textContent || '';
-        applyAvatarIfNeeded(profileImageEl, username);
-        observeImageChanges(profileImageEl, username);
-      }
-    });
-  }
-
-  // Initialize the avatar script for all relevant images
-  function initializeAvatarScript() {
-    const profileNameEl = document.getElementById('profileName');
-    const profileImageEl = document.getElementById('profileImage');
-    const editProfileImageEl = document.getElementById('editProfileImage');
-
-    if (profileNameEl) {
-      const username = profileNameEl.textContent || '';
-
-      // Apply avatar to the main profile image
-      if (profileImageEl) {
-        applyAvatarIfNeeded(profileImageEl, username);
-        observeImageChanges(profileImageEl, username);
-      }
-
-      // Apply avatar to the edit profile image
-      if (editProfileImageEl) {
-        applyAvatarIfNeeded(editProfileImageEl, username);
-        observeImageChanges(editProfileImageEl, username);
-      }
-    }
-
-    // Apply avatars to users in the Followers and Following lists
-    applyAvatarsToUserLists();
-
-    // Observe dynamic changes to the Followers and Following lists
-    const followersBody = document.getElementById('followersBody');
-    const followingBody = document.getElementById('followingBody');
-
-    if (followersBody) {
-      const followersObserver = new MutationObserver(applyAvatarsToUserLists);
-      followersObserver.observe(followersBody, { childList: true, subtree: true });
-    }
-
-    if (followingBody) {
-      const followingObserver = new MutationObserver(applyAvatarsToUserLists);
-      followingObserver.observe(followingBody, { childList: true, subtree: true });
-    }
-  }
-
-  // Run the script after the DOM is fully loaded
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeAvatarScript);
-  } else {
-    initializeAvatarScript();
-  }
-})();
-</script>
 
 
 <script>
@@ -2448,3 +2318,124 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000);
 })();
 </script>
+<script type="module">
+  import { getAuth, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+  const auth = getAuth();
+  const db = getFirestore();
+  const storage = getStorage();
+
+  const profileName = document.getElementById('profileName');
+  const profileImage = document.getElementById('profileImage');
+  const profilePictureInput = document.getElementById('profilePictureInput');
+  const editNameIcon = document.getElementById('editNameIcon');
+  const editNameInput = document.getElementById('editNameInput');
+  const saveNameBtn = document.getElementById('saveNameBtn');
+  const profileBio = document.getElementById('profileBio');
+  const editBioInput = document.getElementById('editBioInput');
+  const saveBioBtn = document.getElementById('saveBioBtn');
+
+  // Loader Styling
+  const loaderStyle = document.createElement('style');
+  loaderStyle.innerHTML = `
+        .loader {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid white;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    `;
+  document.head.appendChild(loaderStyle);
+
+  function showLoadingAnimation(element) {
+    element.innerHTML = '<div class="loader"></div>';
+  }
+
+  function hideLoadingAnimation(element, text) {
+    element.innerHTML = text;
+  }
+
+  // Fetch User Data
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        let userData = userDoc.exists() ? userDoc.data() : {};
+
+        profileName.textContent = user.displayName || userData.displayName || 'User';
+        profileImage.src = user.photoURL || userData.photoURL || 'default-profile.png';
+        profileBio.textContent = userData.bio || 'Add a bio to tell people about yourself';
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    }
+  });
+
+  // Update Name
+  saveNameBtn.addEventListener('click', async () => {
+    const user = auth.currentUser;
+    const newName = editNameInput.value.trim();
+
+    if (user && newName) {
+      showLoadingAnimation(saveNameBtn);
+      try {
+        await updateProfile(user, { displayName: newName });
+        await updateDoc(doc(db, 'users', user.uid), { displayName: newName });
+        profileName.textContent = newName;
+      } catch (error) {
+        console.error('Error updating name:', error);
+      } finally {
+        hideLoadingAnimation(saveNameBtn, 'Save');
+      }
+    }
+  });
+
+  // Update Bio
+  saveBioBtn.addEventListener('click', async () => {
+    const user = auth.currentUser;
+    const newBio = editBioInput.value.trim();
+
+    if (user && newBio) {
+      showLoadingAnimation(saveBioBtn);
+      try {
+        await updateDoc(doc(db, 'users', user.uid), { bio: newBio });
+        profileBio.textContent = newBio;
+      } catch (error) {
+        console.error('Error updating bio:', error);
+      } finally {
+        hideLoadingAnimation(saveBioBtn, 'Save');
+      }
+    }
+  });
+
+  // Change Profile Picture
+  profilePictureInput.addEventListener('change', async (e) => {
+    const user = auth.currentUser;
+    const file = e.target.files[0];
+
+    if (user && file) {
+      showLoadingAnimation(profileImage);
+      try {
+        const storageRef = ref(storage, `profilePictures/${user.uid}`);
+        await uploadBytes(storageRef, file);
+        const newPhotoURL = await getDownloadURL(storageRef);
+
+        await updateProfile(user, { photoURL: newPhotoURL });
+        await updateDoc(doc(db, 'users', user.uid), { photoURL: newPhotoURL });
+
+        profileImage.src = newPhotoURL;
+      } catch (error) {
+        console.error('Error updating profile picture:', error);
+      }
+    }
+  });
+</script>
+
