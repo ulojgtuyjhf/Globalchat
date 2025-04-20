@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -39,6 +38,7 @@ const videoButton = document.getElementById('videoButton');
 const mediaPreview = document.getElementById('mediaPreview');
 const sendButton = document.getElementById('sendButton');
 const loadingIndicator = document.getElementById('loadingIndicator');
+const inputProfileImage = document.getElementById('inputProfileImage');
 
 let currentUser = null;
 let selectedMedia = [];
@@ -448,6 +448,9 @@ onAuthStateChanged(auth, async (user) => {
         photoURL: user.photoURL || userData?.photoURL || "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png",
         country: countryCode
       };
+
+      // Update the input profile image
+      inputProfileImage.src = currentUser.photoURL;
 
       // Create user in database if not exists
       if (!userDoc.exists()) {
