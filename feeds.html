@@ -48,7 +48,7 @@
         height: 100%;
         font-size: 16px;
         color: var(--text-primary);
-        overflow-y: auto;
+        
     }
 
     body {
@@ -619,6 +619,527 @@
 
 
    
+</script>
+<script>
+(function() {
+  // Create unique IDs to avoid conflicts
+  const uniquePrefix = 'gc_' + Math.random().toString(36).substring(2, 9);
+  
+  // Add CSS styles with proper borders, shadows and animations
+  const style = document.createElement('style');
+  style.innerHTML = `
+    .${uniquePrefix}_fab {
+      position: fixed;
+      bottom: -60px; /* Start off-screen */
+      right: 20px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #626262 0%, #787878 100%);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 9999;
+      transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    
+    /* Theme support for FAB */
+    body.theme-dim .${uniquePrefix}_fab,
+    body.theme-dark .${uniquePrefix}_fab {
+      background: linear-gradient(135deg, #8899a6 0%, #a6a6a6 100%);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+    }
+    
+    .${uniquePrefix}_fab.visible {
+      bottom: 20px;
+      opacity: 1;
+      transform: scale(1);
+    }
+    
+    .${uniquePrefix}_fab.hidden {
+      bottom: -60px;
+      opacity: 0;
+      transform: scale(0.7);
+      transition: all 0.8s cubic-bezier(0.6, 0.1, 0.3, 1);
+    }
+    
+    .${uniquePrefix}_fab:hover {
+      transform: scale(1.1) translateY(-2px);
+      box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .${uniquePrefix}_fab:active {
+      transform: scale(0.95);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+    
+    .${uniquePrefix}_fab svg {
+      width: 20px;
+      height: 20px;
+      fill: white;
+    }
+    
+    .${uniquePrefix}_overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 9998;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease;
+    }
+    
+    body.theme-dim .${uniquePrefix}_overlay {
+      background-color: rgba(21, 32, 43, 0.7);
+    }
+    
+    body.theme-dark .${uniquePrefix}_overlay {
+      background-color: rgba(0, 0, 0, 0.7);
+    }
+    
+    .${uniquePrefix}_overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .${uniquePrefix}_menu {
+      position: fixed;
+      right: 25px;
+      bottom: 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      z-index: 9999;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      pointer-events: none;
+    }
+    
+    .${uniquePrefix}_menu.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
+    }
+    
+    .${uniquePrefix}_menu_item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+      transform: scale(0.8);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .${uniquePrefix}_menu.visible .${uniquePrefix}_menu_item {
+      transform: scale(1);
+      opacity: 1;
+    }
+    
+    .${uniquePrefix}_menu.visible .${uniquePrefix}_menu_item:nth-child(1) {
+      transition-delay: 0.05s;
+    }
+    
+    .${uniquePrefix}_menu.visible .${uniquePrefix}_menu_item:nth-child(2) {
+      transition-delay: 0.1s;
+    }
+    
+    .${uniquePrefix}_menu_button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #626262 0%, #787878 100%);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+      border: none;
+      cursor: pointer;
+      margin-right: 12px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    body.theme-dim .${uniquePrefix}_menu_button,
+    body.theme-dark .${uniquePrefix}_menu_button {
+      background: linear-gradient(135deg, #8899a6 0%, #a6a6a6 100%);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+    }
+    
+    .${uniquePrefix}_menu_button.large {
+      width: 54px;
+      height: 54px;
+    }
+    
+    .${uniquePrefix}_menu_button.small {
+      width: 42px;
+      height: 42px;
+    }
+    
+    .${uniquePrefix}_menu_button:hover {
+      transform: scale(1.1) translateY(-2px);
+      box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .${uniquePrefix}_menu_button:active {
+      transform: scale(0.95);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+    
+    .${uniquePrefix}_menu_button svg {
+      width: 20px;
+      height: 20px;
+      fill: white;
+    }
+    
+    .${uniquePrefix}_menu_button.small svg {
+      width: 18px;
+      height: 18px;
+    }
+    
+    .${uniquePrefix}_menu_label {
+      background-color: #ffffff;
+      color: #333333;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 16px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      white-space: nowrap;
+    }
+    
+    body.theme-dim .${uniquePrefix}_menu_label {
+      background-color: #1e2732;
+      color: #ffffff;
+    }
+    
+    body.theme-dark .${uniquePrefix}_menu_label {
+      background-color: #080808;
+      color: #ffffff;
+    }
+    
+    .${uniquePrefix}_post_container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--background-white, #ffffff);
+      z-index: 10000;
+      transform: translateX(100%);
+      transition: transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .${uniquePrefix}_post_container.visible {
+      transform: translateX(0);
+    }
+    
+    .${uniquePrefix}_close_button {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      z-index: 10001;
+      border-radius: 50%;
+      transition: background-color 0.2s ease;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .${uniquePrefix}_close_button:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    body.theme-dim .${uniquePrefix}_close_button:hover,
+    body.theme-dark .${uniquePrefix}_close_button:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .${uniquePrefix}_close_button svg {
+      width: 18px;
+      height: 18px;
+      fill: var(--text-primary, #333);
+    }
+    
+    .${uniquePrefix}_post_content {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .${uniquePrefix}_post_iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .${uniquePrefix}_post_iframe.loaded {
+      opacity: 1;
+    }
+    
+    .${uniquePrefix}_loading {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--background-white, #ffffff);
+      z-index: 10001;
+    }
+    
+    .${uniquePrefix}_spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(29, 161, 242, 0.3);
+      border-radius: 50%;
+      border-top-color: #1DA1F2;
+      animation: ${uniquePrefix}_spin 0.8s linear infinite;
+    }
+    
+    body.theme-dim .${uniquePrefix}_spinner {
+      border: 3px solid rgba(29, 161, 242, 0.2);
+      border-top-color: #1DA1F2;
+    }
+    
+    body.theme-dark .${uniquePrefix}_spinner {
+      border: 3px solid rgba(29, 161, 242, 0.2);
+      border-top-color: #1DA1F2;
+    }
+    
+    @keyframes ${uniquePrefix}_spin {
+      to { transform: rotate(360deg); }
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // Create FAB (Floating Action Button) - but don't add to DOM yet
+  const fab = document.createElement('div');
+  fab.className = `${uniquePrefix}_fab`;
+  fab.innerHTML = `
+    <svg viewBox="0 0 24 24">
+      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+    </svg>
+  `;
+  
+  // Create menu overlay
+  const overlay = document.createElement('div');
+  overlay.className = `${uniquePrefix}_overlay`;
+  
+  // Create menu with options
+  const menu = document.createElement('div');
+  menu.className = `${uniquePrefix}_menu`;
+  menu.innerHTML = `
+    <div class="${uniquePrefix}_menu_item">
+      <button class="${uniquePrefix}_menu_button small" id="${uniquePrefix}_media_button">
+        <svg viewBox="0 0 24 24">
+          <path d="M19.5 12c0-1.232-.336-2.387-0.934-3.391l-3.512 3.512c0.375 0.403 0.594 0.909 0.594 1.519 0 0.593-0.146 1.146-0.429 1.525l2.986 2.986c0.833-1.496 1.295-3.209 1.295-5.151zM12 4.5c4.188 0 7.5 3.312 7.5 7.5 0 1.893-0.684 3.63-1.832 4.963l1.992 1.992c0.216 0.216 0.216 0.566 0 0.783-0.217 0.217-0.567 0.217-0.783 0l-1.992-1.992c-1.333 1.149-3.07 1.832-4.963 1.832-4.188 0-7.5-3.312-7.5-7.5 0-1.893 0.684-3.63 1.832-4.963l-1.992-1.992c-0.216-0.216-0.216-0.566 0-0.783 0.217-0.217 0.567-0.217 0.783 0l1.992 1.992c1.333-1.149 3.07-1.833 4.963-1.833zM15.585 12c0-1.051-0.43-2.002-1.126-2.697-0.695-0.696-1.646-1.126-2.697-1.126-0.831 0-1.592 0.268-2.221 0.718l5.326 5.326c0.45-0.629 0.718-1.39 0.718-2.221zM8.415 12c0 1.051 0.43 2.002 1.126 2.697 0.695 0.696 1.646 1.126 2.697 1.126 0.831 0 1.592-0.268 2.221-0.718l-5.326-5.326c-0.45 0.629-0.718 1.39-0.718 2.221z"></path>
+        </svg>
+      </button>
+      <span class="${uniquePrefix}_menu_label">Media</span>
+    </div>
+    <div class="${uniquePrefix}_menu_item">
+      <button class="${uniquePrefix}_menu_button large" id="${uniquePrefix}_chat_button">
+        <svg viewBox="0 0 24 24">
+          <path d="M14.046 2.242l-4.148-.01h-.002c-4.374 0-7.8 3.427-7.8 7.802 0 4.098 3.186 7.206 7.465 7.37v3.828c0 .108.044.286.12.403.142.225.384.347.632.347.138 0 .277-.038.402-.118.264-.168 6.473-4.14 8.088-5.506 1.902-1.61 3.04-3.97 3.043-6.312v-.017c-.006-4.367-3.43-7.787-7.8-7.788zm3.787 12.972c-1.134.96-4.862 3.405-6.772 4.643V16.67c0-.414-.335-.75-.75-.75h-.396c-3.66 0-6.318-2.476-6.318-5.886 0-3.534 2.768-6.302 6.3-6.302l4.147.01h.002c3.532 0 6.3 2.766 6.302 6.296-.003 1.91-.942 3.844-2.514 5.176z"></path>
+        </svg>
+      </button>
+      <span class="${uniquePrefix}_menu_label">Chat</span>
+    </div>
+  `;
+  
+  // Create Post Container
+  const postContainer = document.createElement('div');
+  postContainer.className = `${uniquePrefix}_post_container`;
+  postContainer.innerHTML = `
+    <button class="${uniquePrefix}_close_button" aria-label="Close">
+      <svg viewBox="0 0 24 24">
+        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+      </svg>
+    </button>
+    <div class="${uniquePrefix}_post_content">
+      <div class="${uniquePrefix}_loading">
+        <div class="${uniquePrefix}_spinner"></div>
+      </div>
+      <iframe class="${uniquePrefix}_post_iframe" src="post.html"></iframe>
+    </div>
+  `;
+  
+  // Add elements to DOM
+  document.body.appendChild(fab);
+  document.body.appendChild(overlay);
+  document.body.appendChild(menu);
+  document.body.appendChild(postContainer);
+  
+  // Get references to elements
+  const chatButton = document.getElementById(`${uniquePrefix}_chat_button`);
+  const mediaButton = document.getElementById(`${uniquePrefix}_media_button`);
+  const closeButton = postContainer.querySelector(`.${uniquePrefix}_close_button`);
+  const postIframe = postContainer.querySelector(`.${uniquePrefix}_post_iframe`);
+  const loadingEl = postContainer.querySelector(`.${uniquePrefix}_loading`);
+  
+  // Scroll behavior variables
+  let lastScrollTop = 0;
+  let scrollThreshold = 30;
+  let lastScrollDirection = 'up';
+  let currentScrollDirection = 'up';
+  
+  // Get theme from localStorage or default to 'light'
+  function getCurrentTheme() {
+    return localStorage.getItem('twitter-theme') || 'light';
+  }
+  
+  // Update theme-related elements
+  function updateThemeElements() {
+    const theme = getCurrentTheme();
+    if (theme === 'dim') {
+      loadingEl.style.backgroundColor = '#15202b';
+    } else if (theme === 'dark') {
+      loadingEl.style.backgroundColor = '#000000';
+    } else {
+      loadingEl.style.backgroundColor = '#ffffff';
+    }
+  }
+  
+  // Set up theme monitoring
+  setInterval(updateThemeElements, 2000);
+  
+  // Initialize with hidden menu
+  fab.classList.add('visible');
+  
+  // Toggle menu visibility
+  function toggleMenu(show) {
+    if (show) {
+      overlay.classList.add('visible');
+      menu.classList.add('visible');
+    } else {
+      overlay.classList.remove('visible');
+      menu.classList.remove('visible');
+    }
+  }
+  
+  // Open post container
+  function openPostContainer(type) {
+    updateThemeElements(); // Update theme elements before showing
+    
+    // Hide menu
+    toggleMenu(false);
+    
+    // Set URL param based on type
+    const url = type === 'media' ? 'post.html?type=media' : 'post.html';
+    postIframe.src = url;
+    
+    // Show container
+    postContainer.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+    
+    // Show loading spinner
+    loadingEl.style.display = 'flex';
+    postIframe.classList.remove('loaded');
+    
+    // Wait for iframe to load
+    postIframe.onload = function() {
+      setTimeout(() => {
+        postIframe.classList.add('loaded');
+        loadingEl.style.display = 'none';
+      }, 1200); // Keep spinner visible for 1.2 seconds for better UX
+    };
+  }
+  
+  // Close post container
+  function closePostContainer() {
+    postContainer.classList.remove('visible');
+    document.body.style.overflow = '';
+    
+    // Reset iframe after animation completes
+    setTimeout(() => {
+      postIframe.classList.remove('loaded');
+      loadingEl.style.display = 'flex';
+    }, 500);
+  }
+  
+  // Improved scroll behavior handler
+  function handleScroll() {
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+    // Determine scroll direction with more precision
+    currentScrollDirection = scrollTop > lastScrollTop ? 'down' : 'up';
+    
+    // Only process if direction changed or significant scroll
+    if (currentScrollDirection !== lastScrollDirection || 
+        Math.abs(scrollTop - lastScrollTop) > scrollThreshold) {
+      
+      // If scrolling down, hide button
+      if (currentScrollDirection === 'down' && scrollTop > scrollThreshold) {
+        fab.classList.remove('visible');
+        fab.classList.add('hidden');
+      } 
+      // If scrolling up, show button
+      else if (currentScrollDirection === 'up') {
+        fab.classList.remove('hidden');
+        fab.classList.add('visible');
+      }
+      
+      lastScrollDirection = currentScrollDirection;
+    }
+    
+    lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+  }
+  
+  // Event listeners
+  fab.addEventListener('click', () => toggleMenu(true));
+  overlay.addEventListener('click', () => toggleMenu(false));
+  chatButton.addEventListener('click', () => openPostContainer('chat'));
+  mediaButton.addEventListener('click', () => openPostContainer('media'));
+  closeButton.addEventListener('click', closePostContainer);
+  
+  // Handle iframe communication
+  window.addEventListener('message', function(event) {
+    if (event.data === 'close_post_panel') {
+      closePostContainer();
+    }
+  });
+  
+  // Throttled scroll event listener for better performance
+  let scrollTimeout;
+  window.addEventListener('scroll', function() {
+    if (!scrollTimeout) {
+      scrollTimeout = setTimeout(function() {
+        handleScroll();
+        scrollTimeout = null;
+      }, 100);
+    }
+  }, { passive: true });
+  
+  // Initial theme setup
+  updateThemeElements();
+})();
 </script>
 <script type="module" src="language.js"></script>
 <script src="loadfollow.js"></script>
