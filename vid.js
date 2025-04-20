@@ -9,6 +9,14 @@ const sectionConfig = {
         url: './search.html',
         menuId: 'explore'
     },
+    'notificationsSection': {
+        url: './notifications.html',
+        menuId: 'notifications'
+    },
+    'messagesSection': {
+        url: './messages.html',
+        menuId: 'messages'
+    },
     'profileSection': {
         url: './profileview.html',
         menuId: 'profile'
@@ -24,8 +32,8 @@ window.scrollState = {
     lastScrollTime: Date.now(),
     scrollDirection: null,
     isMenuVisible: true,
-    scrollThreshold: 15, // Increased to reduce processing
-    scrollTimeThreshold: 100, // Increased for better performance
+    scrollThreshold: 15,
+    scrollTimeThreshold: 100,
     menuTimer: null,
     menuAutoHideDelay: 3000,
     disableScrollHandlingTimeout: null,
@@ -38,7 +46,7 @@ window.scrollState = {
 
 // Cache DOM elements for better performance
 function cacheDomElements() {
-    domCache.mobileMenu = document.getElementById('mobileMenu');
+    domCache.navContainer = document.getElementById('navContainer');
     domCache.contentWrapper = document.getElementById('contentWrapper');
     domCache.menuItems = Array.from(document.querySelectorAll('.menu-item'));
     domCache.sections = Array.from(document.querySelectorAll('.section'));
@@ -329,15 +337,15 @@ function handleScrollFromIframe(data) {
 
 // Optimized menu show/hide with requestAnimationFrame for better performance
 function showMenu() {
-    if (!domCache.mobileMenu || !domCache.contentWrapper) return;
+    if (!domCache.navContainer || !domCache.contentWrapper) return;
     
     // Use requestAnimationFrame for smoother animation
     requestAnimationFrame(() => {
         // Apply transitions only when needed
-        domCache.mobileMenu.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-        domCache.contentWrapper.style.transition = 'margin-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+        domCache.navContainer.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+        domCache.contentWrapper.style.transition = 'margin-top 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
         
-        domCache.mobileMenu.classList.remove('hidden');
+        domCache.navContainer.classList.remove('hidden');
         domCache.contentWrapper.classList.remove('full-height');
         window.scrollState.isMenuVisible = true;
         
@@ -347,7 +355,7 @@ function showMenu() {
             
             // Clean up transitions after animation
             requestAnimationFrame(() => {
-                domCache.mobileMenu.style.transition = '';
+                domCache.navContainer.style.transition = '';
                 domCache.contentWrapper.style.transition = '';
             });
         }, 350);
@@ -355,15 +363,15 @@ function showMenu() {
 }
 
 function hideMenu() {
-    if (!domCache.mobileMenu || !domCache.contentWrapper) return;
+    if (!domCache.navContainer || !domCache.contentWrapper) return;
     
     // Use requestAnimationFrame for smoother animation
     requestAnimationFrame(() => {
         // Apply transitions only when needed
-        domCache.mobileMenu.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-        domCache.contentWrapper.style.transition = 'margin-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+        domCache.navContainer.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+        domCache.contentWrapper.style.transition = 'margin-top 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
         
-        domCache.mobileMenu.classList.add('hidden');
+        domCache.navContainer.classList.add('hidden');
         domCache.contentWrapper.classList.add('full-height');
         window.scrollState.isMenuVisible = false;
         
@@ -373,7 +381,7 @@ function hideMenu() {
             
             // Clean up transitions after animation
             requestAnimationFrame(() => {
-                domCache.mobileMenu.style.transition = '';
+                domCache.navContainer.style.transition = '';
                 domCache.contentWrapper.style.transition = '';
             });
         }, 350);
@@ -427,7 +435,7 @@ function activateSection(sectionType) {
     });
     
     // Get section order and target index
-    const sectionOrder = ['homeSection', 'exploreSection', 'profileSection'];
+    const sectionOrder = ['homeSection', 'exploreSection', 'notificationsSection', 'messagesSection', 'profileSection'];
     const targetIndex = sectionOrder.indexOf(targetSectionId);
     window.scrollState.currentSectionIndex = targetIndex;
     
@@ -435,28 +443,25 @@ function activateSection(sectionType) {
     window.scrollState.isScrolling = true;
     
     if (window.innerWidth <= 768) {
-        // Get exact position for scroll
-        const containerWidth = domCache.contentWrapper.clientWidth;
-        const targetPosition = targetIndex * containerWidth;
-        
-        // Use requestAnimationFrame for smoother scrolling
-        requestAnimationFrame(() => {
-            domCache.contentWrapper.scrollTo({
-                left: targetPosition,
-                behavior: 'smooth'
-            });
-            
-            // Reset scrolling state after animation
-            setTimeout(() => {
-                window.scrollState.isScrolling = false;
-            }, 400);
-        });
-    } else {
-        // Instant scroll for desktop
+        // Focus on the target section
         targetSection.scrollIntoView({
-            behavior: 'auto',
+            behavior: 'smooth',
             block: 'nearest',
-            inline: 'start'
+            inline: 'center'
+        });
+        
+        // Reset scrolling state after animation
+        setTimeout(() => {
+            window.scrollState.isScrolling = false;
+        }, 400);
+    } else {
+        // Show target section
+        domCache.sections.forEach(section => {
+            if (section.id === targetSectionId) {
+                section.classList.add('active');
+            } else {
+                section.classList.remove('active');
+            }
         });
         window.scrollState.isScrolling = false;
     }
@@ -474,19 +479,6 @@ function initializePage() {
     
     // Initialize menu state
     window.scrollState.isMenuVisible = true;
-    
-    // Configure sections for mobile/desktop
-    if (domCache.contentWrapper && window.innerWidth <= 768) {
-        // Add smooth scrolling properties
-        domCache.contentWrapper.style.scrollSnapType = 'x mandatory';
-        domCache.contentWrapper.style.scrollBehavior = 'smooth';
-        
-        // Configure sections for snap scrolling
-        domCache.sections.forEach(section => {
-            section.style.scrollSnapAlign = 'center';
-            section.style.scrollSnapStop = 'always';
-        });
-    }
     
     // Load initial content more efficiently
     let loadDelay = 0;
@@ -519,13 +511,6 @@ function initializePage() {
 
 // Centralized event handler setup
 function setupEventListeners() {
-    // Optimized touch handlers
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let touchStartTime = 0;
-    let initialScrollLeft = 0;
-    let isTouchActive = false;
-    
     // Menu item click handlers
     domCache.menuItems.forEach(item => {
         item.addEventListener('click', () => {
@@ -545,263 +530,11 @@ function setupEventListeners() {
     
     // Use passive listeners for better performance
     document.addEventListener('touchstart', (e) => {
-        if (window.scrollState.isScrolling || !window.scrollState.allowSwipe) return;
-        
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-        touchStartTime = Date.now();
-        isTouchActive = true;
-        
-        if (domCache.contentWrapper) {
-            initialScrollLeft = domCache.contentWrapper.scrollLeft;
-        }
-        
         // Show menu if swiping from bottom edge
-        if (touchStartY > window.innerHeight - 80) {
+        if (e.touches[0].clientY > window.innerHeight - 80) {
             updateInteractionTime();
         }
     }, { passive: true });
-    
-    // Optimized touch move handler with throttling
-    const handleTouchMove = throttle((e) => {
-        if (!isTouchActive || window.scrollState.isScrolling || !window.scrollState.allowSwipe) return;
-        
-        const currentX = e.touches[0].clientX;
-        const currentY = e.touches[0].clientY;
-        const diffX = touchStartX - currentX;
-        const diffY = touchStartY - currentY;
-        
-        // Only handle significant horizontal movements
-        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 15 && window.innerWidth <= 768) {
-            // Calculate new position with resistance
-            if (domCache.contentWrapper) {
-                const containerWidth = domCache.contentWrapper.clientWidth;
-                const numSections = 3;
-                const maxScroll = containerWidth * (numSections - 1);
-                
-                let newScrollLeft = initialScrollLeft + diffX;
-                
-                // Add resistance at boundaries
-                if (newScrollLeft < 0) {
-                    newScrollLeft = diffX / 3;
-                } else if (newScrollLeft > maxScroll) {
-                    newScrollLeft = maxScroll + (diffX - (maxScroll - initialScrollLeft)) / 3;
-                }
-                
-                // Apply scroll with requestAnimationFrame
-                requestAnimationFrame(() => {
-                    domCache.contentWrapper.scrollLeft = newScrollLeft;
-                });
-            }
-        }
-    }, 16); // 60fps throttle
-    
-    document.addEventListener('touchmove', handleTouchMove, { passive: true });
-    
-    document.addEventListener('touchend', (e) => {
-        if (!isTouchActive) return;
-        isTouchActive = false;
-        
-        if (window.scrollState.isScrolling) return;
-        
-        const touchEndX = e.changedTouches[0].clientX;
-        const touchEndY = e.changedTouches[0].clientY;
-        const diffX = touchStartX - touchEndX;
-        const diffY = touchStartY - touchEndY;
-        const elapsedTime = Date.now() - touchStartTime;
-        
-        // Handle horizontal swipes
-        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 30 && window.innerWidth <= 768) {
-            // Calculate velocity
-            const velocity = Math.abs(diffX) / elapsedTime;
-            const isQuickSwipe = velocity > 0.5 && Math.abs(diffX) > 30;
-            
-            // Determine direction
-            const direction = diffX > 0 ? 'left' : 'right';
-            
-            // Get section order and indices
-            const sectionOrder = ['homeSection', 'exploreSection', 'profileSection'];
-            let currentIndex = window.scrollState.currentSectionIndex;
-            
-            // Fallback determination if index is invalid
-            if (currentIndex < 0 || currentIndex >= sectionOrder.length) {
-                const scrollRatio = domCache.contentWrapper.scrollLeft / domCache.contentWrapper.scrollWidth;
-                currentIndex = Math.round(scrollRatio * sectionOrder.length);
-                window.scrollState.currentSectionIndex = currentIndex;
-            }
-            
-            // Determine target section
-            let targetIndex;
-            
-            if (isQuickSwipe) {
-                targetIndex = direction === 'left' ? 
-                    Math.min(sectionOrder.length - 1, currentIndex + 1) : 
-                    Math.max(0, currentIndex - 1);
-            } else {
-                // Check if moved enough (33% of screen)
-                const containerWidth = domCache.contentWrapper.clientWidth;
-                const threshold = containerWidth / 3;
-                
-                if (Math.abs(diffX) > threshold) {
-                    targetIndex = direction === 'left' ? 
-                        Math.min(sectionOrder.length - 1, currentIndex + 1) : 
-                        Math.max(0, currentIndex - 1);
-                } else {
-                    targetIndex = currentIndex;
-                }
-            }
-            
-            // Activate section if changed or needs snap
-            if (targetIndex !== currentIndex || !isQuickSwipe) {
-                const targetSectionId = sectionOrder[targetIndex];
-                if (targetSectionId) {
-                    const menuId = sectionConfig[targetSectionId].menuId;
-                    
-                    // Temporarily disable swipe
-                    window.scrollState.allowSwipe = false;
-                    
-                    // Update state and activate
-                    window.scrollState.currentSectionIndex = targetIndex;
-                    activateSection(menuId);
-                    
-                    // Re-enable swipe after animation
-                    setTimeout(() => {
-                        window.scrollState.allowSwipe = true;
-                    }, 400);
-                }
-            }
-            
-            updateInteractionTime();
-        }
-        
-        // Detect swipe from bottom edge to show menu
-        if (Math.abs(diffY) > 50 && touchStartY > window.innerHeight - 100 && diffY < 0) {
-            showMenu();
-            resetMenuTimer();
-        }
-    }, { passive: true });
-    
-    // Efficient scroll handler using requestAnimationFrame
-    const handleContentScroll = debounce(() => {
-        if (window.innerWidth <= 768 && !window.scrollState.isScrolling) {
-            // Get current visible section
-            const currentSectionId = getCurrentVisibleSection();
-            if (currentSectionId && sectionConfig[currentSectionId]) {
-                const menuId = sectionConfig[currentSectionId].menuId;
-                
-                // Update section index
-                const sectionOrder = ['homeSection', 'exploreSection', 'profileSection'];
-                window.scrollState.currentSectionIndex = sectionOrder.indexOf(currentSectionId);
-                
-                // Update menu UI
-                domCache.menuItems.forEach(item => {
-                    if (item.getAttribute('data-section') === menuId) {
-                        item.classList.add('active');
-                    } else {
-                        item.classList.remove('active');
-                    }
-                });
-                
-                // Load content if needed
-                if (window.scrollState.iframeLoadStates[currentSectionId] !== 'loaded' && 
-                    window.scrollState.iframeLoadStates[currentSectionId] !== 'loading') {
-                    loadIframe(currentSectionId, sectionConfig[currentSectionId].url, 3);
-                }
-            }
-            
-            updateInteractionTime();
-        }
-    }, 100);
-    
-    // Add scroll end detection with better performance
-    const handleScrollEnd = debounce(() => {
-        if (window.innerWidth <= 768 && !window.scrollState.isScrolling) {
-            // Apply snap effect
-            const containerWidth = domCache.contentWrapper.clientWidth;
-            const scrollPosition = domCache.contentWrapper.scrollLeft;
-            const currentIndex = Math.round(scrollPosition / containerWidth);
-            
-            // Update current section index
-            window.scrollState.currentSectionIndex = currentIndex;
-            
-            // Calculate exact position
-            const targetPosition = currentIndex * containerWidth;
-            
-            // Only snap if not already at target position
-            if (Math.abs(scrollPosition - targetPosition) > 5) {
-                window.scrollState.isScrolling = true;
-                
-                requestAnimationFrame(() => {
-                    domCache.contentWrapper.scrollTo({
-                        left: targetPosition,
-                        behavior: 'smooth'
-                    });
-                    
-                    // Reset scrolling state after animation
-                    setTimeout(() => {
-                        window.scrollState.isScrolling = false;
-                    }, 400);
-                });
-            }
-            
-            // Update menu indicators
-            const sectionOrder = ['homeSection', 'exploreSection', 'profileSection'];
-            if (currentIndex >= 0 && currentIndex < sectionOrder.length) {
-                const currentSectionId = sectionOrder[currentIndex];
-                const menuId = sectionConfig[currentSectionId].menuId;
-                
-                domCache.menuItems.forEach(item => {
-                    if (item.getAttribute('data-section') === menuId) {
-                        item.classList.add('active');
-                    } else {
-                        item.classList.remove('active');
-                    }
-                });
-            }
-        }
-    }, 150);
-    
-    // Combine scroll handlers
-    if (domCache.contentWrapper) {
-        domCache.contentWrapper.addEventListener('scroll', () => {
-            handleContentScroll();
-            handleScrollEnd();
-        }, { passive: true });
-    }
-    
-    // Optimized resize handler with debounce
-    const handleResize = debounce(() => {
-        // Recalculate layout for responsive design
-        if (window.innerWidth <= 768) {
-            // Apply snap scroll properties
-            domCache.contentWrapper.style.scrollSnapType = 'x mandatory';
-            domCache.contentWrapper.style.scrollBehavior = 'smooth';
-            
-            domCache.sections.forEach(section => {
-                section.style.scrollSnapAlign = 'center';
-                section.style.scrollSnapStop = 'always';
-            });
-            
-            // Make sure the current section is properly scrolled into view
-            const currentIndex = window.scrollState.currentSectionIndex;
-            const containerWidth = domCache.contentWrapper.clientWidth;
-            const targetPosition = currentIndex * containerWidth;
-            
-            // Use instant scroll to avoid animation on resize
-            domCache.contentWrapper.scrollLeft = targetPosition;
-        } else {
-            // Remove snap scroll on desktop
-            domCache.contentWrapper.style.scrollSnapType = '';
-            domCache.contentWrapper.style.scrollBehavior = '';
-            
-            domCache.sections.forEach(section => {
-                section.style.scrollSnapAlign = '';
-                section.style.scrollSnapStop = '';
-            });
-        }
-    }, 250);
-    
-    window.addEventListener('resize', handleResize, { passive: true });
     
     // Global scroll handler
     document.addEventListener('scroll', throttle((e) => {
@@ -831,10 +564,22 @@ function setupEventListeners() {
     // Add interaction handlers
     document.addEventListener('touchstart', updateInteractionTime, { passive: true });
     document.addEventListener('click', updateInteractionTime, { passive: true });
+    
+    // Fix for blue indicator when switching sections
+    domCache.menuItems.forEach(item => {
+        item.addEventListener('click', () => {
+            // Force indicator animation reset
+            const indicator = item.querySelector('.menu-indicator::after');
+            if (indicator) {
+                indicator.style.transition = 'none';
+                indicator.offsetHeight; // Force reflow
+                indicator.style.transition = '';
+            }
+        });
+    });
 }
 
-
-// Function to handle iframe messages (continued)
+// Function to handle iframe messages
 function handleIframeMessage(event) {
     if (event.data && event.data.type === 'scroll') {
         handleScrollFromIframe(event.data);
@@ -847,18 +592,31 @@ function handleIframeMessage(event) {
 // Get current visible section more efficiently
 function getCurrentVisibleSection() {
     if (window.innerWidth <= 768) {
-        const scrollLeft = domCache.contentWrapper.scrollLeft;
-        const containerWidth = domCache.contentWrapper.clientWidth;
+        const sections = Array.from(document.querySelectorAll('.section'));
         
-        // Calculate section index based on scroll position
-        const sectionIndex = Math.round(scrollLeft / containerWidth);
+        // Find the section most in view
+        let mostVisibleSection = null;
+        let maxVisibility = 0;
         
-        // Map to section ID
-        const sectionOrder = ['homeSection', 'exploreSection', 'profileSection'];
-        return sectionOrder[sectionIndex] || sectionOrder[0];
+        sections.forEach(section => {
+            const rect = section.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            
+            // Calculate how much of section is visible
+            const visibleWidth = Math.min(rect.right, viewportWidth) - Math.max(rect.left, 0);
+            const visibilityRatio = visibleWidth / rect.width;
+            
+            if (visibilityRatio > maxVisibility) {
+                maxVisibility = visibilityRatio;
+                mostVisibleSection = section.id;
+            }
+        });
+        
+        return mostVisibleSection;
     } else {
-        // On desktop, just return the first section
-        return 'homeSection';
+        // On desktop, active section
+        const activeSection = document.querySelector('.section.active');
+        return activeSection ? activeSection.id : 'homeSection';
     }
 }
 
