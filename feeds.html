@@ -1,633 +1,438 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Image Gallery</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-/* Reset styles */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-/* Body with a white default theme */
-body {
-    font-family: Arial, sans-serif;
-    background-color: #ffffff;
-    padding: 20px;
-    padding-top: 40px;
-}
-
-/* Gallery container */
-/* Desktop: grid layout with multiple posts */
-.gallery {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    grid-auto-rows: auto;
-    gap: 15px;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-/* Mobile view: display one post at a time with vertical scrolling */
-@media (max-width: 767px) {
-    .gallery {
-        grid-template-columns: 1fr;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Chat</title>
+  <style>
+    /* Base Reset & Typography */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
-    .gallery-item {
-        /* Remove offset transforms on mobile for a clean vertical flow */
-        transform: none;
+
+    :root {
+        --primary-color: #626262;
+        --primary-light: #f0f0f0;
+        --primary-dark: #3a3a3a;
+        --text-primary: #333;
+        --text-secondary: #666;
+        --background-light: #f9f9f9;
+        --background-white: #ffffff;
+        --border-light: #e0e0e0;
+        --border-radius-sm: 8px;
+        --border-radius-md: 16px;
+        --border-radius-lg: 24px;
+        --transition-speed: 0.25s;
+        --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        --luxury-gradient: linear-gradient(
+            135deg,  
+            #0f0f0f 0%,  
+            #1c1c1c 15%,  
+            #3a3a3a 30%,  
+            #4d4d4d 45%,  
+            #626262 60%,  
+            #787878 75%,  
+            #8f8f8f 90%,  
+            #a6a6a6 100%
+        );
+        --border-color: #dadada;
     }
-}
 
-/* Medium screens: adjust grid layout */
-@media (min-width: 768px) {
-    .gallery {
-        grid-template-columns: repeat(3, 1fr);
+    /* Allow scrolling on body */
+    html, body {
+        height: 100%;
+        font-size: 16px;
+        color: var(--text-primary);
+        overflow-y: auto;
     }
-}
 
-/* Larger screens: further adjust grid layout */
-@media (min-width: 780px) {
-    .gallery {
-        grid-template-columns: repeat(4, 1fr);
+    body {
+      display: flex;
+      flex-direction: column;
+      background-color: var(--background-light);
     }
-}
 
-/* Gallery items */
-.gallery-item {
-    position: relative;
-    overflow: hidden;
-    border-radius: 15px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    /* Modern linear gradient border */
-    border: 2px solid;
-    border-image-slice: 1;
-    border-image-source: linear-gradient(45deg, #f06, transparent);
-}
-
-.gallery-item:hover {
-    transform: scale(1.03);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-}
-
-.gallery-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-}
-
-/* Desktop alternating vertical offsets for visual interest */
-@media (min-width: 768px) {
-    .gallery-item:nth-child(even) {
-        transform: translateY(50px);
+    .chat-container {
+        padding: 12px 16px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--primary-light) var(--background-light);
+        scroll-behavior: smooth;
     }
-    .gallery-item:nth-child(odd) {
-        transform: translateY(-50px);
+
+    .chat-container::-webkit-scrollbar {
+        width: 6px;
     }
-}
 
-/* Profile Info overlay */
-.profile-info {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    display: flex;
-    align-items: center;
-    background-color: rgba(255, 255, 255, 0.8);
-    padding: 5px 10px;
-    border-radius: 20px;
-}
-
-.profile-info img {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    margin-right: 5px;
-}
-
-.profile-info span {
-    font-size: 14px;
-    font-weight: bold;
-}
-
-/* Options overlay */
-.options {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    background-color: rgba(255, 255, 255, 0.8);
-    padding: 6px 8px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-}
-
-.options span {
-    height: 3px;
-    width: 3px;
-    background-color: #333;
-    border-radius: 50%;
-    margin: 1px 0;
-}
-
-/* Bouncing Loader */
-.bouncing-loader {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-    display: none;
-}
-
-.bouncing-loader .dot {
-    width: 10px;
-    height: 10px;
-    background-color: black;
-    border-radius: 50%;
-    animation: bouncing-loader 0.6s ease-in-out infinite alternate;
-}
-
-@keyframes bouncing-loader {
-    0% {
-        transform: translateY(0);
+    .chat-container::-webkit-scrollbar-track {
+        background: var(--background-light);
     }
-    100% {
-        transform: translateY(-10px);
-    }
-}
 
-.show-loader {
-    display: block !important;
-}
-</style>
+    .chat-container::-webkit-scrollbar-thumb {
+        background: var(--primary-light);
+        border-radius: 3px;
+        transition: background var(--transition-speed);
+    }
+
+    .chat-container::-webkit-scrollbar-thumb:hover {
+        background: var(--primary-color);
+    }
+
+    /* Message Component */
+    .message {
+        display: flex;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--border-light);
+        animation: fadeIn 0.4s ease;
+        transition: background-color var(--transition-speed);
+    }
+
+    .message:hover {
+        background-color: rgba(74, 144, 226, 0.03);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .profile-image {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        margin-right: 14px;
+        flex-shrink: 0;
+        object-fit: cover;
+        border: 2px solid transparent;
+        transition: border-color var(--transition-speed);
+        box-shadow: var(--box-shadow);
+    }
+
+    .profile-image:hover {
+        border-color: var(--primary-color);
+    }
+
+    .message-content {
+        flex: 1;
+        min-width: 0; /* Prevents content from overflowing flex container */
+    }
+
+    /* Message Header & Metadata */
+    .message-header {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+    }
+
+    .user-name {
+      font-weight: 600;
+      color: var(--primary-color);
+      margin-bottom: 4px;
+      display: block;
+      font-size: 1rem;
+    }
+
+    .user-name:hover {
+        color: var(--primary-color);
+    }
+
+    .user-handle, .message-time {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .user-handle {
+        margin-right: 10px;
+    }
+
+    .message-text {
+        margin-bottom: 12px;
+        word-wrap: break-word;
+        line-height: 1.5;
+        font-size: 0.975rem;
+    }
+
+    /* Media Content */
+    .media-container {
+        margin: 12px 0;
+        max-width: 100%;
+        border-radius: var(--border-radius-md);
+        overflow: hidden;
+        box-shadow: var(--box-shadow);
+        transition: transform var(--transition-speed);
+    }
+
+    .media-container:hover {
+        transform: scale(1.01);
+    }
+
+    .message-image {
+        max-width: 100%;
+        max-height: 450px;
+        object-fit: contain;
+        border-radius: var(--border-radius-md);
+        cursor: pointer;
+        transition: filter var(--transition-speed);
+        display: block; /* Eliminates bottom space */
+    }
+
+    .message-image:hover {
+        filter: brightness(1.05);
+    }
+
+    .message-video {
+        max-width: 100%;
+        max-height: 450px;
+        border-radius: var(--border-radius-md);
+        background: #000;
+        display: block;
+    }
+
+    /* Interactive Action Buttons */
+    .action-buttons {
+        display: flex;
+        margin-top: 10px;
+    }
+
+    .action-button {
+        display: flex;
+        align-items: center;
+        margin-right: 28px;
+        color: var(--text-secondary);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 0.875rem;
+        transition: color var(--transition-speed), transform var(--transition-speed);
+        padding: 5px;
+    }
+
+    .action-button:hover {
+        color: var(--primary-color);
+        transform: translateY(-2px);
+    }
+
+    .action-button svg {
+        width: 18px;
+        height: 18px;
+        margin-right: 8px;
+        fill: currentColor;
+        transition: transform var(--transition-speed);
+    }
+
+    .action-button:hover svg {
+        transform: scale(1.1);
+    }
+
+    /* Country Flag */
+    .country-flag {
+        width: 18px;
+        height: 14px;
+        margin-left: 8px;
+        border-radius: 2px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        transition: transform var(--transition-speed);
+    }
+
+    .country-flag:hover {
+        transform: scale(1.2);
+    }
+
+    /* Follow Button */
+    .follow-btn {
+        margin-left: 12px;
+        background-color: transparent;
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+        border-radius: var(--border-radius-lg);
+        padding: 4px 12px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color var(--transition-speed);
+    }
+
+    .follow-btn:hover {
+        background-color: rgba(98, 98, 98, 0.1);
+    }
+
+    .follow-btn.followed {
+        background: var(--luxury-gradient);
+        color: white;
+    }
+
+    /* Loading Animation */
+    .loading-dots {
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .loading-dot {
+      width: 8px;
+      height: 8px;
+      margin: 0 4px;
+      border-radius: 50%;
+      background-color: var(--primary-color);
+      animation: bounce 0.6s infinite alternate;
+    }
+
+    .loading-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .loading-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+    @keyframes bounce {
+        from { transform: translateY(0); }
+        to { transform: translateY(-8px); }
+    }
+
+    /* Media Queries for Responsiveness */
+    @media (max-width: 992px) {
+        html {
+            font-size: 15px;
+        }
+        
+        .message {
+            padding: 12px 0;
+        }
+        
+        .media-container {
+            max-width: 95%;
+        }
+        
+        .action-button {
+            margin-right: 20px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        html {
+            font-size: 14px;
+        }
+        
+        .profile-image {
+            width: 42px;
+            height: 42px;
+            margin-right: 12px;
+        }
+
+        .message {
+            padding: 10px 0;
+        }
+
+        .message-text {
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .action-button {
+            margin-right: 16px;
+            font-size: 0.8rem;
+        }
+
+        .action-button svg {
+            margin-right: 6px;
+        }
+
+        .message-image, .message-video {
+            max-height: 380px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        html {
+            font-size: 14px;
+        }
+        
+        .chat-container {
+            padding: 10px 12px;
+        }
+        
+        .profile-image {
+            width: 38px;
+            height: 38px;
+            margin-right: 10px;
+        }
+
+        .message-header {
+            flex-wrap: wrap;
+        }
+
+        .user-name {
+            font-size: 0.95rem;
+        }
+
+        .user-handle, .message-time {
+            font-size: 0.8rem;
+        }
+
+        .message-text {
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .action-buttons {
+            justify-content: space-between;
+        }
+
+        .action-button {
+            margin-right: 12px;
+            font-size: 0.75rem;
+        }
+
+        .action-button svg {
+            width: 16px;
+            height: 16px;
+            margin-right: 4px;
+        }
+        
+        .message-image, .message-video {
+            max-height: 320px;
+        }
+        
+        .follow-btn {
+            padding: 2px 8px;
+            font-size: 0.7rem;
+        }
+    }
+  </style>
 </head>
 <body>
-    <div class="bouncing-loader">
-        <div class="dot"></div>
+  <!-- Chat container only -->
+  <div class="chat-container" id="chatContainer">
+    <div class="loading-dots" id="loadingIndicator">
+      <div class="loading-dot"></div>
+      <div class="loading-dot"></div>
+      <div class="loading-dot"></div>
     </div>
-
-    <div id="gallery" class="gallery">
-        <div class="loading">
-            <div class="loading-spinner"></div>
-        </div>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, query, orderBy, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
-            authDomain: "globalchat-2d669.firebaseapp.com",
-            projectId: "globalchat-2d669",
-            storageBucket: "globalchat-2d669.firebasestorage.app",
-            messagingSenderId: "178714711978",
-            appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const loader = document.querySelector('.bouncing-loader');
-
-        // Content Moderation Function
-        function moderateContent(mediaUrl, mediaType) {
-            const inappropriateKeywords = [
-                'nude', 'explicit', 'porn', 
-                'advertisement', 'spam', 
-                'offensive', 'violent'
-            ];
-
-            const allowedMediaTypes = [
-                'image/jpeg', 'image/png', 
-                'image/gif', 'image/webp'
-            ];
-
-            return (
-                allowedMediaTypes.includes(mediaType) &&
-                !inappropriateKeywords.some(keyword => 
-                    mediaUrl.toLowerCase().includes(keyword)
-                )
-            );
-        }
-
-        async function getUserProfile(userId) {
-            try {
-                const userDocRef = doc(db, 'users', userId);
-                const userDoc = await getDoc(userDocRef);
-                return userDoc.exists() ? userDoc.data() : null;
-            } catch (error) {
-                console.error('Error fetching user profile:', error);
-                return null;
-            }
-        }
-
-        async function createGalleryItem(post) {
-            if (!moderateContent(post.mediaUrl, post.mediaType)) {
-                return null;
-            }
-
-            const userProfile = await getUserProfile(post.userId);
-            const username = userProfile?.displayName || `User ${post.userId.slice(0, 4)}`;
-            const profilePic = userProfile?.photoURL || "/api/placeholder/30/30";
-
-            const galleryItem = document.createElement('div');
-            galleryItem.className = 'gallery-item';
-            galleryItem.innerHTML = `
-                <img src="${post.mediaUrl}" alt="Gallery Image">
-                <div class="profile-info">
-                    <img src="${profilePic}" alt="Profile Image">
-                    <span>${username}</span>
-                </div>
-                <div class="options">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            `;
-
-            return galleryItem;
-        }
-
-        async function loadGallery() {
-            const galleryContainer = document.getElementById('gallery');
-            galleryContainer.innerHTML = ''; // Clear loading message
-
-            // Show loader
-            loader.classList.add('show-loader');
-
-            try {
-                const postsQuery = query(
-                    collection(db, 'posts'),
-                    orderBy('createdAt', 'desc')
-                );
-
-                const snapshot = await getDocs(postsQuery);
-                const posts = snapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() }))
-                    .filter(post => post.mediaUrl);
-
-                // Once posts are fetched, hide loader
-                loader.classList.remove('show-loader');
-
-                for (const post of posts) {
-                    const galleryItem = await createGalleryItem(post);
-                    if (galleryItem) {
-                        galleryContainer.appendChild(galleryItem);
-                    }
-                }
-
-            } catch (error) {
-                console.error('Gallery loading error:', error);
-                // Hide loader in case of error
-                loader.classList.remove('show-loader');
-                galleryContainer.innerHTML = `
-                    <div class="loading">
-                        <div class="loading-spinner"></div>
-                    </div>
-                `;
-            }
-        }
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                loadGallery();
-            } else {
-                window.location.href = 'login.html';
-            }
-        });
-    </script>
-  <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const gallery = document.getElementById('gallery');
-    const modalOverlay = createModalOverlay();
-
-    gallery.addEventListener('click', (event) => {
-        const clickedItem = event.target.closest('.gallery-item');
-        if (clickedItem) {
-            openPostModal(clickedItem);
-            history.pushState({ modalOpen: true }, '');
-        }
-    });
-
-    // Handle browser back button
-    window.addEventListener('popstate', (event) => {
-        if (event.state && event.state.modalOpen) {
-            closeModal();
-        }
-    });
-
-    function createModalOverlay() {
-        const overlay = document.createElement('div');
-        overlay.id = 'post-modal-overlay';
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.8);
-            z-index: 1000;
-            display: none;
-            overflow: hidden;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        `;
-        document.body.appendChild(overlay);
-        return overlay;
-    }
-
-    function getRandomPosts(allPosts, excludePost, count) {
-        const availablePosts = allPosts.filter(item => item !== excludePost);
-        const shuffled = availablePosts.sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, count);
-    }
-
-    function createModalContent(clickedItem) {
-        const modalContent = document.createElement('div');
-        
-        // Responsive design
-        if (window.innerWidth > 768) {
-            // Desktop layout
-            modalContent.style.cssText = `
-                position: fixed;
-                top: 0;
-                right: 0;
-                width: 500px;
-                height: 100%;
-                background-color: white;
-                display: flex;
-                flex-direction: column;
-                overflow-y: auto;
-                box-shadow: -4px 0 15px rgba(0,0,0,0.1);
-                transform: translateX(100%);
-                transition: transform 0.4s cubic-bezier(0.32, 0.64, 0.45, 1);
-            `;
-        } else {
-            // Mobile full-screen layout
-            modalContent.style.cssText = `
-                width: 100%;
-                height: 100%;
-                background-color: white;
-                display: flex;
-                flex-direction: column;
-                overflow-y: auto;
-                transform: translateY(100%);
-                transition: transform 0.4s cubic-bezier(0.32, 0.64, 0.45, 1);
-                position: relative;
-            `;
-        }
-
-        // Back Button with Fixed Positioning
-        const backButton = document.createElement('button');
-        backButton.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M15 18l-6-6 6-6"/>
-            </svg>
-        `;
-        backButton.style.cssText = `
-            position: fixed;
-            top: 15px;
-            left: 15px;
-            background-color: rgba(255,255,255,0.9);
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            z-index: 1002;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            transition: all 0.2s ease;
-            opacity: 0;
-        `;
-        backButton.addEventListener('click', closeModal);
-        backButton.addEventListener('mouseenter', () => {
-            backButton.style.backgroundColor = 'rgba(240,240,240,1)';
-            backButton.style.transform = 'scale(1.1)';
-        });
-        backButton.addEventListener('mouseleave', () => {
-            backButton.style.backgroundColor = 'rgba(255,255,255,0.9)';
-            backButton.style.transform = 'scale(1)';
-        });
-
-        // Ensure back button stays fixed on scroll for mobile
-        if (window.innerWidth <= 768) {
-            const modalScrollContainer = document.createElement('div');
-            modalScrollContainer.style.cssText = `
-                flex-grow: 1;
-                overflow-y: auto;
-                position: relative;
-                padding-top: 70px;
-            `;
-
-            // Main content will be scrollable, with back button fixed
-            modalScrollContainer.appendChild(backButton);
-            modalContent.appendChild(modalScrollContainer);
-        } else {
-            modalContent.appendChild(backButton);
-        }
-
-        // Main Image Container
-        const mainImageContainer = document.createElement('div');
-        mainImageContainer.style.cssText = `
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            background-color: ${window.innerWidth > 768 ? '#f8f9fa' : 'white'};
-            opacity: 0;
-            transform: scale(0.9);
-            transition: all 0.4s cubic-bezier(0.32, 0.64, 0.45, 1) 0.2s;
-        `;
-
-        const mainImage = clickedItem.querySelector('img').cloneNode(true);
-        mainImage.style.cssText = `
-            max-width: 100%;
-            max-height: ${window.innerWidth > 768 ? '70vh' : '60vh'};
-            object-fit: contain;
-            border-radius: 15px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        `;
-        mainImageContainer.appendChild(mainImage);
-
-        // Profile Section
-        const profileSection = document.createElement('div');
-        profileSection.style.cssText = `
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            border-bottom: 1px solid #e0e0e0;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.4s cubic-bezier(0.32, 0.64, 0.45, 1) 0.3s;
-        `;
-
-        const profileImage = clickedItem.querySelector('.profile-info img').cloneNode(true);
-        profileImage.style.cssText = `
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            margin-right: 12px;
-            border: 2px solid white;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        `;
-
-        const profileName = clickedItem.querySelector('.profile-info span').cloneNode(true);
-        profileName.style.cssText = `
-            font-weight: bold;
-            font-size: 16px;
-            color: #333;
-        `;
-
-        profileSection.appendChild(profileImage);
-        profileSection.appendChild(profileName);
-
-        // Recommended Posts Grid
-        const recommendedSection = document.createElement('div');
-        recommendedSection.style.cssText = `
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            padding: 15px;
-            background-color: white;
-            opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.4s cubic-bezier(0.32, 0.64, 0.45, 1) 0.4s;
-        `;
-
-        // Populate recommended posts RANDOMLY
-        const allGalleryItems = Array.from(document.querySelectorAll('.gallery-item'));
-        const recommendedPosts = getRandomPosts(allGalleryItems, clickedItem, 6);
-
-        recommendedPosts.forEach(post => {
-            const postWrapper = document.createElement('div');
-            postWrapper.style.cssText = `
-                position: relative;
-                border-radius: 10px;
-                overflow: hidden;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-                cursor: pointer;
-                transition: transform 0.3s ease;
-            `;
-
-            const recommendedImage = post.querySelector('img').cloneNode(true);
-            recommendedImage.style.cssText = `
-                width: 100%;
-                height: 250px;
-                object-fit: cover;
-                transition: transform 0.3s ease;
-            `;
-
-            postWrapper.addEventListener('mouseenter', () => {
-                postWrapper.style.transform = 'scale(1.05)';
-                recommendedImage.style.transform = 'scale(1.1)';
-            });
-
-            postWrapper.addEventListener('mouseleave', () => {
-                postWrapper.style.transform = 'scale(1)';
-                recommendedImage.style.transform = 'scale(1)';
-            });
-
-            postWrapper.addEventListener('click', () => {
-                closeModal();
-                setTimeout(() => {
-                    openPostModal(post);
-                }, 400);
-            });
-
-            postWrapper.appendChild(recommendedImage);
-            recommendedSection.appendChild(postWrapper);
-        });
-
-        // Append sections to modal content
-        const modalScrollContainer = modalContent.querySelector('div[style*="overflow-y"]') || modalContent;
-        if (window.innerWidth <= 768) {
-            modalScrollContainer.appendChild(mainImageContainer);
-            modalScrollContainer.appendChild(profileSection);
-            modalScrollContainer.appendChild(recommendedSection);
-        } else {
-            modalContent.appendChild(mainImageContainer);
-            modalContent.appendChild(profileSection);
-            modalContent.appendChild(recommendedSection);
-        }
-
-        // Trigger animations
-        setTimeout(() => {
-            mainImageContainer.style.opacity = '1';
-            mainImageContainer.style.transform = 'scale(1)';
-            profileSection.style.opacity = '1';
-            profileSection.style.transform = 'translateY(0)';
-            recommendedSection.style.opacity = '1';
-            recommendedSection.style.transform = 'translateY(0)';
-            backButton.style.opacity = '1';
-        }, 50);
-
-        return modalContent;
-    }
-
-    function openPostModal(clickedItem) {
-        document.body.style.overflow = 'hidden';
-        modalOverlay.style.display = 'block';
-        modalOverlay.style.opacity = '1';
-        
-        const modalContent = createModalContent(clickedItem);
-        modalOverlay.appendChild(modalContent);
-
-        // Animate modal entrance
-        setTimeout(() => {
-            if (window.innerWidth > 768) {
-                modalContent.style.transform = 'translateX(0)';
-            } else {
-                modalContent.style.transform = 'translateY(0)';
-            }
-        }, 50);
-    }
-
-    function closeModal() {
-        const modalContent = modalOverlay.querySelector('div');
-        
-        // Animate modal exit
-        if (window.innerWidth > 768) {
-            modalContent.style.transform = 'translateX(100%)';
-        } else {
-            modalContent.style.transform = 'translateY(100%)';
-        }
-
-        modalOverlay.style.opacity = '0';
-        
-        setTimeout(() => {
-            modalOverlay.style.display = 'none';
-            modalOverlay.innerHTML = '';
-            document.body.style.overflow = '';
-            history.replaceState(null, '', location.pathname);
-        }, 400);
-    }
-
-    // Close modal when clicking outside on desktop
-    modalOverlay.addEventListener('click', (event) => {
-        if (event.target === modalOverlay) {
-            closeModal();
-        }
-    });
-});
-</script>
-
+  </div>
 </body>
-</html>
+
+
+   
+</script>
+<script type="module" src="language.js"></script>
+<script src="loadfollow.js"></script>
+<script src="remove.js"></script>
+<script src="reply.js"></script>
+<script src="autoscroll.js"></script>
+<script src="ad.js"></script>
+
+<script src="viewprof.js"></script>
+<script src="replyhighl.js"></script>
+<script src="theme.js"></script>
+<script src="link.js"></script>
+<script src="check.js"></script>
+<script src="sound.js"></script>
+<script src="mark.js"></script>
+<script src="share.js"></script>
+
+

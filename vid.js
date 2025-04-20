@@ -2,7 +2,7 @@
 // Configuration for sections and their content
 const sectionConfig = {
     'homeSection': {
-        url: './globalchat.html',
+        url: './feeds.html',
         menuId: 'home'
     },
     'exploreSection': {
