@@ -1,247 +1,559 @@
-
-(() => {
-  document.addEventListener('DOMContentLoaded', () => {
-    // Create unique namespace to avoid conflicts
-    const scrollManager = {
-      uniqueId: `scroll-${Math.random().toString(36).substr(2, 9)}`,
+(function() {
+  // Enhanced Language Sync Manager for Global Chat
+  const GlobalChatLanguageManager = {
+    originalLanguage: document.documentElement.lang || 'en',
+    currentLanguage: null,
+    isTranslating: false,
+    translationTimeout: null,
+    chatContainer: document.getElementById('chatContainer'),
+    
+    initialize: function() {
+      // Create necessary elements
+      this.createLoadingIndicator();
+      this.createGoogleTranslateElement();
       
-      createButton() {
-        const button = document.createElement('button');
-        button.innerHTML = '↓';
-        button.id = this.uniqueId;
-        button.classList.add(`${this.uniqueId}-btn`);
-        button.setAttribute('aria-label', 'Scroll to bottom');
-        return button;
-      },
+      // Check saved language preference
+      const savedLanguage = localStorage.getItem('preferredLanguage');
+      if (savedLanguage && savedLanguage !== this.originalLanguage) {
+        this.currentLanguage = savedLanguage;
+        this.showLoading();
+        // Short delay to ensure DOM is ready
+        setTimeout(() => this.loadGoogleTranslateScript(), 100);
+      }
       
-      createStyles() {
-        const style = document.createElement('style');
-        style.textContent = `
-          @keyframes ${this.uniqueId}-slideIn {
-            0% {
-              opacity: 0;
-              transform: translateY(30px);
-            }
-            100% {
-              opacity: 1;
-              transform: translateY(0);
-            }
+      // Setup event listeners
+      this.setupEventListeners();
+      
+      // Add additional hiding mechanism
+      this.setupTranslateElementHider();
+      console.log('Global Chat Language Manager initialized');
+      
+      // Monitor chat updates to ensure translations apply to new content
+      this.monitorChatUpdates();
+    },
+    
+    createLoadingIndicator: function() {
+      const loadingOverlay = document.createElement('div');
+      loadingOverlay.className = 'language-loading-overlay';
+      loadingOverlay.innerHTML = `
+        <div class="language-loading-spinner">
+          <div class="language-loading-dot"></div>
+          <div class="language-loading-dot"></div>
+          <div class="language-loading-dot"></div>
+        </div>
+      `;
+      document.body.appendChild(loadingOverlay);
+      
+      // Add the styles with improved hiding selectors
+      const style = document.createElement('style');
+      style.textContent = `
+        .language-loading-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(255, 255, 255, 0.7);
+          z-index: 9999;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          opacity: 0;
+          visibility: hidden;
+          transition: opacity 0.2s ease;
+        }
+        
+        .language-loading-overlay.active {
+          opacity: 1;
+          visibility: visible;
+        }
+        
+        .language-loading-spinner {
+          display: flex;
+          gap: 5px;
+        }
+        
+        .language-loading-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background-color: #626262;
+          animation: language-loading-bounce 1.4s infinite ease-in-out both;
+        }
+        
+        .language-loading-dot:nth-child(1) {
+          animation-delay: -0.32s;
+        }
+        
+        .language-loading-dot:nth-child(2) {
+          animation-delay: -0.16s;
+        }
+        
+        @keyframes language-loading-bounce {
+          0%, 80%, 100% {
+            transform: scale(0);
           }
-
-          @keyframes ${this.uniqueId}-slideOut {
-            0% {
-              opacity: 1;
-              transform: translateY(0);
-            }
-            100% {
-              opacity: 0;
-              transform: translateY(30px);
-            }
+          40% {
+            transform: scale(1);
           }
-
-          .${this.uniqueId}-btn {
-            position: fixed;
-            bottom: 80px;
-            right: 20px;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            z-index: 999;
-            font-size: 18px;
-            font-weight: bold;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            outline: none;
-            opacity: 0.85;
-            transition: all 0.3s ease;
-            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Comprehensive Google element hiding */
+        .goog-te-banner-frame,
+        .goog-te-balloon-frame,
+        #goog-gt-tt,
+        .goog-tooltip,
+        .goog-tooltip:hover,
+        .goog-text-highlight,
+        .VIpgJd-ZVi9od-l4eHX-hSRGPd,
+        .VIpgJd-ZVi9od-ORHb-OEVmcd,
+        .VIpgJd-ZVi9od-SmfZ-OEVmcd-tJHJj,
+        .goog-te-gadget,
+        .goog-logo-link,
+        .goog-te-combo,
+        .skiptranslate,
+        iframe[name="googleTranslateElementInitialIframe"],
+        iframe.goog-te-menu-frame,
+        iframe.VIpgJd-ZVi9od-SmfZ-OEVmcd-tJHJj,
+        .VIpgJd-yAWNEb-L7lbkb,
+        #goog-gt-,
+        .goog-te-menu-value,
+        div#goog-gt-,
+        #goog-gt-tt.skiptranslate,
+        .goog-te-spinner-pos,
+        .goog-te-spinner,
+        .goog-te-banner-frame.skiptranslate,
+        .goog-te-sectional-gadget {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          height: 0 !important;
+          width: 0 !important;
+          border: none !important;
+          position: absolute !important;
+          top: -9999px !important;
+          left: -9999px !important;
+          pointer-events: none !important;
+          max-height: 0 !important;
+          max-width: 0 !important;
+          transform: scale(0) !important;
+        }
+        
+        body {
+          top: 0 !important;
+          position: static !important;
+        }
+        
+        /* Additional fixes to prevent any translation UI */
+        .VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+        .VIpgJd-ZVi9od-aZ2wEe-OiiCO,
+        .VIpgJd-ZVi9od-aZ2wEe {
+          display: none !important;
+          height: 0 !important;
+        }
+        
+        /* Fix for top bar spacing issue */
+        html[translated], 
+        body[translated] {
+          margin-top: 0 !important;
+          padding-top: 0 !important;
+        }
+      `;
+      
+      document.head.appendChild(style);
+    },
+    
+    createGoogleTranslateElement: function() {
+      // Create hidden Google Translate element
+      const translateElement = document.createElement('div');
+      translateElement.id = 'google_translate_element';
+      translateElement.style.cssText = 'position:absolute;top:-9999px;left:-9999px;width:0;height:0;visibility:hidden;opacity:0;pointer-events:none;overflow:hidden;';
+      document.body.appendChild(translateElement);
+    },
+    
+    setupTranslateElementHider: function() {
+      // Continuous hiding of Google elements
+      const hideGoogleElements = () => {
+        // List of selectors that Google Translate might create
+        const selectors = [
+          '.goog-te-banner-frame',
+          '.goog-te-menu-frame',
+          '.goog-tooltip',
+          '.skiptranslate',
+          'iframe.goog-te-menu-frame',
+          '#goog-gt-tt',
+          '.VIpgJd-ZVi9od-l4eHX-hSRGPd',
+          '.VIpgJd-ZVi9od-ORHb-OEVmcd',
+          '.VIpgJd-ZVi9od-SmfZ-OEVmcd-tJHJj'
+        ];
+        
+        selectors.forEach(selector => {
+          const elements = document.querySelectorAll(selector);
+          elements.forEach(el => {
+            if (el && el.style) {
+              el.style.display = 'none';
+              el.style.visibility = 'hidden';
+              el.style.opacity = '0';
+              el.style.height = '0';
+              el.style.width = '0';
+              el.style.border = 'none';
+              el.style.position = 'absolute';
+              el.style.top = '-9999px';
+              el.style.left = '-9999px';
+              el.style.pointerEvents = 'none';
+            }
+          });
+        });
+        
+        // Fix body positioning if Google modified it
+        if (document.body.style.top && document.body.style.top !== '0px') {
+          document.body.style.top = '0px';
+          document.body.style.position = 'static';
+        }
+      };
+      
+      // Run immediately
+      hideGoogleElements();
+      
+      // Then set up interval to keep hiding them
+      setInterval(hideGoogleElements, 300); // More frequent checks
+      
+      // Also hide on DOM changes
+      const observer = new MutationObserver(hideGoogleElements);
+      observer.observe(document.body, { 
+        childList: true, 
+        subtree: true 
+      });
+    },
+    
+    loadGoogleTranslateScript: function() {
+      // If already loaded, apply translation directly
+      if (window.google && window.google.translate) {
+        this.applyTranslation();
+        return;
+      }
+      
+      // Define callback for Google Translate
+      window.googleTranslateElementInit = () => {
+        new google.translate.TranslateElement({
+          pageLanguage: this.originalLanguage,
+          autoDisplay: false,
+          includedLanguages: '', // Load all languages for flexibility
+          layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+        }, 'google_translate_element');
+        
+        // Apply translation immediately after init
+        setTimeout(() => this.applyTranslation(), 300);
+      };
+      
+      // Load Google Translate script
+      const script = document.createElement('script');
+      script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+      script.async = true;
+      document.head.appendChild(script);
+      
+      // Set timeout to hide loading if translation takes too long
+      this.translationTimeout = setTimeout(() => {
+        if (this.isTranslating) {
+          this.hideLoading();
+        }
+      }, 5000);
+    },
+    
+    applyTranslation: function() {
+      if (!this.currentLanguage || this.currentLanguage === this.originalLanguage) {
+        this.hideLoading();
+        return;
+      }
+      
+      // Try multiple methods to apply translation
+      
+      // Method 1: Using the dropdown
+      const selectElement = document.querySelector('.goog-te-combo');
+      if (selectElement) {
+        selectElement.value = this.currentLanguage;
+        const event = new Event('change', { bubbles: true });
+        selectElement.dispatchEvent(event);
+      }
+      
+      // Method 2: Using cookies
+      const domain = window.location.hostname;
+      document.cookie = `googtrans=/auto/${this.currentLanguage}; domain=${domain}; path=/;`;
+      document.cookie = `googtrans=/auto/${this.currentLanguage}; domain=.${domain}; path=/;`;
+      
+      // Method 3: Using direct API if available
+      if (window.google && window.google.translate && window.google.translate.TranslateElement) {
+        try {
+          const te = google.translate.TranslateElement.getInstance();
+          if (te) {
+            te.selectLanguage(this.currentLanguage);
+          }
+        } catch (e) {
+          console.log('Direct translation method failed, using alternatives');
+        }
+      }
+      
+      // Monitor DOM for translation changes
+      this.monitorTranslationChanges();
+    },
+    
+    monitorTranslationChanges: function() {
+      // Check for translation immediately
+      const checkTranslation = () => {
+        // Various indicators that translation has occurred
+        const isTranslated = 
+          document.body.classList.contains('translated-ltr') || 
+          document.body.classList.contains('translated-rtl') ||
+          document.documentElement.classList.contains('translated-ltr') ||
+          document.documentElement.classList.contains('translated-rtl') ||
+          document.cookie.includes('googtrans') ||
+          document.querySelector('.goog-te-banner-frame') !== null ||
+          document.querySelector('.skiptranslate') !== null;
+        
+        if (isTranslated) {
+          this.hideLoading();
+          return true;
+        }
+        return false;
+      };
+      
+      // If translation detected immediately
+      if (checkTranslation()) return;
+      
+      // Set up a mutation observer to detect when translation happens
+      const translationObserver = new MutationObserver((mutations) => {
+        if (checkTranslation()) {
+          translationObserver.disconnect();
+        }
+      });
+      
+      translationObserver.observe(document.documentElement, {
+        attributes: true,
+        childList: true,
+        subtree: true,
+        attributeFilter: ['class']
+      });
+      
+      // Fallback: hide loading after 3 seconds anyway
+      setTimeout(() => {
+        this.hideLoading();
+        translationObserver.disconnect();
+      }, 3000);
+    },
+    
+    resetToOriginal: function() {
+      // Clear translation cookies
+      const domain = window.location.hostname;
+      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=${domain}; path=/;`;
+      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=.${domain}; path=/;`;
+      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      
+      // Force reload to clear translation (most reliable method)
+      location.reload();
+    },
+    
+    // Specifically monitor chat container for new messages
+    monitorChatUpdates: function() {
+      // Reference to the chat container
+      const chatContainer = document.getElementById('chatContainer');
+      if (!chatContainer) return;
+      
+      // Setup mutation observer for chat container
+      const chatObserver = new MutationObserver((mutations) => {
+        // If we have an active translation, attempt to translate new content
+        if (this.currentLanguage && this.currentLanguage !== this.originalLanguage) {
+          // Force re-translation on new chat messages
+          if (window.google && window.google.translate) {
+            // Find any untranslated content (might have .notranslate class or not be in DOM when translation occurred)
+            setTimeout(() => {
+              // Specific for Global Chat: find message-text elements that might need translation
+              document.querySelectorAll('.message-text:not(.translated)').forEach(msgElement => {
+                msgElement.classList.add('translated');
+                
+                // Try to force Google to re-translate this specific element
+                if (window.google && window.google.translate && window.google.translate.TranslateElement) {
+                  try {
+                    google.translate.TranslateElement.getInstance().translatePage();
+                  } catch (e) {
+                    console.log('Retranslation attempt failed');
+                  }
+                }
+              });
+            }, 300);
+          }
+        }
+      });
+      
+      // Start observing chat for changes (new messages)
+      chatObserver.observe(chatContainer, {
+        childList: true,
+        subtree: true
+      });
+    },
+    
+    setupEventListeners: function() {
+      // Listen for localStorage changes
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'preferredLanguage') {
+          const newLanguage = e.newValue;
+          
+          // Only process if language actually changed
+          if (newLanguage !== this.currentLanguage) {
+            this.currentLanguage = newLanguage;
             
-            /* Light theme default */
-            background-color: #ffffff;
-            color: #1da1f2;
-            border: 2px solid rgba(29, 161, 242, 0.2);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-          }
-
-          /* Dark theme styles - applied when body has dark-mode class */
-          body.dark-mode .${this.uniqueId}-btn {
-            background-color: #192734;
-            color: #1da1f2;
-            border: 2px solid rgba(29, 161, 242, 0.3);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-          }
-          
-          .${this.uniqueId}-btn.${this.uniqueId}-visible {
-            display: flex;
-            animation: ${this.uniqueId}-slideIn 0.4s ease forwards;
-          }
-          
-          .${this.uniqueId}-btn.${this.uniqueId}-hidden {
-            animation: ${this.uniqueId}-slideOut 0.4s ease forwards;
-            display: flex;
-          }
-          
-          .${this.uniqueId}-btn:hover {
-            opacity: 1;
-            background-color: #1da1f2;
-            color: #ffffff;
-            transform: scale(1.05);
-          }
-          
-          .${this.uniqueId}-btn:active {
-            transform: scale(0.95);
-          }
-
-          @media (prefers-reduced-motion: reduce) {
-            .${this.uniqueId}-btn {
-              animation: none !important;
-              transition: none !important;
+            if (newLanguage && newLanguage !== this.originalLanguage) {
+              this.showLoading();
+              // If Google Translate already loaded, apply directly
+              if (window.google && window.google.translate) {
+                this.applyTranslation();
+              } else {
+                this.loadGoogleTranslateScript();
+              }
+            } else {
+              this.resetToOriginal();
             }
           }
-        `;
-        return style;
-      },
-      
-      init() {
-        // Check if script already running to avoid conflicts
-        if (window[`${this.uniqueId}-initialized`]) {
-          console.warn('Scroll manager already initialized');
-          return () => {};
         }
-        
-        window[`${this.uniqueId}-initialized`] = true;
-        
-        // Create and append elements
-        const button = this.createButton();
-        const styles = this.createStyles();
-        
-        document.head.appendChild(styles);
-        document.body.appendChild(button);
-        
-        // Get chat container
-        const chatContainer = document.getElementById('chatContainer');
-        if (!chatContainer) {
-          console.warn('Chat container not found, looking for alternatives...');
-          // Try to find alternative chat containers
-          const possibleContainers = [
-            document.querySelector('.chat-container'),
-            document.querySelector('.messages-container'),
-            document.querySelector('.conversation-container'),
-            document.querySelector('[role="log"]'),
-            document.querySelector('.overflow-y-auto'),
-            document.querySelector('.container')
-          ];
-          
-          for (const container of possibleContainers) {
-            if (container) {
-              this.setupScrollListener(container, button);
-              break;
-            }
-          }
-        } else {
-          this.setupScrollListener(chatContainer, button);
+      });
+      
+      // Listen for color preferences for loading dots
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'color-value' && e.newValue) {
+          const dots = document.querySelectorAll('.language-loading-dot');
+          dots.forEach(dot => {
+            dot.style.backgroundColor = e.newValue;
+          });
         }
-        
-        // Check for theme from localStorage
-        this.applyThemeFromLocalStorage();
-        
-        // Listen for theme changes
-        this.listenForThemeChanges();
-        
-        // Cleanup function
-        return () => {
-          window[`${this.uniqueId}-initialized`] = false;
-          button.remove();
-          styles.remove();
-        };
-      },
+      });
       
-      applyThemeFromLocalStorage() {
-        // Check if dark mode is enabled in localStorage
-        const currentTheme = localStorage.getItem('twitter-theme') || 'light';
-        
-        if (currentTheme === 'dim' || currentTheme === 'dark') {
-          document.body.classList.add('dark-mode');
-        } else {
-          document.body.classList.remove('dark-mode');
-        }
-      },
-      
-      listenForThemeChanges() {
-        // Listen for theme changes in localStorage
-        window.addEventListener('storage', (event) => {
-          if (event.key === 'twitter-theme') {
-            this.applyThemeFromLocalStorage();
-          }
-        });
-        
-        // Check periodically for theme changes
-        setInterval(() => {
-          this.applyThemeFromLocalStorage();
-        }, 1000);
-      },
-      
-      setupScrollListener(container, button) {
-        // Throttle scroll handler for performance
-        let scrollTimeout;
-        const throttledCheckScroll = () => {
-          if (!scrollTimeout) {
-            scrollTimeout = setTimeout(() => {
-              this.checkScrollPosition(container, button);
-              scrollTimeout = null;
-            }, 100);
-          }
-        };
-        
-        // Event listeners
-        container.addEventListener('scroll', throttledCheckScroll, { passive: true });
-        window.addEventListener('resize', throttledCheckScroll, { passive: true });
-        
-        button.addEventListener('click', () => {
-          this.scrollToBottom(container);
-        });
-        
-        // Initial check
-        setTimeout(() => {
-          this.checkScrollPosition(container, button);
-        }, 300);
-      },
-      
-      checkScrollPosition(container, button) {
-        if (!container) return;
-        
-        const distanceFromBottom =
-          container.scrollHeight - container.scrollTop - container.clientHeight;
-        
-        if (distanceFromBottom > 150) {
-          if (!button.classList.contains(`${this.uniqueId}-visible`)) {
-            button.classList.add(`${this.uniqueId}-visible`);
-            button.classList.remove(`${this.uniqueId}-hidden`);
-          }
-        } else {
-          if (button.classList.contains(`${this.uniqueId}-visible`)) {
-            button.classList.add(`${this.uniqueId}-hidden`);
-            button.classList.remove(`${this.uniqueId}-visible`);
-          }
-        }
-      },
-      
-      scrollToBottom(container) {
-        if (!container) return;
-        
-        container.scrollTo({
-          top: container.scrollHeight,
-          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+      // Check for color preference immediately
+      const savedColor = localStorage.getItem('color-value');
+      if (savedColor) {
+        const dots = document.querySelectorAll('.language-loading-dot');
+        dots.forEach(dot => {
+          dot.style.backgroundColor = savedColor;
         });
       }
+      
+      // Handle page visibility changes to manage translation UI
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && this.currentLanguage && this.currentLanguage !== this.originalLanguage) {
+          this.setupTranslateElementHider();
+          
+          // Re-apply translation to chat content when coming back to page
+          if (window.google && window.google.translate) {
+            setTimeout(() => {
+              try {
+                google.translate.TranslateElement.getInstance().translatePage();
+              } catch (e) {
+                console.log('Translation refresh failed');
+              }
+            }, 500);
+          }
+        }
+      });
+      
+      // Handle after page loads completely
+      window.addEventListener('load', () => {
+        // Re-hide elements after page is fully loaded
+        setTimeout(() => this.setupTranslateElementHider(), 500);
+        
+        // Listen for new messages specific to Global Chat
+        document.addEventListener('message-added', () => {
+          if (this.currentLanguage && this.currentLanguage !== this.originalLanguage) {
+            // Slight delay to ensure the DOM has updated
+            setTimeout(() => {
+              if (window.google && window.google.translate) {
+                try {
+                  google.translate.TranslateElement.getInstance().translatePage();
+                } catch (e) {
+                  console.log('Failed to translate new message');
+                }
+              }
+            }, 100);
+          }
+        });
+      });
+    },
+    
+    showLoading: function() {
+      this.isTranslating = true;
+      const overlay = document.querySelector('.language-loading-overlay');
+      if (overlay) overlay.classList.add('active');
+      
+      // Clear any existing timeout
+      if (this.translationTimeout) {
+        clearTimeout(this.translationTimeout);
+      }
+    },
+    
+    hideLoading: function() {
+      this.isTranslating = false;
+      const overlay = document.querySelector('.language-loading-overlay');
+      if (overlay) overlay.classList.remove('active');
+      
+      // Additional cleaning to hide Google elements
+      setTimeout(() => this.setupTranslateElementHider(), 100);
+      
+      // Clear any existing timeout
+      if (this.translationTimeout) {
+        clearTimeout(this.translationTimeout);
+        this.translationTimeout = null;
+      }
+    },
+    
+    // Expose public method to trigger translation
+    translateNewContent: function() {
+      if (this.currentLanguage && this.currentLanguage !== this.originalLanguage && 
+          window.google && window.google.translate) {
+        try {
+          google.translate.TranslateElement.getInstance().translatePage();
+        } catch (e) {
+          console.log('Content translation failed');
+        }
+      }
+    }
+  };
+  
+  // Initialize immediately
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => GlobalChatLanguageManager.initialize());
+  } else {
+    GlobalChatLanguageManager.initialize();
+  }
+  
+  // Make manager available globally for chat application to use
+  window.GlobalChatLanguageManager = GlobalChatLanguageManager;
+  
+  // Add a hook to the message creation process in the Global Chat app
+  const originalCreateMessageElement = window.createMessageElement;
+  if (typeof originalCreateMessageElement === 'function') {
+    window.createMessageElement = function(message, messageId) {
+      const msgElement = originalCreateMessageElement(message, messageId);
+      
+      // Trigger translation for new messages
+      setTimeout(() => {
+        if (window.GlobalChatLanguageManager) {
+          window.GlobalChatLanguageManager.translateNewContent();
+        }
+      }, 100);
+      
+      return msgElement;
     };
+  }
+  
+  // Hook into chat message insertion
+  const originalInsertBefore = Element.prototype.insertBefore;
+  Element.prototype.insertBefore = function(newNode, referenceNode) {
+    const result = originalInsertBefore.call(this, newNode, referenceNode);
     
-    // Initialize and store cleanup function
-    const cleanup = scrollManager.init();
+    // Check if this is a chat message being inserted
+    if (this.id === 'chatContainer' && newNode.classList && newNode.classList.contains('message')) {
+      // Create and dispatch a custom event that our translator can listen for
+      const event = new CustomEvent('message-added', { detail: { messageElement: newNode } });
+      document.dispatchEvent(event);
+    }
     
-    // Clean up on page unload if needed
-    window.addEventListener('unload', cleanup);
-  });
+    return result;
+  };
 })();
