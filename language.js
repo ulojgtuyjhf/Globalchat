@@ -1,121 +1,121 @@
- import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
- import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
- import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
- import { getDatabase, ref, push, set, onChildAdded, onValue, update, get, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
- 
- // Firebase Configuration
- const firebaseConfig = {
-   apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
-   authDomain: "globalchat-2d669.firebaseapp.com",
-   projectId: "globalchat-2d669",
-   messagingSenderId: "178714711978",
-   appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
-   databaseURL: "https://globalchat-2d669-default-rtdb.firebaseio.com/"
- };
- 
- // Initialize Firebase
- const app = initializeApp(firebaseConfig);
- const auth = getAuth(app);
- const db = getFirestore(app);
- const database = getDatabase(app);
- const chatRef = ref(database, 'messages');
- 
- const chatContainer = document.getElementById('chatContainer');
- const loadingIndicator = document.getElementById('loadingIndicator');
- 
- let currentUser = null;
- const followedUsers = new Set();
- let messagesLoaded = false;
- let initialLoadComplete = false;
- 
- // Initialize app
- function initApp() {
-   // Show loading indicator immediately when app starts
-   loadingIndicator.style.display = 'flex';
-   
-   // Listen for messages
-   listenForMessages();
- }
- 
- // Format timestamp
- function formatTimestamp(timestamp) {
-   const date = new Date(timestamp);
-   const hours = date.getHours();
-   const minutes = date.getMinutes().toString().padStart(2, '0');
-   return `${hours}:${minutes}`;
- }
- 
- // Listen for new messages
- function listenForMessages() {
-   // Clear chat container but keep loading indicator visible
-   chatContainer.innerHTML = '';
-   loadingIndicator.style.display = 'flex';
-   
-   // Set a timeout to hide loading indicator if no messages arrive
-   const loadingTimeout = setTimeout(() => {
-     if (!initialLoadComplete) {
-       loadingIndicator.style.display = 'none';
-       initialLoadComplete = true;
-     }
-   }, 5000); // 5 seconds timeout
-   
-   // First load messages in reverse timestamp order (newest first)
-   onChildAdded(chatRef, (snapshot) => {
-     clearTimeout(loadingTimeout); // Clear the timeout when messages start arriving
-     
-     const message = snapshot.val();
-     const messageId = snapshot.key;
-     
-     // Don't re-render existing messages
-     if (document.querySelector(`[data-message-id="${messageId}"]`)) {
-       return;
-     }
-     
-     const messageElement = createMessageElement(message, messageId);
-     
-     // Always insert at the beginning for newest-first display
-     if (chatContainer.firstChild) {
-       chatContainer.insertBefore(messageElement, chatContainer.firstChild);
-     } else {
-       chatContainer.appendChild(messageElement);
-     }
-     
-     // Hide loading indicator once we have at least one message
-     if (!initialLoadComplete) {
-       loadingIndicator.style.display = 'none';
-       initialLoadComplete = true;
-     }
-   });
- }
- 
- // Create message element
- function createMessageElement(message, messageId) {
-   const messageElement = document.createElement('div');
-   messageElement.classList.add('message');
-   messageElement.setAttribute('data-message-id', messageId);
-   messageElement.setAttribute('data-timestamp', message.timestamp);
-   
-   const flagUrl = `https://flagcdn.com/w320/${message.country || 'unknown'}.png`;
-   const messageTime = formatTimestamp(message.timestamp);
-   const isFollowing = followedUsers.has(message.userId);
-   const followBtnDisplay = message.userId === currentUser?.uid ? 'none' : 'inline-block';
-   
-   let mediaHTML = '';
-   if (message.media && message.media.length > 0) {
-     mediaHTML = '<div class="media-container">';
-     message.media.forEach(media => {
-       if (media && media.url) {
-         if (media.type === 'image') {
-           mediaHTML += `<img src="${media.url}" class="message-image">`;
-         } else if (media.type === 'video') {
-           mediaHTML += `<video src="${media.url}" class="message-video" controls></video>`;
-         }
-       }
-     });
-     mediaHTML += '</div>';
-   }
-   
-   messageElement.innerHTML = `
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getDatabase, ref, push, set, onChildAdded, onValue, update, get, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+// Firebase Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+  authDomain: "globalchat-2d669.firebaseapp.com",
+  projectId: "globalchat-2d669",
+  messagingSenderId: "178714711978",
+  appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
+  databaseURL: "https://globalchat-2d669-default-rtdb.firebaseio.com/"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const database = getDatabase(app);
+const chatRef = ref(database, 'messages');
+
+const chatContainer = document.getElementById('chatContainer');
+const loadingIndicator = document.getElementById('loadingIndicator');
+
+let currentUser = null;
+const followedUsers = new Set();
+let initialLoadComplete = false;
+
+// Initialize app
+function initApp() {
+  // Show loading indicator immediately when app starts
+  loadingIndicator.style.display = 'flex';
+  
+  // Listen for messages
+  listenForMessages();
+}
+
+// Format timestamp
+function formatTimestamp(timestamp) {
+  const date = new Date(timestamp);
+  const hours = date.getHours();
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+// Listen for new messages with real-time updates
+function listenForMessages() {
+  // Clear chat container but keep loading indicator visible
+  chatContainer.innerHTML = '';
+  loadingIndicator.style.display = 'flex';
+  
+  // Set a timeout to hide loading indicator if no messages arrive
+  const loadingTimeout = setTimeout(() => {
+    if (!initialLoadComplete) {
+      loadingIndicator.style.display = 'none';
+      initialLoadComplete = true;
+    }
+  }, 5000); // 5 seconds timeout
+  
+  // Listen for new messages being added
+  onChildAdded(chatRef, (snapshot) => {
+    clearTimeout(loadingTimeout); // Clear the timeout when messages start arriving
+    
+    const message = snapshot.val();
+    const messageId = snapshot.key;
+    
+    // Don't re-render existing messages
+    if (document.querySelector(`[data-message-id="${messageId}"]`)) {
+      return;
+    }
+    
+    const messageElement = createMessageElement(message, messageId);
+    
+    // Always insert at the beginning for newest-first display
+    if (chatContainer.firstChild) {
+      chatContainer.insertBefore(messageElement, chatContainer.firstChild);
+    } else {
+      chatContainer.appendChild(messageElement);
+    }
+    
+    // Hide loading indicator once we have at least one message
+    if (!initialLoadComplete) {
+      loadingIndicator.style.display = 'none';
+      initialLoadComplete = true;
+    }
+  });
+}
+
+// Create message element
+function createMessageElement(message, messageId) {
+  const messageElement = document.createElement('div');
+  messageElement.classList.add('message');
+  messageElement.setAttribute('data-message-id', messageId);
+  messageElement.setAttribute('data-timestamp', message.timestamp);
+  
+  const flagUrl = `https://flagcdn.com/w320/${message.country || 'unknown'}.png`;
+  const messageTime = formatTimestamp(message.timestamp);
+  const isFollowing = followedUsers.has(message.userId);
+  const followBtnDisplay = message.userId === currentUser?.uid ? 'none' : 'inline-block';
+  
+  let mediaHTML = '';
+  if (message.media && message.media.length > 0) {
+    mediaHTML = '<div class="media-container">';
+    message.media.forEach(media => {
+      if (media && media.url) {
+        if (media.type === 'image') {
+          mediaHTML += `<img src="${media.url}" class="message-image">`;
+        } else if (media.type === 'video') {
+          mediaHTML += `<video src="${media.url}" class="message-video" controls></video>`;
+        }
+      }
+    });
+    mediaHTML += '</div>';
+  }
+  
+  messageElement.innerHTML = `
     <img src="${message.photoURL}" class="profile-image" alt="Profile">
     <div class="message-content">
       <div class="message-header">
@@ -141,120 +141,166 @@
       </div>
     </div>
   `;
-   
-   return messageElement;
- }
- 
- // Authentication State Observer
- onAuthStateChanged(auth, async (user) => {
-   if (user) {
-     try {
-       const userDoc = await getDoc(doc(db, 'users', user.uid));
-       const userData = userDoc.data() || {};
-       const countryCode = await getCountryFromIP();
-       
-       currentUser = {
-         uid: user.uid,
-         displayName: user.displayName || userData?.displayName || "User" + Math.floor(Math.random() * 10000),
-         photoURL: user.photoURL || userData?.photoURL || "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png",
-         country: countryCode
-       };
-       
-       if (!userDoc.exists()) {
-         await setDoc(doc(db, 'users', user.uid), {
-           displayName: currentUser.displayName,
-           photoURL: currentUser.photoURL,
-           createdAt: new Date().toISOString()
-         });
-       }
-       
-       await fetchFollowedUsers();
-       
-     } catch (error) {
-       console.error('Error fetching user data:', error);
-       loadingIndicator.style.display = 'none';
-     }
-   } else {
-     signInAnonymously(auth)
-       .catch((error) => {
-         console.error('Anonymous auth error:', error);
-         loadingIndicator.style.display = 'none';
-       });
-   }
- });
- 
- // Fetch Followed Users
- async function fetchFollowedUsers() {
-   if (!currentUser) return;
-   
-   try {
-     const followQuery = query(
-       collection(db, 'follows'),
-       where('followerUserId', '==', currentUser.uid)
-     );
-     
-     const followSnapshot = await getDocs(followQuery);
-     followedUsers.clear();
-     followSnapshot.docs.forEach(doc => {
-       const followedUserId = doc.data().followedUserId;
-       followedUsers.add(followedUserId);
-     });
-     
-     updateFollowButtons();
-   } catch (error) {
-     console.error('Error fetching followed users:', error);
-   }
- }
- 
- // Update Follow Buttons
- function updateFollowButtons() {
-   document.querySelectorAll('.follow-btn').forEach(btn => {
-     const userId = btn.getAttribute('data-user-id');
-     if (userId === currentUser?.uid) {
-       btn.style.display = 'none';
-     } else {
-       btn.textContent = followedUsers.has(userId) ? 'Following' : 'Follow';
-       btn.classList.toggle('followed', followedUsers.has(userId));
-     }
-   });
- }
- 
- // Follow/Unfollow User
- window.toggleFollow = async function(userId, userName) {
-   if (!currentUser) {
-     alert('Please log in to follow users');
-     return;
-   }
-   
-   try {
-     const followQuery = query(
-       collection(db, 'follows'),
-       where('followerUserId', '==', currentUser.uid),
-       where('followedUserId', '==', userId)
-     );
-     
-     const followSnapshot = await getDocs(followQuery);
-     
-     if (followSnapshot.empty) {
-       await addDoc(collection(db, 'follows'), {
-         followerUserId: currentUser.uid,
-         followedUserId: userId,
-         followedUserName: userName,
-         timestamp: Date.now()
-       });
-       followedUsers.add(userId);
-     } else {
-       followSnapshot.docs.forEach(async (followDoc) => {
-         await deleteDoc(doc(db, 'follows', followDoc.id));
-       });
-       followedUsers.delete(userId);
-     }
-     
-     updateFollowButtons();
-   } catch (error) {
-     console.error('Follow/Unfollow error:', error);
-   }
- };
- 
- // Initialize the app
- initApp();
+  
+  return messageElement;
+}
+
+// Get country from IP address
+async function getCountryFromIP() {
+  try {
+    const response = await fetch('https://ipapi.co/json/');
+    const data = await response.json();
+    return data.country_code.toLowerCase();
+  } catch (error) {
+    console.error('Failed to fetch country:', error);
+    return 'unknown';
+  }
+}
+
+// Authentication State Observer
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userData = userDoc.data() || {};
+      const countryCode = await getCountryFromIP();
+      
+      currentUser = {
+        uid: user.uid,
+        displayName: user.displayName || userData?.displayName || "User" + Math.floor(Math.random() * 10000),
+        photoURL: user.photoURL || userData?.photoURL || "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png",
+        country: countryCode
+      };
+      
+      // Create user in database if not exists
+      if (!userDoc.exists()) {
+        await setDoc(doc(db, 'users', user.uid), {
+          displayName: currentUser.displayName,
+          photoURL: currentUser.photoURL,
+          createdAt: new Date().toISOString()
+        });
+      }
+      
+      // Fetch followed users
+      await fetchFollowedUsers();
+      
+      // Set up presence system
+      setupPresence(user.uid);
+      
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      loadingIndicator.style.display = 'none';
+    }
+  } else {
+    // Sign in anonymously if no user
+    signInAnonymously(auth)
+      .catch((error) => {
+        console.error('Anonymous auth error:', error);
+        loadingIndicator.style.display = 'none';
+      });
+  }
+});
+
+// Set up user presence
+function setupPresence(userId) {
+  const userStatusRef = ref(database, `presence/${userId}`);
+  
+  // Set user as online
+  const onlineData = {
+    status: 'online',
+    lastSeen: Date.now()
+  };
+  
+  // Set user as offline when disconnected
+  const connectedRef = ref(database, '.info/connected');
+  onValue(connectedRef, (snapshot) => {
+    if (snapshot.val() === true) {
+      // User is connected
+      set(userStatusRef, onlineData);
+      
+      // Clear presence on disconnect
+      onDisconnect(userStatusRef).set({
+        status: 'offline',
+        lastSeen: Date.now()
+      });
+    }
+  });
+}
+
+// Fetch Followed Users
+async function fetchFollowedUsers() {
+  if (!currentUser) return;
+  
+  try {
+    const followQuery = query(
+      collection(db, 'follows'),
+      where('followerUserId', '==', currentUser.uid)
+    );
+    
+    const followSnapshot = await getDocs(followQuery);
+    followedUsers.clear();
+    followSnapshot.docs.forEach(doc => {
+      const followedUserId = doc.data().followedUserId;
+      followedUsers.add(followedUserId);
+    });
+    
+    updateFollowButtons();
+  } catch (error) {
+    console.error('Error fetching followed users:', error);
+  }
+}
+
+// Update Follow Buttons
+function updateFollowButtons() {
+  document.querySelectorAll('.follow-btn').forEach(btn => {
+    const userId = btn.getAttribute('data-user-id');
+    if (userId === currentUser?.uid) {
+      btn.style.display = 'none'; // Hide follow button for own messages
+    } else {
+      btn.textContent = followedUsers.has(userId) ? 'Following' : 'Follow';
+      btn.classList.toggle('followed', followedUsers.has(userId));
+    }
+  });
+}
+
+// Follow/Unfollow User
+window.toggleFollow = async function(userId, userName) {
+  if (!currentUser) {
+    alert('Please log in to follow users');
+    return;
+  }
+  
+  try {
+    const followQuery = query(
+      collection(db, 'follows'),
+      where('followerUserId', '==', currentUser.uid),
+      where('followedUserId', '==', userId)
+    );
+    
+    const followSnapshot = await getDocs(followQuery);
+    
+    if (followSnapshot.empty) {
+      // Follow the user
+      await addDoc(collection(db, 'follows'), {
+        followerUserId: currentUser.uid,
+        followedUserId: userId,
+        followedUserName: userName,
+        timestamp: Date.now()
+      });
+      followedUsers.add(userId);
+    } else {
+      // Unfollow the user
+      followSnapshot.docs.forEach(async (followDoc) => {
+        await deleteDoc(doc(db, 'follows', followDoc.id));
+      });
+      followedUsers.delete(userId);
+    }
+    
+    updateFollowButtons();
+  } catch (error) {
+    console.error('Follow/Unfollow error:', error);
+  }
+};
+
+// Initialize the app
+initApp();
