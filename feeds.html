@@ -1808,6 +1808,501 @@ body {
   };
 })();
 </script>
+<script>
+  // Enhanced Font Size Manager
+  (function() {
+    // Configuration
+    const config = {
+      defaultSize: '1',
+      minSize: 0.7,
+      maxSize: 1.5,
+      storageKey: 'font-size',
+      updateInterval: 500, // Check every 500ms instead of 1000ms
+      elementScalingRules: {
+        // Element selector: multiplier relative to base font size
+        'h1': 2.0,
+        'h2': 1.8,
+        'h3': 1.5,
+        'h4': 1.3,
+        'h5': 1.1,
+        'h6': 1.0,
+        'p, div, span, li': 1.0,
+        '.user-name': 1.0,
+        '.message-text': 1.0,
+        '.user-handle, .message-time': 0.875,
+        'button, .action-button': 0.9,
+        'input, textarea': 1.0,
+        'small, .small-text': 0.8
+      }
+    };
+    
+    // Track applied size to prevent unnecessary reapplication
+    let currentAppliedSize = null;
+    
+    // Function to apply font size from localStorage
+    function applyFontSize() {
+      const size = localStorage.getItem(config.storageKey) || config.defaultSize;
+      const sizeNum = parseFloat(size);
+      
+      // Validate size is within acceptable range
+      if (isNaN(sizeNum) || sizeNum < config.minSize || sizeNum > config.maxSize) {
+        console.warn('Font size out of range, resetting to default');
+        localStorage.setItem(config.storageKey, config.defaultSize);
+        return applyFontSize(); // Recursive call with corrected value
+      }
+      
+      // Skip if same size already applied (performance optimization)
+      if (currentAppliedSize === sizeNum) {
+        return;
+      }
+      currentAppliedSize = sizeNum;
+      
+      // Set base font size on html element (better practice than body)
+      document.documentElement.style.fontSize = sizeNum + 'rem';
+      
+      // Apply scaling to different element types based on configuration
+      Object.keys(config.elementScalingRules).forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        const scaleFactor = config.elementScalingRules[selector];
+        
+        elements.forEach(element => {
+          element.style.fontSize = (sizeNum * scaleFactor) + 'rem';
+        });
+      });
+      
+      // Special handling for chat-specific elements
+      const messageTexts = document.querySelectorAll('.message-text');
+      messageTexts.forEach(msg => {
+        msg.style.lineHeight = (1.4 + (0.1 * (sizeNum - 1))) + '';
+      });
+      
+      // Dispatch custom event for other components that might need to adjust
+      document.dispatchEvent(new CustomEvent('fontsizechanged', {
+        detail: { size: sizeNum }
+      }));
+    }
+    
+    // Function to handle dynamic content
+    function handleDynamicContent() {
+      // This targets the chat container specifically
+      const chatContainer = document.getElementById('chatContainer');
+      if (!chatContainer) return;
+      
+      const observer = new MutationObserver(mutations => {
+        // Only reapply font size if new elements were added
+        let needsUpdate = false;
+        
+        mutations.forEach(mutation => {
+          if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+            needsUpdate = true;
+          }
+        });
+        
+        if (needsUpdate) {
+          applyFontSize();
+        }
+      });
+      
+      observer.observe(chatContainer, {
+        childList: true,
+        subtree: true
+      });
+    }
+    
+    // Apply immediately
+    applyFontSize();
+    
+    // Setup event listeners
+    function setupEventListeners() {
+      // Listen for changes to localStorage
+      window.addEventListener('storage', function(event) {
+        if (event.key === config.storageKey) {
+          applyFontSize();
+        }
+      });
+      
+      // Listen for page visibility changes to reapply when returning to tab
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+          applyFontSize();
+        }
+      });
+      
+      // Listen for DOM ready to ensure we catch initial elements
+      document.addEventListener('DOMContentLoaded', function() {
+        applyFontSize();
+        handleDynamicContent();
+      });
+      
+      // Handle window resize events that might affect font rendering
+      let resizeTimer;
+      window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(applyFontSize, 250);
+      });
+    }
+    
+    setupEventListeners();
+    
+    // Periodic check (as backup, but more efficient than previous version)
+    const sizeCheckInterval = setInterval(function() {
+      const savedSize = localStorage.getItem(config.storageKey) || config.defaultSize;
+      const parsedSize = parseFloat(savedSize);
+      
+      if (currentAppliedSize !== parsedSize) {
+        applyFontSize();
+      }
+    }, config.updateInterval);
+    
+    // Setup monitoring for dynamic content after a short delay
+    setTimeout(handleDynamicContent, 500);
+    
+    // Expose public API
+    window.FontSizeManager = {
+      refresh: applyFontSize,
+      setSize: function(newSize) {
+        localStorage.setItem(config.storageKey, newSize);
+        applyFontSize();
+      },
+      getSize: function() {
+        return parseFloat(localStorage.getItem(config.storageKey) || config.defaultSize);
+      },
+      increase: function(step = 0.1) {
+        const currentSize = this.getSize();
+        const newSize = Math.min(config.maxSize, currentSize + step).toFixed(1);
+        this.setSize(newSize);
+        return newSize;
+      },
+      decrease: function(step = 0.1) {
+        const currentSize = this.getSize();
+        const newSize = Math.max(config.minSize, currentSize - step).toFixed(1);
+        this.setSize(newSize);
+        return newSize;
+      },
+      reset: function() {
+        this.setSize(config.defaultSize);
+        return config.defaultSize;
+      }
+    };
+  })();
+</script>
+<script>
+// Self-executing function to avoid conflicts with global scope
+(function() {
+  // Configuration with unique identifiers
+  const MEDIA_GRID_CLASS = 'gc-media-grid-v1';
+  const MEDIA_ITEM_CLASS = 'gc-media-item-v1';
+  const STYLE_ID = 'gc-media-grid-styles-v1';
+  const MAX_VISIBLE_ITEMS = 4;
+  
+  // Store original showFullImage function if it exists
+  const originalShowFullImage = window.showFullImage;
+  
+  // Add styles only once
+  function addStyles() {
+    if (!document.getElementById(STYLE_ID)) {
+      const style = document.createElement('style');
+      style.id = STYLE_ID;
+      style.textContent = `
+        .${MEDIA_GRID_CLASS} {
+          display: grid;
+          gap: 4px;
+          margin-top: 8px;
+          width: 100%;
+          max-height: 500px;
+          border-radius: 12px;
+          overflow: hidden;
+        }
+        
+        .${MEDIA_ITEM_CLASS} {
+          position: relative;
+          overflow: hidden;
+          border: 1px solid rgba(0,0,0,0.1);
+          background-color: #f5f5f5;
+        }
+        
+        .${MEDIA_ITEM_CLASS} img, 
+        .${MEDIA_ITEM_CLASS} video {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+          transition: transform 0.3s ease;
+        }
+        
+        .${MEDIA_ITEM_CLASS}:hover img,
+        .${MEDIA_ITEM_CLASS}:hover video {
+          transform: scale(1.03);
+        }
+        
+        .${MEDIA_ITEM_CLASS} .overlay-count {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.5);
+          color: white;
+          font-size: 24px;
+          font-weight: bold;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          cursor: pointer;
+        }
+        
+        /* Single media item */
+        .${MEDIA_GRID_CLASS}[data-item-count="1"] {
+          grid-template-columns: 1fr;
+          aspect-ratio: 16/9;
+          max-height: 400px;
+        }
+        
+        /* Two media items */
+        .${MEDIA_GRID_CLASS}[data-item-count="2"] {
+          grid-template-columns: repeat(2, 1fr);
+          aspect-ratio: 16/9;
+        }
+        
+        /* Three media items */
+        .${MEDIA_GRID_CLASS}[data-item-count="3"] {
+          grid-template-columns: repeat(2, 1fr);
+          grid-template-rows: 1fr 1fr;
+          aspect-ratio: 16/10;
+        }
+        
+        .${MEDIA_GRID_CLASS}[data-item-count="3"] .${MEDIA_ITEM_CLASS}:first-child {
+          grid-row: span 2;
+        }
+        
+        /* Four or more media items */
+        .${MEDIA_GRID_CLASS}[data-item-count="4"],
+        .${MEDIA_GRID_CLASS}[data-item-count="more"] {
+          grid-template-columns: repeat(2, 1fr);
+          grid-template-rows: repeat(2, 1fr);
+          aspect-ratio: 16/14;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+          .${MEDIA_GRID_CLASS} {
+            max-height: 400px;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .${MEDIA_GRID_CLASS} {
+            max-height: 300px;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+  
+  // Process all media containers
+  function initMediaGrids() {
+    const mediaContainers = document.querySelectorAll('.media-container:not([data-gc-processed])');
+    
+    mediaContainers.forEach(container => {
+      // Mark as processed
+      container.setAttribute('data-gc-processed', 'true');
+      
+      const mediaItems = container.querySelectorAll('img, video');
+      if (mediaItems.length === 0) return;
+      
+      // Create our grid container
+      const grid = document.createElement('div');
+      grid.className = MEDIA_GRID_CLASS;
+      
+      const itemCount = mediaItems.length;
+      const displayCount = Math.min(itemCount, MAX_VISIBLE_ITEMS);
+      
+      grid.setAttribute('data-item-count', itemCount > MAX_VISIBLE_ITEMS ? 'more' : itemCount.toString());
+      
+      // Add each media item to the grid
+      for (let i = 0; i < displayCount; i++) {
+        const item = mediaItems[i];
+        const gridItem = document.createElement('div');
+        gridItem.className = MEDIA_ITEM_CLASS;
+        
+        // Clone the media element
+        const mediaClone = item.cloneNode(true);
+        
+        // Preserve original click handlers and attributes
+        if (item.onclick) {
+          mediaClone.onclick = item.onclick;
+        } else if (item.getAttribute('onclick')) {
+          mediaClone.setAttribute('onclick', item.getAttribute('onclick'));
+        }
+        
+        gridItem.appendChild(mediaClone);
+        
+        // Add "+" overlay to the last visible item if there are more than MAX_VISIBLE_ITEMS
+        if (i === MAX_VISIBLE_ITEMS - 1 && itemCount > MAX_VISIBLE_ITEMS) {
+          const overlay = document.createElement('div');
+          overlay.className = 'overlay-count';
+          overlay.textContent = `+${itemCount - MAX_VISIBLE_ITEMS}`;
+          
+          // When clicking the overlay, show all images
+          overlay.addEventListener('click', function(e) {
+            e.stopPropagation();
+            showAllMedia(Array.from(mediaItems));
+          });
+          
+          gridItem.appendChild(overlay);
+        }
+        
+        grid.appendChild(gridItem);
+      }
+      
+      // Replace the original container with our grid
+      container.innerHTML = '';
+      container.appendChild(grid);
+    });
+  }
+  
+  // Function to show all media in a full-screen gallery
+  function showAllMedia(mediaItems) {
+    // Use the original showFullImage function if it's for a single image
+    if (mediaItems.length === 1 && mediaItems[0].tagName.toLowerCase() === 'img' && typeof originalShowFullImage === 'function') {
+      originalShowFullImage(mediaItems[0].src);
+      return;
+    }
+    
+    // Create modal container
+    const modal = document.createElement('div');
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+    modal.style.display = 'flex';
+    modal.style.flexDirection = 'column';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    modal.style.zIndex = '1000';
+    
+    // Create close button
+    const closeBtn = document.createElement('div');
+    closeBtn.textContent = '×';
+    closeBtn.style.position = 'absolute';
+    closeBtn.style.top = '20px';
+    closeBtn.style.right = '30px';
+    closeBtn.style.color = 'white';
+    closeBtn.style.fontSize = '40px';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.style.zIndex = '1001';
+    closeBtn.onclick = () => document.body.removeChild(modal);
+    
+    // Create gallery container
+    const gallery = document.createElement('div');
+    gallery.style.display = 'flex';
+    gallery.style.flexWrap = 'wrap';
+    gallery.style.justifyContent = 'center';
+    gallery.style.alignItems = 'center';
+    gallery.style.gap = '10px';
+    gallery.style.maxWidth = '90%';
+    gallery.style.maxHeight = '90%';
+    gallery.style.overflowY = 'auto';
+    gallery.style.padding = '20px';
+    
+    // Add all media items to gallery
+    mediaItems.forEach(item => {
+      if (item.tagName.toLowerCase() === 'video') {
+        const video = document.createElement('video');
+        video.src = item.src;
+        video.controls = true;
+        video.style.maxWidth = '100%';
+        video.style.maxHeight = '80vh';
+        video.style.margin = '10px';
+        video.style.objectFit = 'contain';
+        video.style.borderRadius = '8px';
+        video.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
+        gallery.appendChild(video);
+      } else {
+        const img = document.createElement('img');
+        img.src = item.src;
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '80vh';
+        img.style.margin = '10px';
+        img.style.objectFit = 'contain';
+        img.style.borderRadius = '8px';
+        img.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
+        gallery.appendChild(img);
+      }
+    });
+    
+    modal.appendChild(closeBtn);
+    modal.appendChild(gallery);
+    document.body.appendChild(modal);
+    
+    // Close modal when clicking outside the content
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        document.body.removeChild(modal);
+      }
+    });
+  }
+  
+  // Function to set up observers
+  function setupObservers() {
+    // Create an observer to detect new messages
+    const observer = new MutationObserver(function(mutations) {
+      let hasNewNodes = false;
+      
+      mutations.forEach(mutation => {
+        if (mutation.addedNodes.length) {
+          hasNewNodes = true;
+        }
+      });
+      
+      if (hasNewNodes) {
+        initMediaGrids();
+      }
+    });
+    
+    // Start observing the chat container for changes
+    const chatContainer = document.getElementById('chatContainer');
+    if (chatContainer) {
+      observer.observe(chatContainer, {
+        childList: true,
+        subtree: true
+      });
+    }
+  }
+  
+  // Main init function
+  function init() {
+    // Add styles
+    addStyles();
+    
+    // Process existing media
+    initMediaGrids();
+    
+    // Set up observers
+    setupObservers();
+    
+    // Monitor for dynamically added modal content
+    document.body.addEventListener('DOMNodeInserted', function(e) {
+      if (e.target.nodeType === 1) { // Element node
+        if (e.target.querySelector && e.target.querySelector('.media-container')) {
+          setTimeout(initMediaGrids, 50);
+        }
+      }
+    });
+  }
+  
+  // Run initialization when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+
 
 <script type="module" src="language.js"></script>
 <script src="loadfollow.js"></script>
