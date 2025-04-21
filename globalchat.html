@@ -1,163 +1,236 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Global Chat</title>
+  <title>Global Chat with Connections</title>
   <style>
-
 
 /* Base Reset & Typography */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
-
 
 :root {
-    --primary-color: #626262;
-    --primary-light: #f0f0f0;
-    --primary-dark: #3a3a3a;
-    --text-primary: #333;
-    --text-secondary: #666;
-    --background-light: #f9f9f9;
-    --background-white: #ffffff;
-    --border-light: #e0e0e0;
-    --border-radius-sm: 8px;
-    --border-radius-md: 16px;
-    --border-radius-lg: 24px;
-    --transition-speed: 0.25s;
-    --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    --luxury-gradient: linear-gradient(
-        135deg,  
-        #0f0f0f 0%,  
-        #1c1c1c 15%,  
-        #3a3a3a 30%,  
-        #4d4d4d 45%,  
-        #626262 60%,  
-        #787878 75%,  
-        #8f8f8f 90%,  
-        #a6a6a6 100%
-    );
-    --border-color: #dadada;
-
-    --action-separator: #e6e6e6; /* Subtler color for separator */
+  --primary-color: #626262;
+  --primary-light: #f0f0f0;
+  --primary-dark: #3a3a3a;
+  --text-primary: #333;
+  --text-secondary: #666;
+  --background-light: #f9f9f9;
+  --background-white: #ffffff;
+  --border-light: #e0e0e0;
+  --border-radius-sm: 8px;
+  --border-radius-md: 16px;
+  --border-radius-lg: 24px;
+  --transition-speed: 0.25s;
+  --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  --luxury-gradient: linear-gradient(
+    135deg,  
+    #0f0f0f 0%,  
+    #1c1c1c 15%,  
+    #3a3a3a 30%,  
+    #4d4d4d 45%,  
+    #626262 60%,  
+    #787878 75%,  
+    #8f8f8f 90%,  
+    #a6a6a6 100%
+  );
+  --border-color: #dadada;
+  --divider-color: #e6ecf0;
+  --footer-text: #657786;
+  --footer-link: #1da1f2;
 }
 
-
-/* Allow scrolling on body */
-html, body {
-    height: 100%;
-    font-size: 16px;
-    color: var(--text-primary);
-    overflow-y: auto;
-}
-
+/* Main Layout */
 body {
+  background-color: var(--background-light);
+  color: var(--text-primary);
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto; /* Allow vertical scrolling for the entire page */
+}
+
+.app-container {
+  display: flex;
+  min-height: 100vh; /* Use minimum height instead of fixed height */
+  width: 100%;
+  position: relative;
+}
+
+/* Chat Container - Left Side */
+.chat-section {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  position: relative;
+  border-right: 1px solid var(--border-light);
+  margin-right: 25px; /* Increased space between chat and social section */
+  padding-right: 10px; /* Add padding to prevent messages touching border */
+}
+
+/* Social Connections - Right Side */
+.social-section {
+  width: 350px;
+  position: relative; /* Changed from sticky to relative */
+  height: 100%;
+  background-color: var(--background-light);
+  padding: 0 16px;
+}
+
+.social-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.social-header {
+  position: relative; /* Changed from sticky to relative */
+  background-color: var(--background-light);
+  z-index: 10;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-light);
+  transition: transform 0.3s ease;
+}
+
+.social-main {
+  flex: 1;
+  padding: 8px 0;
+  overflow-y: visible; /* Changed from auto to visible */
+}
+
+.social-footer {
+  padding: 20px 0 30px; /* Increased padding for better spacing */
+  margin-top: 30px;
+  border-top: 1px solid var(--border-light);
   background-color: var(--background-light);
 }
 
-
-/* MOVED: Input container is now at the top */
-.input-container {
-    display: flex;
-    flex-direction: column;
-    padding: 12px 16px;
-    border-bottom: 2px solid var(--border-light);
-    background-color: var(--background-white);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
-    z-index: 10;
-    margin-bottom: 16px;
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center; /* Center the footer links */
+  gap: 16px; /* Increased gap between links */
+  font-size: 13px;
+  color: var(--footer-text);
+  text-align: center;
+  margin-top: 10px;
 }
 
-/* Chat container comes after input area */
+.footer-links a {
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color var(--transition-speed);
+}
+
+.footer-links a:hover {
+  background: var(--luxury-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Copyright text separated and centered */
+.footer-links span {
+  width: 100%;
+  text-align: center;
+  margin-top: 12px;
+  display: block;
+}
+
+/* Input area now at the top */
+.input-container {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
+  background-color: var(--background-white);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  z-index: 10;
+  position: relative; /* Changed from sticky to relative */
+}
+
+/* Chat container below input area */
 .chat-container {
-    padding: 12px 16px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--primary-light) var(--background-light);
-    scroll-behavior: smooth;
+  flex: 1;
+  padding: 12px 16px;
+  overflow-y: visible; /* Allow content to flow naturally */
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-light) var(--background-light);
+  scroll-behavior: smooth;
 }
 
 .chat-container::-webkit-scrollbar {
-    width: 6px;
+  width: 6px;
 }
 
 .chat-container::-webkit-scrollbar-track {
-    background: var(--background-light);
+  background: var(--background-light);
 }
 
 .chat-container::-webkit-scrollbar-thumb {
-    background: var(--primary-light);
-    border-radius: 3px;
-    transition: background var(--transition-speed);
+  background: var(--primary-light);
+  border-radius: 3px;
+  transition: background var(--transition-speed);
 }
 
 .chat-container::-webkit-scrollbar-thumb:hover {
-    background: var(--primary-color);
+  background: var(--primary-color);
 }
 
 /* Message Component */
 .message {
-    display: flex;
-    padding: 18px 0;
-    border-bottom: 1px solid var(--border-light);
-    animation: fadeIn 0.4s ease;
-    transition: background-color var(--transition-speed);
-    position: relative;
-}
-
-.message:after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 1px;
-    background-color: var(--border-light);
+  display: flex;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border-light);
+  animation: fadeIn 0.4s ease;
+  transition: background-color var(--transition-speed);
+  margin-right: 5px; /* Added margin to prevent border touching section divider */
 }
 
 .message:hover {
-    background-color: rgba(74, 144, 226, 0.03);
+  background-color: rgba(74, 144, 226, 0.03);
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .profile-image {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    margin-right: 14px;
-    flex-shrink: 0;
-    object-fit: cover;
-    border: 2px solid transparent;
-    transition: border-color var(--transition-speed);
-    box-shadow: var(--box-shadow);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  margin-right: 14px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border: 2px solid transparent;
+  transition: border-color var(--transition-speed);
+  box-shadow: var(--box-shadow);
 }
 
 .profile-image:hover {
-    border-color: var(--primary-color);
+  border-color: var(--primary-color);
 }
 
 .message-content {
-    flex: 1;
-    min-width: 0; /* Prevents content from overflowing flex container */
+  flex: 1;
+  min-width: 0; /* Prevents content from overflowing flex container */
 }
 
 /* Message Header & Metadata */
 .message-header {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
 }
 
 .user-name {
@@ -169,299 +242,289 @@ body {
 }
 
 .user-name:hover {
-    color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 .user-handle, .message-time {
-    color: var(--text-secondary);
-    font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
 }
 
 .user-handle {
-    margin-right: 10px;
+  margin-right: 10px;
 }
 
 .message-text {
-    margin-bottom: 12px;
-    word-wrap: break-word;
-    line-height: 1.5;
-    font-size: 0.975rem;
+  margin-bottom: 12px;
+  word-wrap: break-word;
+  line-height: 1.5;
+  font-size: 0.975rem;
 }
 
-/* Media Content - UPDATED */
+/* Media Content */
 .media-container {
-    margin: 12px auto; /* Center horizontally */
-    width: auto;
-    max-width: 85%; /* Limit width but keep responsive */
-    border-radius: var(--border-radius-md);
-    overflow: hidden;
-    box-shadow: var(--box-shadow);
-    transition: transform var(--transition-speed);
-    border: 1px solid var(--media-border-color);
-    display: block; /* Changed from inline-block to block for better centering */
+  margin: 12px 0;
+  max-width: 100%;
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  box-shadow: var(--box-shadow);
+  transition: transform var(--transition-speed);
 }
 
 .media-container:hover {
-    transform: scale(1.01);
+  transform: scale(1.01);
 }
 
 .message-image {
-    width: 100%;
-    max-height: 450px;
-    object-fit: contain; /* Maintains aspect ratio */
-    border-radius: var(--border-radius-md);
-    cursor: pointer;
-    transition: filter var(--transition-speed);
-    display: block; /* Eliminates bottom space */
-    background-color: rgba(245, 245, 245, 0.5);
+  max-width: 100%;
+  max-height: 450px;
+  object-fit: contain;
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: filter var(--transition-speed);
+  display: block; /* Eliminates bottom space */
 }
 
 .message-image:hover {
-    filter: brightness(1.05);
+  filter: brightness(1.05);
 }
 
 .message-video {
-    width: 100%;
-    max-height: 450px;
-    border-radius: var(--border-radius-md);
-    background: #000;
-    display: block;
+  max-width: 100%;
+  max-height: 450px;
+  border-radius: var(--border-radius-md);
+  background: #000;
+  display: block;
 }
 
-/* Interactive Action Buttons - Subtle separator */
+/* Interactive Action Buttons */
 .action-buttons {
-    display: flex;
-    margin-top: 10px;
-    padding-top: 10px;
-
+  display: flex;
+  margin-top: 10px;
 }
 
 .action-button {
-    display: flex;
-    align-items: center;
-    margin-right: 28px;
-    color: var(--text-secondary);
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 0.875rem;
-    transition: color var(--transition-speed), transform var(--transition-speed);
-    padding: 5px;
+  display: flex;
+  align-items: center;
+  margin-right: 28px;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: color var(--transition-speed), transform var(--transition-speed);
+  padding: 5px;
 }
 
 .action-button:hover {
-    color: var(--primary-color);
-    transform: translateY(-2px);
+  color: var(--primary-color);
+  transform: translateY(-2px);
 }
 
 .action-button svg {
-    width: 18px;
-    height: 18px;
-    margin-right: 8px;
-    fill: currentColor;
-    transition: transform var(--transition-speed);
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  fill: currentColor;
+  transition: transform var(--transition-speed);
 }
 
 .action-button:hover svg {
-    transform: scale(1.1);
+  transform: scale(1.1);
 }
 
 .media-preview {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .preview-item {
-    position: relative;
-    width: 100px;
-    height: 100px;
-    border-radius: var(--border-radius-md);
-    overflow: hidden;
-    box-shadow: var(--box-shadow);
-    transition: transform var(--transition-speed);
-    border: 1px solid var(--media-border-color);
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  box-shadow: var(--box-shadow);
+  transition: transform var(--transition-speed);
 }
 
 .preview-item:hover {
-    transform: scale(1.03);
+  transform: scale(1.03);
 }
 
 .preview-image, .preview-video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .remove-media {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    width: 22px;
-    height: 22px;
-    background-color: rgba(0, 0, 0, 0.6);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: white;
-    font-size: 14px;
-    border: none;
-    transition: background-color var(--transition-speed), transform var(--transition-speed);
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 22px;
+  height: 22px;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  font-size: 14px;
+  border: none;
+  transition: background-color var(--transition-speed), transform var(--transition-speed);
 }
 
 .remove-media:hover {
-    background-color: rgba(240, 40, 40, 0.8);
-    transform: scale(1.1);
+  background-color: rgba(240, 40, 40, 0.8);
+  transform: scale(1.1);
 }
 
 .input-wrapper {
-    display: flex;
-    align-items: center;
-    background-color: var(--primary-light);
-    border-radius: var(--border-radius-lg);
-    padding: 12px 16px;
-    transition: box-shadow var(--transition-speed);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    border: 1px solid var(--border-color);
-    backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  background-color: var(--primary-light);
+  border-radius: var(--border-radius-lg);
+  padding: 12px 16px;
+  transition: box-shadow var(--transition-speed);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .input-wrapper:focus-within {
-    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3);
-    border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3);
 }
 
 .message-textarea {
-    flex: 1;
-    background: none;
-    border: none;
-    color: var(--text-primary);
-    font-size: 1rem;
-    resize: none;
-    max-height: 120px;
-    overflow-y: auto;
-    padding: 0;
-    outline: none;
-    line-height: 1.5;
-    transition: height var(--transition-speed);
-    min-height: 24px;
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1rem;
+  resize: none;
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 0;
+  outline: none;
+  line-height: 1.5;
+  transition: height var(--transition-speed);
+  min-height: 24px;
 }
 
 .message-textarea::placeholder {
-    color: var(--text-secondary);
-    opacity: 0.7;
+  color: var(--text-secondary);
+  opacity: 0.7;
 }
 
 .input-actions {
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
 }
 
 .media-button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    margin-right: 14px;
-    color: var(--primary-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform var(--transition-speed), color var(--transition-speed);
-    opacity: 0.8;
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-right: 14px;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--transition-speed), color var(--transition-speed);
+  opacity: 0.8;
 }
 
 .media-button:hover {
-    transform: scale(1.1);
-    opacity: 1;
+  transform: scale(1.1);
+  opacity: 1;
 }
 
 .media-button svg {
-    width: 22px;
-    height: 22px;
-    fill: currentColor;
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
 }
 
 .send-button {
-    background: var(--luxury-gradient);
-    color: white;
-    border: none;
-    border-radius: var(--border-radius-lg);
-    width: 38px;
-    height: 38px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background-color var(--transition-speed), transform var(--transition-speed), box-shadow var(--transition-speed);
-    margin-left: 10px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-lg);
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color var(--transition-speed), transform var(--transition-speed);
+  margin-left: 10px;
+  box-shadow: 0 2px 5px rgba(74, 144, 226, 0.3);
 }
 
 .send-button:hover:not(:disabled) {
-    transform: scale(1.05);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  background-color: var(--primary-dark);
+  transform: scale(1.05);
 }
 
 .send-button:active:not(:disabled) {
-    transform: scale(0.95);
+  transform: scale(0.95);
 }
 
 .send-button:disabled {
-    background: linear-gradient(135deg, #757575 0%, #5d5d5d 100%);
-    opacity: 0.6;
-    cursor: not-allowed;
+  background-color: var(--primary-dark);
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .send-button svg {
-    width: 18px;
-    height: 18px;
-    fill: currentColor;
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
 }
 
 .file-input {
-    display: none;
+  display: none;
 }
 
 /* Country Flag */
 .country-flag {
-    width: 18px;
-    height: 14px;
-    margin-left: 8px;
-    border-radius: 2px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    transition: transform var(--transition-speed);
+  width: 18px;
+  height: 14px;
+  margin-left: 8px;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: transform var(--transition-speed);
 }
 
 .country-flag:hover {
-    transform: scale(1.2);
+  transform: scale(1.2);
 }
 
 /* Follow Button */
 .follow-btn {
-    margin-left: 12px;
-    background-color: transparent;
-    color: var(--primary-color);
-    border: 1px solid var(--primary-color);
-    border-radius: var(--border-radius-lg);
-    padding: 4px 12px;
-    font-size: 0.8rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color var(--transition-speed);
+  margin-left: 12px;
+  background-color: transparent;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  border-radius: var(--border-radius-lg);
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color var(--transition-speed);
 }
 
 .follow-btn:hover {
-    background-color: rgba(98, 98, 98, 0.1);
+  background-color: rgba(98, 98, 98, 0.1);
 }
 
 .follow-btn.followed {
-    background: var(--luxury-gradient);
-    color: white;
+  background: var(--luxury-gradient);
+  color: white;
+  border: 1px solid transparent;
 }
-
 
 /* Loading Animation */
 .loading-dots {
@@ -487,321 +550,679 @@ body {
   animation-delay: 0.4s;
 }
 @keyframes bounce {
-    from { transform: translateY(0); }
-    to { transform: translateY(-8px); }
+  from { transform: translateY(0); }
+  to { transform: translateY(-8px); }
 }
 
 /* Reply Section */
 .reply-input {
-    padding: 10px 0 0 60px;
-    margin-top: 5px;
-    animation: slideIn 0.3s ease;
+  padding: 10px 0 0 60px;
+  margin-top: 5px;
+  animation: slideIn 0.3s ease;
 }
 
 @keyframes slideIn {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .reply-wrapper {
-    display: flex;
-    background-color: var(--primary-light);
-    border-radius: var(--border-radius-lg);
-    padding: 8px 14px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    transition: box-shadow var(--transition-speed);
-    border: 1px solid var(--border-color);
+  display: flex;
+  background-color: var(--primary-light);
+  border-radius: var(--border-radius-lg);
+  padding: 8px 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: box-shadow var(--transition-speed);
 }
 
 .reply-wrapper:focus-within {
-    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-    border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 }
 
 .reply-textarea {
-    flex: 1;
-    background: none;
-    border: none;
-    color: var(--text-primary);
-    font-size: 0.875rem;
-    resize: none;
-    padding: 0;
-    outline: none;
-    line-height: 1.4;
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  resize: none;
+  padding: 0;
+  outline: none;
+  line-height: 1.4;
 }
 
 .reply-send {
-    background: var(--luxury-gradient);
-    color: white;
-    border: none;
-    border-radius: var(--border-radius-lg);
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    margin-left: 8px;
-    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-lg);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: background-color var(--transition-speed), transform var(--transition-speed);
+  box-shadow: 0 2px 4px rgba(74, 144, 226, 0.2);
 }
 
 .reply-send:hover {
-    transform: scale(1.05);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+  background-color: var(--primary-dark);
+  transform: scale(1.05);
 }
 
 .reply-send:active {
-    transform: scale(0.95);
+  transform: scale(0.95);
 }
 
 /* Input Profile Image */
 .input-profile-image {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    margin-right: 12px;
-    object-fit: cover;
-    border: 1px solid var(--border-light);
-    flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 12px;
+  object-fit: cover;
+  border: 1px solid var(--border-light);
+  flex-shrink: 0;
 }
 
-/* Media Queries for Responsiveness */
+/* Social Connections Styles */
+.user-count {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.user-count strong {
+  color: var(--text-primary);
+  font-size: 18px;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(98, 98, 98, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--primary-color);
+  animation: spin 1.2s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.loading-spinner:only-child {
+  margin-right: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Section Titles with subtle animation */
+.section-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 20px 0 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-primary);
+  position: relative;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--primary-color);
+  transition: width 0.3s ease;
+}
+
+.section-title:hover::after {
+  width: 40px;
+}
+
+/* User Card with Twitter-like interaction */
+.user-card {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  border: 1px solid transparent;
+  background-color: var(--background-white);
+}
+
+.user-card:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+  border-color: var(--border-light);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  transform: translateY(-1px);
+}
+
+.user-card:active {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: translateY(0);
+}
+
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 0.4s cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+.user-pic-container {
+  position: relative;
+  margin-right: 12px;
+}
+
+.user-pic {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border-light);
+  transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.user-card:hover .user-pic {
+  transform: scale(1.03);
+  border-color: var(--border-color);
+}
+
+.status-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--background-white);
+}
+
+.status-online {
+  background-color: #31a24c;
+}
+
+.status-offline {
+  background-color: #e0e0e0;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-name {
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 2px;
+  color: var(--text-primary);
+  transition: color 0.2s ease;
+}
+
+.user-card:hover .user-name {
+  color: var(--primary-dark);
+}
+
+/* Show More Button with Twitter-like animation */
+.show-more {
+  text-align: center;
+  padding: 12px;
+  color: var(--text-secondary);
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 12px;
+  border-radius: 12px;
+  background-color: var(--background-white);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  border: 1px solid var(--border-light);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+  position: relative;
+  overflow: hidden;
+  min-height: 46px;
+  margin-bottom: 20px; /* Added space below show more button */
+}
+
+.show-more:hover {
+  background: var(--luxury-gradient);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transform: translateY(-1px);
+}
+
+.show-more:active {
+  transform: translateY(0);
+}
+
+.show-more::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255,255,255,0.3),
+    transparent
+  );
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.show-more:hover::after {
+  transform: translateX(100%);
+}
+
+.show-more .loading-spinner {
+  margin-right: 8px;
+}
+
+.show-more span.loading-text {
+  display: none;
+}
+
+.show-more.loading span.loading-text {
+  display: inline;
+}
+
+.show-more.loading span.default-text {
+  display: none;
+}
+
+/* Empty state styling */
+.empty-state {
+  color: var(--text-secondary);
+  padding: 16px;
+  text-align: center;
+}
+
+/* Add JavaScript to handle partial scroll effect */
+/* Add this script tag to the HTML file */
+/*
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const socialHeader = document.querySelector('.social-header');
+    const initialHeaderTop = socialHeader ? socialHeader.offsetTop : 0;
+    
+    window.addEventListener('scroll', function() {
+      if (window.scrollY > 100) {
+        // Add a small transform to move the header up slightly
+        socialHeader.style.transform = 'translateY(-50px)';
+      } else {
+        // Reset the transform when scrolled back to top
+        socialHeader.style.transform = 'translateY(0)';
+      }
+    });
+  });
+</script>
+*/
+
+/* Responsive adjustments */
 @media (max-width: 992px) {
-    html {
-        font-size: 15px;
-    }
-    
-    .message {
-        padding: 12px 0;
-    }
-    
-    .media-container {
-        max-width: 90%;
-    }
-    
-    .action-button {
-        margin-right: 20px;
-    }
+  html {
+    font-size: 15px;
+  }
+  
+  .message {
+    padding: 12px 0;
+  }
+  
+  .media-container {
+    max-width: 95%;
+  }
+  
+  .action-button {
+    margin-right: 20px;
+  }
 }
 
 @media (max-width: 768px) {
-    html {
-        font-size: 14px;
-    }
-    
-    .profile-image {
-        width: 42px;
-        height: 42px;
-        margin-right: 12px;
-    }
+  html {
+    font-size: 14px;
+  }
+  
+  .profile-image {
+    width: 42px;
+    height: 42px;
+    margin-right: 12px;
+  }
 
-    .message {
-        padding: 10px 0;
-    }
+  .message {
+    padding: 10px 0;
+  }
 
-    .message-text {
-        font-size: 0.95rem;
-        line-height: 1.4;
-    }
+  .message-text {
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
 
-    .action-button {
-        margin-right: 16px;
-        font-size: 0.8rem;
-    }
+  .action-button {
+    margin-right: 16px;
+    font-size: 0.8rem;
+  }
 
-    .action-button svg {
-        margin-right: 6px;
-    }
+  .action-button svg {
+    margin-right: 6px;
+  }
 
-    .input-wrapper {
-        padding: 10px 14px;
-    }
+  .input-wrapper {
+    padding: 10px 14px;
+  }
 
-    .preview-item {
-        width: 85px;
-        height: 85px;
-    }
-    
-    .send-button {
-        width: 36px;
-        height: 36px;
-    }
-    
-    .message-image, .message-video {
-        max-height: 380px;
-    }
-    
-    .reply-input {
-        padding: 8px 0 0 54px;
-    }
-    
-    .input-profile-image {
-        width: 36px;
-        height: 36px;
-        margin-right: 10px;
-    }
-    
-    .media-container {
-        max-width: 95%;
-    }
+  .preview-item {
+    width: 85px;
+    height: 85px;
+  }
+  
+  .send-button {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .message-image, .message-video {
+    max-height: 380px;
+  }
+  
+  .reply-input {
+    padding: 8px 0 0 54px;
+  }
+  
+  .input-profile-image {
+    width: 36px;
+    height: 36px;
+    margin-right: 10px;
+  }
+}
+
+@media (max-width: 600px) {
+  .social-section {
+    display: none;
+  }
 }
 
 @media (max-width: 576px) {
-    html {
-        font-size: 14px;
-    }
-    
-    .chat-container {
-        padding: 10px 12px;
-    }
-    
-    .profile-image {
-        width: 38px;
-        height: 38px;
-        margin-right: 10px;
-    }
+  html {
+    font-size: 14px;
+  }
+  
+  .chat-container {
+    padding: 10px 12px;
+  }
+  
+  .profile-image {
+    width: 38px;
+    height: 38px;
+    margin-right: 10px;
+  }
 
-    .message-header {
-        flex-wrap: wrap;
-    }
+  .message-header {
+    flex-wrap: wrap;
+  }
 
-    .user-name {
-        font-size: 0.95rem;
-    }
+  .user-name {
+    font-size: 0.95rem;
+  }
 
-    .user-handle, .message-time {
-        font-size: 0.8rem;
-    }
+  .user-handle, .message-time {
+    font-size: 0.8rem;
+  }
 
-    .message-text {
-        margin-bottom: 10px;
-        font-size: 0.9rem;
-    }
+  .message-text {
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+  }
 
-    .action-buttons {
-        justify-content: space-between;
-    }
+  .action-buttons {
+    justify-content: space-between;
+  }
 
-    .action-button {
-        margin-right: 12px;
-        font-size: 0.75rem;
-    }
+  .action-button {
+    margin-right: 12px;
+    font-size: 0.75rem;
+  }
 
-    .action-button svg {
-        width: 16px;
-        height: 16px;
-        margin-right: 4px;
-    }
+  .action-button svg {
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+  }
 
-    .input-container {
-        padding: 10px 12px;
-    }
+  .input-container {
+    padding: 10px 12px;
+  }
 
-    .input-wrapper {
-        padding: 8px 12px;
-    }
+  .input-wrapper {
+    padding: 8px 12px;
+  }
 
-    .message-textarea {
-        font-size: 0.95rem;
-    }
+  .message-textarea {
+    font-size: 0.95rem;
+  }
 
-    .preview-item {
-        width: 70px;
-        height: 70px;
-    }
-    
-    .media-button {
-        margin-right: 10px;
-    }
-    
-    .media-button svg {
-        width: 20px;
-        height: 20px;
-    }
-    
-    .send-button {
-        width: 34px;
-        height: 34px;
-    }
-    
-    .message-image, .message-video {
-        max-height: 320px;
-    }
-    
-    .reply-input {
-        padding: 6px 0 0 48px;
-    }
-    
-    .reply-wrapper {
-        padding: 7px 12px;
-    }
-    
-    .reply-send {
-        width: 30px;
-        height: 30px;
-    }
-    
-    .follow-btn {
-        padding: 2px 8px;
-        font-size: 0.7rem;
-    }
-    
-    .input-profile-image {
-        width: 32px;
-        height: 32px;
-        margin-right: 8px;
-    }
-    
-    .media-container {
-        max-width: 100%;
-    }
+  .preview-item {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .media-button {
+    margin-right: 10px;
+  }
+  
+  .media-button svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .send-button {
+    width: 34px;
+    height: 34px;
+  }
+  
+  .message-image, .message-video {
+    max-height: 320px;
+  }
+  
+  .reply-input {
+    padding: 6px 0 0 48px;
+  }
+  
+  .reply-wrapper {
+    padding: 7px 12px;
+  }
+  
+  .reply-send {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .follow-btn {
+    padding: 2px 8px;
+    font-size: 0.7rem;
+  }
+  
+  .input-profile-image {
+    width: 32px;
+    height: 32px;
+    margin-right: 8px;
+  }
 }
 
-</style>
+
+  </style>
 </head>
 <body>
-  <!-- Input area now at the top -->
-  <div class="input-container">
-    <div class="media-preview" id="mediaPreview"></div>
-    <div class="input-wrapper">
-      <img id="inputProfileImage" class="input-profile-image" src="https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png" alt="Profile">
-      <textarea id="messageInput" class="message-textarea" placeholder="What's happening?" rows="1"></textarea>
-      <div class="input-actions">
-        <button class="media-button" id="imageButton">
-          <!-- SVG content -->
-          <svg viewBox="0 0 24 24">
-  <path d="M19.75 2H4.25C3.01 2 2 3.01 2 4.25v15.5C2 20.99 3.01 22 4.25 22h15.5c1.24 0 2.25-1.01 2.25-2.25V4.25C22 3.01 20.99 2 19.75 2zM4.25 3.5h15.5c.413 0 .75.337.75.75v9.676l-3.858-3.858c-.14-.14-.33-.22-.53-.22h-.003c-.2 0-.393.08-.532.224l-4.317 4.384-1.813-1.806c-.14-.14-.33-.22-.53-.22-.193-.03-.395.08-.535.227L3.5 17.642V4.25c0-.413.337-.75.75-.75zm-.744 16.28l5.418-5.534 6.282 6.254H4.25c-.402 0-.727-.322-.744-.72zm16.244.72h-2.42l-5.007-4.987 3.792-3.85 4.385 4.384v3.703c0 .413-.337.75-.75.75z"></path>
-  <circle cx="8.868" cy="8.309" r="1.542"></circle>
-</svg>
-        </button>
-        <button class="media-button" id="videoButton">
-          <!-- SVG content -->
-          <svg viewBox="0 0 24 24">
-  <path d="M21 6.3c0-.7-.6-1.3-1.3-1.3H4.3C3.6 5 3 5.6 3 6.3v11.4c0 .7.6 1.3 1.3 1.3h15.4c.7 0 1.3-.6 1.3-1.3V6.3zm-2 0v11.4H5V6.3h14z"></path>
-  <path d="M9.6 15l5.1-3-5.1-3v6z"></path>
-</svg>
-        </button>
-        <input type="file" id="imageInput" class="file-input" accept="image/*">
-        <input type="file" id="videoInput" class="file-input" accept="video/*">
-        <button id="sendButton" class="send-button" disabled>
-          <!-- SVG content -->
-          <svg viewBox="0 0 24 24">
-  <path d="M2.252 6.456l19.476 5.825c.53.159.53.928 0 1.088L2.252 19.194c-.43.129-.81-.303-.53-.604l4.309-4.672c.45-.487.45-1.256 0-1.742L1.722 7.06c-.28-.302.1-.733.53-.604z"></path>
-        </button>
+  <div class="app-container">
+    <!-- Chat Section - Left Side -->
+    <div class="chat-section">
+      <!-- Input area now at the top -->
+      <div class="input-container">
+        <div class="media-preview" id="mediaPreview"></div>
+        <div class="input-wrapper">
+          <img id="inputProfileImage" class="input-profile-image" src="https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png" alt="Profile">
+          <textarea id="messageInput" class="message-textarea" placeholder="What's happening?" rows="1"></textarea>
+          <div class="input-actions">
+            <button class="media-button" id="imageButton">
+              <!-- SVG content -->
+              <svg viewBox="0 0 24 24">
+              
+                <path d="M19.75 2H4.25C3.01 2 2 3.01 2 4.25v15.5C2 20.99 3.01 22 4.25 22h15.5c1.24 0 2.25-1.01 2.25-2.25V4.25C22 3.01 20.99 2 19.75 2zM4.25 3.5h15.5c.413 0 .75.337.75.75v9.676l-3.858-3.858c-.14-.14-.33-.22-.53-.22h-.003c-.2 0-.393.08-.532.224l-4.317 4.384-1.813-1.806c-.14-.14-.33-.22-.53-.22-.193-.03-.395.08-.535.227L3.5 17.642V4.25c0-.413.337-.75.75-.75zm-.744 16.28l5.418-5.534 6.282 6.254H4.25c-.402 0-.727-.322-.744-.72zm16.244.72h-2.42l-5.007-4.987 3.792-3.85 4.385 4.384v3.703c0 .413-.337.75-.75.75z"></path>
+                <circle cx="8.868" cy="8.309" r="1.542"></circle>
+              </svg>
+            </button>
+            <button class="media-button" id="videoButton">
+              <!-- SVG content -->
+              <svg viewBox="0 0 24 24">
+                <path d="M21 6.3c0-.7-.6-1.3-1.3-1.3H4.3C3.6 5 3 5.6 3 6.3v11.4c0 .7.6 1.3 1.3 1.3h15.4c.7 0 1.3-.6 1.3-1.3V6.3zm-2 0v11.4H5V6.3h14z"></path>
+                <path d="M9.6 15l5.1-3-5.1-3v6z"></path>
+              </svg>
+            </button>
+            <input type="file" id="imageInput" class="file-input" accept="image/*">
+            <input type="file" id="videoInput" class="file-input" accept="video/*">
+            <button id="sendButton" class="send-button" disabled>
+              <!-- SVG content -->
+              <svg viewBox="0 0 24 24">
+                <path d="M2.252 6.456l19.476 5.825c.53.159.53.928 0 1.088L2.252 19.194c-.43.129-.81-.303-.53-.604l4.309-4.672c.45-.487.45-1.256 0-1.742L1.722 7.06c-.28-.302.1-.733.53-.604z"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Chat container below input area -->
+      <div class="chat-container" id="chatContainer">
+        <div class="loading-dots" id="loadingIndicator">
+          <div class="loading-dot"></div>
+          <div class="loading-dot"></div>
+          <div class="loading-dot"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Social Connections Section - Right Side -->
+    <div class="social-section">
+      <div class="social-content">
+        <div class="social-header">
+          <div class="header">
+            <div class="user-count">
+              <strong id="totalUsersCount">0</strong> people available
+            </div>
+            <div id="headerSpinner" class="loading-spinner" style="display: none;"></div>
+          </div>
+        </div>
+        
+        <div class="social-main">
+          <!-- Suggested Users Section -->
+          <div class="section-title">Suggested for you</div>
+          <div id="suggestedUsersContainer">
+            <div id="suggestedSpinner" class="spinner-container">
+              <div class="loading-spinner"></div>
+            </div>
+          </div>
+          <div class="show-more" id="showMoreSuggested">
+            <span id="suggestedBtnSpinner" class="loading-spinner" style="display: none;"></span>
+            <span class="default-text">Show more</span>
+            <span class="loading-text">Loading...</span>
+          </div>
+          
+          <!-- Top Followed Section -->
+          <div id="topFollowedSection">
+            <div class="section-title">Top followed</div>
+            <div id="topFollowedUsersContainer">
+              <div id="topFollowedSpinner" class="spinner-container">
+                <div class="loading-spinner"></div>
+              </div>
+            </div>
+            <div class="show-more" id="showMoreTopFollowed">
+              <span id="topFollowedBtnSpinner" class="loading-spinner" style="display: none;"></span>
+              <span class="default-text">Show more</span>
+              <span class="loading-text">Loading...</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="social-footer">
+          <div class="footer-links">
+            <a href="#">Terms of Service</a>
+            <a href="#">Privacy Policy</a>
+            <a href="#">Cookie Policy</a>
+            <a href="#">Accessibility</a>
+            <a href="#">Ads info</a>
+            <a href="#">More</a>
+            <span>© 2023 Global Chat</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
-  
-  <!-- Chat container below input area -->
-  <div class="chat-container" id="chatContainer">
-    <div class="loading-dots" id="loadingIndicator">
-      <div class="loading-dot"></div>
-      <div class="loading-dot"></div>
-      <div class="loading-dot"></div>
-    </div>
-  </div>
 </body>
+<script>
+  (function() {
+    // Wait for the DOM to be fully loaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeSidebarEffect);
+    } else {
+      initializeSidebarEffect();
+    }
+    
+    function initializeSidebarEffect() {
+      // Get the social section element
+      const socialSection = document.querySelector('.social-section');
+      
+      if (!socialSection) return; // Safety check
+      
+      // Set the initial position
+      let initialPosition = socialSection.getBoundingClientRect().top;
+      
+      // Maximum amount it should move up (in pixels)
+      const maxMoveUp = 50;
+      
+      // Make the social section position sticky with smooth transitions
+      socialSection.style.position = 'sticky';
+      socialSection.style.top = initialPosition + 'px';
+      socialSection.style.transition = 'top 0.3s cubic-bezier(0.33, 1, 0.68, 1)';
+      
+      // Use requestAnimationFrame for smoother scrolling
+      let ticking = false;
+      
+      window.addEventListener('scroll', function() {
+        if (!ticking) {
+          window.requestAnimationFrame(function() {
+            // Get the current scroll position
+            const scrollY = window.scrollY;
+            
+            // Calculate how much to move, but never more than maxMoveUp
+            const moveAmount = Math.min(scrollY, maxMoveUp);
+            
+            // Move the section up slightly as you scroll down
+            const newTop = initialPosition - moveAmount;
+            
+            // Apply the new position
+            socialSection.style.top = newTop + 'px';
+            
+            ticking = false;
+          });
+          
+          ticking = true;
+        }
+      });
+    }
+  })();
+</script>
+
 
 <script>
     
