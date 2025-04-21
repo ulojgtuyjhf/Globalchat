@@ -637,6 +637,8 @@ body {
    
 </script>
 <script>
+  
+
 (function() {
   // Create unique IDs to avoid conflicts
   const uniquePrefix = 'gc_' + Math.random().toString(36).substring(2, 9);
@@ -667,7 +669,7 @@ body {
     /* Theme support for FAB */
     body.theme-dim .${uniquePrefix}_fab,
     body.theme-dark .${uniquePrefix}_fab {
-      background: linear-gradient(135deg, #8899a6 0%, #a6a6a6 100%);
+      background: linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 15%, #d8d8d8 30%, #c8c8c8 45%, #b8b8b8 60%, #a8a8a8 75%, #989898 90%, #888888 100%);
       box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
     }
     
@@ -694,10 +696,15 @@ body {
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
     }
     
-    .${uniquePrefix}_fab svg {
+    .${uniquePrefix}_fab_icon {
       width: 20px;
       height: 20px;
       fill: white;
+      transition: transform 0.4s ease;
+    }
+    
+    .${uniquePrefix}_fab.open .${uniquePrefix}_plus_icon {
+      transform: rotate(135deg);
     }
     
     .${uniquePrefix}_overlay {
@@ -712,7 +719,8 @@ body {
       z-index: 9998;
       opacity: 0;
       visibility: hidden;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+      pointer-events: none; /* Initially not interactive */
     }
     
     body.theme-dim .${uniquePrefix}_overlay {
@@ -726,6 +734,7 @@ body {
     .${uniquePrefix}_overlay.visible {
       opacity: 1;
       visibility: visible;
+      pointer-events: all; /* Make interactive when visible */
     }
     
     .${uniquePrefix}_menu {
@@ -737,14 +746,14 @@ body {
       align-items: flex-end;
       z-index: 9999;
       opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.3s ease, transform 0.3s ease;
+      transform: translateY(20px) scale(0.9);
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       pointer-events: none;
     }
     
     .${uniquePrefix}_menu.visible {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
       pointer-events: all;
     }
     
@@ -752,22 +761,22 @@ body {
       display: flex;
       align-items: center;
       margin-bottom: 16px;
-      transform: scale(0.8);
+      transform: scale(0.8) translateX(40px);
       opacity: 0;
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     
     .${uniquePrefix}_menu.visible .${uniquePrefix}_menu_item {
-      transform: scale(1);
+      transform: scale(1) translateX(0);
       opacity: 1;
     }
     
     .${uniquePrefix}_menu.visible .${uniquePrefix}_menu_item:nth-child(1) {
-      transition-delay: 0.05s;
+      transition-delay: 0.1s;
     }
     
     .${uniquePrefix}_menu.visible .${uniquePrefix}_menu_item:nth-child(2) {
-      transition-delay: 0.1s;
+      transition-delay: 0.2s;
     }
     
     .${uniquePrefix}_menu_button {
@@ -781,12 +790,12 @@ body {
       border: none;
       cursor: pointer;
       margin-right: 12px;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
     }
     
     body.theme-dim .${uniquePrefix}_menu_button,
     body.theme-dark .${uniquePrefix}_menu_button {
-      background: linear-gradient(135deg, #8899a6 0%, #a6a6a6 100%);
+      background: linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 15%, #d8d8d8 30%, #c8c8c8 45%, #b8b8b8 60%, #a8a8a8 75%, #989898 90%, #888888 100%);
       box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
     }
     
@@ -831,6 +840,15 @@ body {
       border-radius: 16px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
       white-space: nowrap;
+      transform: translateX(15px);
+      opacity: 0;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    
+    .${uniquePrefix}_menu.visible .${uniquePrefix}_menu_label {
+      transform: translateX(0);
+      opacity: 1;
+      transition-delay: 0.2s;
     }
     
     body.theme-dim .${uniquePrefix}_menu_label {
@@ -861,17 +879,31 @@ body {
       transform: translateX(0);
     }
     
-    .${uniquePrefix}_close_button {
-      position: absolute;
-      top: 15px;
-      left: 15px;
+    .${uniquePrefix}_header {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-light, #e0e0e0);
+      background-color: var(--background-white, #ffffff);
+    }
+    
+    body.theme-dim .${uniquePrefix}_header {
+      background-color: #15202b;
+      border-bottom-color: #38444d;
+    }
+    
+    body.theme-dark .${uniquePrefix}_header {
+      background-color: #000000;
+      border-bottom-color: #2f3336;
+    }
+    
+    .${uniquePrefix}_back_button {
       background: none;
       border: none;
       cursor: pointer;
       padding: 8px;
-      z-index: 10001;
       border-radius: 50%;
-      transition: background-color 0.2s ease;
+      transition: background-color 0.2s ease, transform 0.2s ease;
       width: 36px;
       height: 36px;
       display: flex;
@@ -879,19 +911,25 @@ body {
       justify-content: center;
     }
     
-    .${uniquePrefix}_close_button:hover {
+    .${uniquePrefix}_back_button:hover {
       background-color: rgba(0, 0, 0, 0.05);
+      transform: scale(1.05);
     }
     
-    body.theme-dim .${uniquePrefix}_close_button:hover,
-    body.theme-dark .${uniquePrefix}_close_button:hover {
+    body.theme-dim .${uniquePrefix}_back_button:hover,
+    body.theme-dark .${uniquePrefix}_back_button:hover {
       background-color: rgba(255, 255, 255, 0.1);
     }
     
-    .${uniquePrefix}_close_button svg {
-      width: 18px;
-      height: 18px;
+    .${uniquePrefix}_back_button svg {
+      width: 20px;
+      height: 20px;
       fill: var(--text-primary, #333);
+    }
+    
+    body.theme-dim .${uniquePrefix}_back_button svg,
+    body.theme-dark .${uniquePrefix}_back_button svg {
+      fill: #ffffff;
     }
     
     .${uniquePrefix}_post_content {
@@ -899,7 +937,7 @@ body {
       overflow: hidden;
       position: relative;
       width: 100%;
-      height: 100%;
+      height: calc(100% - 60px);
     }
     
     .${uniquePrefix}_post_iframe {
@@ -930,6 +968,14 @@ body {
       z-index: 10001;
     }
     
+    body.theme-dim .${uniquePrefix}_loading {
+      background-color: #15202b;
+    }
+    
+    body.theme-dark .${uniquePrefix}_loading {
+      background-color: #000000;
+    }
+    
     .${uniquePrefix}_spinner {
       width: 36px;
       height: 36px;
@@ -949,17 +995,22 @@ body {
       border-top-color: #1DA1F2;
     }
     
+    .${uniquePrefix}_page_lock {
+      overflow: hidden !important;
+      touch-action: none !important;
+    }
+    
     @keyframes ${uniquePrefix}_spin {
       to { transform: rotate(360deg); }
     }
   `;
   document.head.appendChild(style);
   
-  // Create FAB (Floating Action Button) - but don't add to DOM yet
+  // Create FAB (Floating Action Button) with plus icon that can transform to X
   const fab = document.createElement('div');
   fab.className = `${uniquePrefix}_fab`;
   fab.innerHTML = `
-    <svg viewBox="0 0 24 24">
+    <svg class="${uniquePrefix}_fab_icon ${uniquePrefix}_plus_icon" viewBox="0 0 24 24">
       <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
     </svg>
   `;
@@ -990,15 +1041,17 @@ body {
     </div>
   `;
   
-  // Create Post Container
+  // Create Post Container with header and back button
   const postContainer = document.createElement('div');
   postContainer.className = `${uniquePrefix}_post_container`;
   postContainer.innerHTML = `
-    <button class="${uniquePrefix}_close_button" aria-label="Close">
-      <svg viewBox="0 0 24 24">
-        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-      </svg>
-    </button>
+    <div class="${uniquePrefix}_header">
+      <button class="${uniquePrefix}_back_button" aria-label="Back">
+        <svg viewBox="0 0 24 24">
+          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        </svg>
+      </button>
+    </div>
     <div class="${uniquePrefix}_post_content">
       <div class="${uniquePrefix}_loading">
         <div class="${uniquePrefix}_spinner"></div>
@@ -1007,7 +1060,7 @@ body {
     </div>
   `;
   
-  // Add elements to DOM
+  // Add elements to DOM but keep FAB hidden initially
   document.body.appendChild(fab);
   document.body.appendChild(overlay);
   document.body.appendChild(menu);
@@ -1016,7 +1069,7 @@ body {
   // Get references to elements
   const chatButton = document.getElementById(`${uniquePrefix}_chat_button`);
   const mediaButton = document.getElementById(`${uniquePrefix}_media_button`);
-  const closeButton = postContainer.querySelector(`.${uniquePrefix}_close_button`);
+  const backButton = postContainer.querySelector(`.${uniquePrefix}_back_button`);
   const postIframe = postContainer.querySelector(`.${uniquePrefix}_post_iframe`);
   const loadingEl = postContainer.querySelector(`.${uniquePrefix}_loading`);
   
@@ -1043,24 +1096,45 @@ body {
     }
   }
   
+  // Add/remove page lock
+  function togglePageLock(lock) {
+    if (lock) {
+      document.documentElement.classList.add(`${uniquePrefix}_page_lock`);
+      document.body.classList.add(`${uniquePrefix}_page_lock`);
+    } else {
+      document.documentElement.classList.remove(`${uniquePrefix}_page_lock`);
+      document.body.classList.remove(`${uniquePrefix}_page_lock`);
+    }
+  }
+  
   // Set up theme monitoring
   setInterval(updateThemeElements, 2000);
   
   // Initialize with hidden menu
-  fab.classList.add('visible');
+  // Set 3-second delay before showing FAB
+  setTimeout(() => {
+    fab.classList.add('visible');
+  }, 3000);
   
-  // Toggle menu visibility
+  // Toggle menu visibility with plus/X icon animation
   function toggleMenu(show) {
     if (show) {
+      fab.classList.add('open');
       overlay.classList.add('visible');
       menu.classList.add('visible');
+      togglePageLock(true);
     } else {
+      fab.classList.remove('open');
       overlay.classList.remove('visible');
       menu.classList.remove('visible');
+      // Only unlock page if post container is also not visible
+      if (!postContainer.classList.contains('visible')) {
+        togglePageLock(false);
+      }
     }
   }
   
-  // Open post container
+  // Open post container with smooth animation
   function openPostContainer(type) {
     updateThemeElements(); // Update theme elements before showing
     
@@ -1071,9 +1145,11 @@ body {
     const url = type === 'media' ? 'post.html?type=media' : 'post.html';
     postIframe.src = url;
     
-    // Show container
-    postContainer.classList.add('visible');
-    document.body.style.overflow = 'hidden';
+    // Show container with animation
+    requestAnimationFrame(() => {
+      postContainer.classList.add('visible');
+      togglePageLock(true);
+    });
     
     // Show loading spinner
     loadingEl.style.display = 'flex';
@@ -1088,10 +1164,10 @@ body {
     };
   }
   
-  // Close post container
+  // Close post container with smooth animation
   function closePostContainer() {
     postContainer.classList.remove('visible');
-    document.body.style.overflow = '';
+    togglePageLock(false);
     
     // Reset iframe after animation completes
     setTimeout(() => {
@@ -1102,6 +1178,11 @@ body {
   
   // Improved scroll behavior handler
   function handleScroll() {
+    // Only process scrolling if overlay and menu are not visible
+    if (overlay.classList.contains('visible') || postContainer.classList.contains('visible')) {
+      return;
+    }
+  
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     
     // Determine scroll direction with more precision
@@ -1129,11 +1210,18 @@ body {
   }
   
   // Event listeners
-  fab.addEventListener('click', () => toggleMenu(true));
+  fab.addEventListener('click', () => {
+    if (fab.classList.contains('open')) {
+      toggleMenu(false);
+    } else {
+      toggleMenu(true);
+    }
+  });
+  
   overlay.addEventListener('click', () => toggleMenu(false));
   chatButton.addEventListener('click', () => openPostContainer('chat'));
   mediaButton.addEventListener('click', () => openPostContainer('media'));
-  closeButton.addEventListener('click', closePostContainer);
+  backButton.addEventListener('click', closePostContainer);
   
   // Handle iframe communication
   window.addEventListener('message', function(event) {
@@ -1156,7 +1244,9 @@ body {
   // Initial theme setup
   updateThemeElements();
 })();
+
 </script>
+
 <script type="module" src="language.js"></script>
 <script src="loadfollow.js"></script>
 <script src="remove.js"></script>
