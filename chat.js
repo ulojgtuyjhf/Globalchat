@@ -1,8 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getDatabase, ref, push, set, onChildAdded, onValue, update, get, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-// Removed Firebase Storage import
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -16,8 +15,8 @@ const firebaseConfig = {
 
 // Appwrite Configuration
 const APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1";
-const APPWRITE_PROJECT_ID = "67d98c24003a405ab6a0"; 
-const APPWRITE_BUCKET_ID = "67dba33e000399dc8641"; 
+const APPWRITE_PROJECT_ID = "67d98c24003a405ab6a0";
+const APPWRITE_BUCKET_ID = "67dba33e000399dc8641";
 const APPWRITE_API_KEY = "standard_6f65a2d8e8c270ba9556f844789c1eae72c7fa71f64b95409ac20b6127c483454d1e4b9f8c13f82c09168ed1dfebd2d4e7e02494bee254252f9713675beea4d645a960879aaada1c6c98cb7651ec6c6bf4357e4c2c8b8d666c0166203ec43694b9a49ec8ee08161edf3fd5dea94e46c165316122f44f96c44933121be214b80c";
 
 // Initialize Firebase
@@ -29,6 +28,7 @@ const chatRef = ref(database, 'messages');
 const typingRef = ref(database, 'typing');
 const rateLimitRef = ref(database, 'rateLimit');
 
+// DOM Elements
 const chatContainer = document.getElementById('chatContainer');
 const messageInput = document.getElementById('messageInput');
 const imageInput = document.getElementById('imageInput');
@@ -39,32 +39,43 @@ const mediaPreview = document.getElementById('mediaPreview');
 const sendButton = document.getElementById('sendButton');
 const loadingIndicator = document.getElementById('loadingIndicator');
 const inputProfileImage = document.getElementById('inputProfileImage');
+const totalUsersCount = document.getElementById('totalUsersCount');
+const suggestedUsersContainer = document.getElementById('suggestedUsersContainer');
+const showMoreSuggested = document.getElementById('showMoreSuggested');
+const suggestedBtnSpinner = document.getElementById('suggestedBtnSpinner');
+const topFollowedUsersContainer = document.getElementById('topFollowedUsersContainer');
+const showMoreTopFollowed = document.getElementById('showMoreTopFollowed');
+const topFollowedBtnSpinner = document.getElementById('topFollowedBtnSpinner');
+const headerSpinner = document.getElementById('headerSpinner');
 
+// State variables
 let currentUser = null;
 let selectedMedia = [];
 let lastMessageTime = 0;
 const followedUsers = new Set();
 let typingTimeout = null;
 const typingUsers = new Map();
-let globalRateLimit = Date.now(); // Global rate limit timestamp
-let messagesLoaded = false; // Flag to track if initial messages are loaded
+let globalRateLimit = Date.now();
+let messagesLoaded = false;
+let lastSuggestedUserDoc = null;
+let lastTopFollowedUserDoc = null;
 
 // Initialize app
 function initApp() {
   // Initialize message input height adjustment
   initMessageInput();
-  
+
   // Media upload event listeners
   imageButton.addEventListener('click', () => imageInput.click());
   videoButton.addEventListener('click', () => videoInput.click());
   imageInput.addEventListener('change', handleMediaSelection);
   videoInput.addEventListener('change', handleMediaSelection);
-  
+
   // Send Button Event Listener
   sendButton.addEventListener('click', () => {
     sendMessage();
   });
-  
+
   // Enter key to send message (Shift+Enter for new line)
   messageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -74,15 +85,239 @@ function initApp() {
       }
     }
   });
-  
+
   // Listen for typing indicators
   listenForTypingIndicators();
-  
+
   // Listen for messages
   listenForMessages();
-  
+
   // Listen for global rate limit
   listenForRateLimit();
+
+  // Initialize social section
+  initSocialSection();
+}
+
+// Initialize social section with user count and suggested/top followed users
+function initSocialSection() {
+  // Load total user count
+  loadTotalUserCount();
+
+  // Load initial suggested users
+  loadSuggestedUsers();
+
+  // Load initial top followed users
+  loadTopFollowedUsers();
+
+  // Set up "Show More" button event listeners
+  showMoreSuggested.addEventListener('click', () => {
+    loadMoreSuggestedUsers();
+  });
+
+  showMoreTopFollowed.addEventListener('click', () => {
+    loadMoreTopFollowedUsers();
+  });
+}
+
+// Load total user count from Firestore
+async function loadTotalUserCount() {
+  try {
+    headerSpinner.style.display = 'inline-block';
+    const usersCollection = collection(db, 'users');
+    const snapshot = await getDocs(usersCollection);
+    totalUsersCount.textContent = snapshot.size;
+  } catch (error) {
+    console.error('Error loading user count:', error);
+    totalUsersCount.textContent = '0';
+  } finally {
+    headerSpinner.style.display = 'none';
+  }
+}
+
+// Load suggested users with pagination
+async function loadSuggestedUsers() {
+  try {
+    suggestedBtnSpinner.style.display = 'inline-block';
+    showMoreSuggested.classList.add('loading');
+    
+    // Query to get suggested users (random sample for demo)
+    const usersQuery = query(
+      collection(db, 'users'),
+      orderBy('createdAt', 'desc'),
+      limit(3)
+    );
+
+    const snapshot = await getDocs(usersQuery);
+    suggestedUsersContainer.innerHTML = '';
+    
+    if (snapshot.empty) {
+      suggestedUsersContainer.innerHTML = '<div class="empty-state">No suggested users found</div>';
+      showMoreSuggested.style.display = 'none';
+      return;
+    }
+
+    snapshot.forEach(doc => {
+      const user = doc.data();
+      suggestedUsersContainer.appendChild(createUserCard(user, doc.id));
+    });
+
+    // Store last document for pagination
+    lastSuggestedUserDoc = snapshot.docs[snapshot.docs.length - 1];
+
+  } catch (error) {
+    console.error('Error loading suggested users:', error);
+    suggestedUsersContainer.innerHTML = '<div class="empty-state">Error loading users</div>';
+  } finally {
+    suggestedBtnSpinner.style.display = 'none';
+    showMoreSuggested.classList.remove('loading');
+  }
+}
+
+// Load more suggested users
+async function loadMoreSuggestedUsers() {
+  try {
+    suggestedBtnSpinner.style.display = 'inline-block';
+    showMoreSuggested.classList.add('loading');
+    
+    if (!lastSuggestedUserDoc) {
+      await loadSuggestedUsers();
+      return;
+    }
+
+    const usersQuery = query(
+      collection(db, 'users'),
+      orderBy('createdAt', 'desc'),
+      startAfter(lastSuggestedUserDoc),
+      limit(3)
+    );
+
+    const snapshot = await getDocs(usersQuery);
+    
+    if (snapshot.empty) {
+      showMoreSuggested.style.display = 'none';
+      return;
+    }
+
+    snapshot.forEach(doc => {
+      const user = doc.data();
+      suggestedUsersContainer.appendChild(createUserCard(user, doc.id));
+    });
+
+    // Update last document for pagination
+    lastSuggestedUserDoc = snapshot.docs[snapshot.docs.length - 1];
+
+  } catch (error) {
+    console.error('Error loading more suggested users:', error);
+  } finally {
+    suggestedBtnSpinner.style.display = 'none';
+    showMoreSuggested.classList.remove('loading');
+  }
+}
+
+// Load top followed users with pagination
+async function loadTopFollowedUsers() {
+  try {
+    topFollowedBtnSpinner.style.display = 'inline-block';
+    showMoreTopFollowed.classList.add('loading');
+    
+    // Query to get top followed users (for demo, we'll just get recent users)
+    const usersQuery = query(
+      collection(db, 'users'),
+      orderBy('createdAt', 'desc'),
+      limit(3)
+    );
+
+    const snapshot = await getDocs(usersQuery);
+    topFollowedUsersContainer.innerHTML = '';
+    
+    if (snapshot.empty) {
+      topFollowedUsersContainer.innerHTML = '<div class="empty-state">No users found</div>';
+      showMoreTopFollowed.style.display = 'none';
+      return;
+    }
+
+    snapshot.forEach(doc => {
+      const user = doc.data();
+      topFollowedUsersContainer.appendChild(createUserCard(user, doc.id));
+    });
+
+    // Store last document for pagination
+    lastTopFollowedUserDoc = snapshot.docs[snapshot.docs.length - 1];
+
+  } catch (error) {
+    console.error('Error loading top followed users:', error);
+    topFollowedUsersContainer.innerHTML = '<div class="empty-state">Error loading users</div>';
+  } finally {
+    topFollowedBtnSpinner.style.display = 'none';
+    showMoreTopFollowed.classList.remove('loading');
+  }
+}
+
+// Load more top followed users
+async function loadMoreTopFollowedUsers() {
+  try {
+    topFollowedBtnSpinner.style.display = 'inline-block';
+    showMoreTopFollowed.classList.add('loading');
+    
+    if (!lastTopFollowedUserDoc) {
+      await loadTopFollowedUsers();
+      return;
+    }
+
+    const usersQuery = query(
+      collection(db, 'users'),
+      orderBy('createdAt', 'desc'),
+      startAfter(lastTopFollowedUserDoc),
+      limit(3)
+    );
+
+    const snapshot = await getDocs(usersQuery);
+    
+    if (snapshot.empty) {
+      showMoreTopFollowed.style.display = 'none';
+      return;
+    }
+
+    snapshot.forEach(doc => {
+      const user = doc.data();
+      topFollowedUsersContainer.appendChild(createUserCard(user, doc.id));
+    });
+
+    // Update last document for pagination
+    lastTopFollowedUserDoc = snapshot.docs[snapshot.docs.length - 1];
+
+  } catch (error) {
+    console.error('Error loading more top followed users:', error);
+  } finally {
+    topFollowedBtnSpinner.style.display = 'none';
+    showMoreTopFollowed.classList.remove('loading');
+  }
+}
+
+// Create user card element
+function createUserCard(user, userId) {
+  const isFollowing = followedUsers.has(userId);
+  const followBtnDisplay = userId === currentUser?.uid ? 'none' : 'inline-block';
+
+  const userCard = document.createElement('div');
+  userCard.className = 'user-card fade-in';
+  userCard.innerHTML = `
+    <div class="user-pic-container">
+      <img src="${user.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="user-pic" alt="Profile">
+      <div class="status-dot ${user.status === 'online' ? 'status-online' : 'status-offline'}"></div>
+    </div>
+    <div class="user-info">
+      <div class="user-name">${user.displayName || 'User'}</div>
+      <button class="follow-btn ${isFollowing ? 'followed' : ''}" 
+              data-user-id="${userId}" 
+              onclick="toggleFollow('${userId}', '${user.displayName || 'User'}')" 
+              style="display: ${followBtnDisplay}">
+        ${isFollowing ? 'Following' : 'Follow'}
+      </button>
+    </div>
+  `;
+  return userCard;
 }
 
 // Initialize message input with typing indicator
@@ -91,16 +326,16 @@ function initMessageInput() {
     // Adjust height
     this.style.height = 'auto';
     this.style.height = (this.scrollHeight) + 'px';
-    
+
     // Enable/disable send button based on content
     const hasText = this.value.trim().length > 0;
     const hasMedia = selectedMedia.length > 0;
     sendButton.disabled = !(hasText || hasMedia);
-    
+
     // Update typing indicator
     updateTypingStatus();
   });
-  
+
   // When user stops typing
   messageInput.addEventListener('blur', function() {
     if (currentUser) {
@@ -114,17 +349,17 @@ function initMessageInput() {
 // Update user typing status
 function updateTypingStatus() {
   if (!currentUser) return;
-  
+
   // Clear previous timeout
   clearTimeout(typingTimeout);
-  
+
   // Update typing status in database
   const userTypingRef = ref(database, `typing/${currentUser.uid}`);
   set(userTypingRef, {
     name: currentUser.displayName,
     timestamp: Date.now()
   });
-  
+
   // Set timeout to clear typing status after 3 seconds of inactivity
   typingTimeout = setTimeout(() => {
     set(userTypingRef, null);
@@ -135,21 +370,21 @@ function updateTypingStatus() {
 function listenForTypingIndicators() {
   onValue(typingRef, (snapshot) => {
     const data = snapshot.val() || {};
-    
+
     // Clear old typists
     typingUsers.clear();
-    
+
     // Update typing users map
     Object.entries(data).forEach(([userId, userData]) => {
       // Don't show current user typing
       if (userId === currentUser?.uid) return;
-      
+
       // Only show recent typing (last 3 seconds)
       if (Date.now() - userData.timestamp < 3000) {
         typingUsers.set(userId, userData.name);
       }
     });
-    
+
     // Update typing indicator UI
     updateTypingIndicatorUI();
   });
@@ -158,7 +393,7 @@ function listenForTypingIndicators() {
 // Update typing indicator UI
 function updateTypingIndicatorUI() {
   const typingIndicator = document.getElementById('typingIndicator') || createTypingIndicator();
-  
+
   if (typingUsers.size > 0) {
     let message = '';
     if (typingUsers.size === 1) {
@@ -168,7 +403,7 @@ function updateTypingIndicatorUI() {
     } else {
       message = 'Several people are typing...';
     }
-    
+
     typingIndicator.textContent = message;
     typingIndicator.style.display = 'block';
   } else {
@@ -179,7 +414,7 @@ function updateTypingIndicatorUI() {
 // Create typing indicator element
 function createTypingIndicator() {
   let typingIndicator = document.getElementById('typingIndicator');
-  
+
   if (!typingIndicator) {
     typingIndicator = document.createElement('div');
     typingIndicator.id = 'typingIndicator';
@@ -189,12 +424,12 @@ function createTypingIndicator() {
     typingIndicator.style.color = '#8899a6';
     typingIndicator.style.fontSize = '14px';
     typingIndicator.style.fontStyle = 'italic';
-    
+
     // Insert after input container for top-down layout
     const inputContainer = document.querySelector('.input-container');
     inputContainer.parentNode.insertBefore(typingIndicator, inputContainer.nextSibling);
   }
-  
+
   return typingIndicator;
 }
 
@@ -214,7 +449,7 @@ function handleMediaSelection(e) {
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     const fileType = file.type.split('/')[0]; // 'image' or 'video'
-    
+
     if (selectedMedia.length >= 4) {
       alert('You can only attach up to 4 media files');
       break;
@@ -231,7 +466,7 @@ function handleMediaSelection(e) {
     reader.onload = function(e) {
       const previewItem = document.createElement('div');
       previewItem.className = 'preview-item';
-      
+
       if (fileType === 'image') {
         previewItem.innerHTML = `
           <img src="${e.target.result}" class="preview-image">
@@ -243,9 +478,9 @@ function handleMediaSelection(e) {
           <button class="remove-media" data-index="${selectedMedia.length}">×</button>
         `;
       }
-      
+
       mediaPreview.appendChild(previewItem);
-      
+
       // Add event listener to remove button
       const removeButton = previewItem.querySelector('.remove-media');
       if (removeButton) {
@@ -254,16 +489,13 @@ function handleMediaSelection(e) {
           removeMedia(index);
         });
       }
-      
+
       // Enable send button if there's media
       sendButton.disabled = false;
     };
-    
+
     reader.readAsDataURL(file);
-    selectedMedia.push({
-      file: file,
-      type: fileType
-    });
+    selectedMedia.push({ file: file, type: fileType });
   }
 
   // Reset the file input
@@ -274,7 +506,7 @@ function handleMediaSelection(e) {
 function removeMedia(index) {
   selectedMedia.splice(index, 1);
   updateMediaPreview();
-  
+
   // Disable send button if no content
   if (selectedMedia.length === 0 && messageInput.value.trim() === '') {
     sendButton.disabled = true;
@@ -284,11 +516,11 @@ function removeMedia(index) {
 // Update media preview after removal
 function updateMediaPreview() {
   mediaPreview.innerHTML = '';
-  
+
   selectedMedia.forEach((media, index) => {
     const previewItem = document.createElement('div');
     previewItem.className = 'preview-item';
-    
+
     if (media.type === 'image') {
       const reader = new FileReader();
       reader.onload = function(e) {
@@ -347,29 +579,29 @@ function formatTimestamp(timestamp) {
 function listenForMessages() {
   // Show loading indicator when fetching messages
   loadingIndicator.style.display = 'flex';
-  
+
   // Clear chat container
   chatContainer.innerHTML = '';
-  
+
   // First load messages in reverse timestamp order (newest first)
   onChildAdded(chatRef, (snapshot) => {
     const message = snapshot.val();
     const messageId = snapshot.key;
-    
+
     // Don't re-render existing messages
     if (document.querySelector(`[data-message-id="${messageId}"]`)) {
       return;
     }
-    
+
     const messageElement = createMessageElement(message, messageId);
-    
+
     // Always insert at the beginning for newest-first display
     if (chatContainer.firstChild) {
       chatContainer.insertBefore(messageElement, chatContainer.firstChild);
     } else {
       chatContainer.appendChild(messageElement);
     }
-    
+
     // Hide loading indicator once messages are loaded
     loadingIndicator.style.display = 'none';
     messagesLoaded = true;
@@ -412,9 +644,9 @@ function createMessageElement(message, messageId) {
         <img src="${flagUrl}" class="country-flag" alt="Flag" onerror="this.src='default-flag.png'">
         <span class="message-time">${messageTime}</span>
         <button class="follow-btn ${isFollowing ? 'followed' : ''}" 
-          data-user-id="${message.userId}" 
-          onclick="toggleFollow('${message.userId}', '${message.name}')"
-          style="display: ${followBtnDisplay}">
+                data-user-id="${message.userId}" 
+                onclick="toggleFollow('${message.userId}', '${message.name}')" 
+                style="display: ${followBtnDisplay}">
           ${isFollowing ? 'Following' : 'Follow'}
         </button>
       </div>
@@ -430,7 +662,7 @@ function createMessageElement(message, messageId) {
       </div>
     </div>
   `;
-  
+
   return messageElement;
 }
 
@@ -463,10 +695,10 @@ onAuthStateChanged(auth, async (user) => {
 
       // Fetch followed users
       await fetchFollowedUsers();
-      
+
       // Set up presence system
       setupPresence(user.uid);
-      
+
     } catch (error) {
       console.error('Error fetching user data:', error);
       loadingIndicator.style.display = 'none';
@@ -484,20 +716,20 @@ onAuthStateChanged(auth, async (user) => {
 // Set up user presence
 function setupPresence(userId) {
   const userStatusRef = ref(database, `presence/${userId}`);
-  
+
   // Set user as online
   const onlineData = {
     status: 'online',
     lastSeen: Date.now()
   };
-  
+
   // Set user as offline when disconnected
   const connectedRef = ref(database, '.info/connected');
   onValue(connectedRef, (snapshot) => {
     if (snapshot.val() === true) {
       // User is connected
       set(userStatusRef, onlineData);
-      
+
       // Clear presence on disconnect
       onDisconnect(userStatusRef).set({
         status: 'offline',
@@ -525,6 +757,7 @@ async function fetchFollowedUsers() {
     });
 
     updateFollowButtons();
+
   } catch (error) {
     console.error('Error fetching followed users:', error);
   }
@@ -558,7 +791,6 @@ window.toggleFollow = async function(userId, userName) {
     );
 
     const followSnapshot = await getDocs(followQuery);
-
     if (followSnapshot.empty) {
       // Follow the user
       await addDoc(collection(db, 'follows'), {
@@ -577,24 +809,23 @@ window.toggleFollow = async function(userId, userName) {
     }
 
     updateFollowButtons();
+
   } catch (error) {
     console.error('Follow/Unfollow error:', error);
   }
 };
 
-// FIXED: Simplified media upload function that uses Firebase for storage
-// instead of Appwrite which was causing cross-platform issues
+// Upload media files
 async function uploadMedia(file) {
   try {
     // Create a unique filename
     const fileName = `${Date.now()}_${file.name}`;
     const fileType = file.type.split('/')[0]; // 'image' or 'video'
-    
+
     // Create a temporary URL for the file
     const objectURL = URL.createObjectURL(file);
-    
+
     // Upload file to Firebase Storage via a Cloud Function proxy
-    // This approach avoids direct Appwrite API calls which were failing
     const uploadEndpoint = `https://us-central1-globalchat-2d669.cloudfunctions.net/uploadMedia`;
     
     // Create form data for upload
@@ -602,16 +833,16 @@ async function uploadMedia(file) {
     formData.append('file', file);
     formData.append('userId', currentUser.uid);
     formData.append('fileName', fileName);
-    
+
     const response = await fetch(uploadEndpoint, {
       method: 'POST',
       body: formData
     });
-    
+
     if (!response.ok) {
       throw new Error(`Upload failed with status: ${response.status}`);
     }
-    
+
     const result = await response.json();
     
     // Revoke object URL to free memory
@@ -621,11 +852,11 @@ async function uploadMedia(file) {
       url: result.url,
       type: fileType
     };
+
   } catch (error) {
     console.error('Media upload error:', error);
-    
+
     // FALLBACK: If Cloud Function upload fails, use data URL approach
-    // This is less efficient but will work as a fallback
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -669,14 +900,14 @@ async function sendMessage(parentMessageId = null) {
   try {
     // Show loading indicator
     loadingIndicator.style.display = 'flex';
-    
+
     // Update global rate limit timestamp
     await set(rateLimitRef, currentTime);
-    
+
     // Clear typing status
     const userTypingRef = ref(database, `typing/${currentUser.uid}`);
     set(userTypingRef, null);
-    
+
     // Upload all media files
     const mediaUrls = [];
     if (hasMedia) {
@@ -702,7 +933,7 @@ async function sendMessage(parentMessageId = null) {
 
     // Add message to database
     await set(newMessageRef, messageData);
-    
+
     // Update parent message reply count if this is a reply
     if (parentMessageId) {
       const parentRef = ref(database, `messages/${parentMessageId}`);
@@ -721,7 +952,7 @@ async function sendMessage(parentMessageId = null) {
     mediaPreview.innerHTML = '';
     sendButton.disabled = true;
     lastMessageTime = currentTime;
-    
+
   } catch (error) {
     console.error('Error sending message:', error);
     alert('Failed to send message. Please try again.');
