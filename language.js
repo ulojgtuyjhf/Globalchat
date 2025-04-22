@@ -1,8 +1,8 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc, orderBy, limit, startAfter, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getDatabase, ref, push, set, onChildAdded, onValue, update, get, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getDatabase, ref, push, set, onChildAdded, onValue, update, get, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -20,28 +20,31 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const database = getDatabase(app);
 const chatRef = ref(database, 'messages');
+const recenceCollection = collection(db, 'recence');
 
 const chatContainer = document.getElementById('chatContainer');
 const loadingIndicator = document.getElementById('loadingIndicator');
 
 let currentUser = null;
 const followedUsers = new Set();
-let initialLoadComplete = false;
-let isLoading = false;
+let isLoadingMore = false;
 let lastVisibleMessage = null;
-let noMoreMessages = false;
-const PAGE_SIZE = 3; // Start with just 3 messages for speed
+const MESSAGES_PER_PAGE = 10; // Load 10 messages at a time
+const MAX_REALTIME_MESSAGES = 1; // Keep only ONE message in realtime DB
 
 // Initialize app
 function initApp() {
   // Show loading indicator immediately when app starts
   loadingIndicator.style.display = 'flex';
   
-  // Listen for new messages
+  // Listen for messages
   listenForMessages();
   
-  // Add scroll event for pagination
-  chatContainer.addEventListener('scroll', handleScroll);
+  // Set up infinite scroll
+  setupInfiniteScroll();
+  
+  // Set up message archiving
+  setupMessageArchiving();
 }
 
 // Format timestamp
@@ -52,13 +55,16 @@ function formatTimestamp(timestamp) {
   return `${hours}:${minutes}`;
 }
 
-// Listen for messages with real-time updates
+// Listen for new messages with real-time updates
 function listenForMessages() {
-  // Keep loading indicator visible until messages are loaded
+  // Clear chat container but keep loading indicator visible
+  while (chatContainer.firstChild && chatContainer.firstChild.id !== 'loadingIndicator') {
+    chatContainer.removeChild(chatContainer.firstChild);
+  }
   loadingIndicator.style.display = 'flex';
   
-  // Listen for new messages in real-time
-  onChildAdded(chatRef, (snapshot) => {
+  // Listen for new messages being added from realtime database
+  onChildAdded(chatRef, async (snapshot) => {
     const message = snapshot.val();
     const messageId = snapshot.key;
     
@@ -67,83 +73,152 @@ function listenForMessages() {
       return;
     }
     
+    // Create message element
     const messageElement = createMessageElement(message, messageId);
     
-    // Save to Firestore archive
-    saveMessageToFirestore(message, messageId);
-    
-    // Insert at the beginning for newest-first display
+    // Always insert at the beginning for newest-first display
     if (chatContainer.firstChild) {
       chatContainer.insertBefore(messageElement, chatContainer.firstChild);
     } else {
       chatContainer.appendChild(messageElement);
     }
     
-    // Hide loading indicator once we have at least one message
-    loadingIndicator.style.display = 'none';
-    initialLoadComplete = true;
+    // Archive message to Firestore immediately (since we're only keeping one)
+    archiveMessage(messageId, message);
+    
+    // Load initial archived messages after getting real-time message
+    loadInitialArchivedMessages();
   });
   
-  // If no messages received within 3 seconds, load from Firestore archive
+  // If no real-time messages come in after 1 second, try loading archived messages
   setTimeout(() => {
-    if (!initialLoadComplete) {
-      loadMessagesFromFirestore();
+    if (chatContainer.childElementCount <= 1) { // Only loading indicator
+      loadInitialArchivedMessages();
     }
-  }, 3000);
+  }, 1000);
 }
 
-// Save message to Firestore
-async function saveMessageToFirestore(message, messageId) {
+// Load initial archived messages
+async function loadInitialArchivedMessages() {
   try {
-    await setDoc(doc(db, 'messagesArchive', messageId), {
-      ...message,
-      firestoreTimestamp: Timestamp.fromMillis(message.timestamp)
-    });
-  } catch (error) {
-    console.error('Error saving message to Firestore:', error);
-  }
-}
-
-// Load messages from Firestore archive
-async function loadMessagesFromFirestore() {
-  if (isLoading) return;
-  
-  try {
-    isLoading = true;
-    loadingIndicator.style.display = 'flex';
+    const messagesQuery = query(
+      recenceCollection,
+      orderBy('timestamp', 'desc'),
+      limit(MESSAGES_PER_PAGE)
+    );
     
-    let messagesQuery;
-    if (lastVisibleMessage) {
-      messagesQuery = query(
-        collection(db, 'messagesArchive'),
-        orderBy('firestoreTimestamp', 'desc'),
-        startAfter(lastVisibleMessage),
-        limit(PAGE_SIZE)
-      );
-    } else {
-      messagesQuery = query(
-        collection(db, 'messagesArchive'),
-        orderBy('firestoreTimestamp', 'desc'),
-        limit(PAGE_SIZE)
-      );
-    }
+    const querySnapshot = await getDocs(messagesQuery);
     
-    const messagesSnapshot = await getDocs(messagesQuery);
-    
-    if (messagesSnapshot.empty) {
-      noMoreMessages = true;
-      isLoading = false;
+    if (querySnapshot.empty) {
+      // No archived messages found
       loadingIndicator.style.display = 'none';
       return;
     }
     
-    const fragment = document.createDocumentFragment();
+    // Track the last visible document for pagination
+    lastVisibleMessage = querySnapshot.docs[querySnapshot.docs.length - 1];
     
-    messagesSnapshot.forEach(doc => {
+    // Create a document fragment to batch DOM updates
+    const fragment = document.createDocumentFragment();
+    let messagesAdded = 0;
+    
+    // Process messages
+    querySnapshot.forEach(doc => {
       const message = doc.data();
       const messageId = doc.id;
       
-      // Skip if message already exists in DOM
+      // Don't re-render existing messages
+      if (document.querySelector(`[data-message-id="${messageId}"]`)) {
+        return;
+      }
+      
+      const messageElement = createMessageElement(message, messageId);
+      fragment.appendChild(messageElement);
+      messagesAdded++;
+    });
+    
+    // Add all messages to the DOM at once
+    chatContainer.appendChild(fragment);
+    
+    // Only hide loading indicator if we actually added messages
+    if (messagesAdded > 0 || chatContainer.childElementCount > 1) {
+      loadingIndicator.style.display = 'none';
+    }
+    
+    // Sentinel for infinite scrolling
+    updateScrollSentinel();
+    
+  } catch (error) {
+    console.error('Error loading archived messages:', error);
+    loadingIndicator.style.display = 'none';
+  }
+}
+
+// Create scroll sentinel for infinite scrolling
+function updateScrollSentinel() {
+  // Remove existing sentinel if any
+  const existingSentinel = document.getElementById('scroll-sentinel');
+  if (existingSentinel) {
+    existingSentinel.remove();
+  }
+  
+  // Create new sentinel
+  const sentinel = document.createElement('div');
+  sentinel.id = 'scroll-sentinel';
+  sentinel.style.height = '20px';
+  sentinel.style.width = '100%';
+  sentinel.style.visibility = 'hidden';
+  
+  // Add sentinel at the end of chat container
+  chatContainer.appendChild(sentinel);
+}
+
+// Load more archived messages when scrolling
+async function loadMoreMessages() {
+  if (isLoadingMore || !lastVisibleMessage) return;
+  
+  isLoadingMore = true;
+  
+  // Add loading indicator at the bottom of chat container
+  const bottomLoader = document.createElement('div');
+  bottomLoader.className = 'loading-dots bottom-loader';
+  bottomLoader.innerHTML = `
+    <div class="loading-dot"></div>
+    <div class="loading-dot"></div>
+    <div class="loading-dot"></div>
+  `;
+  chatContainer.appendChild(bottomLoader);
+  
+  try {
+    const messagesQuery = query(
+      recenceCollection,
+      orderBy('timestamp', 'desc'),
+      startAfter(lastVisibleMessage),
+      limit(MESSAGES_PER_PAGE)
+    );
+    
+    const querySnapshot = await getDocs(messagesQuery);
+    
+    // Remove bottom loader
+    bottomLoader.remove();
+    
+    if (querySnapshot.empty) {
+      isLoadingMore = false;
+      return;
+    }
+    
+    // Update last visible message
+    lastVisibleMessage = querySnapshot.docs[querySnapshot.docs.length - 1];
+    
+    // Create a document fragment to batch DOM updates
+    const fragment = document.createDocumentFragment();
+    
+    // Process messages
+    querySnapshot.forEach(doc => {
+      const message = doc.data();
+      const messageId = doc.id;
+      
+      // Don't re-render existing messages
       if (document.querySelector(`[data-message-id="${messageId}"]`)) {
         return;
       }
@@ -152,20 +227,20 @@ async function loadMessagesFromFirestore() {
       fragment.appendChild(messageElement);
     });
     
-    // Store reference to last visible message for pagination
-    lastVisibleMessage = messagesSnapshot.docs[messagesSnapshot.docs.length - 1];
-    
-    // Append new messages to container
+    // Add all messages to the DOM at once
     chatContainer.appendChild(fragment);
     
-    isLoading = false;
-    loadingIndicator.style.display = 'none';
-    initialLoadComplete = true;
+    // Update sentinel position for infinite scrolling
+    updateScrollSentinel();
     
   } catch (error) {
-    console.error('Error loading messages from Firestore:', error);
-    isLoading = false;
-    loadingIndicator.style.display = 'none';
+    console.error('Error loading more messages:', error);
+    // Remove bottom loader on error too
+    if (bottomLoader && bottomLoader.parentNode) {
+      bottomLoader.remove();
+    }
+  } finally {
+    isLoadingMore = false;
   }
 }
 
@@ -226,16 +301,102 @@ function createMessageElement(message, messageId) {
   return messageElement;
 }
 
-// Handle scroll events for pagination
-function handleScroll() {
-  if (isLoading || noMoreMessages) return;
-  
-  const scrollPosition = chatContainer.scrollTop + chatContainer.clientHeight;
-  const scrollThreshold = chatContainer.scrollHeight - 200;
-  
-  if (scrollPosition >= scrollThreshold) {
-    loadMessagesFromFirestore();
+// Archive message to Firestore
+async function archiveMessage(messageId, message) {
+  try {
+    // Add to Firestore archive
+    await setDoc(doc(recenceCollection, messageId), {
+      ...message,
+      archivedAt: Date.now()
+    });
+    
+    // After successful archiving, ensure we only keep one message in realtime DB
+    await ensureOnlyOneMessageInRealtime();
+  } catch (error) {
+    console.error('Error archiving message:', error);
   }
+}
+
+// Set up message archiving system
+function setupMessageArchiving() {
+  // Periodically check and ensure we only have one message
+  setInterval(ensureOnlyOneMessageInRealtime, 3000);
+}
+
+// Ensure only one message in realtime database
+async function ensureOnlyOneMessageInRealtime() {
+  try {
+    // Get all messages
+    const snapshot = await get(chatRef);
+    const messages = [];
+    
+    snapshot.forEach(childSnapshot => {
+      messages.push({
+        key: childSnapshot.key,
+        timestamp: childSnapshot.val().timestamp
+      });
+    });
+    
+    // If there's more than one message
+    if (messages.length > MAX_REALTIME_MESSAGES) {
+      // Sort by timestamp (newest first)
+      messages.sort((a, b) => b.timestamp - a.timestamp);
+      
+      // Keep only the most recent message
+      const messagesToDelete = messages.slice(MAX_REALTIME_MESSAGES);
+      
+      // Delete older messages from realtime DB
+      for (const message of messagesToDelete) {
+        // Make sure message exists in Firestore before deleting from realtime
+        const docRef = doc(recenceCollection, message.key);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          // It's safely archived, delete from realtime
+          await remove(ref(database, `messages/${message.key}`));
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error ensuring only one message in realtime:', error);
+  }
+}
+
+// Set up infinite scroll
+function setupInfiniteScroll() {
+  // Use Intersection Observer for better performance
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !isLoadingMore && lastVisibleMessage) {
+        loadMoreMessages();
+      }
+    });
+  }, {
+    root: null,
+    rootMargin: '200px',
+    threshold: 0.1
+  });
+  
+  // Create and observe sentinel element initially
+  updateScrollSentinel();
+  
+  // Re-observe sentinel whenever it's updated
+  setInterval(() => {
+    const sentinel = document.getElementById('scroll-sentinel');
+    if (sentinel) {
+      observer.observe(sentinel);
+    }
+  }, 1000);
+  
+  // Also handle scroll events (as backup)
+  window.addEventListener('scroll', () => {
+    if (isLoadingMore || !lastVisibleMessage) return;
+    
+    // Check if we're near the bottom of the page
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+      loadMoreMessages();
+    }
+  }, { passive: true });
 }
 
 // Get country from IP address
@@ -394,6 +555,17 @@ window.toggleFollow = async function(userId, userName) {
     console.error('Follow/Unfollow error:', error);
   }
 };
+
+// Add style for bottom loader
+const style = document.createElement('style');
+style.textContent = `
+  .bottom-loader {
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+  }
+`;
+document.head.appendChild(style);
 
 // Initialize the app
 initApp();
