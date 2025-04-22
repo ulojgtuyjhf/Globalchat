@@ -40,7 +40,7 @@
           justify-content: center;
         }
         
-        /* Skeleton loading animation */
+        /* Enhanced skeleton loading animation */
         .${MEDIA_ITEM_CLASS}::before {
           content: '';
           position: absolute;
@@ -51,7 +51,7 @@
           background: linear-gradient(90deg, #f0f0f0, #e0e0e0, #f0f0f0);
           background-size: 200% 100%;
           animation: shimmer 1.5s infinite;
-          z-index: 0;
+          z-index: 1;
         }
         
         @keyframes shimmer {
@@ -65,7 +65,13 @@
           height: 100%;
           object-fit: cover;
           display: block;
-          z-index: 1;
+          z-index: 2;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+        
+        .${MEDIA_ITEM_CLASS}.loaded img {
+          opacity: 1;
         }
         
         /* Single media item */
@@ -104,7 +110,13 @@
           width: 100%;
           height: 100%;
           background-color: #000;
-          z-index: 1;
+          z-index: 2;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+        
+        .${MEDIA_ITEM_CLASS}.loaded .${VIDEO_PLAYER_CLASS} {
+          opacity: 1;
         }
         
         .${VIDEO_PLAYER_CLASS} video {
@@ -113,7 +125,6 @@
           object-fit: cover;
           object-position: center;
           display: block;
-          pointer-events: none; /* IMPORTANT: Make video not clickable */
         }
         
         .${VIDEO_CONTROLS_CLASS} {
@@ -127,7 +138,6 @@
           align-items: center;
           padding: 0 12px;
           z-index: 10;
-          pointer-events: none; /* Make controls container not clickable */
         }
         
         .time-wrapper {
@@ -179,7 +189,6 @@
           );
           box-shadow: 0 2px 5px rgba(0,0,0,0.3);
           transition: transform 0.2s ease;
-          pointer-events: auto; /* IMPORTANT: Only volume wrapper is clickable */
         }
         
         .volume-wrapper:hover {
@@ -216,7 +225,7 @@
           align-items: center;
           justify-content: center;
           z-index: 3;
-          pointer-events: none; /* IMPORTANT: Make overlay not clickable */
+          cursor: pointer;
         }
         
         .overlay-play-btn {
@@ -242,7 +251,6 @@
           box-shadow: 0 0 15px rgba(0,0,0,0.5);
           transition: transform 0.2s ease;
           z-index: 5;
-          pointer-events: none; /* IMPORTANT: Make play button not clickable */
         }
         
         .overlay-play-btn:hover {
@@ -258,6 +266,46 @@
         
         /* Hide skeleton animation once media is loaded */
         .${MEDIA_ITEM_CLASS}.loaded::before {
+          display: none;
+        }
+
+        /* Ripple effect when tapping video */
+        .ripple {
+          position: absolute;
+          border-radius: 50%;
+          background-color: rgba(255, 255, 255, 0.6);
+          transform: scale(0);
+          animation: ripple 0.6s linear;
+          z-index: 10;
+        }
+        
+        @keyframes ripple {
+          to {
+            transform: scale(4);
+            opacity: 0;
+          }
+        }
+
+        /* Video loading spinner */
+        .loading-spinner {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 40px;
+          height: 40px;
+          border: 3px solid rgba(255,255,255,0.2);
+          border-top-color: #fff;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          z-index: 2;
+        }
+        
+        @keyframes spin {
+          to {transform: translate(-50%, -50%) rotate(360deg);}
+        }
+        
+        .${MEDIA_ITEM_CLASS}.loaded .loading-spinner {
           display: none;
         }
 
@@ -302,6 +350,25 @@
     }
   }
   
+  // Create ripple effect on tap
+  function createRippleEffect(event, element) {
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple';
+    
+    const rect = element.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    
+    // Position the ripple where the user clicked
+    ripple.style.width = ripple.style.height = `${size}px`;
+    ripple.style.left = `${event.clientX - rect.left - size/2}px`;
+    ripple.style.top = `${event.clientY - rect.top - size/2}px`;
+    
+    element.appendChild(ripple);
+    
+    // Remove the ripple after animation completes
+    setTimeout(() => ripple.remove(), 600);
+  }
+  
   // Format time remaining from seconds
   function formatTimeRemaining(currentTime, duration) {
     if (!duration) return '0:00';
@@ -317,6 +384,7 @@
     document.querySelectorAll(`.${VIDEO_PLAYER_CLASS} video`).forEach(video => {
       if (video !== exceptVideo) {
         video.muted = true;
+        video.pause();
         
         // Update UI on other videos
         const videoPlayer = video.closest(`.${VIDEO_PLAYER_CLASS}`);
@@ -346,7 +414,10 @@
     videoClone.muted = true;
     videoClone.playsInline = true;
     videoClone.loop = true;
-    videoClone.autoplay = true; // Always try to autoplay
+    
+    // Add loading spinner
+    const spinner = document.createElement('div');
+    spinner.className = 'loading-spinner';
     
     // Create overlay for tap interaction with play button
     const overlay = document.createElement('div');
@@ -380,6 +451,7 @@
     
     // Append elements to video player
     videoPlayer.appendChild(videoClone);
+    videoPlayer.appendChild(spinner);
     videoPlayer.appendChild(overlay);
     videoPlayer.appendChild(controls);
     
@@ -389,7 +461,7 @@
     const volumeOn = volumeButton.querySelector('.volume-on');
     const volumeOff = volumeButton.querySelector('.volume-off');
     
-    // Function to toggle volume - FIXED HERE
+    // Function to toggle volume
     function toggleVolume(e) {
       e.preventDefault();
       e.stopPropagation();
@@ -415,6 +487,21 @@
       }
     }
     
+    // Handle click on video overlay
+    function handleOverlayClick(e) {
+      // Create ripple effect at click position
+      createRippleEffect(e, overlay);
+      
+      // Toggle video state
+      if (videoClone.paused) {
+        videoClone.play().catch(err => console.log('Play failed:', err));
+        overlay.classList.add('hidden');
+      } else {
+        // Toggle volume instead of pausing
+        toggleVolume(e);
+      }
+    }
+    
     // Update time display to show time remaining format
     function updateTimeDisplay() {
       if (!videoClone.duration) return;
@@ -424,13 +511,18 @@
       videoTime.textContent = timeRemaining;
     }
     
+    // Find the parent media item to mark as loaded
+    function markParentAsLoaded() {
+      const mediaItem = videoPlayer.closest(`.${MEDIA_ITEM_CLASS}`);
+      if (mediaItem) {
+        mediaItem.classList.add('loaded');
+      }
+    }
+    
     // Update initial time display once metadata is loaded
     videoClone.addEventListener('loadedmetadata', () => {
       const timeRemaining = formatTimeRemaining(0, videoClone.duration);
       videoTime.textContent = timeRemaining;
-      
-      // Start playing immediately when metadata loads
-      videoClone.play().catch(e => console.log('Auto play prevented'));
     });
     
     // VIDEO EVENT LISTENERS
@@ -442,11 +534,23 @@
     });
     
     videoClone.addEventListener('pause', () => {
-      // Never show overlay - we want videos to keep playing
-      videoClone.play().catch(e => console.log('Unable to resume play'));
+      overlay.classList.remove('hidden');
     });
     
-    // ONLY attach click handler to volume button - nothing else is clickable
+    // Handle loading and error events
+    videoClone.addEventListener('loadeddata', markParentAsLoaded);
+    videoClone.addEventListener('canplay', markParentAsLoaded);
+    
+    // Add improved error handling
+    videoClone.addEventListener('error', () => {
+      console.log('Video error occurred');
+      // Keep skeleton loading active but hide spinner
+      const spinner = videoPlayer.querySelector('.loading-spinner');
+      if (spinner) spinner.style.display = 'none';
+    });
+    
+    // Add click handlers
+    overlay.addEventListener('click', handleOverlayClick);
     volumeButton.addEventListener('click', toggleVolume);
     
     // Add CSS for hiding overlay
@@ -454,7 +558,7 @@
     style.textContent = `
       .hidden {
         opacity: 0 !important;
-        pointer-events: none;
+        pointer-events: none !important;
       }
     `;
     document.head.appendChild(style);
@@ -487,13 +591,23 @@
         gridItem.className = MEDIA_ITEM_CLASS;
         
         if (mediaElement.tagName.toLowerCase() === 'img') {
-          // For images
+          // For images - add spinner
+          const spinner = document.createElement('div');
+          spinner.className = 'loading-spinner';
+          gridItem.appendChild(spinner);
+          
+          // Add image with proper loading handling
           const imgClone = mediaElement.cloneNode(true);
           
-          if (imgClone.complete) {
+          if (imgClone.complete && imgClone.naturalWidth > 0) {
             gridItem.classList.add('loaded');
           } else {
             imgClone.onload = () => gridItem.classList.add('loaded');
+            imgClone.onerror = () => {
+              // Keep skeleton animation as fallback for failed images
+              const spinner = gridItem.querySelector('.loading-spinner');
+              if (spinner) spinner.style.display = 'none';
+            };
           }
           
           gridItem.appendChild(imgClone);
@@ -502,13 +616,7 @@
           const videoPlayer = createVideoPlayer(mediaElement);
           gridItem.appendChild(videoPlayer);
           
-          // Mark as loaded when metadata is loaded
-          const video = videoPlayer.querySelector('video');
-          if (video.readyState >= 1) {
-            gridItem.classList.add('loaded');
-          } else {
-            video.onloadedmetadata = () => gridItem.classList.add('loaded');
-          }
+          // Video loading is handled in createVideoPlayer
         }
         
         grid.appendChild(gridItem);
@@ -520,7 +628,7 @@
     });
   }
   
-  // Enhanced visibility tracking for videos - Modified to only play videos in view
+  // Enhanced visibility tracking for videos
   function setupVideoVisibility() {
     if (!('IntersectionObserver' in window)) return;
     
@@ -532,22 +640,33 @@
         const video = videoPlayer.querySelector('video');
         if (!video) return;
         
-        // If video is more than 50% visible in viewport, play it
+        // Force video to pause when not visible and play when visible
         if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-          // Play the video without changing mute state
+          // Play the video but maintain mute state
           video.play().catch(e => console.log('Autoplay prevented by browser'));
-        } else if (entry.intersectionRatio < 0.2) {
-          // Pause video when it's mostly out of view
+          
+          // Only if this is the currently playing video with sound
+          if (currentlyPlayingVideo === video && !video.muted) {
+            // Ensure this is the only video playing with sound
+            stopAllVideos(video);
+          }
+        } else if (!entry.isIntersecting || entry.intersectionRatio < 0.2) {
+          // Completely pause video when out of view
           video.pause();
+          
+          // If this was the video with sound, reset currentlyPlayingVideo
+          if (currentlyPlayingVideo === video) {
+            currentlyPlayingVideo = null;
+          }
         }
       });
     }, {
       root: null,
       rootMargin: '0px',
-      threshold: [0.2, 0.5, 0.8] // Check at multiple visibility levels
+      threshold: [0, 0.2, 0.5, 0.8, 1.0] // Check at multiple visibility levels
     });
     
-    // Observe all videos
+    // Observe all video players
     document.querySelectorAll(`.${VIDEO_PLAYER_CLASS}`).forEach(player => {
       videoObserver.observe(player);
     });
