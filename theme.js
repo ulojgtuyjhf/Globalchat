@@ -105,7 +105,6 @@
           height: 100%;
           background-color: #000;
           z-index: 1;
-          cursor: pointer;
         }
         
         .${VIDEO_PLAYER_CLASS} video {
@@ -114,6 +113,7 @@
           object-fit: cover;
           object-position: center;
           display: block;
+          cursor: pointer;
         }
         
         .${VIDEO_CONTROLS_CLASS} {
@@ -128,7 +128,7 @@
           padding: 0 12px;
           opacity: 0;
           transition: opacity 0.2s ease;
-          z-index: 2;
+          z-index: 10;
         }
         
         .${VIDEO_PLAYER_CLASS}:hover .${VIDEO_CONTROLS_CLASS} {
@@ -157,6 +157,7 @@
           justify-content: center;
           box-shadow: 0 2px 5px rgba(0,0,0,0.3);
           transition: transform 0.2s ease;
+          z-index: 20;
         }
         
         .play-pause-btn:hover {
@@ -167,6 +168,7 @@
           width: 16px;
           height: 16px;
           fill: white;
+          pointer-events: none;
         }
         
         .progress-bar {
@@ -178,6 +180,7 @@
           position: relative;
           overflow: hidden;
           cursor: pointer;
+          z-index: 20;
         }
         
         .progress-filled {
@@ -193,6 +196,7 @@
           position: absolute;
           top: 0;
           left: 0;
+          pointer-events: none;
         }
         
         .video-time {
@@ -201,6 +205,7 @@
           min-width: 70px;
           text-align: right;
           text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+          z-index: 20;
         }
         
         .volume-button {
@@ -213,12 +218,14 @@
           align-items: center;
           justify-content: center;
           margin-left: 8px;
+          z-index: 20;
         }
         
         .volume-button svg {
           width: 18px;
           height: 18px;
           fill: white;
+          pointer-events: none;
         }
         
         .video-overlay {
@@ -262,6 +269,7 @@
           justify-content: center;
           box-shadow: 0 0 15px rgba(0,0,0,0.5);
           transition: transform 0.2s ease;
+          z-index: 5;
         }
         
         .overlay-play-btn:hover {
@@ -272,6 +280,7 @@
           width: 24px;
           height: 24px;
           fill: white;
+          pointer-events: none;
         }
         
         /* Hide skeleton animation once media is loaded */
@@ -448,10 +457,7 @@
     }
     
     // Function to toggle volume
-    function toggleVolume(e) {
-      // Prevent the click from bubbling up to the video player
-      e.stopPropagation();
-      
+    function toggleVolume() {
       if (videoClone.muted) {
         videoClone.muted = false;
         volumeOn.style.display = 'block';
@@ -483,6 +489,8 @@
     
     // Update progress and time display
     function updateProgress() {
+      if (!videoClone.duration) return;
+      
       const percent = (videoClone.currentTime / videoClone.duration) * 100;
       progressFilled.style.width = `${percent}%`;
       
@@ -494,9 +502,11 @@
     
     // Handle seeking in the progress bar
     function scrub(e) {
-      e.stopPropagation(); // Prevent click from bubbling to video
-      const scrubTime = (e.offsetX / progressBar.offsetWidth) * videoClone.duration;
-      videoClone.currentTime = scrubTime;
+      if (!videoClone.duration) return;
+      
+      const progressRect = progressBar.getBoundingClientRect();
+      const percent = (e.clientX - progressRect.left) / progressRect.width;
+      videoClone.currentTime = percent * videoClone.duration;
     }
     
     // Update initial time display once metadata is loaded
@@ -505,50 +515,46 @@
       videoTime.textContent = `0:00 / ${duration}`;
     });
     
-    // Set up event listeners
-    videoClone.addEventListener('click', (e) => {
-      e.stopPropagation();
-      togglePlay(true);
+    // CRITICAL: Separate event listeners for video vs controls
+    // VIDEO PLAYER - use delegation pattern for clean event handling
+    videoPlayer.addEventListener('click', (e) => {
+      // Check if click is directly on video or overlay play button
+      const isVideoClickTarget = e.target === videoClone || e.target === overlay || e.target === overlayButton;
+      
+      // Only handle video background clicks here, not control clicks
+      if (isVideoClickTarget) {
+        togglePlay(true);
+        e.stopPropagation();
+      }
     });
     
-    overlayButton.addEventListener('click', (e) => {
-      e.stopPropagation();
-      togglePlay(true);
-    });
-    
+    // DIRECT EVENT HANDLERS - completely separate from video clicks
+    // Play/Pause button handler
     playPauseButton.addEventListener('click', (e) => {
-      e.stopPropagation();
       togglePlay(!videoClone.muted);
+      e.stopPropagation(); // Prevent event from reaching video
     });
     
-    volumeButton.addEventListener('click', toggleVolume);
+    // Volume button handler
+    volumeButton.addEventListener('click', (e) => {
+      toggleVolume();
+      e.stopPropagation(); // Prevent event from reaching video
+    });
     
+    // Progress bar click handler with proper event handling
+    progressBar.addEventListener('click', (e) => {
+      scrub(e);
+      e.stopPropagation(); // Prevent event from reaching video
+    });
+    
+    // Overlay button handler (big play button)
+    overlayButton.addEventListener('click', (e) => {
+      togglePlay(true);
+      e.stopPropagation(); // Just to be safe
+    });
+    
+    // VIDEO EVENT LISTENERS
     videoClone.addEventListener('timeupdate', updateProgress);
-    
-    progressBar.addEventListener('click', scrub);
-    
-    // Handle dragging on progress bar
-    let mousedown = false;
-    progressBar.addEventListener('mousedown', (e) => {
-      e.stopPropagation(); // Prevent click from bubbling to video
-      mousedown = true;
-    });
-    
-    progressBar.addEventListener('mousemove', (e) => {
-      e.stopPropagation(); // Prevent events from bubbling to video
-      if (mousedown) scrub(e);
-    });
-    
-    document.addEventListener('mouseup', () => mousedown = false);
-    document.addEventListener('mouseleave', () => mousedown = false);
-    
-    // Handle touch events for mobile
-    progressBar.addEventListener('touchstart', (e) => {
-      e.stopPropagation();
-      const rect = progressBar.getBoundingClientRect();
-      const offsetX = e.touches[0].clientX - rect.left;
-      scrub({offsetX, stopPropagation: () => {}});
-    });
     
     // Handle video playing status
     videoClone.addEventListener('play', () => {
