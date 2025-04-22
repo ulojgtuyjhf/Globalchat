@@ -1,7 +1,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc, orderBy, limit, startAfter, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getDatabase, ref, push, set, onChildAdded, onValue, update, get, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 // Firebase Configuration
@@ -27,14 +27,21 @@ const loadingIndicator = document.getElementById('loadingIndicator');
 let currentUser = null;
 const followedUsers = new Set();
 let initialLoadComplete = false;
+let isLoading = false;
+let lastVisibleMessage = null;
+let noMoreMessages = false;
+const PAGE_SIZE = 3; // Start with just 3 messages for speed
 
 // Initialize app
 function initApp() {
   // Show loading indicator immediately when app starts
   loadingIndicator.style.display = 'flex';
   
-  // Listen for messages
+  // Listen for new messages
   listenForMessages();
+  
+  // Add scroll event for pagination
+  chatContainer.addEventListener('scroll', handleScroll);
 }
 
 // Format timestamp
@@ -45,24 +52,13 @@ function formatTimestamp(timestamp) {
   return `${hours}:${minutes}`;
 }
 
-// Listen for new messages with real-time updates
+// Listen for messages with real-time updates
 function listenForMessages() {
-  // Clear chat container but keep loading indicator visible
-  chatContainer.innerHTML = '';
+  // Keep loading indicator visible until messages are loaded
   loadingIndicator.style.display = 'flex';
   
-  // Set a timeout to hide loading indicator if no messages arrive
-  const loadingTimeout = setTimeout(() => {
-    if (!initialLoadComplete) {
-      loadingIndicator.style.display = 'none';
-      initialLoadComplete = true;
-    }
-  }, 5000); // 5 seconds timeout
-  
-  // Listen for new messages being added
+  // Listen for new messages in real-time
   onChildAdded(chatRef, (snapshot) => {
-    clearTimeout(loadingTimeout); // Clear the timeout when messages start arriving
-    
     const message = snapshot.val();
     const messageId = snapshot.key;
     
@@ -73,7 +69,10 @@ function listenForMessages() {
     
     const messageElement = createMessageElement(message, messageId);
     
-    // Always insert at the beginning for newest-first display
+    // Save to Firestore archive
+    saveMessageToFirestore(message, messageId);
+    
+    // Insert at the beginning for newest-first display
     if (chatContainer.firstChild) {
       chatContainer.insertBefore(messageElement, chatContainer.firstChild);
     } else {
@@ -81,11 +80,93 @@ function listenForMessages() {
     }
     
     // Hide loading indicator once we have at least one message
-    if (!initialLoadComplete) {
-      loadingIndicator.style.display = 'none';
-      initialLoadComplete = true;
-    }
+    loadingIndicator.style.display = 'none';
+    initialLoadComplete = true;
   });
+  
+  // If no messages received within 3 seconds, load from Firestore archive
+  setTimeout(() => {
+    if (!initialLoadComplete) {
+      loadMessagesFromFirestore();
+    }
+  }, 3000);
+}
+
+// Save message to Firestore
+async function saveMessageToFirestore(message, messageId) {
+  try {
+    await setDoc(doc(db, 'messagesArchive', messageId), {
+      ...message,
+      firestoreTimestamp: Timestamp.fromMillis(message.timestamp)
+    });
+  } catch (error) {
+    console.error('Error saving message to Firestore:', error);
+  }
+}
+
+// Load messages from Firestore archive
+async function loadMessagesFromFirestore() {
+  if (isLoading) return;
+  
+  try {
+    isLoading = true;
+    loadingIndicator.style.display = 'flex';
+    
+    let messagesQuery;
+    if (lastVisibleMessage) {
+      messagesQuery = query(
+        collection(db, 'messagesArchive'),
+        orderBy('firestoreTimestamp', 'desc'),
+        startAfter(lastVisibleMessage),
+        limit(PAGE_SIZE)
+      );
+    } else {
+      messagesQuery = query(
+        collection(db, 'messagesArchive'),
+        orderBy('firestoreTimestamp', 'desc'),
+        limit(PAGE_SIZE)
+      );
+    }
+    
+    const messagesSnapshot = await getDocs(messagesQuery);
+    
+    if (messagesSnapshot.empty) {
+      noMoreMessages = true;
+      isLoading = false;
+      loadingIndicator.style.display = 'none';
+      return;
+    }
+    
+    const fragment = document.createDocumentFragment();
+    
+    messagesSnapshot.forEach(doc => {
+      const message = doc.data();
+      const messageId = doc.id;
+      
+      // Skip if message already exists in DOM
+      if (document.querySelector(`[data-message-id="${messageId}"]`)) {
+        return;
+      }
+      
+      const messageElement = createMessageElement(message, messageId);
+      fragment.appendChild(messageElement);
+    });
+    
+    // Store reference to last visible message for pagination
+    lastVisibleMessage = messagesSnapshot.docs[messagesSnapshot.docs.length - 1];
+    
+    // Append new messages to container
+    chatContainer.appendChild(fragment);
+    
+    isLoading = false;
+    loadingIndicator.style.display = 'none';
+    initialLoadComplete = true;
+    
+  } catch (error) {
+    console.error('Error loading messages from Firestore:', error);
+    isLoading = false;
+    loadingIndicator.style.display = 'none';
+  }
 }
 
 // Create message element
@@ -106,9 +187,9 @@ function createMessageElement(message, messageId) {
     message.media.forEach(media => {
       if (media && media.url) {
         if (media.type === 'image') {
-          mediaHTML += `<img src="${media.url}" class="message-image">`;
+          mediaHTML += `<img src="${media.url}" class="message-image" loading="lazy">`;
         } else if (media.type === 'video') {
-          mediaHTML += `<video src="${media.url}" class="message-video" controls></video>`;
+          mediaHTML += `<video src="${media.url}" class="message-video" controls preload="metadata"></video>`;
         }
       }
     });
@@ -116,11 +197,11 @@ function createMessageElement(message, messageId) {
   }
   
   messageElement.innerHTML = `
-    <img src="${message.photoURL}" class="profile-image" alt="Profile">
+    <img src="${message.photoURL}" class="profile-image" alt="Profile" loading="lazy">
     <div class="message-content">
       <div class="message-header">
         <span class="user-name">${message.name}</span>
-        <img src="${flagUrl}" class="country-flag" alt="Flag" onerror="this.src='default-flag.png'">
+        <img src="${flagUrl}" class="country-flag" alt="Flag" onerror="this.src='default-flag.png'" loading="lazy">
         <span class="message-time">${messageTime}</span>
         <button class="follow-btn ${isFollowing ? 'followed' : ''}" 
           data-user-id="${message.userId}" 
@@ -143,6 +224,18 @@ function createMessageElement(message, messageId) {
   `;
   
   return messageElement;
+}
+
+// Handle scroll events for pagination
+function handleScroll() {
+  if (isLoading || noMoreMessages) return;
+  
+  const scrollPosition = chatContainer.scrollTop + chatContainer.clientHeight;
+  const scrollThreshold = chatContainer.scrollHeight - 200;
+  
+  if (scrollPosition >= scrollThreshold) {
+    loadMessagesFromFirestore();
+  }
 }
 
 // Get country from IP address
