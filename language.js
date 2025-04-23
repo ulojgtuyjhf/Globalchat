@@ -807,19 +807,30 @@ style.textContent = `
     border-radius: 50%;
     background-color: #626262;
     display: inline-block;
-    animation: dotPulse 1.4s infinite ease-in-out;
+    animation: waveAnimation 1.5s infinite ease-in-out;
   }
   
   .loading-dot:nth-child(1) { animation-delay: 0s; }
   .loading-dot:nth-child(2) { animation-delay: 0.2s; }
   .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+  .loading-dot:nth-child(4) { animation-delay: 0.6s; }
+  .loading-dot:nth-child(5) { animation-delay: 0.8s; }
   
-  @keyframes dotPulse {
-    0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-    40% { transform: scale(1.2); opacity: 1; }
+  @keyframes waveAnimation {
+    0%, 100% { 
+      transform: translateY(0) scale(0.8); 
+      opacity: 0.5; 
+    }
+    20% { 
+      transform: translateY(-10px) scale(1.1); 
+      opacity: 1; 
+    }
+    40% { 
+      transform: translateY(0) scale(0.8); 
+      opacity: 0.5; 
+    }
   }
 `;
 document.head.appendChild(style);
-
 // Initialize the app
 initApp();
