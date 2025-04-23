@@ -60,7 +60,7 @@ let globalRateLimit = Date.now();
 let isLoadingMore = false;
 let lastVisibleMessage = null;
 let noMoreMessages = false;
-const MESSAGES_PER_PAGE = 110;
+const MESSAGES_PER_PAGE = 10; // Changed from 110 to 10 for better pagination
 const MAX_REALTIME_MESSAGES = 1;
 const DEBOUNCE_DELAY = 150;
 const SCROLL_TRIGGER_OFFSET = 1000;
@@ -756,7 +756,7 @@ function showEndOfFeed() {
 
 // Load more archived messages when scrolling with pagination and performance optimizations
 async function loadMoreMessages() {
-  if (isLoadingMore || !lastVisibleMessage || noMoreMessages) return;
+  if (isLoadingMore || noMoreMessages) return;
   
   isLoadingMore = true;
   
@@ -772,6 +772,15 @@ async function loadMoreMessages() {
   chatContainer.appendChild(bottomLoader);
   
   try {
+    // Check if we have a starting point for pagination
+    if (!lastVisibleMessage) {
+      console.log('No last visible message reference, starting from beginning');
+      await loadInitialArchivedMessages();
+      return;
+    }
+    
+    console.log('Loading more messages after:', lastVisibleMessage.id);
+    
     const messagesQuery = query(
       recenceCollection,
       orderBy('timestamp', 'desc'),
@@ -786,11 +795,14 @@ async function loadMoreMessages() {
     if (loader) loader.remove();
     
     if (querySnapshot.empty) {
+      console.log('No more messages to load');
       isLoadingMore = false;
       noMoreMessages = true;
       showEndOfFeed();
       return;
     }
+    
+    console.log(`Loaded ${querySnapshot.docs.length} more messages`);
     
     // Update last visible message
     lastVisibleMessage = querySnapshot.docs[querySnapshot.docs.length - 1];
@@ -820,6 +832,7 @@ async function loadMoreMessages() {
     
     // If we got fewer messages than requested, we're at the end
     if (querySnapshot.docs.length < MESSAGES_PER_PAGE) {
+      console.log('Reached end of messages (fewer than requested)');
       noMoreMessages = true;
       showEndOfFeed();
     }
@@ -833,7 +846,6 @@ async function loadMoreMessages() {
     isLoadingMore = false;
   }
 }
-
 // Create message element with performance optimizations
 function createMessageElement(message, messageId) {
   const messageElement = document.createElement('div');
