@@ -1,3 +1,4 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -467,6 +468,7 @@ function handleMediaSelection(e) {
       const previewItem = document.createElement('div');
       previewItem.className = 'preview-item';
 
+      // Fix: Better handling of video previews
       if (fileType === 'image') {
         previewItem.innerHTML = `
           <img src="${e.target.result}" class="preview-image">
@@ -474,7 +476,7 @@ function handleMediaSelection(e) {
         `;
       } else if (fileType === 'video') {
         previewItem.innerHTML = `
-          <video src="${e.target.result}" class="preview-video"></video>
+          <video src="${e.target.result}" class="preview-video" controls></video>
           <button class="remove-media" data-index="${selectedMedia.length}">×</button>
         `;
       }
@@ -540,7 +542,7 @@ function updateMediaPreview() {
       const reader = new FileReader();
       reader.onload = function(e) {
         previewItem.innerHTML = `
-          <video src="${e.target.result}" class="preview-video"></video>
+          <video src="${e.target.result}" class="preview-video" controls></video>
           <button class="remove-media" data-index="${index}">×</button>
         `;
         mediaPreview.appendChild(previewItem);
@@ -627,9 +629,10 @@ function createMessageElement(message, messageId) {
     message.media.forEach(media => {
       if (media && media.url) {
         if (media.type === 'image') {
-          mediaHTML += `<img src="${media.url}" class="message-image">`;
+          mediaHTML += `<img src="${media.url}" class="message-image" loading="lazy">`;
         } else if (media.type === 'video') {
-          mediaHTML += `<video src="${media.url}" class="message-video" controls></video>`;
+          // Fix: Ensure video playback works with proper controls
+          mediaHTML += `<video src="${media.url}" class="message-video" controls preload="metadata"></video>`;
         }
       }
     });
@@ -815,15 +818,16 @@ window.toggleFollow = async function(userId, userName) {
   }
 };
 
-// Upload media files
+
+// Upload media files - Fixed to better handle video uploads
 async function uploadMedia(file) {
   try {
     // Create a unique filename
     const fileName = `${Date.now()}_${file.name}`;
     const fileType = file.type.split('/')[0]; // 'image' or 'video'
-
-    // Create a temporary URL for the file
-    const objectURL = URL.createObjectURL(file);
+    
+    // Fix: Correctly handle video file types
+    const contentType = file.type;
 
     // Upload file to Firebase Storage via a Cloud Function proxy
     const uploadEndpoint = `https://us-central1-globalchat-2d669.cloudfunctions.net/uploadMedia`;
@@ -833,6 +837,10 @@ async function uploadMedia(file) {
     formData.append('file', file);
     formData.append('userId', currentUser.uid);
     formData.append('fileName', fileName);
+    formData.append('contentType', contentType); // Add content type for proper handling
+
+    // Log the upload attempt
+    console.log(`Uploading ${fileType} file: ${fileName}, size: ${file.size} bytes`);
 
     const response = await fetch(uploadEndpoint, {
       method: 'POST',
@@ -840,13 +848,13 @@ async function uploadMedia(file) {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Upload failed: ${errorText}`);
       throw new Error(`Upload failed with status: ${response.status}`);
     }
 
     const result = await response.json();
-    
-    // Revoke object URL to free memory
-    URL.revokeObjectURL(objectURL);
+    console.log(`Upload successful: ${result.url}`);
     
     return {
       url: result.url,
@@ -857,6 +865,7 @@ async function uploadMedia(file) {
     console.error('Media upload error:', error);
 
     // FALLBACK: If Cloud Function upload fails, use data URL approach
+    console.log("Using data URL fallback for media");
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -870,7 +879,7 @@ async function uploadMedia(file) {
   }
 }
 
-// Send Message Function with Media Support
+// Send Message Function with improved handling of storing in Firestore
 async function sendMessage(parentMessageId = null) {
   if (!currentUser) {
     alert('You must log in to continue');
@@ -917,8 +926,7 @@ async function sendMessage(parentMessageId = null) {
       }
     }
 
-    // Create new message
-    const newMessageRef = push(chatRef);
+    // Create message data
     const messageData = {
       userId: currentUser.uid,
       name: currentUser.displayName,
@@ -931,8 +939,18 @@ async function sendMessage(parentMessageId = null) {
       replyCount: 0
     };
 
-    // Add message to database
+    // Store the most recent message in the Realtime Database for real-time updates
+    const newMessageRef = push(chatRef);
     await set(newMessageRef, messageData);
+    const messageId = newMessageRef.key;
+
+    // Also store the message in Firestore for persistence and better querying
+    // This helps with historical message retrieval and analytics
+    await addDoc(collection(db, 'messages'), {
+      ...messageData,
+      realtimeDbId: messageId, // Reference to the realtime DB entry
+      createdAt: new Date().toISOString()
+    });
 
     // Update parent message reply count if this is a reply
     if (parentMessageId) {
