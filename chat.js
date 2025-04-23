@@ -29,7 +29,7 @@ const typingRef = ref(database, 'typing');
 const rateLimitRef = ref(database, 'rateLimit');
 const recenceCollection = collection(db, 'recence');
 
-// DOM Elements
+// DOM Elements (will be null if not present in the page)
 const chatContainer = document.getElementById('chatContainer');
 const messageInput = document.getElementById('messageInput');
 const imageInput = document.getElementById('imageInput');
@@ -46,7 +46,6 @@ const showMoreSuggested = document.getElementById('showMoreSuggested');
 const suggestedBtnSpinner = document.getElementById('suggestedBtnSpinner');
 const topFollowedUsersContainer = document.getElementById('topFollowedUsersContainer');
 const showMoreTopFollowed = document.getElementById('showMoreTopFollowed');
-const topFollowedBtnSpinner = document.getElementById('topFollowedBtnSpinner');
 const headerSpinner = document.getElementById('headerSpinner');
 
 // State variables
@@ -60,99 +59,204 @@ let globalRateLimit = Date.now();
 let isLoadingMore = false;
 let lastVisibleMessage = null;
 let noMoreMessages = false;
-const MESSAGES_PER_PAGE = 10; // Changed from 110 to 10 for better pagination
+const MESSAGES_PER_PAGE = 10;
 const MAX_REALTIME_MESSAGES = 1;
 const DEBOUNCE_DELAY = 150;
 const SCROLL_TRIGGER_OFFSET = 1000;
 let lastSuggestedUserDoc = null;
 let lastTopFollowedUserDoc = null;
 
-// Initialize app
+// Initialize app based on which page we're on
 function initApp() {
-  // Initialize message input height adjustment
-  initMessageInput();
+  // Common initialization for all pages
+  loadingIndicator.style.display = 'flex';
+  
+  // Initialize features based on which elements exist
+  if (chatContainer) {
+    // Chat page specific initialization
+    listenForMessages();
+    setupInfiniteScroll();
+    setupMessageArchiving();
+    setupVirtualScrolling();
+    
+    if (messageInput) {
+      // Full chat page with input
+      initMessageInput();
+      initMediaHandlers();
+      listenForTypingIndicators();
+      listenForRateLimit();
+    }
+  }
+  
+  if (suggestedUsersContainer || topFollowedUsersContainer) {
+    // Social features initialization
+    initSocialSection();
+  }
+  
+  // Initialize auth state observer
+  initAuthStateObserver();
+}
 
-  // Media upload event listeners
-  imageButton.addEventListener('click', () => imageInput.click());
-  videoButton.addEventListener('click', () => videoInput.click());
-  imageInput.addEventListener('change', handleMediaSelection);
-  videoInput.addEventListener('change', handleMediaSelection);
-
-  // Send Button Event Listener
-  sendButton.addEventListener('click', () => {
-    sendMessage();
-  });
-
-  // Enter key to send message (Shift+Enter for new line)
-  messageInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (!sendButton.disabled) {
-        sendMessage();
+// Initialize auth state observer
+function initAuthStateObserver() {
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userData = userDoc.data() || {};
+        const countryCode = await getCountryFromIP();
+        
+        currentUser = {
+          uid: user.uid,
+          displayName: user.displayName || userData?.displayName || "User" + Math.floor(Math.random() * 10000),
+          photoURL: user.photoURL || userData?.photoURL || "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png",
+          country: countryCode
+        };
+        
+        // Update the input profile image if it exists
+        if (inputProfileImage) {
+          inputProfileImage.src = currentUser.photoURL;
+        }
+        
+        // Create user in database if not exists
+        if (!userDoc.exists()) {
+          await setDoc(doc(db, 'users', user.uid), {
+            displayName: currentUser.displayName,
+            photoURL: currentUser.photoURL,
+            createdAt: new Date().toISOString()
+          });
+        }
+        
+        // Fetch followed users
+        await fetchFollowedUsers();
+        
+        // Set up presence system
+        setupPresence(user.uid);
+        
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        if (loadingIndicator) loadingIndicator.style.display = 'none';
       }
+    } else {
+      // Sign in anonymously if no user
+      signInAnonymously(auth)
+        .catch((error) => {
+          console.error('Anonymous auth error:', error);
+          if (loadingIndicator) loadingIndicator.style.display = 'none';
+        });
     }
   });
-
-  // Listen for typing indicators
-  listenForTypingIndicators();
-
-  // Listen for messages
-  listenForMessages();
-
-  // Listen for global rate limit
-  listenForRateLimit();
-
-  // Initialize social section
-  initSocialSection();
-
-  // Set up message archiving
-  setupMessageArchiving();
-
-  // Enable virtual scrolling for better performance
-  setupVirtualScrolling();
 }
 
 // Initialize social section with user count and suggested/top followed users
 function initSocialSection() {
-  // Load total user count
-  loadTotalUserCount();
+  // Load total user count if the element exists
+  if (totalUsersCount) {
+    loadTotalUserCount();
+  }
+  
+  // Load initial suggested users if the container exists
+  if (suggestedUsersContainer) {
+    loadSuggestedUsers();
+  }
+  
+  // Load initial top followed users if the container exists
+  if (topFollowedUsersContainer) {
+    loadTopFollowedUsers();
+  }
+  
+  // Set up "Show More" button event listeners if they exist
+  if (showMoreSuggested) {
+    showMoreSuggested.addEventListener('click', () => {
+      loadMoreSuggestedUsers();
+    });
+  }
+  
+  if (showMoreTopFollowed) {
+    showMoreTopFollowed.addEventListener('click', () => {
+      loadMoreTopFollowedUsers();
+    });
+  }
+}
 
-  // Load initial suggested users
-  loadSuggestedUsers();
+// Initialize message input with typing indicator
+function initMessageInput() {
+  if (!messageInput) return;
+  
+  messageInput.addEventListener('input', function() {
+    // Adjust height
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
 
-  // Load initial top followed users
-  loadTopFollowedUsers();
+    // Enable/disable send button based on content
+    const hasText = this.value.trim().length > 0;
+    const hasMedia = selectedMedia.length > 0;
+    if (sendButton) {
+      sendButton.disabled = !(hasText || hasMedia);
+    }
 
-  // Set up "Show More" button event listeners
-  showMoreSuggested.addEventListener('click', () => {
-    loadMoreSuggestedUsers();
+    // Update typing indicator
+    updateTypingStatus();
   });
 
-  showMoreTopFollowed.addEventListener('click', () => {
-    loadMoreTopFollowedUsers();
+  // When user stops typing
+  messageInput.addEventListener('blur', function() {
+    if (currentUser) {
+      const userTypingRef = ref(database, `typing/${currentUser.uid}`);
+      set(userTypingRef, null);
+      clearTimeout(typingTimeout);
+    }
   });
+}
+
+// Initialize media handlers
+function initMediaHandlers() {
+  if (!imageButton || !videoButton || !imageInput || !videoInput) return;
+  
+  imageButton.addEventListener('click', () => imageInput.click());
+  videoButton.addEventListener('click', () => videoInput.click());
+  imageInput.addEventListener('change', handleMediaSelection);
+  videoInput.addEventListener('change', handleMediaSelection);
+  
+  if (sendButton) {
+    sendButton.addEventListener('click', () => {
+      sendMessage();
+    });
+  }
+
+  // Enter key to send message (Shift+Enter for new line)
+  if (messageInput) {
+    messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (sendButton && !sendButton.disabled) {
+          sendMessage();
+        }
+      }
+    });
+  }
 }
 
 // Load total user count from Firestore
 async function loadTotalUserCount() {
   try {
-    headerSpinner.style.display = 'inline-block';
+    if (headerSpinner) headerSpinner.style.display = 'inline-block';
     const usersCollection = collection(db, 'users');
     const snapshot = await getDocs(usersCollection);
-    totalUsersCount.textContent = snapshot.size;
+    if (totalUsersCount) totalUsersCount.textContent = snapshot.size;
   } catch (error) {
     console.error('Error loading user count:', error);
-    totalUsersCount.textContent = '0';
+    if (totalUsersCount) totalUsersCount.textContent = '0';
   } finally {
-    headerSpinner.style.display = 'none';
+    if (headerSpinner) headerSpinner.style.display = 'none';
   }
 }
 
 // Load suggested users with pagination
 async function loadSuggestedUsers() {
   try {
-    suggestedBtnSpinner.style.display = 'inline-block';
-    showMoreSuggested.classList.add('loading');
+    if (suggestedBtnSpinner) suggestedBtnSpinner.style.display = 'inline-block';
+    if (showMoreSuggested) showMoreSuggested.classList.add('loading');
     
     // Query to get suggested users (random sample for demo)
     const usersQuery = query(
@@ -162,17 +266,19 @@ async function loadSuggestedUsers() {
     );
 
     const snapshot = await getDocs(usersQuery);
-    suggestedUsersContainer.innerHTML = '';
+    if (suggestedUsersContainer) suggestedUsersContainer.innerHTML = '';
     
     if (snapshot.empty) {
-      suggestedUsersContainer.innerHTML = '<div class="empty-state">No suggested users found</div>';
-      showMoreSuggested.style.display = 'none';
+      if (suggestedUsersContainer) suggestedUsersContainer.innerHTML = '<div class="empty-state">No suggested users found</div>';
+      if (showMoreSuggested) showMoreSuggested.style.display = 'none';
       return;
     }
 
     snapshot.forEach(doc => {
       const user = doc.data();
-      suggestedUsersContainer.appendChild(createUserCard(user, doc.id));
+      if (suggestedUsersContainer) {
+        suggestedUsersContainer.appendChild(createUserCard(user, doc.id));
+      }
     });
 
     // Store last document for pagination
@@ -180,18 +286,18 @@ async function loadSuggestedUsers() {
 
   } catch (error) {
     console.error('Error loading suggested users:', error);
-    suggestedUsersContainer.innerHTML = '<div class="empty-state">Error loading users</div>';
+    if (suggestedUsersContainer) suggestedUsersContainer.innerHTML = '<div class="empty-state">Error loading users</div>';
   } finally {
-    suggestedBtnSpinner.style.display = 'none';
-    showMoreSuggested.classList.remove('loading');
+    if (suggestedBtnSpinner) suggestedBtnSpinner.style.display = 'none';
+    if (showMoreSuggested) showMoreSuggested.classList.remove('loading');
   }
 }
 
 // Load more suggested users
 async function loadMoreSuggestedUsers() {
   try {
-    suggestedBtnSpinner.style.display = 'inline-block';
-    showMoreSuggested.classList.add('loading');
+    if (suggestedBtnSpinner) suggestedBtnSpinner.style.display = 'inline-block';
+    if (showMoreSuggested) showMoreSuggested.classList.add('loading');
     
     if (!lastSuggestedUserDoc) {
       await loadSuggestedUsers();
@@ -208,13 +314,15 @@ async function loadMoreSuggestedUsers() {
     const snapshot = await getDocs(usersQuery);
     
     if (snapshot.empty) {
-      showMoreSuggested.style.display = 'none';
+      if (showMoreSuggested) showMoreSuggested.style.display = 'none';
       return;
     }
 
     snapshot.forEach(doc => {
       const user = doc.data();
-      suggestedUsersContainer.appendChild(createUserCard(user, doc.id));
+      if (suggestedUsersContainer) {
+        suggestedUsersContainer.appendChild(createUserCard(user, doc.id));
+      }
     });
 
     // Update last document for pagination
@@ -223,16 +331,16 @@ async function loadMoreSuggestedUsers() {
   } catch (error) {
     console.error('Error loading more suggested users:', error);
   } finally {
-    suggestedBtnSpinner.style.display = 'none';
-    showMoreSuggested.classList.remove('loading');
+    if (suggestedBtnSpinner) suggestedBtnSpinner.style.display = 'none';
+    if (showMoreSuggested) showMoreSuggested.classList.remove('loading');
   }
 }
 
 // Load top followed users with pagination
 async function loadTopFollowedUsers() {
   try {
-    topFollowedBtnSpinner.style.display = 'inline-block';
-    showMoreTopFollowed.classList.add('loading');
+    if (topFollowedBtnSpinner) topFollowedBtnSpinner.style.display = 'inline-block';
+    if (showMoreTopFollowed) showMoreTopFollowed.classList.add('loading');
     
     // Query to get top followed users (for demo, we'll just get recent users)
     const usersQuery = query(
@@ -242,17 +350,19 @@ async function loadTopFollowedUsers() {
     );
 
     const snapshot = await getDocs(usersQuery);
-    topFollowedUsersContainer.innerHTML = '';
+    if (topFollowedUsersContainer) topFollowedUsersContainer.innerHTML = '';
     
     if (snapshot.empty) {
-      topFollowedUsersContainer.innerHTML = '<div class="empty-state">No users found</div>';
-      showMoreTopFollowed.style.display = 'none';
+      if (topFollowedUsersContainer) topFollowedUsersContainer.innerHTML = '<div class="empty-state">No users found</div>';
+      if (showMoreTopFollowed) showMoreTopFollowed.style.display = 'none';
       return;
     }
 
     snapshot.forEach(doc => {
       const user = doc.data();
-      topFollowedUsersContainer.appendChild(createUserCard(user, doc.id));
+      if (topFollowedUsersContainer) {
+        topFollowedUsersContainer.appendChild(createUserCard(user, doc.id));
+      }
     });
 
     // Store last document for pagination
@@ -260,18 +370,18 @@ async function loadTopFollowedUsers() {
 
   } catch (error) {
     console.error('Error loading top followed users:', error);
-    topFollowedUsersContainer.innerHTML = '<div class="empty-state">Error loading users</div>';
+    if (topFollowedUsersContainer) topFollowedUsersContainer.innerHTML = '<div class="empty-state">Error loading users</div>';
   } finally {
-    topFollowedBtnSpinner.style.display = 'none';
-    showMoreTopFollowed.classList.remove('loading');
+    if (topFollowedBtnSpinner) topFollowedBtnSpinner.style.display = 'none';
+    if (showMoreTopFollowed) showMoreTopFollowed.classList.remove('loading');
   }
 }
 
 // Load more top followed users
 async function loadMoreTopFollowedUsers() {
   try {
-    topFollowedBtnSpinner.style.display = 'inline-block';
-    showMoreTopFollowed.classList.add('loading');
+    if (topFollowedBtnSpinner) topFollowedBtnSpinner.style.display = 'inline-block';
+    if (showMoreTopFollowed) showMoreTopFollowed.classList.add('loading');
     
     if (!lastTopFollowedUserDoc) {
       await loadTopFollowedUsers();
@@ -288,13 +398,15 @@ async function loadMoreTopFollowedUsers() {
     const snapshot = await getDocs(usersQuery);
     
     if (snapshot.empty) {
-      showMoreTopFollowed.style.display = 'none';
+      if (showMoreTopFollowed) showMoreTopFollowed.style.display = 'none';
       return;
     }
 
     snapshot.forEach(doc => {
       const user = doc.data();
-      topFollowedUsersContainer.appendChild(createUserCard(user, doc.id));
+      if (topFollowedUsersContainer) {
+        topFollowedUsersContainer.appendChild(createUserCard(user, doc.id));
+      }
     });
 
     // Update last document for pagination
@@ -303,8 +415,8 @@ async function loadMoreTopFollowedUsers() {
   } catch (error) {
     console.error('Error loading more top followed users:', error);
   } finally {
-    topFollowedBtnSpinner.style.display = 'none';
-    showMoreTopFollowed.classList.remove('loading');
+    if (topFollowedBtnSpinner) topFollowedBtnSpinner.style.display = 'none';
+    if (showMoreTopFollowed) showMoreTopFollowed.classList.remove('loading');
   }
 }
 
@@ -331,32 +443,6 @@ function createUserCard(user, userId) {
     </div>
   `;
   return userCard;
-}
-
-// Initialize message input with typing indicator
-function initMessageInput() {
-  messageInput.addEventListener('input', function() {
-    // Adjust height
-    this.style.height = 'auto';
-    this.style.height = (this.scrollHeight) + 'px';
-
-    // Enable/disable send button based on content
-    const hasText = this.value.trim().length > 0;
-    const hasMedia = selectedMedia.length > 0;
-    sendButton.disabled = !(hasText || hasMedia);
-
-    // Update typing indicator
-    updateTypingStatus();
-  });
-
-  // When user stops typing
-  messageInput.addEventListener('blur', function() {
-    if (currentUser) {
-      const userTypingRef = ref(database, `typing/${currentUser.uid}`);
-      set(userTypingRef, null);
-      clearTimeout(typingTimeout);
-    }
-  });
 }
 
 // Update user typing status
@@ -440,7 +526,9 @@ function createTypingIndicator() {
 
     // Insert after input container for top-down layout
     const inputContainer = document.querySelector('.input-container');
-    inputContainer.parentNode.insertBefore(typingIndicator, inputContainer.nextSibling);
+    if (inputContainer) {
+      inputContainer.parentNode.insertBefore(typingIndicator, inputContainer.nextSibling);
+    }
   }
 
   return typingIndicator;
@@ -457,7 +545,7 @@ function listenForRateLimit() {
 // Function to handle media selection
 function handleMediaSelection(e) {
   const files = e.target.files;
-  if (!files.length) return;
+  if (!files.length || !mediaPreview) return;
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
@@ -505,7 +593,7 @@ function handleMediaSelection(e) {
       }
 
       // Enable send button if there's media
-      sendButton.disabled = false;
+      if (sendButton) sendButton.disabled = false;
     };
 
     reader.readAsDataURL(file);
@@ -522,13 +610,15 @@ function removeMedia(index) {
   updateMediaPreview();
 
   // Disable send button if no content
-  if (selectedMedia.length === 0 && messageInput.value.trim() === '') {
+  if (selectedMedia.length === 0 && messageInput && messageInput.value.trim() === '' && sendButton) {
     sendButton.disabled = true;
   }
 }
 
 // Update media preview after removal
 function updateMediaPreview() {
+  if (!mediaPreview) return;
+  
   mediaPreview.innerHTML = '';
 
   selectedMedia.forEach((media, index) => {
@@ -591,11 +681,14 @@ function formatTimestamp(timestamp) {
 
 // Listen for new messages with real-time updates
 function listenForMessages() {
+  if (!chatContainer) return;
+  
   // Clear chat container but keep loading indicator visible
   while (chatContainer.firstChild && chatContainer.firstChild.id !== 'loadingIndicator') {
     chatContainer.removeChild(chatContainer.firstChild);
   }
-  loadingIndicator.style.display = 'flex';
+  
+  if (loadingIndicator) loadingIndicator.style.display = 'flex';
   
   // Listen for new messages being added from realtime database
   onChildAdded(chatRef, async (snapshot) => {
@@ -629,7 +722,7 @@ function listenForMessages() {
   
   // If no real-time messages come in after 1 second, try loading archived messages
   setTimeout(() => {
-    if (chatContainer.childElementCount <= 1) { // Only loading indicator
+    if (chatContainer && chatContainer.childElementCount <= 1) { // Only loading indicator
       loadInitialArchivedMessages();
     }
   }, 1000);
@@ -644,6 +737,8 @@ function resetPaginationState() {
 // Load initial archived messages with performance optimizations
 async function loadInitialArchivedMessages() {
   try {
+    if (!chatContainer) return;
+    
     // Hide any existing end-of-feed message when loading initial messages
     const existingEndOfFeed = document.getElementById('end-of-feed');
     if (existingEndOfFeed) {
@@ -660,7 +755,7 @@ async function loadInitialArchivedMessages() {
     
     if (querySnapshot.empty) {
       // No archived messages found
-      loadingIndicator.style.display = 'none';
+      if (loadingIndicator) loadingIndicator.style.display = 'none';
       showEndOfFeed();
       return;
     }
@@ -692,7 +787,7 @@ async function loadInitialArchivedMessages() {
     
     // Only hide loading indicator if we actually added messages
     if (messagesAdded > 0 || chatContainer.childElementCount > 1) {
-      loadingIndicator.style.display = 'none';
+      if (loadingIndicator) loadingIndicator.style.display = 'none';
     }
     
     // Set up sentinel for infinite scrolling
@@ -706,12 +801,14 @@ async function loadInitialArchivedMessages() {
     
   } catch (error) {
     console.error('Error loading archived messages:', error);
-    loadingIndicator.style.display = 'none';
+    if (loadingIndicator) loadingIndicator.style.display = 'none';
   }
 }
 
 // Create scroll sentinel for infinite scrolling
 function updateScrollSentinel() {
+  if (!chatContainer) return;
+  
   // Remove existing sentinel if any
   const existingSentinel = document.getElementById('scroll-sentinel');
   if (existingSentinel) {
@@ -736,6 +833,8 @@ function updateScrollSentinel() {
 
 // Show end of feed message
 function showEndOfFeed() {
+  if (!chatContainer) return;
+  
   // Create "end of feed" element if it doesn't exist
   if (!document.getElementById('end-of-feed')) {
     const endOfFeed = document.createElement('div');
@@ -756,7 +855,7 @@ function showEndOfFeed() {
 
 // Load more archived messages when scrolling with pagination and performance optimizations
 async function loadMoreMessages() {
-  if (isLoadingMore || noMoreMessages) return;
+  if (isLoadingMore || noMoreMessages || !chatContainer) return;
   
   isLoadingMore = true;
   
@@ -774,12 +873,9 @@ async function loadMoreMessages() {
   try {
     // Check if we have a starting point for pagination
     if (!lastVisibleMessage) {
-      console.log('No last visible message reference, starting from beginning');
       await loadInitialArchivedMessages();
       return;
     }
-    
-    console.log('Loading more messages after:', lastVisibleMessage.id);
     
     const messagesQuery = query(
       recenceCollection,
@@ -795,14 +891,11 @@ async function loadMoreMessages() {
     if (loader) loader.remove();
     
     if (querySnapshot.empty) {
-      console.log('No more messages to load');
       isLoadingMore = false;
       noMoreMessages = true;
       showEndOfFeed();
       return;
     }
-    
-    console.log(`Loaded ${querySnapshot.docs.length} more messages`);
     
     // Update last visible message
     lastVisibleMessage = querySnapshot.docs[querySnapshot.docs.length - 1];
@@ -832,7 +925,6 @@ async function loadMoreMessages() {
     
     // If we got fewer messages than requested, we're at the end
     if (querySnapshot.docs.length < MESSAGES_PER_PAGE) {
-      console.log('Reached end of messages (fewer than requested)');
       noMoreMessages = true;
       showEndOfFeed();
     }
@@ -846,6 +938,7 @@ async function loadMoreMessages() {
     isLoadingMore = false;
   }
 }
+
 // Create message element with performance optimizations
 function createMessageElement(message, messageId) {
   const messageElement = document.createElement('div');
@@ -1043,6 +1136,8 @@ function debounce(func, wait) {
 
 // Set up infinite scroll with performance optimizations
 function setupInfiniteScroll() {
+  if (!chatContainer) return;
+  
   // Use Intersection Observer for better performance
   const observerOptions = {
     root: null,
@@ -1093,6 +1188,8 @@ function setupInfiniteScroll() {
 
 // Set up virtual scrolling for better performance with large message counts
 function setupVirtualScrolling() {
+  if (!chatContainer) return;
+  
   // Use Intersection Observer for efficient visibility detection
   const visibilityObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -1277,7 +1374,7 @@ async function sendMessage(parentMessageId = null) {
     return;
   }
 
-  const messageText = messageInput.value.trim();
+  const messageText = messageInput ? messageInput.value.trim() : '';
   const currentTime = Date.now();
   const hasMedia = selectedMedia.length > 0;
 
@@ -1299,8 +1396,8 @@ async function sendMessage(parentMessageId = null) {
 
   try {
     // Show loading indicator
-    loadingIndicator.style.display = 'flex';
-    sendButton.disabled = true;
+    if (loadingIndicator) loadingIndicator.style.display = 'flex';
+    if (sendButton) sendButton.disabled = true;
 
     // Update global rate limit timestamp
     await set(rateLimitRef, currentTime);
@@ -1353,11 +1450,13 @@ async function sendMessage(parentMessageId = null) {
     }
 
     // Reset UI
-    messageInput.value = '';
-    messageInput.style.height = 'auto';
+    if (messageInput) {
+      messageInput.value = '';
+      messageInput.style.height = 'auto';
+    }
     selectedMedia = [];
-    mediaPreview.innerHTML = '';
-    sendButton.disabled = true;
+    if (mediaPreview) mediaPreview.innerHTML = '';
+    if (sendButton) sendButton.disabled = true;
     lastMessageTime = currentTime;
 
     console.log('Message sent successfully with ID:', messageId);
@@ -1365,58 +1464,11 @@ async function sendMessage(parentMessageId = null) {
   } catch (error) {
     console.error('Error sending message:', error);
     alert('Failed to send message. Please try again.');
-    sendButton.disabled = false;
+    if (sendButton) sendButton.disabled = false;
   } finally {
-    loadingIndicator.style.display = 'none';
+    if (loadingIndicator) loadingIndicator.style.display = 'none';
   }
 }
-
-// Authentication State Observer
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const userData = userDoc.data() || {};
-      const countryCode = await getCountryFromIP();
-      
-      currentUser = {
-        uid: user.uid,
-        displayName: user.displayName || userData?.displayName || "User" + Math.floor(Math.random() * 10000),
-        photoURL: user.photoURL || userData?.photoURL || "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png",
-        country: countryCode
-      };
-      
-      // Update the input profile image
-      inputProfileImage.src = currentUser.photoURL;
-
-      // Create user in database if not exists
-      if (!userDoc.exists()) {
-        await setDoc(doc(db, 'users', user.uid), {
-          displayName: currentUser.displayName,
-          photoURL: currentUser.photoURL,
-          createdAt: new Date().toISOString()
-        });
-      }
-      
-      // Fetch followed users
-      await fetchFollowedUsers();
-      
-      // Set up presence system
-      setupPresence(user.uid);
-      
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-      loadingIndicator.style.display = 'none';
-    }
-  } else {
-    // Sign in anonymously if no user
-    signInAnonymously(auth)
-      .catch((error) => {
-        console.error('Anonymous auth error:', error);
-        loadingIndicator.style.display = 'none';
-      });
-  }
-});
 
 // Set up user presence
 function setupPresence(userId) {
