@@ -29,8 +29,11 @@ let currentUser = null;
 const followedUsers = new Set();
 let isLoadingMore = false;
 let lastVisibleMessage = null;
-const MESSAGES_PER_PAGE = 10; // Load 10 messages at a time
+let noMoreMessages = false;
+const MESSAGES_PER_PAGE = 10; // Reduced to 10 messages per page for better UX
 const MAX_REALTIME_MESSAGES = 1; // Keep only ONE message in realtime DB
+const DEBOUNCE_DELAY = 150; // Reduced debounce delay for more responsive scrolling
+const SCROLL_TRIGGER_OFFSET = 1000; // Start loading earlier for smoother experience
 
 // Initialize app
 function initApp() {
@@ -40,11 +43,14 @@ function initApp() {
   // Listen for messages
   listenForMessages();
   
-  // Set up infinite scroll
+  // Set up infinite scroll with performance optimizations
   setupInfiniteScroll();
   
   // Set up message archiving
   setupMessageArchiving();
+  
+  // Enable virtual scrolling for better performance
+  setupVirtualScrolling();
 }
 
 // Format timestamp
@@ -86,6 +92,9 @@ function listenForMessages() {
     // Archive message to Firestore immediately (since we're only keeping one)
     archiveMessage(messageId, message);
     
+    // Reset pagination state when new messages arrive
+    resetPaginationState();
+    
     // Load initial archived messages after getting real-time message
     loadInitialArchivedMessages();
   });
@@ -98,9 +107,21 @@ function listenForMessages() {
   }, 1000);
 }
 
-// Load initial archived messages
+// Reset pagination state when new messages arrive
+function resetPaginationState() {
+  lastVisibleMessage = null;
+  noMoreMessages = false;
+}
+
+// Load initial archived messages with performance optimizations
 async function loadInitialArchivedMessages() {
   try {
+    // Hide any existing end-of-feed message when loading initial messages
+    const existingEndOfFeed = document.getElementById('end-of-feed');
+    if (existingEndOfFeed) {
+      existingEndOfFeed.remove();
+    }
+    
     const messagesQuery = query(
       recenceCollection,
       orderBy('timestamp', 'desc'),
@@ -112,6 +133,7 @@ async function loadInitialArchivedMessages() {
     if (querySnapshot.empty) {
       // No archived messages found
       loadingIndicator.style.display = 'none';
+      showEndOfFeed();
       return;
     }
     
@@ -145,8 +167,14 @@ async function loadInitialArchivedMessages() {
       loadingIndicator.style.display = 'none';
     }
     
-    // Sentinel for infinite scrolling
+    // Set up sentinel for infinite scrolling
     updateScrollSentinel();
+    
+    // If we got fewer messages than requested, we're at the end
+    if (querySnapshot.docs.length < MESSAGES_PER_PAGE) {
+      noMoreMessages = true;
+      showEndOfFeed();
+    }
     
   } catch (error) {
     console.error('Error loading archived messages:', error);
@@ -162,6 +190,11 @@ function updateScrollSentinel() {
     existingSentinel.remove();
   }
   
+  // Don't add a new sentinel if we've reached the end
+  if (noMoreMessages) {
+    return;
+  }
+  
   // Create new sentinel
   const sentinel = document.createElement('div');
   sentinel.id = 'scroll-sentinel';
@@ -173,15 +206,36 @@ function updateScrollSentinel() {
   chatContainer.appendChild(sentinel);
 }
 
-// Load more archived messages when scrolling
+// Show end of feed message
+function showEndOfFeed() {
+  // Create "end of feed" element if it doesn't exist
+  if (!document.getElementById('end-of-feed')) {
+    const endOfFeed = document.createElement('div');
+    endOfFeed.id = 'end-of-feed';
+    endOfFeed.className = 'end-of-feed';
+    endOfFeed.innerHTML = `
+      <div class="end-of-feed-content">
+        <svg viewBox="0 0 24 24" class="end-of-feed-icon">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z"></path>
+        </svg>
+        <p>You've reached the end</p>
+        <p class="end-of-feed-subtitle">No more messages to load</p>
+      </div>
+    `;
+    chatContainer.appendChild(endOfFeed);
+  }
+}
+
+// Load more archived messages when scrolling with pagination and performance optimizations
 async function loadMoreMessages() {
-  if (isLoadingMore || !lastVisibleMessage) return;
+  if (isLoadingMore || !lastVisibleMessage || noMoreMessages) return;
   
   isLoadingMore = true;
   
   // Add loading indicator at the bottom of chat container
   const bottomLoader = document.createElement('div');
   bottomLoader.className = 'loading-dots bottom-loader';
+  bottomLoader.id = 'bottom-loader';
   bottomLoader.innerHTML = `
     <div class="loading-dot"></div>
     <div class="loading-dot"></div>
@@ -200,10 +254,13 @@ async function loadMoreMessages() {
     const querySnapshot = await getDocs(messagesQuery);
     
     // Remove bottom loader
-    bottomLoader.remove();
+    const loader = document.getElementById('bottom-loader');
+    if (loader) loader.remove();
     
     if (querySnapshot.empty) {
       isLoadingMore = false;
+      noMoreMessages = true;
+      showEndOfFeed();
       return;
     }
     
@@ -233,18 +290,23 @@ async function loadMoreMessages() {
     // Update sentinel position for infinite scrolling
     updateScrollSentinel();
     
+    // If we got fewer messages than requested, we're at the end
+    if (querySnapshot.docs.length < MESSAGES_PER_PAGE) {
+      noMoreMessages = true;
+      showEndOfFeed();
+    }
+    
   } catch (error) {
     console.error('Error loading more messages:', error);
     // Remove bottom loader on error too
-    if (bottomLoader && bottomLoader.parentNode) {
-      bottomLoader.remove();
-    }
+    const loader = document.getElementById('bottom-loader');
+    if (loader) loader.remove();
   } finally {
     isLoadingMore = false;
   }
 }
 
-// Create message element
+// Create message element with performance optimizations
 function createMessageElement(message, messageId) {
   const messageElement = document.createElement('div');
   messageElement.classList.add('message');
@@ -256,15 +318,19 @@ function createMessageElement(message, messageId) {
   const isFollowing = followedUsers.has(message.userId);
   const followBtnDisplay = message.userId === currentUser?.uid ? 'none' : 'inline-block';
   
+  // Use lightweight placeholder before loading actual media
   let mediaHTML = '';
   if (message.media && message.media.length > 0) {
     mediaHTML = '<div class="media-container">';
     message.media.forEach(media => {
       if (media && media.url) {
         if (media.type === 'image') {
-          mediaHTML += `<img src="${media.url}" class="message-image" loading="lazy">`;
+          // Use data-src for lazy loading
+          mediaHTML += `<div class="image-placeholder">
+            <img data-src="${media.url}" class="message-image" loading="lazy" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E">
+          </div>`;
         } else if (media.type === 'video') {
-          mediaHTML += `<video src="${media.url}" class="message-video" controls preload="metadata"></video>`;
+          mediaHTML += `<video data-src="${media.url}" class="message-video" controls preload="none" poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E"></video>`;
         }
       }
     });
@@ -272,11 +338,11 @@ function createMessageElement(message, messageId) {
   }
   
   messageElement.innerHTML = `
-    <img src="${message.photoURL}" class="profile-image" alt="Profile" loading="lazy">
+    <img src="${message.photoURL}" class="profile-image" alt="Profile" loading="lazy" onerror="this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'">
     <div class="message-content">
       <div class="message-header">
         <span class="user-name">${message.name}</span>
-        <img src="${flagUrl}" class="country-flag" alt="Flag" onerror="this.src='default-flag.png'" loading="lazy">
+        <img src="${flagUrl}" class="country-flag" alt="Flag" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1 1\'%3E%3C/svg%3E'" loading="lazy">
         <span class="message-time">${messageTime}</span>
         <button class="follow-btn ${isFollowing ? 'followed' : ''}" 
           data-user-id="${message.userId}" 
@@ -298,6 +364,9 @@ function createMessageElement(message, messageId) {
     </div>
   `;
   
+  // Set it to not loaded initially (for virtual scrolling)
+  messageElement.setAttribute('data-loaded', 'false');
+  
   return messageElement;
 }
 
@@ -317,10 +386,10 @@ async function archiveMessage(messageId, message) {
   }
 }
 
-// Set up message archiving system
+// Set up message archiving system with optimizations
 function setupMessageArchiving() {
   // Periodically check and ensure we only have one message
-  setInterval(ensureOnlyOneMessageInRealtime, 3000);
+  setInterval(ensureOnlyOneMessageInRealtime, 5000); // Check less frequently
 }
 
 // Ensure only one message in realtime database
@@ -362,41 +431,147 @@ async function ensureOnlyOneMessageInRealtime() {
   }
 }
 
-// Set up infinite scroll
+// Debounce function for scroll events
+function debounce(func, wait) {
+  let timeout;
+  return function() {
+    const context = this;
+    const args = arguments;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      func.apply(context, args);
+    }, wait);
+  };
+}
+
+// Set up infinite scroll with performance optimizations
 function setupInfiniteScroll() {
   // Use Intersection Observer for better performance
-  const observer = new IntersectionObserver((entries) => {
+  const observerOptions = {
+    root: null,
+    rootMargin: '500px', // Larger margin to start loading earlier
+    threshold: 0.1
+  };
+  
+  const sentinelObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
-      if (entry.isIntersecting && !isLoadingMore && lastVisibleMessage) {
+      if (entry.isIntersecting && !isLoadingMore && lastVisibleMessage && !noMoreMessages) {
         loadMoreMessages();
       }
     });
-  }, {
-    root: null,
-    rootMargin: '200px',
-    threshold: 0.1
-  });
+  }, observerOptions);
   
   // Create and observe sentinel element initially
   updateScrollSentinel();
   
   // Re-observe sentinel whenever it's updated
-  setInterval(() => {
+  const observeSentinel = () => {
     const sentinel = document.getElementById('scroll-sentinel');
     if (sentinel) {
-      observer.observe(sentinel);
+      sentinelObserver.observe(sentinel);
     }
-  }, 1000);
+  };
   
-  // Also handle scroll events (as backup)
-  window.addEventListener('scroll', () => {
-    if (isLoadingMore || !lastVisibleMessage) return;
+  // Initial observation
+  observeSentinel();
+  
+  // Periodically check for sentinel to handle dynamic content
+  const sentinelInterval = setInterval(observeSentinel, 1000);
+  
+  // Also handle scroll events (as backup) with improved debouncing
+  const scrollHandler = debounce(() => {
+    if (isLoadingMore || !lastVisibleMessage || noMoreMessages) return;
     
     // Check if we're near the bottom of the page
-    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+    const scrollPosition = window.innerHeight + window.pageYOffset;
+    const bodyHeight = document.body.offsetHeight;
+    
+    if (bodyHeight - scrollPosition < SCROLL_TRIGGER_OFFSET) {
       loadMoreMessages();
     }
-  }, { passive: true });
+  }, DEBOUNCE_DELAY);
+  
+  window.addEventListener('scroll', scrollHandler, { passive: true });
+}
+
+// Set up virtual scrolling for better performance with large message counts
+function setupVirtualScrolling() {
+  // Use Intersection Observer for efficient visibility detection
+  const visibilityObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const messageElement = entry.target;
+      
+      if (entry.isIntersecting) {
+        // Element is visible, load its content if not already loaded
+        if (messageElement.getAttribute('data-loaded') !== 'true') {
+          // Load any lazy images or other content
+          const lazyImages = messageElement.querySelectorAll('img[data-src]');
+          lazyImages.forEach(img => {
+            if (img.dataset.src) {
+              img.src = img.dataset.src;
+              delete img.dataset.src;
+            }
+          });
+          
+          // Load lazy videos
+          const lazyVideos = messageElement.querySelectorAll('video[data-src]');
+          lazyVideos.forEach(video => {
+            if (video.dataset.src) {
+              video.src = video.dataset.src;
+              delete video.dataset.src;
+            }
+          });
+          
+          messageElement.setAttribute('data-loaded', 'true');
+        }
+      } else {
+        // Element is out of view, could potentially unload heavy content
+        // This is optional and depends on memory constraints
+        if (messageElement.getAttribute('data-loaded') === 'true' && 
+            Math.abs(entry.boundingClientRect.y) > 2000) {
+          // Far out of view, could unload media to save memory
+          // This is an advanced optimization that might not be needed
+        }
+      }
+    });
+  }, {
+    root: null,
+    rootMargin: '500px', // Load content before it comes into view
+    threshold: 0.01
+  });
+  
+  // Function to observe new messages
+  const observeMessages = debounce(() => {
+    // Observe all messages that aren't already being observed
+    document.querySelectorAll('.message:not([data-observed="true"])').forEach(message => {
+      visibilityObserver.observe(message);
+      message.setAttribute('data-observed', 'true');
+    });
+  }, 100);
+  
+  // Observe existing messages
+  observeMessages();
+  
+  // Set up mutation observer to detect new messages
+  const mutationObserver = new MutationObserver((mutations) => {
+    let hasNewMessages = false;
+    
+    mutations.forEach(mutation => {
+      if (mutation.type === 'childList' && mutation.addedNodes.length) {
+        hasNewMessages = true;
+      }
+    });
+    
+    if (hasNewMessages) {
+      observeMessages();
+    }
+  });
+  
+  // Start observing the chat container for added messages
+  mutationObserver.observe(chatContainer, { 
+    childList: true,
+    subtree: false
+  });
 }
 
 // Get country from IP address
@@ -556,13 +731,92 @@ window.toggleFollow = async function(userId, userName) {
   }
 };
 
-// Add style for bottom loader
+// Add styles for improved UX
 const style = document.createElement('style');
 style.textContent = `
   .bottom-loader {
     padding: 20px;
     display: flex;
     justify-content: center;
+  }
+  
+  .end-of-feed {
+    padding: 40px 20px;
+    display: flex;
+    justify-content: center;
+    text-align: center;
+    color: #626262;
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .end-of-feed-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .end-of-feed-icon {
+    width: 48px;
+    height: 48px;
+    fill: #626262;
+    margin-bottom: 12px;
+    opacity: 0.7;
+  }
+  
+  .end-of-feed p {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+  }
+  
+  .end-of-feed-subtitle {
+    font-size: 14px !important;
+    opacity: 0.7;
+    margin-top: 4px !important;
+  }
+  
+  .image-placeholder {
+    background-color: #f0f2f5;
+    position: relative;
+    overflow: hidden;
+    min-height: 100px;
+    border-radius: 8px;
+  }
+  
+  .message-image {
+    transition: opacity 0.3s ease;
+    max-width: 100%;
+    border-radius: 8px;
+  }
+  
+  .message-video {
+    max-width: 100%;
+    border-radius: 8px;
+    background-color: #f0f2f5;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .loading-dot {
+    width: 8px;
+    height: 8px;
+    margin: 0 4px;
+    border-radius: 50%;
+    background-color: #626262;
+    display: inline-block;
+    animation: dotPulse 1.4s infinite ease-in-out;
+  }
+  
+  .loading-dot:nth-child(1) { animation-delay: 0s; }
+  .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+  
+  @keyframes dotPulse {
+    0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+    40% { transform: scale(1.2); opacity: 1; }
   }
 `;
 document.head.appendChild(style);
