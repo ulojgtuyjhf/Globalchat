@@ -330,7 +330,13 @@ function createMessageElement(message, messageId) {
             <img data-src="${media.url}" class="message-image" loading="lazy" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E">
           </div>`;
         } else if (media.type === 'video') {
-          mediaHTML += `<video data-src="${media.url}" class="message-video" controls preload="none" poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E"></video>`;
+          // Fixed video handling with proper poster and controls
+          mediaHTML += `<div class="video-placeholder">
+            <video data-src="${media.url}" class="message-video" controls preload="none" poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E">
+              <source data-src="${media.url}" type="${media.mimeType || 'video/mp4'}">
+              Your browser does not support the video tag.
+            </video>
+          </div>`;
         }
       }
     });
@@ -354,7 +360,7 @@ function createMessageElement(message, messageId) {
       <div class="message-text">${message.text || ''}</div>
       ${mediaHTML}
       <div class="action-buttons">
-        <!-- Reply Button (NEW - added before like) -->
+        <!-- Reply Button -->
         <button class="action-button reply-btn">
           <svg viewBox="0 0 24 24" class="action-icon">
             <path d="M14.046 2.242l-4.148-.01h-.002c-4.374 0-7.8 3.427-7.8 7.802 0 4.098 3.186 7.206 7.465 7.37v3.828a.85.85 0 0 0 .12.403.744.744 0 0 0 1.034.229c.264-.168 6.473-4.14 8.088-5.506 1.902-1.61 3.04-3.97 3.043-6.312v-.017c-.006-4.367-3.43-7.787-7.8-7.788zm3.787 12.972c-1.134.96-4.862 3.405-6.772 4.643V16.67a.75.75 0 0 0-.75-.75h-.396c-3.66 0-6.318-2.476-6.318-5.886 0-3.534 2.768-6.302 6.3-6.302l4.147.01h.002c3.532 0 6.3 2.766 6.302 6.296-.003 1.91-.942 3.844-2.514 5.176z"/>
@@ -386,7 +392,7 @@ function createMessageElement(message, messageId) {
           <span class="action-count">${message.bookmarkCount || 0}</span>
         </button>
         
-        <!-- Viewers Count Button (NEW) -->
+        <!-- Viewers Count Button -->
         <button class="action-button viewers-btn">
           <svg viewBox="0 0 24 24" class="action-icon">
             <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
@@ -406,6 +412,34 @@ function createMessageElement(message, messageId) {
 // Archive message to Firestore
 async function archiveMessage(messageId, message) {
   try {
+    // Ensure media data is properly formatted before archiving
+    if (message.media && message.media.length > 0) {
+      // Make sure each media item has required properties
+      message.media = message.media.map(media => {
+        if (!media.type) {
+          // Try to determine type from URL or set default
+          if (media.url) {
+            const url = media.url.toLowerCase();
+            if (url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mov') || 
+                url.endsWith('.avi') || url.includes('video')) {
+              media.type = 'video';
+              if (!media.mimeType) {
+                // Set default mime type based on extension
+                if (url.endsWith('.mp4')) media.mimeType = 'video/mp4';
+                else if (url.endsWith('.webm')) media.mimeType = 'video/webm';
+                else if (url.endsWith('.mov')) media.mimeType = 'video/quicktime';
+                else if (url.endsWith('.avi')) media.mimeType = 'video/x-msvideo';
+                else media.mimeType = 'video/mp4'; // Default
+              }
+            } else {
+              media.type = 'image';
+            }
+          }
+        }
+        return media;
+      });
+    }
+    
     // Add to Firestore archive
     await setDoc(doc(recenceCollection, messageId), {
       ...message,
@@ -546,12 +580,37 @@ function setupVirtualScrolling() {
             }
           });
           
-          // Load lazy videos
+          // Load lazy videos - FIXED VIDEO HANDLING
           const lazyVideos = messageElement.querySelectorAll('video[data-src]');
           lazyVideos.forEach(video => {
             if (video.dataset.src) {
               video.src = video.dataset.src;
+              
+              // Also update source elements if present
+              const sources = video.querySelectorAll('source[data-src]');
+              sources.forEach(source => {
+                if (source.dataset.src) {
+                  source.src = source.dataset.src;
+                  delete source.dataset.src;
+                }
+              });
+              
               delete video.dataset.src;
+              
+              // Add event listeners for video
+              video.addEventListener('loadedmetadata', () => {
+                // Video metadata loaded successfully
+                video.classList.add('video-loaded');
+              });
+              
+              video.addEventListener('error', (e) => {
+                console.error('Video load error:', e);
+                // Add fallback message or placeholder
+                const fallbackMsg = document.createElement('div');
+                fallbackMsg.className = 'video-error';
+                fallbackMsg.textContent = 'Video could not be loaded';
+                video.parentNode.appendChild(fallbackMsg);
+              });
             }
           });
           
@@ -562,8 +621,13 @@ function setupVirtualScrolling() {
         // This is optional and depends on memory constraints
         if (messageElement.getAttribute('data-loaded') === 'true' && 
             Math.abs(entry.boundingClientRect.y) > 2000) {
-          // Far out of view, could unload media to save memory
-          // This is an advanced optimization that might not be needed
+          // Far out of view, pause videos to save resources
+          const videos = messageElement.querySelectorAll('video');
+          videos.forEach(video => {
+            if (!video.paused) {
+              video.pause();
+            }
+          });
         }
       }
     });
@@ -629,6 +693,7 @@ onAuthStateChanged(auth, async (user) => {
       
       currentUser = {
         uid: user.uid,
+        
         displayName: user.displayName || userData?.displayName || "User" + Math.floor(Math.random() * 10000),
         photoURL: user.photoURL || userData?.photoURL || "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png",
         country: countryCode
@@ -712,7 +777,6 @@ async function fetchFollowedUsers() {
   }
 }
 
-
 // Update Follow Buttons
 function updateFollowButtons() {
   document.querySelectorAll('.follow-btn').forEach(btn => {
@@ -725,7 +789,6 @@ function updateFollowButtons() {
     }
   });
 }
-
 
 // Follow/Unfollow User
 window.toggleFollow = async function(userId, userName) {
@@ -824,10 +887,35 @@ style.textContent = `
     border-radius: 8px;
   }
   
+  /* Video container styling */
+  .video-placeholder {
+    background-color: #f0f2f5;
+    position: relative;
+    overflow: hidden;
+    min-height: 150px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  
   .message-video {
     max-width: 100%;
     border-radius: 8px;
-    background-color: #f0f2f5;
+    background-color: #000;
+    width: 100%;
+    transition: opacity 0.3s ease;
+  }
+  
+  .video-loaded {
+    opacity: 1;
+  }
+  
+  .video-error {
+    padding: 16px;
+    background-color: rgba(0,0,0,0.03);
+    color: #ff3b30;
+    text-align: center;
+    border-radius: 8px;
+    font-size: 14px;
   }
   
   @keyframes fadeIn {
@@ -935,6 +1023,14 @@ style.textContent = `
     fill: none;
     stroke: currentColor;
     stroke-width: 1.5px;
+  }
+  
+  /* Center action buttons on large screens */
+  @media (min-width: 768px) {
+    .action-buttons {
+      margin-left: auto;
+      margin-right: auto;
+    }
   }
 `;
 document.head.appendChild(style);
