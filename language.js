@@ -354,11 +354,44 @@ function createMessageElement(message, messageId) {
       <div class="message-text">${message.text || ''}</div>
       ${mediaHTML}
       <div class="action-buttons">
+        <!-- Reply Button (NEW - added before like) -->
         <button class="action-button reply-btn">
-          <svg viewBox="0 0 24 24">
-            <path d="M14.046 2.242l-4.148-.01h-.002c-4.374 0-7.8 3.427-7.8 7.802 0 4.098 3.186 7.206 7.465 7.37v3.828a.85.85 0 0 0 .12.403.744.744 0 0 0 1.034.229c.264-.168 6.473-4.14 8.088-5.506 1.902-1.61 3.04-3.97 3.043-6.312v-.017c-.006-4.367-3.43-7.787-7.8-7.788zm3.787 12.972c-1.134.96-4.862 3.405-6.772 4.643V16.67a.75.75 0 0 0-.75-.75h-.396c-3.66 0-6.318-2.476-6.318-5.886 0-3.534 2.768-6.302 6.3-6.302l4.147.01h.002c3.532 0 6.3 2.766 6.302 6.296-.003 1.91-.942 3.844-2.514 5.176z"></path>
+          <svg viewBox="0 0 24 24" class="action-icon">
+            <path d="M14.046 2.242l-4.148-.01h-.002c-4.374 0-7.8 3.427-7.8 7.802 0 4.098 3.186 7.206 7.465 7.37v3.828a.85.85 0 0 0 .12.403.744.744 0 0 0 1.034.229c.264-.168 6.473-4.14 8.088-5.506 1.902-1.61 3.04-3.97 3.043-6.312v-.017c-.006-4.367-3.43-7.787-7.8-7.788zm3.787 12.972c-1.134.96-4.862 3.405-6.772 4.643V16.67a.75.75 0 0 0-.75-.75h-.396c-3.66 0-6.318-2.476-6.318-5.886 0-3.534 2.768-6.302 6.3-6.302l4.147.01h.002c3.532 0 6.3 2.766 6.302 6.296-.003 1.91-.942 3.844-2.514 5.176z"/>
           </svg>
-          ${message.replyCount || 0}
+          <span class="action-count">${message.replyCount || 0}</span>
+        </button>
+        
+        <!-- Like Button -->
+        <button class="action-button like-btn">
+          <svg viewBox="0 0 24 24" class="action-icon">
+            <path d="M12 21.638h-.014C9.403 21.59 1.95 14.856 1.95 8.478c0-3.064 2.525-5.754 5.403-5.754 2.29 0 3.83 1.58 4.646 2.73.813-1.148 2.353-2.73 4.644-2.73 2.88 0 5.404 2.69 5.404 5.755 0 6.376-7.454 13.11-10.037 13.157H12z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <span class="action-count">${message.likeCount || 0}</span>
+        </button>
+        
+        <!-- Retweet/Share Button -->
+        <button class="action-button share-btn">
+          <svg viewBox="0 0 24 24" class="action-icon">
+            <path d="M23.77 15.67c-.292-.293-.767-.293-1.06 0l-2.22 2.22V7.65c0-2.068-1.683-3.75-3.75-3.75h-5.85c-.414 0-.75.336-.75.75s.336.75.75.75h5.85c1.24 0 2.25 1.01 2.25 2.25v10.24l-2.22-2.22c-.293-.293-.768-.293-1.06 0s-.294.768 0 1.06l3.5 3.5c.145.147.337.22.53.22s.383-.072.53-.22l3.5-3.5c.294-.292.294-.767 0-1.06zm-10.66 3.28H7.26c-1.24 0-2.25-1.01-2.25-2.25V6.46l2.22 2.22c.148.147.34.22.532.22s.384-.073.53-.22c.293-.293.293-.768 0-1.06l-3.5-3.5c-.293-.294-.768-.294-1.06 0l-3.5 3.5c-.294.292-.294.767 0 1.06s.767.293 1.06 0l2.22-2.22V16.7c0 2.068 1.683 3.75 3.75 3.75h5.85c.414 0 .75-.336.75-.75s-.337-.75-.75-.75z"/>
+          </svg>
+          <span class="action-count">${message.shareCount || 0}</span>
+        </button>
+        
+        <!-- Bookmark Button -->
+        <button class="action-button bookmark-btn">
+          <svg viewBox="0 0 24 24" class="action-icon">
+            <path d="M19.9 23.5c-.2 0-.3 0-.4-.1L12 17.9l-7.5 5.4c-.2.2-.5.2-.8.1-.2-.1-.4-.4-.4-.7V5.6c0-1.2 1-2.2 2.2-2.2h12.8c1.2 0 2.2 1 2.2 2.2v17.1c0 .3-.2.5-.4.7-.1.1-.2.1-.4.1z"/>
+          </svg>
+          <span class="action-count">${message.bookmarkCount || 0}</span>
+        </button>
+        
+        <!-- Viewers Count Button (NEW) -->
+        <button class="action-button viewers-btn">
+          <svg viewBox="0 0 24 24" class="action-icon">
+            <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+          </svg>
+          <span class="action-count">${message.viewCount || 0}</span>
         </button>
       </div>
     </div>
@@ -679,6 +712,7 @@ async function fetchFollowedUsers() {
   }
 }
 
+
 // Update Follow Buttons
 function updateFollowButtons() {
   document.querySelectorAll('.follow-btn').forEach(btn => {
@@ -691,6 +725,7 @@ function updateFollowButtons() {
     }
   });
 }
+
 
 // Follow/Unfollow User
 window.toggleFollow = async function(userId, userName) {
@@ -830,7 +865,79 @@ style.textContent = `
       opacity: 0.5; 
     }
   }
+  
+  /* Twitter-like action buttons with improved visibility */
+  .action-buttons {
+    display: flex;
+    flex-direction: row;
+    margin-top: 12px;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 425px;
+  }
+  
+  .action-button {
+    display: flex;
+    align-items: center;
+    background: none;
+    border: none;
+    padding: 8px;
+    margin-right: 6px;
+    cursor: pointer;
+    border-radius: 50%;
+    color: #536471;
+    transition: all 0.2s ease;
+  }
+  
+  .action-icon {
+    width: 20px; /* Increased from 18px */
+    height: 20px; /* Increased from 18px */
+    fill: currentColor;
+    stroke-width: 1px;
+    stroke: currentColor;
+  }
+  
+  .action-count {
+    margin-left: 4px;
+    font-size: 13px;
+    font-weight: 500; /* Added weight */
+    color: #536471;
+  }
+  
+  /* Button hover states with stronger effects */
+  .like-btn:hover {
+    color: #f91880;
+    background-color: rgba(249, 24, 128, 0.15);
+  }
+  
+  .reply-btn:hover {
+    color: #1d9bf0;
+    background-color: rgba(29, 155, 240, 0.15);
+  }
+  
+  .share-btn:hover {
+    color: #00ba7c;
+    background-color: rgba(0, 186, 124, 0.15);
+  }
+  
+  .bookmark-btn:hover {
+    color: #1d9bf0;
+    background-color: rgba(29, 155, 240, 0.15);
+  }
+  
+  .viewers-btn:hover {
+    color: #1d9bf0;
+    background-color: rgba(29, 155, 240, 0.15);
+  }
+  
+  /* New viewer icon styling */
+  .viewers-btn .action-icon {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5px;
+  }
 `;
 document.head.appendChild(style);
+
 // Initialize the app
 initApp();
