@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Global Chat with Connections</title>
   <style>
+  
 /* Base Reset & Typography */
 * {
   margin: 0;
@@ -53,12 +54,12 @@ body {
   color: var(--text-primary);
   height: 100vh;
   overflow-x: hidden;
-  overflow-y: auto; /* Allow vertical scrolling for the entire page */
+  overflow-y: auto;
 }
 
 .app-container {
   display: flex;
-  min-height: 100vh; /* Use minimum height instead of fixed height */
+  min-height: 100vh;
   width: 100%;
   position: relative;
 }
@@ -69,9 +70,9 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  border-right: 1px solid var(--border-light);
-  margin-right: 0; /* Removed margin to make divider touch properly */
-  padding-right: 0; /* Removed padding to ensure messages touch the divider */
+  /* Border removed as requested */
+  margin-right: 0;
+  padding-right: 0;
 }
 
 /* Header for Chat Section */
@@ -86,8 +87,8 @@ body {
 
 /* Social Connections - Right Side */
 .social-section {
-  width: 400px; /* Increased width from 350px */
-  position: relative; /* Changed from sticky to relative */
+  width: 400px;
+  position: relative;
   height: 100%;
   background-color: var(--background-light);
   padding: 0 16px;
@@ -101,7 +102,7 @@ body {
 }
 
 .social-header {
-  position: relative; /* Changed from sticky to relative */
+  position: relative;
   background-color: var(--background-light);
   z-index: 10;
   padding: 16px 0;
@@ -112,7 +113,7 @@ body {
 .social-main {
   flex: 1;
   padding: 8px 0;
-  overflow-y: visible; /* Changed from auto to visible */
+  overflow-y: visible;
 }
 
 .social-footer {
@@ -120,6 +121,21 @@ body {
   margin-top: 30px;
   border-top: 1px solid var(--border-light);
   background-color: var(--background-light);
+  text-align: center;
+}
+
+.social-footer .footer-link {
+  display: inline-block;
+  margin: 6px 8px;
+  color: var(--footer-text);
+  font-size: 13px;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.social-footer .footer-link:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
 }
 
 /* Input area now at the top with border */
@@ -131,15 +147,15 @@ body {
   background-color: var(--background-white);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
   z-index: 10;
-  position: relative; /* Changed from sticky to relative */
-  border: 1px solid var(--border-light); /* Added border around input container */
+  position: relative;
+  border: 1px solid var(--border-light);
 }
 
 /* Chat container below input area */
 .chat-container {
   flex: 1;
   padding: 12px 16px;
-  overflow-y: visible; /* Allow content to flow naturally */
+  overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--primary-light) var(--background-light);
   scroll-behavior: smooth;
@@ -163,19 +179,24 @@ body {
   background: var(--primary-color);
 }
 
-/* Message Component */
+/* UPDATED MESSAGE COMPONENT WITH PERFECT SCALING AND CHAT BUBBLE POINTER */
 .message {
   display: flex;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 20px;
+  position: relative;
+  clear: both;
+  transition: all 0.3s ease;
+  padding: 0;
+  border-bottom: none;
   animation: fadeIn 0.4s ease;
-  transition: background-color var(--transition-speed);
-  margin-right: -16px; /* This extends the message to touch the right border */
-  padding-right: 16px; /* Add padding to maintain content alignment */
+  width: 100%;
+  max-width: 650px; /* Optimal width for readability */
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .message:hover {
-  background-color: rgba(74, 144, 226, 0.03);
+  background-color: transparent;
 }
 
 @keyframes fadeIn {
@@ -190,18 +211,53 @@ body {
   margin-right: 14px;
   flex-shrink: 0;
   object-fit: cover;
-  border: 2px solid transparent;
-  transition: border-color var(--transition-speed);
+  align-self: flex-start;
+  border: 2px solid var(--primary-light);
   box-shadow: var(--box-shadow);
+  transition: transform 0.3s ease;
 }
 
 .profile-image:hover {
-  border-color: var(--primary-color);
+  transform: scale(1.05);
 }
 
 .message-content {
   flex: 1;
-  min-width: 0; /* Prevents content from overflowing flex container */
+  min-width: 0;
+  background-color: var(--background-white);
+  border-radius: var(--border-radius-md);
+  padding: 16px 18px;
+  box-shadow: var(--box-shadow);
+  position: relative;
+  overflow: visible;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border-color);
+  margin-top: 2px;
+}
+
+/* Added WhatsApp-like pointer for message bubbles */
+.message-content:before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: -8px;
+  width: 16px;
+  height: 16px;
+  background-color: var(--background-white);
+  transform: rotate(45deg);
+  border-left: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  z-index: -1;
+}
+
+.message-content:hover {
+  background-color: #f8f8f8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.message-content:hover:before {
+  background-color: #f8f8f8;
 }
 
 /* Message Header & Metadata */
@@ -209,7 +265,7 @@ body {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .user-name {
@@ -240,10 +296,19 @@ body {
   font-size: 0.975rem;
 }
 
+.message-time {
+  text-align: right;
+  display: inline-block;
+  margin-left: 8px;
+  float: right;
+  margin-top: 4px;
+}
+
 /* Media Content */
 .media-container {
   margin: 12px 0;
-  max-width: 100%;
+  width: 100%;
+  max-width: 600px;
   border-radius: var(--border-radius-md);
   overflow: hidden;
   box-shadow: var(--box-shadow);
@@ -255,13 +320,13 @@ body {
 }
 
 .message-image {
-  max-width: 100%;
-  max-height: 450px;
+  width: 100%;
+  max-height: 500px;
   object-fit: contain;
   border-radius: var(--border-radius-md);
   cursor: pointer;
   transition: filter var(--transition-speed);
-  display: block; /* Eliminates bottom space */
+  display: block;
 }
 
 .message-image:hover {
@@ -269,8 +334,8 @@ body {
 }
 
 .message-video {
-  max-width: 100%;
-  max-height: 450px;
+  width: 100%;
+  max-height: 500px;
   border-radius: var(--border-radius-md);
   background: #000;
   display: block;
@@ -279,7 +344,7 @@ body {
 /* Interactive Action Buttons */
 .action-buttons {
   display: flex;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .action-button {
@@ -370,7 +435,7 @@ body {
   padding: 12px 16px;
   transition: box-shadow var(--transition-speed);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--border-light); /* Added border to input wrapper */
+  border: 1px solid var(--border-light);
 }
 
 .input-wrapper:focus-within {
@@ -642,10 +707,10 @@ body {
 
 /* Section Titles with subtle animation */
 .section-title {
-  font-size: 16px; /* Reduced from 18px */
+  font-size: 16px;
   font-weight: 800;
-  margin: 16px 0 12px; /* Reduced from 20px 0 15px */
-  padding-bottom: 8px; /* Reduced from 10px */
+  margin: 16px 0 12px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--border-light);
   color: var(--text-primary);
   position: relative;
@@ -670,9 +735,9 @@ body {
 .user-card {
   display: flex;
   align-items: center;
-  padding: 10px 14px; /* Reduced from 12px 16px */
-  border-radius: 10px; /* Reduced from 12px */
-  margin-bottom: 6px; /* Reduced from 8px */
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 6px;
   transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
   border: 1px solid transparent;
   background-color: var(--background-white);
@@ -701,12 +766,12 @@ body {
 
 .user-pic-container {
   position: relative;
-  margin-right: 10px; /* Reduced from 12px */
+  margin-right: 10px;
 }
 
 .user-pic {
-  width: 40px; /* Reduced from 48px */
-  height: 40px; /* Reduced from 48px */
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid var(--border-light);
@@ -722,8 +787,8 @@ body {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 10px; /* Reduced from 12px */
-  height: 10px; /* Reduced from 12px */
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   border: 2px solid var(--background-white);
 }
@@ -742,7 +807,7 @@ body {
 
 .user-name {
   font-weight: 700;
-  font-size: 14px; /* Reduced from 15px */
+  font-size: 14px;
   margin-bottom: 2px;
   color: var(--text-primary);
   transition: color 0.2s ease;
@@ -755,12 +820,12 @@ body {
 /* Show More Button with Twitter-like animation */
 .show-more {
   text-align: center;
-  padding: 10px; /* Reduced from 12px */
+  padding: 10px;
   color: var(--text-secondary);
   font-weight: 700;
   cursor: pointer;
-  margin-top: 10px; /* Reduced from 12px */
-  border-radius: 10px; /* Reduced from 12px */
+  margin-top: 10px;
+  border-radius: 10px;
   background-color: var(--background-white);
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
   border: 1px solid var(--border-light);
@@ -771,8 +836,8 @@ body {
   transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
   position: relative;
   overflow: hidden;
-  min-height: 40px; /* Reduced from 46px */
-  margin-bottom: 16px; /* Reduced from 20px */
+  min-height: 40px;
+  margin-bottom: 16px;
 }
 
 .show-more:hover {
@@ -830,80 +895,62 @@ body {
   text-align: center;
 }
 
-/* Search container styles - Twitter-like */
+/* Search box styling */
 .search-container {
-  position: relative;
-  margin: 12px 0 16px;
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+  background-color: var(--background-white);
+  border-radius: var(--border-radius-lg);
+  padding: 8px 12px;
+  box-shadow: var(--box-shadow);
+  border: 1px solid var(--border-light);
 }
 
 .search-input {
-  width: 100%;
-  padding: 12px 16px 12px 40px;
-  border-radius: 9999px;
-  border: 1px solid transparent;
-  background-color: var(--primary-light);
-  color: var(--text-primary);
-  font-size: 15px;
-  transition: all 0.2s ease;
-  box-shadow: 0 0 0 0 rgba(0,0,0,0);
-}
-
-.search-input:focus {
-  border-color: var(--primary-color);
-  background-color: var(--background-white);
-  box-shadow: 0 0 0 1px var(--primary-color), 0 0 0 4px rgba(98, 98, 98, 0.1);
+  flex: 1;
+  border: none;
   outline: none;
-}
-
-.search-input::placeholder {
-  color: var(--text-secondary);
-  opacity: 0.7;
+  font-size: 14px;
+  padding: 6px 10px;
+  background: transparent;
 }
 
 .search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
-  fill: var(--text-secondary);
-  transition: fill 0.2s ease;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  color: var(--text-secondary);
 }
 
-.search-input:focus + .search-icon,
-.search-container:focus-within .search-icon {
-  fill: var(--primary-color);
-}
-
-/* Twitter-styled footer */
-.social-footer {
-  padding: 15px 0;
-  margin-top: 20px;
-  border-top: 1px solid var(--border-light);
-  font-size: 12px;
-  color: var(--footer-text);
-}
-
-.footer-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
 
 .footer-link {
-  color: var(--footer-text);
+  color: rgba(255,255,255,0.8);
+  margin: 6px 12px;
+  font-size: 13px;
   text-decoration: none;
-  transition: color 0.2s ease;
+  position: relative;
+  transition: all 0.3s ease;
 }
 
 .footer-link:hover {
-  color: var(--primary-color);
-  text-decoration: underline;
+  color: #ffffff;
+  transform: translateY(-2px);
 }
 
-.footer-copyright {
-  margin-top: 8px;
+.footer-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background-color: #ffffff;
+  transition: width 0.3s ease;
+}
+
+.footer-link:hover::after {
+  width: 100%;
 }
 
 /* Responsive adjustments */
@@ -913,7 +960,7 @@ body {
   }
   
   .message {
-    padding: 12px 0;
+    margin-bottom: 16px;
   }
   
   .media-container {
@@ -931,7 +978,7 @@ body {
   }
   
   .social-section {
-    width: 350px; /* Reduced width for medium screens */
+    width: 350px;
   }
   
   .profile-image {
@@ -941,7 +988,7 @@ body {
   }
 
   .message {
-    padding: 10px 0;
+    margin-bottom: 14px;
   }
 
   .message-text {
@@ -1040,7 +1087,7 @@ body {
     font-size: 0.75rem;
   }
 
-  .action-button svg {
+    .action-button svg {
     width: 16px;
     height: 16px;
     margin-right: 4px;
@@ -1058,7 +1105,6 @@ body {
     font-size: 0.95rem;
   }
 
-  
   .preview-item {
     width: 70px;
     height: 70px;
@@ -1106,6 +1152,54 @@ body {
     margin-right: 8px;
   }
 }
+
+/* Large screen optimizations */
+@media (min-width: 1200px) {
+  .message {
+    max-width: 700px;
+  }
+  
+  .message-content {
+    padding: 18px 20px;
+  }
+  
+  .profile-image {
+    width: 52px;
+    height: 52px;
+  }
+  
+  .message-text {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+  
+  .media-container {
+    max-width: 650px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .message {
+    max-width: 750px;
+  }
+  
+  .message-content {
+    padding: 20px 22px;
+  }
+  
+  .profile-image {
+    width: 56px;
+    height: 56px;
+  }
+  
+  .message-text {
+    font-size: 1.05rem;
+  }
+  
+  .media-container {
+    max-width: 700px;
+  }
+}
   </style>
 
 </head>
@@ -1150,7 +1244,7 @@ body {
           </div>
         </div>
       </div>
-
+      
       <!-- Chat container below input area -->
       <div class="chat-container" id="chatContainer">
         <div class="loading-dots" id="loadingIndicator">
@@ -1160,7 +1254,7 @@ body {
         </div>
       </div>
     </div>
-
+    
     <!-- Social Connections Section - Right Side -->
     <div class="social-section">
       <div class="social-content">
@@ -1174,16 +1268,16 @@ body {
         </div>
         
         <div class="social-main">
-          <!-- Search box with Twitter-like styling -->
+          <!-- Search box -->
           <div class="search-container">
-            <input type="text" class="search-input" placeholder="Search connections...">
             <svg class="search-icon" viewBox="0 0 24 24">
               <path d="M21.53 20.47l-3.66-3.66C19.195 15.24 20 13.214 20 11c0-4.97-4.03-9-9-9s-9 4.03-9 9 4.03 9 9 9c2.215 0 4.24-.804 5.808-2.13l3.66 3.66c.147.146.34.22.53.22s.385-.073.53-.22c.295-.293.295-.767.002-1.06zM3.5 11c0-4.135 3.365-7.5 7.5-7.5s7.5 3.365 7.5 7.5-3.365 7.5-7.5 7.5-7.5-3.365-7.5-7.5z"></path>
             </svg>
+            <input type="text" class="search-input" placeholder="Search connections...">
           </div>
           
-          <!-- Who to follow section -->
-          <div class="section-title">Who to follow</div>
+          <!-- Suggested Users Section -->
+          <div class="section-title">Suggested for you</div>
           <div id="suggestedUsersContainer">
             <div id="suggestedSpinner" class="spinner-container">
               <div class="loading-spinner"></div>
@@ -1197,8 +1291,7 @@ body {
         </div>
         
         <div class="social-footer">
-          <div class="footer-links">
-            <a href="#" class="footer-link">Terms of Service</a>
+          <a href="#" class="footer-link">Terms of Service</a>
             <a href="#" class="footer-link">Privacy Policy</a>
             <a href="#" class="footer-link">Cookie Policy</a>
             <a href="#" class="footer-link">Accessibility</a>
@@ -1266,415 +1359,7 @@ body {
   })();
 </script>
 
-<script>
 
-(function() {  
-  // Enhanced Global Chat Theme Manager with Perfect Dim Theme Matching  
-  const GlobalChatThemeManager = {  
-    themeConfig: {  
-      light: {  
-        '--primary-color': '#626262',  
-        '--primary-light': '#f0f0f0',  
-        '--primary-dark': '#3a3a3a',  
-        '--text-primary': '#333',  
-        '--text-secondary': '#666',  
-        '--background-light': '#f9f9f9',  
-        '--background-white': '#ffffff',  
-        '--border-light': '#e0e0e0',  
-        '--border-color': '#dadada',  
-        '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.05)',  
-        '--luxury-gradient': 'linear-gradient(135deg, #0f0f0f 0%, #1c1c1c 15%, #3a3a3a 30%, #4d4d4d 45%, #626262 60%, #787878 75%, #8f8f8f 90%, #a6a6a6 100%)',  
-        '--message-hover': 'rgba(74, 144, 226, 0.03)',
-        '--outgoing-hover': '#e5e5e5',  
-        '--image-hover': 'brightness(1.05)',  
-        '--follow-button-text': '#ffffff' // White text for follow button in light theme  
-      },  
-      dim: {  
-        // Core Colors (modified to remove blue)  
-        '--primary-color': '#8899a6', // Changed from blue to gray  
-        '--primary-light': '#1e2732', // Card BG  
-        '--primary-dark': '#667787', // Darker gray instead of blue  
-        '--text-primary': '#ffffff', // White text  
-        '--text-secondary': '#8899a6', // Grayish text  
-        '--background-light': '#15202b', // Main BG  
-        '--background-white': '#1e2732', // Card BG  
-        '--border-light': '#38444d', // Borders  
-        '--border-color': '#38444d', // Same as above  
-        '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.15)',  
-          
-        // Luxury Gradient (preserved)  
-        '--luxury-gradient': 'linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 15%, #d8d8d8 30%, #c8c8c8 45%, #b8b8b8 60%, #a8a8a8 75%, #989898 90%, #888888 100%)',  
-          
-        // Interactive States (updated to remove blue)  
-        '--hover': 'rgba(136, 153, 166, 0.1)', // Gray hover tint (10% opacity)  
-        '--message-hover': '#253341', // Message hover  
-        '--outgoing-hover': '#1e2d3d', // Darker hover for sent messages  
-        '--image-hover': 'brightness(1.08)', // Subtle media hover  
-          
-        // Special Cases  
-        '--card-bg': '#1e2732', // Explicit card background  
-        '--follow-button-text': '#000000' // Black text for follow button in dim theme  
-      },  
-      dark: {  
-        '--primary-color': '#a6a6a6', // Lighter gray for better visibility on dark  
-        '--primary-light': '#000000', // Pure black  
-        '--primary-dark': '#4d4d4d', // Dark gray  
-        '--text-primary': '#ffffff', // Pure white  
-        '--text-secondary': '#8f8f8f', // Medium gray  
-        '--background-light': '#000000', // Pure black background  
-        '--background-white': '#080808', // Very dark gray for message boxes  
-        '--border-light': '#1a1a1a', // Dark border  
-        '--border-color': '#121212', // Even darker border  
-        '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.4)',  
-        '--luxury-gradient': 'linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 15%, #d8d8d8 30%, #c8c8c8 45%, #b8b8b8 60%, #a8a8a8 75%, #989898 90%, #888888 100%)',  
-        '--message-hover': '#121212', // Slightly lighter than message box  
-        '--outgoing-hover': '#0a0a0a', // Darker hover for outgoing  
-        '--image-hover': 'brightness(1.2)', // Stronger hover effect  
-        '--follow-button-text': '#000000' // Black text for follow button in dark theme  
-      }  
-    },  
-      
-    styleElementId: 'global-chat-theme-manager-styles',  
-      
-    initialize: function() {  
-      this.createStyleElement();  
-      this.applyCurrentTheme();  
-      this.setupEventListeners();
-      this.fixAnimations();
-    },  
-      
-    createStyleElement: function() {  
-      const existingStyle = document.getElementById(this.styleElementId);  
-      if (existingStyle) existingStyle.remove();  
-        
-      const styleElement = document.createElement('style');  
-      styleElement.id = this.styleElementId;  
-      styleElement.setAttribute('data-origin', 'global-chat-theme-manager');  
-      document.head.appendChild(styleElement);  
-    },  
-      
-    applyCurrentTheme: function() {  
-      const themeName = localStorage.getItem('twitter-theme') || 'light';  
-      this.applyTheme(themeName);  
-    },  
-      
-    applyTheme: function(themeName) {  
-      const validThemes = ['light', 'dim', 'dark'];  
-      const theme = validThemes.includes(themeName) ? themeName : 'light';  
-      const themeVars = this.themeConfig[theme] || this.themeConfig.light;  
-      const styleElement = document.getElementById(this.styleElementId);  
-        
-      if (!styleElement) {  
-        this.createStyleElement();  
-        return this.applyTheme(theme);  
-      }  
-        
-      let css = ':root {\n';  
-      Object.entries(themeVars).forEach(([key, value]) => {  
-        css += `  ${key}: ${value};\n`;  
-      });  
-      css += '}\n\n';  
-        
-      // Enhanced hover and animation styles  
-      css += `  
-      /* Basic theme overrides */
-      body {
-        background-color: var(--background-light);
-        color: var(--text-primary);
-      }
-      
-      .input-container {
-        background-color: var(--background-white);
-        border-color: var(--border-light);
-      }
-
-      .input-wrapper {
-        background-color: var(--primary-light);
-      }
-
-      .message-textarea {
-        color: var(--text-primary);
-      }
-
-      .message-textarea::placeholder {
-        color: var(--text-secondary);
-      }
-
-      .send-button {
-        background-color: var(--primary-color);
-      }
-      
-      /* Message styles and hover effects */  
-      .message {
-        border-bottom-color: var(--border-light);
-        background-color: transparent;
-        transition: background-color 0.2s ease;
-      }
-
-      .message:hover {  
-        background-color: var(--message-hover);
-      }  
-        
-      .message.outgoing:hover {  
-        background-color: var(--outgoing-hover);  
-      }  
-        
-      /* User name and text */
-      .user-name {
-        color: var(--primary-color);
-      }
-
-      .user-handle, .message-time {
-        color: var(--text-secondary);
-      }
-
-      .message-text {
-        color: var(--text-primary);
-      }
-
-      /* Animation fixes */
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(12px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-
-      .message {
-        animation: fadeIn 0.4s ease;
-      }
-      
-      /* Loading animation */
-      .loading-dot {
-        background-color: var(--primary-color);
-      }
-
-      @keyframes bounce {
-        from { transform: translateY(0); }
-        to { transform: translateY(-8px); }
-      }
-        
-      /* Image hover effects */  
-      .message-image:hover {  
-        filter: var(--image-hover);
-      }  
-        
-      /* Profile image hover */  
-      .profile-image {
-        border-color: transparent;
-      }
-
-      .profile-image:hover {  
-        border-color: var(--primary-color);
-        transform: scale(1.02);
-      }  
-        
-      /* Action buttons */  
-      .action-button {  
-        color: var(--text-secondary);
-      }
-
-      .action-button:hover {  
-        color: var(--primary-color);
-      }  
-        
-      .action-button:hover svg {  
-        transform: scale(1.1);
-        color: var(--primary-color);
-      }  
-        
-      /* Media button hover */  
-      .media-button {
-        color: var(--primary-color);
-      }
-
-      .media-button:hover {  
-        color: var(--primary-dark);
-        transform: scale(1.1);
-        opacity: 1;
-      }  
-        
-      /* Send button states */  
-      .send-button:hover:not(:disabled),  
-      .reply-send:hover {  
-        background-color: var(--primary-dark);
-        transform: scale(1.05);
-      }  
-
-      .send-button:disabled {
-        background-color: var(--primary-dark);
-        opacity: 0.6;
-      }
-        
-      /* Follow button styles */  
-      .follow-btn {  
-        color: var(--follow-button-text) !important;
-        border-color: var(--primary-color);
-      }  
-        
-      .follow-btn:hover {  
-        background-color: rgba(98, 98, 98, 0.1);
-      }  
-
-      .follow-btn.followed {
-        background: var(--luxury-gradient);
-        color: white !important;
-      }
-        
-      /* Remove media button */  
-      .remove-media:hover {  
-        background-color: rgba(240, 40, 40, 0.8);
-        transform: scale(1.1);
-      }  
-        
-      /* Input focus effects */  
-      .input-wrapper:focus-within {  
-        box-shadow: 0 0 0 2px rgba(98, 98, 98, 0.3);
-      }  
-        
-      /* Reply wrapper */  
-      .reply-wrapper {
-        background-color: var(--primary-light);
-      }
-
-      .reply-wrapper:focus-within {  
-        box-shadow: 0 0 0 2px rgba(98, 98, 98, 0.2);
-      }
-
-      .reply-textarea {
-        color: var(--text-primary);
-      }
-
-      .reply-send {
-        background-color: var(--primary-color);
-      }
-      
-      /* Media preview */
-      .preview-item {
-        box-shadow: var(--box-shadow);
-      }
-
-      /* Fix scrollbar colors */
-      .chat-container::-webkit-scrollbar-track {
-        background: var(--background-light);
-      }
-
-      .chat-container::-webkit-scrollbar-thumb {
-        background: var(--primary-light);
-      }
-
-      .chat-container::-webkit-scrollbar-thumb:hover {
-        background: var(--primary-color);
-      }
-      `;  
-        
-      styleElement.textContent = css;  
-    },
-
-    fixAnimations: function() {
-      // Create a style element specifically for animation fixes
-      const fixStyleId = 'animation-fixes';
-      let fixStyle = document.getElementById(fixStyleId);
-      
-      if (!fixStyle) {
-        fixStyle = document.createElement('style');
-        fixStyle.id = fixStyleId;
-        document.head.appendChild(fixStyle);
-      }
-      
-      // Apply critical fixes that should be theme-independent
-      fixStyle.textContent = `
-        /* Ensure input container is always visible */
-        .input-container {
-          position: sticky;
-          top: 0;
-          z-index: 100;
-        }
-
-        /* Smooth transition for all theme changes */
-        * {
-          transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        /* Fix fadeIn animation to be less jarring */
-        @keyframes fadeIn {
-          from { opacity: 0.3; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Fix bounce animation for loading dots */
-        @keyframes bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-6px); }
-        }
-        
-        .loading-dots {
-          padding: 12px;
-          margin: 10px 0;
-        }
-        
-        .loading-dot {
-          width: 8px;
-          height: 8px;
-          margin: 0 4px;
-          border-radius: 50%;
-          animation: bounce 0.6s infinite alternate;
-        }
-        
-        /* Ensure media previews display correctly */
-        .media-container {
-          overflow: hidden;
-          border-radius: var(--border-radius-md);
-        }
-        
-        /* Fix profile image alignment */
-        .profile-image {
-          object-fit: cover;
-        }
-      `;
-    },
-      
-    setupEventListeners: function() {  
-      window.addEventListener('storage', (e) => {  
-        if (e.key === 'twitter-theme') {  
-          this.applyTheme(e.newValue || 'light');  
-        }  
-      });  
-        
-      document.addEventListener('DOMContentLoaded', () => {
-        this.fixAnimations();
-        this.applyCurrentTheme();
-      });
-        
-      this.setupPeriodicCheck();  
-    },  
-      
-    setupPeriodicCheck: function() {  
-      let lastKnownTheme = localStorage.getItem('twitter-theme') || 'light';  
-      setInterval(() => {  
-        const currentTheme = localStorage.getItem('twitter-theme');  
-        if (currentTheme !== lastKnownTheme) {  
-          lastKnownTheme = currentTheme || 'light';  
-          this.applyTheme(lastKnownTheme);  
-        }  
-      }, 2000);  
-    }  
-  };  
-    
-  // Initialize immediately but also handle DOMContentLoaded
-  function initializeThemeManager() {  
-    GlobalChatThemeManager.initialize();
-      
-    if (document.readyState === 'loading') {  
-      document.addEventListener('DOMContentLoaded', () => {  
-        GlobalChatThemeManager.initialize();  
-      });  
-    }
-  }  
-    
-  // Start initialization with a slight delay to ensure DOM is ready
-  setTimeout(initializeThemeManager, 50);  
-})();
-
-</script>
 
 
 <script>
