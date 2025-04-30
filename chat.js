@@ -1,10 +1,9 @@
 // main.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, deleteDoc, orderBy, limit, startAfter, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getDatabase, ref, push, set, onChildAdded, onValue, update, get, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { initComments, listenForComments, sendComment } from './comments.js';
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -30,8 +29,10 @@ const chatRef = ref(database, 'messages');
 const typingRef = ref(database, 'typing');
 const rateLimitRef = ref(database, 'rateLimit');
 const recenceCollection = collection(db, 'recence');
+const friendRequestsCollection = collection(db, 'friendRequests');
+const usersCollection = collection(db, 'users');
 
-// DOM Elements (will be null if not present in the page)
+// DOM Elements
 const chatContainer = document.getElementById('chatContainer');
 const messageInput = document.getElementById('messageInput');
 const imageInput = document.getElementById('imageInput');
@@ -46,8 +47,15 @@ const totalUsersCount = document.getElementById('totalUsersCount');
 const suggestedUsersContainer = document.getElementById('suggestedUsersContainer');
 const showMoreSuggested = document.getElementById('showMoreSuggested');
 const suggestedBtnSpinner = document.getElementById('suggestedBtnSpinner');
-const topFollowedUsersContainer = document.getElementById('topFollowedUsersContainer');
-const showMoreTopFollowed = document.getElementById('showMoreTopFollowed');
+const friendRequestsContainer = document.getElementById('friendRequestsContainer');
+const showMoreRequests = document.getElementById('showMoreRequests');
+const requestsBtnSpinner = document.getElementById('requestsBtnSpinner');
+const profileScroller = document.getElementById('profileScroller');
+const commentModal = document.getElementById('commentModal');
+const modalCommentContent = document.getElementById('modalCommentContent');
+const modalCommentInput = document.getElementById('modalCommentInput');
+const modalCommentSubmit = document.getElementById('modalCommentSubmit');
+const closeCommentModal = document.getElementById('closeCommentModal');
 const headerSpinner = document.getElementById('headerSpinner');
 
 // State variables
@@ -66,15 +74,15 @@ const MAX_REALTIME_MESSAGES = 1;
 const DEBOUNCE_DELAY = 150;
 const SCROLL_TRIGGER_OFFSET = 1000;
 let lastSuggestedUserDoc = null;
-let lastTopFollowedUserDoc = null;
+let lastFriendRequestDoc = null;
+let currentOpenMessageId = null;
+const likedMessages = new Set();
+const friendRequests = new Map();
 
 // Initialize app based on which page we're on
 function initApp() {
   // Common initialization for all pages
   loadingIndicator.style.display = 'flex';
-  
-  // Initialize comments system
-  initComments(app, currentUser);
   
   // Initialize features based on which elements exist
   if (chatContainer) {
@@ -93,9 +101,17 @@ function initApp() {
     }
   }
   
-  if (suggestedUsersContainer || topFollowedUsersContainer) {
+  if (suggestedUsersContainer || friendRequestsContainer) {
     // Social features initialization
     initSocialSection();
+  }
+  
+  if (profileScroller) {
+    loadProfileScroller();
+  }
+  
+  if (commentModal) {
+    initCommentModal();
   }
   
   // Initialize auth state observer
@@ -118,9 +134,6 @@ function initAuthStateObserver() {
           country: countryCode
         };
         
-        // Initialize comments with current user
-        initComments(app, currentUser);
-        
         // Update the input profile image if it exists
         if (inputProfileImage) {
           inputProfileImage.src = currentUser.photoURL;
@@ -131,12 +144,22 @@ function initAuthStateObserver() {
           await setDoc(doc(db, 'users', user.uid), {
             displayName: currentUser.displayName,
             photoURL: currentUser.photoURL,
-            createdAt: new Date().toISOString()
+            createdAt: serverTimestamp(),
+            lastSeen: serverTimestamp(),
+            status: 'online'
+          });
+        } else {
+          // Update user status to online
+          await updateDoc(doc(db, 'users', user.uid), {
+            lastSeen: serverTimestamp(),
+            status: 'online'
           });
         }
         
-        // Fetch followed users
+        // Fetch followed users and friend requests
         await fetchFollowedUsers();
+        await fetchFriendRequests();
+        await fetchLikedMessages();
         
         // Set up presence system
         setupPresence(user.uid);
@@ -156,7 +179,7 @@ function initAuthStateObserver() {
   });
 }
 
-// Initialize social section with user count and suggested/top followed users
+// Initialize social section with user count and suggested/friend requests
 function initSocialSection() {
   // Load total user count if the element exists
   if (totalUsersCount) {
@@ -168,9 +191,9 @@ function initSocialSection() {
     loadSuggestedUsers();
   }
   
-  // Load initial top followed users if the container exists
-  if (topFollowedUsersContainer) {
-    loadTopFollowedUsers();
+  // Load initial friend requests if the container exists
+  if (friendRequestsContainer) {
+    loadFriendRequests();
   }
   
   // Set up "Show More" button event listeners if they exist
@@ -180,9 +203,9 @@ function initSocialSection() {
     });
   }
   
-  if (showMoreTopFollowed) {
-    showMoreTopFollowed.addEventListener('click', () => {
-      loadMoreTopFollowedUsers();
+  if (showMoreRequests) {
+    showMoreRequests.addEventListener('click', () => {
+      loadMoreFriendRequests();
     });
   }
 }
@@ -215,17 +238,6 @@ function initMessageInput() {
       clearTimeout(typingTimeout);
     }
   });
-
-  // Add event listener for comment inputs
-  document.addEventListener('input', (e) => {
-    if (e.target.classList.contains('comment-input')) {
-      const textarea = e.target;
-      textarea.style.height = 'auto';
-      textarea.style.height = (textarea.scrollHeight) + 'px';
-      const sendButton = textarea.parentElement.querySelector('.comment-send-button');
-      sendButton.disabled = !textarea.value.trim();
-    }
-  });
 }
 
 // Initialize media handlers
@@ -256,11 +268,231 @@ function initMediaHandlers() {
   }
 }
 
+// Initialize comment modal
+function initCommentModal() {
+  if (!commentModal) return;
+  
+  // Close modal when clicking outside
+  commentModal.addEventListener('click', (e) => {
+    if (e.target === commentModal) {
+      closeModal();
+    }
+  });
+  
+  // Close button
+  closeCommentModal.addEventListener('click', closeModal);
+  
+  // Handle comment submission
+  modalCommentSubmit.addEventListener('click', () => {
+    if (currentOpenMessageId && modalCommentInput.value.trim()) {
+      sendComment(currentOpenMessageId, modalCommentInput.value.trim());
+      modalCommentInput.value = '';
+      modalCommentInput.style.height = 'auto';
+    }
+  });
+  
+  // Auto-resize textarea
+  modalCommentInput.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
+  });
+  
+  // Submit on Enter (Shift+Enter for new line)
+  modalCommentInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      modalCommentSubmit.click();
+    }
+  });
+}
+
+// Open comment modal for a specific message
+function openCommentModal(messageId, messageData) {
+  if (!commentModal || !modalCommentContent) return;
+  
+  currentOpenMessageId = messageId;
+  
+  // Set message content at top of modal
+  modalCommentContent.innerHTML = `
+    <div class="message-preview">
+      ${createMessageElement(messageData, messageId).outerHTML}
+    </div>
+    <div class="comments-list" id="commentsList"></div>
+  `;
+  
+  // Show modal
+  commentModal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+  
+  // Load comments
+  loadComments(messageId);
+}
+
+// Close comment modal
+function closeModal() {
+  if (!commentModal) return;
+  
+  commentModal.classList.remove('active');
+  document.body.style.overflow = '';
+  currentOpenMessageId = null;
+}
+
+// Load comments for a message
+async function loadComments(messageId) {
+  if (!messageId || !modalCommentContent) return;
+  
+  const commentsList = modalCommentContent.querySelector('#commentsList');
+  if (!commentsList) return;
+  
+  commentsList.innerHTML = '<div class="loading-spinner"></div>';
+  
+  try {
+    const commentsQuery = query(
+      collection(db, 'recence', messageId, 'comments'),
+      orderBy('timestamp', 'desc'),
+      limit(10)
+    );
+    
+    const querySnapshot = await getDocs(commentsQuery);
+    commentsList.innerHTML = '';
+    
+    if (querySnapshot.empty) {
+      commentsList.innerHTML = '<div class="empty-state">No comments yet</div>';
+      return;
+    }
+    
+    querySnapshot.forEach(doc => {
+      const comment = doc.data();
+      commentsList.appendChild(createCommentElement(comment));
+    });
+    
+    // Set up real-time listener for new comments
+    listenForNewComments(messageId, commentsList);
+    
+  } catch (error) {
+    console.error('Error loading comments:', error);
+    commentsList.innerHTML = '<div class="empty-state">Error loading comments</div>';
+  }
+}
+
+// Create comment element
+function createCommentElement(comment) {
+  const commentElement = document.createElement('div');
+  commentElement.className = 'comment-item';
+  
+  commentElement.innerHTML = `
+    <img src="${comment.userPhotoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" 
+         class="comment-avatar" alt="Profile">
+    <div class="comment-content">
+      <div class="comment-header">
+        <span class="comment-author">${comment.userName}</span>
+        <span class="comment-time">${formatTimestamp(comment.timestamp)}</span>
+      </div>
+      <div class="comment-text">${comment.text}</div>
+    </div>
+  `;
+  
+  return commentElement;
+}
+
+// Listen for new comments in real-time
+function listenForNewComments(messageId, commentsList) {
+  if (!messageId || !commentsList) return;
+  
+  const commentsQuery = query(
+    collection(db, 'recence', messageId, 'comments'),
+    orderBy('timestamp', 'desc')
+  );
+  
+  // This would be better with onSnapshot, but we're using getDocs for consistency
+  // In a production app, consider using onSnapshot for real-time updates
+}
+
+// Send comment to a message
+async function sendComment(messageId, commentText) {
+  if (!currentUser || !messageId || !commentText) return;
+  
+  try {
+    const commentData = {
+      userId: currentUser.uid,
+      userName: currentUser.displayName,
+      userPhotoURL: currentUser.photoURL,
+      text: commentText,
+      timestamp: serverTimestamp()
+    };
+    
+    // Add comment to Firestore
+    await addDoc(collection(db, 'recence', messageId, 'comments'), commentData);
+    
+    // Update comment count in message
+    const messageRef = doc(db, 'recence', messageId);
+    const messageSnap = await getDoc(messageRef);
+    
+    if (messageSnap.exists()) {
+      const currentCount = messageSnap.data().commentCount || 0;
+      await updateDoc(messageRef, {
+        commentCount: currentCount + 1
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error sending comment:', error);
+  }
+}
+
+// Load profile scroller with suggested users
+async function loadProfileScroller() {
+  if (!profileScroller) return;
+  
+  try {
+    // Query to get suggested users (random sample for demo)
+    const usersQuery = query(
+      usersCollection,
+      orderBy('createdAt', 'desc'),
+      limit(6)
+    );
+
+    const snapshot = await getDocs(usersQuery);
+    profileScroller.innerHTML = '';
+    
+    if (snapshot.empty) {
+      return;
+    }
+
+    snapshot.forEach(doc => {
+      const user = doc.data();
+      profileScroller.appendChild(createProfileScrollItem(user, doc.id));
+    });
+
+  } catch (error) {
+    console.error('Error loading profile scroller:', error);
+  }
+}
+
+// Create profile scroll item
+function createProfileScrollItem(user, userId) {
+  const isFollowing = followedUsers.has(userId);
+  
+  const item = document.createElement('div');
+  item.className = 'profile-scroll-item';
+  item.innerHTML = `
+    <img src="${user.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" 
+         class="profile-scroll-img" alt="Profile" loading="lazy">
+    <span class="profile-scroll-name">${user.displayName || 'User'}</span>
+  `;
+  
+  item.addEventListener('click', () => {
+    // In a real app, this would open the user's profile
+    console.log('Opening profile for user:', userId);
+  });
+  
+  return item;
+}
+
 // Load total user count from Firestore
 async function loadTotalUserCount() {
   try {
     if (headerSpinner) headerSpinner.style.display = 'inline-block';
-    const usersCollection = collection(db, 'users');
     const snapshot = await getDocs(usersCollection);
     if (totalUsersCount) totalUsersCount.textContent = snapshot.size;
   } catch (error) {
@@ -277,9 +509,10 @@ async function loadSuggestedUsers() {
     if (suggestedBtnSpinner) suggestedBtnSpinner.style.display = 'inline-block';
     if (showMoreSuggested) showMoreSuggested.classList.add('loading');
     
-    // Query to get suggested users (random sample for demo)
+    // Query to get suggested users (excluding current user and already followed)
     const usersQuery = query(
-      collection(db, 'users'),
+      usersCollection,
+      where('uid', '!=', currentUser?.uid),
       orderBy('createdAt', 'desc'),
       limit(3)
     );
@@ -324,7 +557,8 @@ async function loadMoreSuggestedUsers() {
     }
 
     const usersQuery = query(
-      collection(db, 'users'),
+      usersCollection,
+      where('uid', '!=', currentUser?.uid),
       orderBy('createdAt', 'desc'),
       startAfter(lastSuggestedUserDoc),
       limit(3)
@@ -355,89 +589,294 @@ async function loadMoreSuggestedUsers() {
   }
 }
 
-// Load top followed users with pagination
-async function loadTopFollowedUsers() {
+// Load friend requests
+async function loadFriendRequests() {
   try {
-    if (topFollowedBtnSpinner) topFollowedBtnSpinner.style.display = 'inline-block';
-    if (showMoreTopFollowed) showMoreTopFollowed.classList.add('loading');
+    if (requestsBtnSpinner) requestsBtnSpinner.style.display = 'inline-block';
+    if (showMoreRequests) showMoreRequests.classList.add('loading');
     
-    // Query to get top followed users (for demo, we'll just get recent users)
-    const usersQuery = query(
-      collection(db, 'users'),
-      orderBy('createdAt', 'desc'),
-      limit(3)
+    // Query to get pending friend requests for current user
+    const requestsQuery = query(
+      friendRequestsCollection,
+      where('toUserId', '==', currentUser?.uid),
+      where('status', '==', 'pending'),
+      orderBy('timestamp', 'desc'),
+      limit(2)
     );
 
-    const snapshot = await getDocs(usersQuery);
-    if (topFollowedUsersContainer) topFollowedUsersContainer.innerHTML = '';
+    const snapshot = await getDocs(requestsQuery);
+    if (friendRequestsContainer) friendRequestsContainer.innerHTML = '';
     
     if (snapshot.empty) {
-      if (topFollowedUsersContainer) topFollowedUsersContainer.innerHTML = '<div class="empty-state">No users found</div>';
-      if (showMoreTopFollowed) showMoreTopFollowed.style.display = 'none';
+      if (friendRequestsContainer) friendRequestsContainer.innerHTML = '<div class="empty-state">No friend requests</div>';
+      if (showMoreRequests) showMoreRequests.style.display = 'none';
       return;
     }
 
+    // Clear and update friend requests map
+    friendRequests.clear();
     snapshot.forEach(doc => {
-      const user = doc.data();
-      if (topFollowedUsersContainer) {
-        topFollowedUsersContainer.appendChild(createUserCard(user, doc.id));
+      const request = doc.data();
+      friendRequests.set(doc.id, request);
+      if (friendRequestsContainer) {
+        friendRequestsContainer.appendChild(createFriendRequestItem(request, doc.id));
       }
     });
 
-    // Storeipers last document for pagination
-    lastTopFollowedUserDoc = snapshot.docs[snapshot.docs.length - 1];
+    // Store last document for pagination
+    lastFriendRequestDoc = snapshot.docs[snapshot.docs.length - 1];
 
   } catch (error) {
-    console.error('Error loading top followed users:', error);
-    if (topFollowedUsersContainer) topFollowedUsersContainer.innerHTML = '<div class="empty-state">Error loading users</div>';
+    console.error('Error loading friend requests:', error);
+    if (friendRequestsContainer) friendRequestsContainer.innerHTML = '<div class="empty-state">Error loading requests</div>';
   } finally {
-    if (topFollowedBtnSpinner) topFollowedBtnSpinner.style.display = 'none';
-    if (showMoreTopFollowed) showMoreTopFollowed.classList.remove('loading');
+    if (requestsBtnSpinner) requestsBtnSpinner.style.display = 'none';
+    if (showMoreRequests) showMoreRequests.classList.remove('loading');
   }
 }
 
-// Load more top followed users
-async function loadMoreTopFollowedUsers() {
+// Load more friend requests
+async function loadMoreFriendRequests() {
   try {
-    if (topFollowedBtnSpinner) topFollowedBtnSpinner.style.display = 'inline-block';
-    if (showMoreTopFollowed) showMoreTopFollowed.classList.add('loading');
+    if (requestsBtnSpinner) requestsBtnSpinner.style.display = 'inline-block';
+    if (showMoreRequests) showMoreRequests.classList.add('loading');
     
-    if (!lastTopFollowedUserDoc) {
-      await loadTopFollowedUsers();
+    if (!lastFriendRequestDoc) {
+      await loadFriendRequests();
       return;
     }
 
-    const usersQuery = query(
-      collection(db, 'users'),
-      orderBy('createdAt', 'desc'),
-      startAfter(lastTopFollowedUserDoc),
-      limit(3)
+    const requestsQuery = query(
+      friendRequestsCollection,
+      where('toUserId', '==', currentUser?.uid),
+      where('status', '==', 'pending'),
+      orderBy('timestamp', 'desc'),
+      startAfter(lastFriendRequestDoc),
+      limit(2)
     );
 
-    const snapshot = await getDocs(usersQuery);
+    const snapshot = await getDocs(requestsQuery);
     
     if (snapshot.empty) {
-      if (showMoreTopFollowed) showMoreTopFollowed.style.display = 'none';
+      if (showMoreRequests) showMoreRequests.style.display = 'none';
       return;
     }
 
     snapshot.forEach(doc => {
-      const user = doc.data();
-      if (topFollowedUsersContainer) {
-        topFollowedUsersContainer.appendChild(createUserCard(user, doc.id));
+      const request = doc.data();
+      friendRequests.set(doc.id, request);
+      if (friendRequestsContainer) {
+        friendRequestsContainer.appendChild(createFriendRequestItem(request, doc.id));
       }
     });
 
     // Update last document for pagination
-    lastTopFollowedUserDoc = snapshot.docs[snapshot.docs.length - 1];
+    lastFriendRequestDoc = snapshot.docs[snapshot.docs.length - 1];
 
   } catch (error) {
-    console.error('Error loading more top followed users:', error);
+    console.error('Error loading more friend requests:', error);
   } finally {
-    if (topFollowedBtnSpinner) topFollowedBtnSpinner.style.display = 'none';
- if (showMoreTopFollowed) showMoreTopFollowed.classList.remove('loading');
+    if (requestsBtnSpinner) requestsBtnSpinner.style.display = 'none';
+    if (showMoreRequests) showMoreRequests.classList.remove('loading');
   }
 }
+
+// Create friend request item
+function createFriendRequestItem(request, requestId) {
+  const item = document.createElement('div');
+  item.className = 'user-card';
+  
+  item.innerHTML = `
+    <div class="user-pic-container">
+      <img src="${request.fromUserPhotoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" 
+           class="user-pic" alt="Profile">
+      <div class="status-dot ${request.fromUserStatus === 'online' ? 'status-online' : 'status-offline'}"></div>
+    </div>
+    <div class="user-info">
+      <div class="user-name">${request.fromUserName}</div>
+      <div class="user-actions">
+        <button class="request-btn accept-btn" onclick="handleFriendRequest('${requestId}', 'accept')">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+        </button>
+        <button class="request-btn decline-btn" onclick="handleFriendRequest('${requestId}', 'decline')">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+        </button>
+      </div>
+    </div>
+  `;
+  
+  return item;
+}
+
+// Handle friend request response
+window.handleFriendRequest = async function(requestId, action) {
+  if (!currentUser || !requestId || !friendRequests.has(requestId)) return;
+  
+  try {
+    const requestRef = doc(db, 'friendRequests', requestId);
+    
+    if (action === 'accept') {
+      // Update request status to accepted
+      await updateDoc(requestRef, {
+        status: 'accepted',
+        respondedAt: serverTimestamp()
+      });
+      
+      // Create friendship in both directions
+      const request = friendRequests.get(requestId);
+      
+      await setDoc(doc(db, 'friendships', `${currentUser.uid}_${request.fromUserId}`), {
+        userId1: currentUser.uid,
+        userId2: request.fromUserId,
+        createdAt: serverTimestamp()
+      });
+      
+      await setDoc(doc(db, 'friendships', `${request.fromUserId}_${currentUser.uid}`), {
+        userId1: request.fromUserId,
+        userId2: currentUser.uid,
+        createdAt: serverTimestamp()
+      });
+      
+      // Add to followed users set
+      followedUsers.add(request.fromUserId);
+      
+    } else if (action === 'decline') {
+      // Update request status to declined
+      await updateDoc(requestRef, {
+        status: 'declined',
+        respondedAt: serverTimestamp()
+      });
+    }
+    
+    // Remove from local map and UI
+    friendRequests.delete(requestId);
+    const requestElement = document.querySelector(`[data-request-id="${requestId}"]`);
+    if (requestElement) {
+      requestElement.remove();
+    }
+    
+    // Show feedback
+    alert(`Request ${action === 'accept' ? 'accepted' : 'declined'}`);
+    
+  } catch (error) {
+    console.error('Error handling friend request:', error);
+    alert('Failed to process request. Please try again.');
+  }
+};
+
+// Fetch friend requests
+async function fetchFriendRequests() {
+  if (!currentUser) return;
+  
+  try {
+    const requestsQuery = query(
+      friendRequestsCollection,
+      where('toUserId', '==', currentUser.uid),
+      where('status', '==', 'pending')
+    );
+    
+    const snapshot = await getDocs(requestsQuery);
+    friendRequests.clear();
+    snapshot.forEach(doc => {
+      friendRequests.set(doc.id, doc.data());
+    });
+    
+    // Update UI if container exists
+    if (friendRequestsContainer) {
+      loadFriendRequests();
+    }
+    
+  } catch (error) {
+    console.error('Error fetching friend requests:', error);
+  }
+}
+
+// Fetch liked messages
+async function fetchLikedMessages() {
+  if (!currentUser) return;
+  
+  try {
+    const likesQuery = query(
+      collection(db, 'userLikes'),
+      where('userId', '==', currentUser.uid)
+    );
+    
+    const snapshot = await getDocs(likesQuery);
+    likedMessages.clear();
+    snapshot.forEach(doc => {
+      likedMessages.add(doc.data().messageId);
+    });
+    
+    // Update like buttons in UI
+    updateLikeButtons();
+    
+  } catch (error) {
+    console.error('Error fetching liked messages:', error);
+  }
+}
+
+// Update like buttons in UI
+function updateLikeButtons() {
+  document.querySelectorAll('.like-btn').forEach(btn => {
+    const messageId = btn.closest('.message')?.getAttribute('data-message-id');
+    if (messageId && likedMessages.has(messageId)) {
+      btn.classList.add('liked');
+      btn.querySelector('svg').style.fill = '#f91880';
+    } else {
+      btn.classList.remove('liked');
+      btn.querySelector('svg').style.fill = '';
+    }
+  });
+}
+
+// Handle like action
+window.toggleLike = async function(messageId) {
+  if (!currentUser || !messageId) return;
+  
+  try {
+    const likeRef = doc(db, 'userLikes', `${currentUser.uid}_${messageId}`);
+    const messageRef = doc(db, 'recence', messageId);
+    
+    if (likedMessages.has(messageId)) {
+      // Unlike
+      await deleteDoc(likeRef);
+      likedMessages.delete(messageId);
+      
+      // Decrement like count
+      const messageSnap = await getDoc(messageRef);
+      if (messageSnap.exists()) {
+        const currentLikes = messageSnap.data().likeCount || 0;
+        await updateDoc(messageRef, {
+          likeCount: Math.max(0, currentLikes - 1)
+        });
+      }
+      
+    } else {
+      // Like
+      await setDoc(likeRef, {
+        userId: currentUser.uid,
+        messageId: messageId,
+        timestamp: serverTimestamp()
+      });
+      likedMessages.add(messageId);
+      
+      // Increment like count
+      const messageSnap = await getDoc(messageRef);
+      if (messageSnap.exists()) {
+        const currentLikes = messageSnap.data().likeCount || 0;
+        await updateDoc(messageRef, {
+          likeCount: currentLikes + 1
+        });
+      }
+    }
+    
+    // Update UI
+    updateLikeButtons();
+    
+  } catch (error) {
+    console.error('Error toggling like:', error);
+  }
+};
 
 // Create user card element
 function createUserCard(user, userId) {
@@ -692,7 +1131,10 @@ async function getCountryFromIP() {
 
 // Format timestamp - Updated to only show time without date or weekday
 function formatTimestamp(timestamp) {
-  const date = new Date(timestamp);
+  if (!timestamp) return '';
+  
+  // Handle both Firestore Timestamp objects and regular numbers
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
   const hours = date.getHours();
   const minutes = date.getMinutes().toString().padStart(2, '0');
   return `${hours}:${minutes}`;
@@ -968,6 +1410,7 @@ function createMessageElement(message, messageId) {
   const flagUrl = `https://flagcdn.com/w320/${message.country || 'unknown'}.png`;
   const messageTime = formatTimestamp(message.timestamp);
   const isFollowing = followedUsers.has(message.userId);
+  const isLiked = likedMessages.has(messageId);
   const followBtnDisplay = message.userId === currentUser?.uid ? 'none' : 'inline-block';
   
   let mediaHTML = '';
@@ -1009,38 +1452,16 @@ function createMessageElement(message, messageId) {
       <div class="message-text">${message.text || ''}</div>
       ${mediaHTML}
       <div class="action-buttons">
-        <button class="action-button reply-btn" onclick="toggleComments('${messageId}')">
-          <svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 122.97 122.88"><path d="M61.44,0a61.46,61.46,0,0,1,54.91,89l6.44,25.74a5.83,5.83,0,0,1-7.25,7L91.62,115A61.43,61.43,0,1,1,61.44,0ZM96.63,26.25a49.78,49.78,0,1,0-9,77.52A5.83,5.83,0,0,1,92.4,103L109,107.77l-4.5-18a5.86,5.86,0,0,1,.51-4.34,49.06,49.06,0,0,0,4.62-11.58,50,50,0,0,0-13-47.62Z"/></svg>
-          <span class="action-count">${message.replyCount || 0}</span>
+        <button class="action-button reply-btn" onclick="openComments('${messageId}')">
+          <svg viewBox="0 0 24 24"><path d="M14.046 2.242l-4.148-.01h-.002c-4.374 0-7.8 3.427-7.8 7.802 0 4.098 3.186 7.206 7.465 7.37v3.828c0 .108.044.286.12.403.142.225.384.347.632.347.138 0 .277-.038.402-.118.264-.168 6.473-4.14 8.088-5.506 1.902-1.61 3.04-3.97 3.043-6.312v-.017c-.006-4.367-3.43-7.787-7.8-7.788zm3.787 12.972c-1.134.96-4.862 3.405-6.772 4.643V16.67c0-.414-.335-.75-.75-.75h-.396c-3.66 0-6.318-2.476-6.318-5.886 0-3.534 2.768-6.302 6.3-6.302l4.147.01h.002c3.532 0 6.3 2.766 6.302 6.296-.003 1.91-.942 3.844-2.514 5.176z"></path></svg>
+          <span class="action-count">${message.commentCount || 0}</span>
         </button>
-        <button class="action-button like-btn">
-          <?xml version="1.0" encoding="utf-8"?><svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 122.88 107.68" style="enable-background:new 0 0 122.88 107.68" xml:space="preserve"><g><path d="M61.43,13.53C66.76,7.51,72.8,3.69,78.96,1.69c6.48-2.1,13.07-2.15,19.09-0.6c6.05,1.55,11.52,4.72,15.74,9.03 c5.58,5.7,9.09,13.36,9.09,22.02c0,13.7-6.6,26.75-17.42,39.37c-10.14,11.83-24.05,23.35-39.61,34.73 c-2.58,1.89-5.98,1.88-8.5,0.22l0,0.01l-0.03-0.02l0,0.01l-0.02-0.01l-0.21-0.15c-4.46-2.92-8.75-5.91-12.8-8.94 c-4.05-3.03-8.01-6.22-11.83-9.56C12.58,70.42,0,51.4,0,32.13c0-8.8,3.44-16.44,8.93-22.08c4.25-4.37,9.73-7.51,15.79-9.03V1.02 c5.99-1.5,12.57-1.4,19.05,0.69C49.99,3.71,56.09,7.54,61.43,13.53L61.43,13.53L61.43,13.53z M83.51,15.87 C78.02,17.65,72.51,22.02,68,29.78c-0.63,1.19-1.6,2.21-2.85,2.93c-3.56,2.05-8.11,0.82-10.15-2.74 c-4.5-7.82-10.14-12.27-15.78-14.08c-3.71-1.19-7.46-1.25-10.88-0.4l0,0l-0.02,0c-3.35,0.83-6.37,2.56-8.7,4.95 c-2.87,2.95-4.67,7-4.67,11.7c0,14.53,10.59,29.82,27.3,44.43c3.28,2.87,6.95,5.82,10.95,8.81c2.61,1.96,5.35,3.92,8.04,5.74 c13.03-9.76,24.53-19.53,32.9-29.3c8.58-10,13.8-19.92,13.8-29.68c0-4.55-1.84-8.58-4.76-11.57c-2.38-2.42-5.43-4.2-8.8-5.06 C90.98,14.63,87.23,14.67,83.51,15.87L83.51,15.87L83.51,15.87z"/></g></svg>
+        <button class="action-button like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${messageId}')">
+          <svg viewBox="0 0 24 24"><path d="M12 21.638h-.014C9.403 21.59 1.95 14.856 1.95 8.478c0-3.064 2.525-5.754 5.403-5.754 2.29 0 3.83 1.58 4.646 2.73.814-1.148 2.354-2.73 4.645-2.73 2.88 0 5.404 2.69 5.404 5.755 0 6.376-7.454 13.11-10.037 13.157H12z"></path></svg>
           <span class="action-count">${message.likeCount || 0}</span>
         </button>
-        <button class="action-button share-btn">
-          <svg xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" image-rendering="optimizeQuality" fill-rule="evenodd" clip-rule="evenodd" viewBox="0 0 399 512.34"><path fill-rule="nonzero" d="m0 84.87.03-.01c0-4.73 3.84-8.57 8.58-8.57h223.02V8.59c.02-1.96.69-3.94 2.05-5.55 3.06-3.62 8.48-4.07 12.1-1.01l150.06 127.4c.4.33.77.69 1.11 1.1 3.06 3.62 2.61 9.04-1.01 12.1L246.21 269.75a8.584 8.584 0 0 1-5.97 2.41 8.61 8.61 0 0 1-8.61-8.61v-67.67H119.62v32.96c-.03 2.42-1.04 4.83-3.03 6.52L14.65 322.62a8.543 8.543 0 0 1-6.04 2.48c-4.75 0-8.61-3.85-8.61-8.6V84.87zm399 342.6-.03.01c0 4.73-3.84 8.57-8.58 8.57H167.37v67.71a8.696 8.696 0 0 1-2.05 5.54c-3.06 3.62-8.48 4.07-12.1 1.01L3.16 382.91c-.4-.33-.77-.69-1.11-1.09-3.06-3.62-2.61-9.05 1.01-12.11L152.79 242.6a8.584 8.584 0 0 1 5.97-2.41c4.75 0 8.61 3.85 8.61 8.6v67.67h112.01V283.5a8.703 8.703 0 0 1 3.03-6.52l101.94-87.26a8.604 8.604 0 0 1 6.04-2.48 8.61 8.61 0 0 1 8.61 8.61v231.62zm-17.21-8.57V214.52l-85.2 72.91v37.64a8.6 8.6 0 0 1-8.6 8.6H158.76a8.6 8.6 0 0 1-8.6-8.6v-57.7L21.88 376.27l128.28 108.91v-57.71a8.6 8.6 0 0 1 8.6-8.6l223.03.03zM17.21 93.44v204.39l85.2-72.92v-37.63c0-4.76 3.85-8.61 8.6-8.61h129.23a8.61 8.61 0 0 1 8.61 8.61v57.7l128.27-108.91L248.85 27.16v57.71c0 4.75-3.86 8.6-8.61 8.6l-223.03-.03z"/></svg>
-          <span class="action-count">${message.shareCount || 0}</span>
-        </button>
-        <button class="action-button bookmark-btn">
-          <?xml version="1.0" encoding="utf-8"?><svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 122.88 87.46" style="enable-background:new 0 0 122.88 87.46" xml:space="preserve"><g><path d="M2.17,87.46c-1.2,0-2.17-0.91-2.17-2.04c0-1.13,0.97-2.04,2.17-2.04h9.16V20.59c0-0.65,0.27-1.25,0.7-1.68 c0.44-0.44,1.03-0.71,1.68-0.71h13.02c0.66,0,1.25,0.27,1.68,0.71c0.43,0.43,0.7,1.03,0.7,1.68v62.78h9.69V38.8 c0-0.65,0.27-1.24,0.7-1.68l0,0l0,0l0,0c0.43-0.43,1.03-0.70,1.67-0.70h13.02c0.67,0,1.26,0.27,1.68,0.70c0.43,0.43,0.70,1.04,0.70,1.68 v44.57h9.69V2.38c0-0.65,0.27-1.24,0.70-1.68l0,0l0,0C67.42,0.27,68.01,0,68.67,0h13.02c0.66,0,1.25,0.27,1.68,0.70l0,0 c0.43,0.43,0.70,1.04,0.70,1.68v80.99h9.69V25.80c0-0.65,0.27-1.25,0.70-1.68l0,0c0.43-0.43,1.03-0.70,1.69-0.70h13.02 c0.66,0,1.26,0.27,1.68,0.70c0.43,0.43,0.70,1.03,0.70,1.68v57.58h9.16c1.20,0,2.17,0.91,2.17,2.04c0,1.13-0.97,2.04-2.17,2.04h-11.27 c-0.02,0-0.04,0-0.06,0H95.94c-0.02,0-0.04,0-0.06,0H81.96c-0.02,0-0.04,0-0.06,0H68.46c-0.02,0-0.04,0-0.06,0H54.49 c-0.02,0-0.04,0-0.06,0H40.98c-0.02,0-0.04,0-0.06,0H27l-0.06,0H13.50l-0.06,0H2.17L2.17,87.46z M24.77,22.55h-9.10v60.56h9.10V22.55 L24.77,22.55z M52.25,40.76h-9.10v42.35h9.10V40.76L52.25,40.76z M79.73,4.34h-9.10v78.77h9.10V4.34L79.73,4.34z M107.20,27.76h-9.10 v55.36h9.10V27.76L107.20,27.76z"/></g></svg>
-          <span class="action-count">${message.bookmarkCount || 0}</span>
-        </button>
-        <button class="action-button viewers-btn">
-          <?xml version="1.0" encoding="utf-8"?><svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 122.88 103.44" style="enable-background:new 0 0 122.88 103.44" xml:space="preserve"><g><path d="M69.49,102.77L49.80,84.04l-20.23,18.27c-0.45,0.49-1.09,0.79-1.80,0.79c-1.35,0-2.44-1.09-2.44-2.44V60.77L0.76,37.41 c-0.98-0.93-1.01-2.47-0.09-3.45c0.31-0.33,0.70-0.55,1.11-0.67l0,0l118-33.20c1.30-0.36,2.64,0.39,3.01,1.69 c0.19,0.66,0.08,1.34-0.24,1.89l-49.20,98.42c-0.60,1.20-2.06,1.69-3.26,1.09C69.86,103.07,69.66,102.93,69.49,102.77L69.49,102.77 L69.49,102.77z M46.26,80.68L30.21,65.42v29.76L46.26,80.68L46.26,80.68z M28.15,56.73l76.32-47.26L7.22,36
-
-.83L28.15,56.73 L28.15,56.73z M114.43,9.03L31.79,60.19l38.67,36.78L114.43,9.03L114.43,9.03z"/></g></svg>
-          <span class="action-count">${message.viewCount || 0}</span>
-        </button>
-      </div>
-      <div class="comments-section" id="comments-${messageId}">
-        <div class="comment-input-container">
-          <textarea class="comment-input" placeholder="Add a comment..."></textarea>
-          <button class="comment-gif-button" onclick="addCommentGif('${messageId}')">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14h-2V9h-2V7h4v10zm3-4h-2v-2h2v2zm0 4h-2v-2h2v2z"/></svg>
-          </button>
-          <button class="comment-send-button" disabled onclick="sendCommentFromInput('${messageId}')">Send</button>
-        </div>
-        <div class="comments-container"></div>
+        <span class="viewers-count">
+         
       </div>
     </div>
   `;
@@ -1185,9 +1606,6 @@ function setupInfiniteScroll() {
   
   // Initial observation
   observeSentinel();
-  
-  // Periodically check for sentinel to handle dynamic content
-  const sentinelInterval = setInterval(observeSentinel, 1000);
   
   // Also handle scroll events (as backup) with improved debouncing
   const scrollHandler = debounce(() => {
@@ -1449,7 +1867,9 @@ async function sendMessage(parentMessageId = null) {
       timestamp: currentTime,
       country: currentUser.country,
       parentMessageId: parentMessageId,
-      replyCount: 0
+      commentCount: 0,
+      likeCount: 0,
+      viewCount: 0
     };
 
     // Store the message in the Realtime Database for real-time updates
@@ -1463,7 +1883,7 @@ async function sendMessage(parentMessageId = null) {
       const snapshot = await get(parentRef);
       if (snapshot.exists()) {
         await update(parentRef, {
-          replyCount: (snapshot.val().replyCount || 0) + 1
+          commentCount: (snapshot.val().commentCount || 0) + 1
         });
       }
     }
@@ -1521,14 +1941,14 @@ async function fetchFollowedUsers() {
   
   try {
     const followQuery = query(
-      collection(db, 'follows'),
-      where('followerUserId', '==', currentUser.uid)
+      collection(db, 'friendships'),
+      where('userId1', '==', currentUser.uid)
     );
     
     const followSnapshot = await getDocs(followQuery);
     followedUsers.clear();
     followSnapshot.docs.forEach(doc => {
-      const followedUserId = doc.data().followedUserId;
+      const followedUserId = doc.data().userId2;
       followedUsers.add(followedUserId);
     });
     
@@ -1560,27 +1980,52 @@ window.toggleFollow = async function(userId, userName) {
   
   try {
     const followQuery = query(
-      collection(db, 'follows'),
-      where('followerUserId', '==', currentUser.uid),
-      where('followedUserId', '==', userId)
+      collection(db, 'friendships'),
+      where('userId1', '==', currentUser.uid),
+      where('userId2', '==', userId)
     );
     
     const followSnapshot = await getDocs(followQuery);
     
     if (followSnapshot.empty) {
       // Follow the user
-      await addDoc(collection(db, 'follows'), {
-        followerUserId: currentUser.uid,
-        followedUserId: userId,
-        followedUserName: userName,
-        timestamp: Date.now()
+      await setDoc(doc(db, 'friendships', `${currentUser.uid}_${userId}`), {
+        userId1: currentUser.uid,
+        userId2: userId,
+        userName: userName,
+        timestamp: serverTimestamp()
       });
+      
+      // Also create the reverse relationship
+      await setDoc(doc(db, 'friendships', `${userId}_${currentUser.uid}`), {
+        userId1: userId,
+        userId2: currentUser.uid,
+        userName: currentUser.displayName,
+        timestamp: serverTimestamp()
+      });
+      
       followedUsers.add(userId);
+      
+      // Send friend request notification
+      await addDoc(friendRequestsCollection, {
+        fromUserId: currentUser.uid,
+        fromUserName: currentUser.displayName,
+        fromUserPhotoURL: currentUser.photoURL,
+        fromUserStatus: 'online',
+        toUserId: userId,
+        status: 'accepted',
+        timestamp: serverTimestamp()
+      });
+      
     } else {
       // Unfollow the user
       followSnapshot.docs.forEach(async (followDoc) => {
-        await deleteDoc(doc(db, 'follows', followDoc.id));
+        await deleteDoc(doc(db, 'friendships', followDoc.id));
       });
+      
+      // Also delete the reverse relationship
+      await deleteDoc(doc(db, 'friendships', `${userId}_${currentUser.uid}`));
+      
       followedUsers.delete(userId);
     }
     
@@ -1590,248 +2035,27 @@ window.toggleFollow = async function(userId, userName) {
   }
 };
 
-// Toggle Comments Section
-window.toggleComments = function(messageId) {
-  const commentsSection = document.getElementById(`comments-${messageId}`);
-  if (!commentsSection) return;
-
-  const isActive = commentsSection.classList.contains('active');
-  commentsSection.classList.toggle('active');
-
-  if (!isActive) {
-    const commentsContainer = commentsSection.querySelector('.comments-container');
-    listenForComments(messageId, commentsContainer);
-  }
+// Open comments modal
+window.openComments = function(messageId) {
+  if (!messageId || !commentModal) return;
+  
+  // Get message data
+  const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+  if (!messageElement) return;
+  
+  const messageData = {
+    userId: messageElement.getAttribute('data-user-id'),
+    name: messageElement.querySelector('.user-name').textContent,
+    photoURL: messageElement.querySelector('.profile-image').src,
+    text: messageElement.querySelector('.message-text').textContent,
+    timestamp: messageElement.getAttribute('data-timestamp'),
+    commentCount: parseInt(messageElement.querySelector('.reply-btn .action-count').textContent) || 0,
+    likeCount: parseInt(messageElement.querySelector('.like-btn .action-count').textContent) || 0
+  };
+  
+  // Open modal with this message
+  openCommentModal(messageId, messageData);
 };
-
-// Send Comment from Input
-window.sendCommentFromInput = function(messageId) {
-  const commentsSection = document.getElementById(`comments-${messageId}`);
-  const commentInput = commentsSection.querySelector('.comment-input');
-  const commentText = commentInput.value.trim();
-
-  if (commentText) {
-    sendComment(messageId, commentText);
-    commentInput.value = '';
-    commentInput.style.height = 'auto';
-    commentsSection.querySelector('.comment-send-button').disabled = true;
-  }
-};
-
-// Add Comment GIF (Placeholder)
-window.addCommentGif = function(messageId) {
-  // For simplicity, prompt for a GIF URL (replace with a proper GIF picker in production)
-  const gifUrl = prompt('Enter GIF URL:');
-  if (gifUrl) {
-    sendComment(messageId, '', [{ url: gifUrl, type: 'gif', mimeType: 'image/gif' }]);
-  }
-};
-
-// Add styles for improved UX
-const style = document.createElement('style');
-style.textContent = `
-  .bottom-loader {
-    padding: 20px;
-    display: flex;
-    justify-content: center;
-  }
-  
-  .end-of-feed {
-    padding: 40px 20px;
-    display: flex;
-    justify-content: center;
-    text-align: center;
-    color: #626262;
-    animation: fadeIn 0.5s ease-in-out;
-  }
-  
-  .end-of-feed-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .end-of-feed-icon {
-    width: 48px;
-    height: 48px;
-    fill: #626262;
-    margin-bottom: 12px;
-    opacity: 0.7;
-  }
-  
-  .end-of-feed p {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 500;
-  }
-  
-  .end-of-feed-subtitle {
-    font-size: 14px !important;
-    opacity: 0.7;
-    margin-top: 4px !important;
-  }
-  
-  .image-placeholder {
-    background-color: #f0f2f5;
-    position: relative;
-    overflow: hidden;
-    min-height: 100px;
-    border-radius: 8px;
-  }
-  
-  .message-image {
-    transition: opacity 0.3s ease;
-    max-width: 100%;
-    border-radius: 8px;
-  }
-  
-  /* Video container styling */
-  .video-placeholder {
-    background-color: #f0f2f5;
-    position: relative;
-    overflow: hidden;
-    min-height: 150px;
-    border-radius: 8px;
-    margin-bottom: 8px;
-  }
-  
-  .message-video {
-    max-width: 100%;
-    border-radius: 8px;
-    background-color: #000;
-    width: 100%;
-    transition: opacity 0.3s ease;
-  }
-  
-  .video-loaded {
-    opacity: 1;
-  }
-  
-  .video-error {
-    padding: 16px;
-    background-color: rgba(0,0,0,0.03);
-    color: #ff3b30;
-    text-align: center;
-    border-radius: 8px;
-    font-size: 14px;
-  }
-  
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  .loading-dot {
-    width: 8px;
-    height: 8px;
-    margin: 0 4px;
-    border-radius: 50%;
-    background-color: #626262;
-    display: inline-block;
-    animation: waveAnimation 1.5s infinite ease-in-out;
-  }
-  
-  .loading-dot:nth-child(1) { animation-delay: 0s; }
-  .loading-dot:nth-child(2) { animation-delay: 0.2s; }
-  .loading-dot:nth-child(3) { animation-delay: 0.4s; }
-  .loading-dot:nth-child(4) { animation-delay: 0.6s; }
-  .loading-dot:nth-child(5) { animation-delay: 0.8s; }
-  
-  @keyframes waveAnimation {
-    0%, 100% { 
-      transform: translateY(0) scale(0.8); 
-      opacity: 0.5; 
-    }
-    20% { 
-      transform: translateY(-10px) scale(1.1); 
-      opacity: 1; 
-    }
-    40% { 
-      transform: translateY(0) scale(0.8); 
-      opacity: 0.5; 
-    }
-  }
-  
-  /* Twitter-like action buttons with improved visibility */
-  .action-buttons {
-    display: flex;
-    flex-direction: row;
-    margin-top: 12px;
-    align-items: center;
-    justify-content: space-between;
-    max-width: 425px;
-  }
-  
-  .action-button {
-    display: flex;
-    align-items: center;
-    background: none;
-    border: none;
-    padding: 8px;
-    margin-right: 6px;
-    cursor: pointer;
-    border-radius: 50%;
-    color: #536471;
-    transition: all 0.2s ease;
-  }
-  
-  .action-icon {
-    width: 20px; /* Increased from 18px */
-    height: 20px; /* Increased from 18px */
-    fill: currentColor;
-    stroke-width: 1px;
-    stroke: currentColor;
-  }
-  
-  .action-count {
-    margin-left: 4px;
-    font-size: 13px;
-    font-weight: 500; /* Added weight */
-    color: #536471;
-  }
-  
-  /* Button hover states with stronger effects */
-  .like-btn:hover {
-    color: #f91880;
-    background-color: rgba(249, 24, 128, 0.15);
-  }
-  
-  .reply-btn:hover {
-    color: #1d9bf0;
-    background-color: rgba(29, 155, 240, 0.15);
-  }
-  
-  .share-btn:hover {
-    color: #00ba7c;
-    background-color: rgba(0, 186, 124, 0.15);
-  }
-  
-  .bookmark-btn:hover {
-    color: #1d9bf0;
-    background-color: rgba(29, 155, 240, 0.15);
-  }
-  
-  .viewers-btn:hover {
-    color: #1d9bf0;
-    background-color: rgba(29, 155, 240, 0.15);
-  }
-  
-  /* New viewer icon styling */
-  .viewers-btn .action-icon {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.5px;
-  }
-  
-  /* Center action buttons on large screens */
-  @media (min-width: 768px) {
-    .action-buttons {
-      margin-left: auto;
-      margin-right: auto;
-    }
-  }
-`;
-document.head.appendChild(style);
 
 // Initialize the app
 initApp();
