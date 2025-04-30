@@ -2,4 +2,5 @@ project url:  https://wvfvggkzpplsmswbdpzq.supabase.co
 anon public: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind2ZnZnZ2t6cHBsc21zd2JkcHpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU0MDkwMjcsImV4cCI6MjA2MDk4NTAyN30.WIHfh63FM-YaTheu9oYlqu2QnCVaya3GSK5zeN25r3o
 Storage endpoint i think: https://wvfvggkzpplsmswbdpzq.supabase.co/storage/v1/s3
 project id: wvfvggkzpplsmswbdpzq
-
+Storage api.. f2cfe1d4a78b9d82745a64b35f2fb5a8
+bucket name; global-pictures
