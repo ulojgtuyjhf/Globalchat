@@ -718,6 +718,7 @@
     let currentPostId = null;
     let commentsUnsubscribe = null;
     let selectedGif = null;
+    let currentVideo = null; // Track current playing video
 
     // Initialize app
     function init() {
@@ -756,7 +757,9 @@
         submitComment.addEventListener('click', addComment);
         
         // GIF button
-        gifButton.addEventListener('click', () => {
+        gifButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             gifSelector.classList.toggle('active');
             if (gifSelector.classList.contains('active')) {
                 loadGifs();
@@ -784,6 +787,20 @@
                 closeModal();
             }
         });
+
+        // Ensure GIF button displays correctly - fix for icon display issues
+        setTimeout(() => {
+            if (gifButton) {
+                // Force repaint of SVG icon
+                const svgElement = gifButton.querySelector('svg');
+                if (svgElement) {
+                    svgElement.style.display = 'none';
+                    setTimeout(() => {
+                        svgElement.style.display = 'block';
+                    }, 10);
+                }
+            }
+        }, 100);
     }
 
     // Debounce function
@@ -802,6 +819,8 @@
     // Load GIFs using GIPHY API
     async function loadGifs(searchTerm = '') {
         try {
+            gifResults.innerHTML = '<div style="text-align: center; padding: 10px;">Loading GIFs...</div>';
+            
             const apiKey = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L65';
             const endpoint = searchTerm 
                 ? `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${searchTerm}&limit=15`
@@ -811,6 +830,11 @@
             const data = await response.json();
             
             gifResults.innerHTML = '';
+            
+            if (data.data.length === 0) {
+                gifResults.innerHTML = '<div style="text-align: center; padding: 10px;">No GIFs found</div>';
+                return;
+            }
             
             data.data.forEach(gif => {
                 const gifItem = document.createElement('img');
@@ -823,8 +847,13 @@
                     submitComment.disabled = false;
                     gifSelector.classList.remove('active');
                     
-                    // Show preview (optional)
+                    // Remove any existing preview
+                    const existingPreview = document.querySelector('.gif-preview');
+                    if (existingPreview) existingPreview.remove();
+                    
+                    // Show preview
                     const previewGif = document.createElement('div');
+                    previewGif.className = 'gif-preview';
                     previewGif.innerHTML = `<img src="${selectedGif}" style="max-height: 60px; border-radius: 4px; margin-right: 10px;">`;
                     previewGif.style.display = 'inline-block';
                     commentInput.parentNode.insertBefore(previewGif, commentInput);
@@ -921,6 +950,17 @@
 
             // Initialize lazy loading
             setupLazyLoading();
+
+            // Fix for GIF button display issues - ensure SVG is properly painted
+            setTimeout(() => {
+                const svgElement = gifButton.querySelector('svg');
+                if (svgElement) {
+                    svgElement.style.display = 'none';
+                    setTimeout(() => {
+                        svgElement.style.display = 'block';
+                    }, 10);
+                }
+            }, 200);
 
         } catch (error) {
             console.error('Error fetching posts:', error);
@@ -1056,12 +1096,14 @@
             video.autoplay = true;
             video.loop = true;
             video.muted = false;
+            currentVideo = video; // Track current video for later cleanup
             modalMedia.appendChild(video);
         } else {
             const img = document.createElement('img');
             img.src = mediaItem.url;
             img.alt = 'Post image';
             modalMedia.appendChild(img);
+            currentVideo = null;
         }
         
         // Show modal with animation
@@ -1070,10 +1112,28 @@
         
         // Load comments
         loadComments(postId);
+        
+        // Ensure GIF button displays correctly
+        setTimeout(() => {
+            const svgElement = gifButton.querySelector('svg');
+            if (svgElement) {
+                svgElement.style.display = 'none';
+                requestAnimationFrame(() => {
+                    svgElement.style.display = 'block';
+                });
+            }
+        }, 50);
     }
 
     // Close fullscreen modal
     function closeModal() {
+        // Stop video playback if it exists
+        if (currentVideo) {
+            currentVideo.pause();
+            currentVideo.currentTime = 0;
+            currentVideo = null;
+        }
+        
         fullscreenModal.classList.remove('active');
         document.body.style.overflow = '';
         
@@ -1090,7 +1150,7 @@
         selectedGif = null;
         
         // Remove any GIF preview
-        const previewGif = commentInput.parentNode.querySelector('div');
+        const previewGif = document.querySelector('.gif-preview');
         if (previewGif) {
             previewGif.remove();
         }
@@ -1098,6 +1158,13 @@
 
     // Load comments for a post
     function loadComments(postId) {
+        // Create loading indicator
+        commentsList.innerHTML = `
+            <div class="comment-loading" style="display: flex; justify-content: center; padding: 20px;">
+                <div class="spinner" style="width: 20px; height: 20px;"></div>
+            </div>
+        `;
+        
         // Create comments collection reference
         const commentsRef = collection(db, 'recence', postId, 'comments');
         const q = query(commentsRef, orderBy('timestamp', 'desc'));
@@ -1295,7 +1362,7 @@
             selectedGif = null;
             
             // Remove any GIF preview
-            const previewGif = commentInput.parentNode.querySelector('div');
+            const previewGif = document.querySelector('.gif-preview');
             if (previewGif) {
                 previewGif.remove();
             }
@@ -1340,10 +1407,13 @@
             const client = appwrite.init();
             const storage = client.storage;
             
+            // Create a unique ID for the file
+            const uniqueId = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+            
             // Upload file to Appwrite storage
             const result = await storage.createFile(
                 APPWRITE_BUCKET_ID,
-                ID.unique(),
+                uniqueId,
                 file
             );
             
