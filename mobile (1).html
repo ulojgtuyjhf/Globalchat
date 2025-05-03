@@ -32,7 +32,7 @@
                 #8f8f8f 90%,  
                 #a6a6a6 100%
             );
-            --nav-height: 56px;
+            --nav-height: 60px;
         }
 
         /* Global Reset */
@@ -46,6 +46,7 @@
         html, body {
             height: 100%;
             width: 100%;
+            overflow: hidden;
         }
 
         body {
@@ -72,6 +73,8 @@
             box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
             z-index: 1000;
             border-top: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
         }
 
         .nav-items {
@@ -79,13 +82,14 @@
             justify-content: space-around;
             align-items: center;
             height: 100%;
+            width: 100%;
             padding: 0 12px;
         }
 
         .nav-item {
             position: relative;
-            width: 44px;
-            height: 44px;
+            width: 48px;
+            height: 48px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -96,8 +100,8 @@
         }
 
         .nav-item svg {
-            width: 22px;
-            height: 22px;
+            width: 24px;
+            height: 24px;
             fill: none;
             stroke: var(--text-secondary);
             stroke-width: 2;
@@ -105,8 +109,19 @@
         }
 
         .nav-item.active svg {
-            stroke: var(--primary-color);
-            fill: none;
+            stroke: url(#gradientStroke);
+        }
+
+        /* Fixed upload button icon - critical fix */
+        .nav-item[data-section="upload"] svg rect,
+        .nav-item[data-section="upload"] svg line {
+            fill: none !important;
+            stroke: var(--text-secondary);
+        }
+        
+        .nav-item[data-section="upload"].active svg rect,
+        .nav-item[data-section="upload"].active svg line {
+            stroke: url(#gradientStroke);
         }
 
         .nav-item:hover {
@@ -118,8 +133,8 @@
         }
 
         .profile-nav-item img {
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid transparent;
@@ -134,12 +149,14 @@
                              var(--luxury-gradient);
         }
 
-        /* Main Content Sections */
+        /* Main Content Sections - CRITICAL FIX: Properly sized to prevent overlap */
         .content-wrapper {
-            flex: 1;
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 100%;
-            position: relative;
+            /* Exactly subtract nav height to prevent overlap */
+            height: calc(100% - var(--nav-height));
             overflow: hidden;
         }
 
@@ -148,7 +165,7 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: calc(100% - var(--nav-height));
+            height: 100%;
             display: none;
             overflow: hidden;
             background: var(--background-white);
@@ -166,54 +183,154 @@
             background: var(--background-white);
         }
 
-        /* Simple spinner with no text */
-        .simple-spinner {
+        /* Improved Loading Animation */
+        .loading-overlay {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(150, 150, 150, 0.2);
-            border-radius: 50%;
-            border-top-color: var(--primary-color);
-            animation: spin 1s ease-in-out infinite;
-            opacity: 1;
-            transition: opacity 0.3s ease;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--background-white);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 5;
+            transition: opacity 0.3s ease-out;
         }
 
-        .simple-spinner.hidden {
+        .loading-overlay.hidden {
             opacity: 0;
             pointer-events: none;
+            display: none; /* Completely remove from DOM when hidden */
         }
 
-        @keyframes spin {
-            to { transform: translate(-50%, -50%) rotate(360deg); }
+        .loading-container {
+            width: 30px;
+            height: 30px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .spinner {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .spinner::before,
+        .spinner::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--luxury-gradient);
+            animation: spin-pulse 1s infinite ease-in-out;
+        }
+
+        .spinner::before {
+            animation-delay: 0s;
+        }
+
+        .spinner::after {
+            animation-delay: 0.5s;
+        }
+
+        /* Placeholder image for immediate visual feedback */
+        .profile-placeholder {
+            background-color: #e1e1e1;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+        }
+
+        @keyframes spin-pulse {
+            0% {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.5) translateY(-15px);
+                opacity: 0.5;
+            }
+            100% {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
     </style>
 </head>
 <body>
+    <!-- SVG Definitions for gradient icons -->
+    <svg width="0" height="0" style="position: absolute;">
+        <defs>
+            <linearGradient id="gradientStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#0f0f0f" />
+                <stop offset="15%" stop-color="#1c1c1c" />
+                <stop offset="30%" stop-color="#3a3a3a" />
+                <stop offset="45%" stop-color="#4d4d4d" />
+                <stop offset="60%" stop-color="#626262" />
+                <stop offset="75%" stop-color="#787878" />
+                <stop offset="90%" stop-color="#8f8f8f" />
+                <stop offset="100%" stop-color="#a6a6a6" />
+            </linearGradient>
+        </defs>
+    </svg>
+
     <!-- Main Content -->
     <div class="content-wrapper">
         <div class="section active" id="homeSection">
-            <div class="simple-spinner" id="homeSpinner"></div>
-            <iframe src="./globalchat.html" onload="hideSpinner('homeSpinner')"></iframe>
+            <div class="loading-overlay" id="homeLoading">
+                <div class="loading-container">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            <iframe src="./globalchat.html" onload="hideSpinner('homeLoading')"></iframe>
         </div>
         <div class="section" id="searchSection">
-            <div class="simple-spinner" id="searchSpinner"></div>
+            <div class="loading-overlay" id="searchLoading">
+                <div class="loading-container">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            <iframe data-src="./count.html" onload="this.dataset.loaded && hideSpinner('searchLoading')"></iframe>
         </div>
         <div class="section" id="uploadSection">
-            <div class="simple-spinner" id="uploadSpinner"></div>
+            <div class="loading-overlay" id="uploadLoading">
+                <div class="loading-container">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            <iframe data-src="./post.html" onload="this.dataset.loaded && hideSpinner('uploadLoading')"></iframe>
         </div>
         <div class="section" id="messagesSection">
-            <div class="simple-spinner" id="messagesSpinner"></div>
+            <div class="loading-overlay" id="messagesLoading">
+                <div class="loading-container">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            <iframe data-src="./messages.html" onload="this.dataset.loaded && hideSpinner('messagesLoading')"></iframe>
         </div>
         <div class="section" id="profileSection">
-            <div class="simple-spinner" id="profileSpinner"></div>
+            <div class="loading-overlay" id="profileLoading">
+                <div class="loading-container">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            <iframe data-src="./profileview.html" onload="this.dataset.loaded && hideSpinner('profileLoading')"></iframe>
         </div>
     </div>
     
-    <!-- Bottom Navigation -->
+    <!-- Bottom Navigation - Absolutely positioned to ensure no content overlap -->
     <div class="bottom-nav" role="navigation">
         <div class="nav-items">
             <div class="nav-item active" data-section="home" aria-label="Home">
@@ -229,7 +346,7 @@
                 </svg>
             </div>
             <div class="nav-item" data-section="upload" aria-label="Upload">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                     <line x1="12" y1="8" x2="12" y2="16"></line>
                     <line x1="8" y1="12" x2="16" y2="12"></line>
@@ -241,7 +358,8 @@
                 </svg>
             </div>
             <div class="nav-item profile-nav-item" data-section="profile" aria-label="Profile">
-                <img src="placeholder-profile.jpg" alt="Profile" id="profilePhoto">
+                <div class="profile-placeholder" id="profilePlaceholder"></div>
+                <img src="" alt="Profile" id="profilePhoto" style="display:none;">
             </div>
         </div>
     </div>
@@ -258,45 +376,113 @@
             measurementId: "G-LYZP41ZJ46"
         };
 
-        // Hide spinner when content is loaded
+        // Track loaded sections
+        const loadedSections = {'homeSection': true};
+        const MAX_LOADING_TIME = 2000; // 2 seconds maximum loading time
+
+        // Hide spinner function with forced timeout
         function hideSpinner(spinnerId) {
             const spinner = document.getElementById(spinnerId);
             if (spinner) {
                 spinner.classList.add('hidden');
-                setTimeout(() => {
-                    spinner.style.display = 'none';
-                }, 300);
             }
         }
 
-        // Load iframe content
-        function loadContent(sectionId, url) {
+        // Force hide all spinners after a timeout
+        function forceHideAllSpinners() {
+            document.querySelectorAll('.loading-overlay').forEach(overlay => {
+                overlay.classList.add('hidden');
+            });
+        }
+
+        // Load iframe content - completely rewritten for reliability
+        function loadIframe(sectionId, url) {
             const section = document.getElementById(sectionId);
-            const spinnerId = sectionId.replace('Section', 'Spinner');
+            const loadingId = sectionId + 'Loading';
             
-            // Show spinner
-            const spinner = document.getElementById(spinnerId);
-            if (spinner) {
-                spinner.style.display = 'block';
-                spinner.classList.remove('hidden');
+            // Always show loading initially
+            const loadingOverlay = document.getElementById(loadingId);
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('hidden');
             }
             
-            // Create iframe if it doesn't exist
+            // Set timeout to force hide spinner
+            setTimeout(() => {
+                hideSpinner(loadingId);
+                loadedSections[sectionId] = true; // Mark as loaded even if timeout occurred
+            }, MAX_LOADING_TIME);
+            
+            // If already loaded, just hide spinner and return
+            if (loadedSections[sectionId]) {
+                hideSpinner(loadingId);
+                return;
+            }
+            
+            // Get existing iframe or create new one
             let iframe = section.querySelector('iframe');
-            if (!iframe) {
+            if (iframe) {
+                // For existing iframe with data-src attribute
+                if (iframe.getAttribute('data-src') && !iframe.getAttribute('src')) {
+                    iframe.onload = function() {
+                        console.log(`${sectionId} loaded`);
+                        loadedSections[sectionId] = true;
+                        hideSpinner(loadingId);
+                    };
+                    iframe.onerror = function() {
+                        console.error(`Error loading ${url}`);
+                        hideSpinner(loadingId);
+                    };
+                    // Mark as being loaded
+                    iframe.dataset.loaded = true;
+                    // Set the actual src to load the content
+                    iframe.src = iframe.getAttribute('data-src');
+                }
+            } else {
+                // Create new iframe if needed
                 iframe = document.createElement('iframe');
                 iframe.onload = function() {
-                    hideSpinner(spinnerId);
+                    console.log(`${sectionId} loaded successfully`);
+                    loadedSections[sectionId] = true;
+                    hideSpinner(loadingId);
                 };
                 iframe.onerror = function() {
-                    hideSpinner(spinnerId);
+                    console.error(`Error loading ${url}`);
+                    hideSpinner(loadingId);
                 };
                 iframe.src = url;
                 section.appendChild(iframe);
             }
         }
 
-        // Fetch profile photo from Firebase auth
+        // Profile photo handling with local storage for instant loading
+        function initProfilePhoto() {
+            // Try to load from local storage first for instant display
+            const cachedPhoto = localStorage.getItem('profilePhotoURL');
+            if (cachedPhoto) {
+                displayProfilePhoto(cachedPhoto);
+            }
+            
+            // Then fetch from Firebase for updated version
+            fetchProfilePhoto();
+        }
+
+        function displayProfilePhoto(photoURL) {
+            const profileImg = document.getElementById('profilePhoto');
+            const placeholder = document.getElementById('profilePlaceholder');
+            
+            if (photoURL) {
+                // Preload image before showing
+                const img = new Image();
+                img.onload = () => {
+                    profileImg.src = photoURL;
+                    profileImg.style.display = 'block';
+                    placeholder.style.display = 'none';
+                };
+                img.src = photoURL;
+            }
+        }
+
+        // Fetch profile photo from Firebase auth with local storage caching
         async function fetchProfilePhoto() {
             try {
                 const firebaseApp = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js");
@@ -318,42 +504,64 @@
                             if (userDoc.exists()) {
                                 const userData = userDoc.data();
                                 if (userData.photoURL) {
-                                    document.getElementById('profilePhoto').src = userData.photoURL;
+                                    // Cache and display
+                                    localStorage.setItem('profilePhotoURL', userData.photoURL);
+                                    displayProfilePhoto(userData.photoURL);
                                 }
                             }
                         } catch (error) {
                             console.error("Error fetching user data:", error);
                         }
                     } else {
+                        // Not logged in, redirect
                         window.location.href = 'login.html';
                     }
                 });
             } catch (error) {
                 console.error("Error loading Firebase:", error);
+                setTimeout(forceHideAllSpinners, MAX_LOADING_TIME);
             }
+        }
+
+        // Pre-fetch resources for better performance
+        function prefetchResources() {
+            const pagesToPrefetch = ['./count.html', './post.html', './messages.html', './profileview.html'];
+            
+            pagesToPrefetch.forEach(url => {
+                const link = document.createElement('link');
+                link.rel = 'prefetch';
+                link.href = url;
+                document.head.appendChild(link);
+            });
         }
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', () => {
-            // Fetch profile photo
-            fetchProfilePhoto();
+            // Pre-fetch resources
+            prefetchResources();
+            
+            // Initialize profile photo
+            initProfilePhoto();
+            
+            // Force hide all spinners after timeout
+            setTimeout(forceHideAllSpinners, MAX_LOADING_TIME);
 
             // Navigation handling
             const navItems = document.querySelectorAll('.nav-item');
-            const sections = document.querySelectorAll('.section');
-
+            
             navItems.forEach(item => {
                 item.addEventListener('click', () => {
                     // Update active states
                     navItems.forEach(ni => ni.classList.remove('active'));
-                    sections.forEach(section => section.classList.remove('active'));
-
+                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                    
+                    // Set this item as active
                     item.classList.add('active');
-
+                    
                     const sectionType = item.getAttribute('data-section');
                     let targetSection;
                     let targetUrl;
-
+                    
                     switch(sectionType) {
                         case 'home': 
                             targetSection = document.getElementById('homeSection');
@@ -376,370 +584,301 @@
                             targetUrl = './profileview.html';
                             break;
                     }
-
+                    
                     if (targetSection) {
+                        // Show the selected section
                         targetSection.classList.add('active');
-                        loadContent(targetSection.id, targetUrl);
+                        
+                        // Load content if not already loaded
+                        loadIframe(targetSection.id, targetUrl);
                     }
                 });
             });
         });
     </script>
 
-
-
-
- 
-
-
-
-
 <script>
     (function() {
-        // Apply color palette on load
-        applyColorPalette();
-        
-        // Listen for changes in localStorage
-        window.addEventListener('storage', function(event) {
-            if (event.key === 'color-value' || event.key === 'color-palette') {
-                applyColorPalette();
-            }
-        });
-        
-        // Listen for custom events
-        window.addEventListener('chatColorChanged', function() {
-            applyColorPalette();
-        });
-        
-        function applyColorPalette() {
-            const savedColorValue = localStorage.getItem('color-value');
-            const savedColorIndex = localStorage.getItem('color-palette');
+    // Enhanced Mobile Theme Manager with Luxury Gradient Preservation
+    const MobileThemeManager = {
+        themeConfig: {
+            light: {
+                // Core Colors
+                '--primary-color': '#626262',
+                '--primary-light': '#f0f0f0',
+                '--primary-dark': '#3a3a3a',
+                '--text-primary': '#333',
+                '--text-secondary': '#666',
+                '--background-light': '#f9f9f9',
+                '--background-white': '#ffffff',
+                '--border-light': '#e0e0e0',
+                '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.05)',
+                
+                // Preserve the luxury gradient exactly as in your original
+                '--luxury-gradient': 'linear-gradient(135deg, #0f0f0f 0%, #1c1c1c 15%, #3a3a3a 30%, #4d4d4d 45%, #626262 60%, #787878 75%, #8f8f8f 90%, #a6a6a6 100%)',
+                
+                // Navigation specific
+                '--nav-bg': '#ffffff',
+                '--nav-shadow': '0 -2px 10px rgba(0, 0, 0, 0.1)',
+                '--nav-border': '#e0e0e0',
+                '--nav-icon': '#666',
+                '--nav-icon-active': 'url(#gradientStroke)',
+                '--nav-hover': 'rgba(98, 98, 98, 0.1)',
+                
+                // Loading spinner
+                '--spinner-color': 'var(--luxury-gradient)',
+                
+                // Profile placeholder
+                '--placeholder-bg': '#e1e1e1'
+            },
             
-            // Only apply if we have a valid color and it's not the default
-            if (savedColorValue && savedColorIndex !== '0') {
-                // Convert hex to RGB
-                const colorObj = hexToRGB(savedColorValue);
-                const rgbString = `${colorObj.r}, ${colorObj.g}, ${colorObj.b}`;
+            dim: {
+                // Core Colors
+                '--primary-color': '#8899a6',
+                '--primary-light': '#1e2732',
+                '--primary-dark': '#667787',
+                '--text-primary': '#ffffff',
+                '--text-secondary': '#8899a6',
+                '--background-light': '#15202b',
+                '--background-white': '#1e2732',
+                '--border-light': '#38444d',
+                '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.2)',
                 
-                // Create style element for all overrides
-                let styleEl = document.getElementById('mobile-color-palette-style');
-                if (!styleEl) {
-                    styleEl = document.createElement('style');
-                    styleEl.id = 'mobile-color-palette-style';
-                    document.head.appendChild(styleEl);
-                }
+                // Luxury gradient inverted for visibility
+                '--luxury-gradient': 'linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 15%, #d8d8d8 30%, #c8c8c8 45%, #b8b8b8 60%, #a8a8a8 75%, #989898 90%, #888888 100%)',
                 
-                // Apply to all blue elements in mobile interface
-                styleEl.textContent = `
-                /* Menu item active state */
-                .menu-item.active svg {
-                    stroke: ${savedColorValue} !important;
-                }
+                // Navigation specific
+                '--nav-bg': '#1e2732',
+                '--nav-shadow': '0 -2px 10px rgba(0, 0, 0, 0.3)',
+                '--nav-border': '#38444d',
+                '--nav-icon': '#8899a6',
+                '--nav-icon-active': 'url(#gradientStroke)',
+                '--nav-hover': 'rgba(136, 153, 166, 0.1)',
                 
-                .menu-item.active::after {
-                    background: ${savedColorValue} !important;
-                }
+                // Loading spinner
+                '--spinner-color': 'var(--luxury-gradient)',
                 
-                /* Hover states */
-                .menu-item:hover {
-                    background-color: rgba(${rgbString}, 0.1) !important;
-                }
+                // Profile placeholder
+                '--placeholder-bg': '#2d3a48'
+            },
+            
+            dark: {
+                // Core Colors
+                '--primary-color': '#a6a6a6',
+                '--primary-light': '#000000',
+                '--primary-dark': '#4d4d4d',
+                '--text-primary': '#ffffff',
+                '--text-secondary': '#8f8f8f',
+                '--background-light': '#000000',
+                '--background-white': '#080808',
+                '--border-light': '#1a1a1a',
+                '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.4)',
                 
-                /* Twitter spinner */
-                .twitter-spinner {
-                    border-top-color: ${savedColorValue} !important;
-                }
+                // Luxury gradient inverted for visibility
+                '--luxury-gradient': 'linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 15%, #d8d8d8 30%, #c8c8c8 45%, #b8b8b8 60%, #a8a8a8 75%, #989898 90%, #888888 100%)',
                 
-                /* Error container elements */
-                .error-icon {
-                    color: ${savedColorValue} !important;
-                }
+                // Navigation specific
+                '--nav-bg': '#080808',
+                '--nav-shadow': '0 -2px 10px rgba(0, 0, 0, 0.5)',
+                '--nav-border': '#1a1a1a',
+                '--nav-icon': '#8f8f8f',
+                '--nav-icon-active': 'url(#gradientStroke)',
+                '--nav-hover': 'rgba(166, 166, 166, 0.1)',
                 
-                .retry-button {
-                    background-color: ${savedColorValue} !important;
-                }
+                // Loading spinner
+                '--spinner-color': 'var(--luxury-gradient)',
                 
-                .retry-button:hover {
-                    background-color: ${darkenColor(savedColorValue, 0.15)} !important;
-                }
+                // Profile placeholder
+                '--placeholder-bg': '#1a1a1a'
+            }
+        },
+        
+        styleElementId: 'mobile-theme-manager-styles',
+        
+        initialize: function() {
+            this.createStyleElement();
+            this.applyCurrentTheme();
+            this.setupEventListeners();
+        },
+        
+        createStyleElement: function() {
+            const existingStyle = document.getElementById(this.styleElementId);
+            if (existingStyle) existingStyle.remove();
+            
+            const styleElement = document.createElement('style');
+            styleElement.id = this.styleElementId;
+            document.head.appendChild(styleElement);
+        },
+        
+        applyCurrentTheme: function() {
+            const themeName = localStorage.getItem('twitter-theme') || 'light';
+            this.applyTheme(themeName);
+        },
+        
+        applyTheme: function(themeName) {
+            const validThemes = ['light', 'dim', 'dark'];
+            const theme = validThemes.includes(themeName) ? themeName : 'light';
+            const themeVars = this.themeConfig[theme] || this.themeConfig.light;
+            const styleElement = document.getElementById(this.styleElementId);
+            
+            if (!styleElement) {
+                this.createStyleElement();
+                return this.applyTheme(theme);
+            }
+            
+            let css = ':root {\n';
+            Object.entries(themeVars).forEach(([key, value]) => {
+                css += `  ${key}: ${value};\n`;
+            });
+            css += '}\n\n';
+            
+            // Mobile-specific styles
+            css += `
+            /* Body and Content Wrapper */
+            body {
+                background-color: var(--background-light);
+                color: var(--text-primary);
+            }
+            
+            .content-wrapper {
+                background-color: var(--background-white);
+            }
+            
+            /* Bottom Navigation */
+            .bottom-nav {
+                background: var(--nav-bg);
+                box-shadow: var(--nav-shadow);
+                border-top: 1px solid var(--nav-border);
+            }
+            
+            /* Navigation Icons */
+            .nav-item svg {
+                stroke: var(--nav-icon);
+            }
+            
+            .nav-item.active svg {
+                stroke: var(--nav-icon-active);
+            }
+            
+            .nav-item[data-section="upload"] svg rect,
+            .nav-item[data-section="upload"] svg line {
+                stroke: var(--nav-icon);
+            }
+            
+            .nav-item[data-section="upload"].active svg rect,
+            .nav-item[data-section="upload"].active svg line {
+                stroke: var(--nav-icon-active);
+            }
+            
+            .nav-item:hover {
+                background-color: var(--nav-hover);
+            }
+            
+            /* Profile Image */
+            .profile-placeholder {
+                background-color: var(--placeholder-bg);
+            }
+            
+            /* Loading Spinner */
+            .spinner::before,
+            .spinner::after {
+                background: var(--spinner-color);
+            }
+            
+            /* Iframe Background */
+            iframe {
+                background-color: var(--background-white);
+            }
             `;
-            } else {
-                // Remove all custom styles to revert to default
-                const styleEl = document.getElementById('mobile-color-palette-style');
-                if (styleEl) {
-                    styleEl.remove();
-                }
+            
+            styleElement.textContent = css;
+            
+            // Update the SVG gradient if needed (preserve original in all themes)
+            this.updateSvgGradient();
+        },
+        
+        updateSvgGradient: function() {
+            // Your original gradient is preserved exactly as in your HTML
+            const svgDefs = document.querySelector('svg defs');
+            if (!svgDefs) {
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('width', '0');
+                svg.setAttribute('height', '0');
+                svg.style.position = 'absolute';
+                
+                const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+                gradient.setAttribute('id', 'gradientStroke');
+                gradient.setAttribute('x1', '0%');
+                gradient.setAttribute('y1', '0%');
+                gradient.setAttribute('x2', '100%');
+                gradient.setAttribute('y2', '100%');
+                
+                // Your original luxury gradient stops
+                const stops = [
+                    { offset: '0%', color: '#0f0f0f' },
+                    { offset: '15%', color: '#1c1c1c' },
+                    { offset: '30%', color: '#3a3a3a' },
+                    { offset: '45%', color: '#4d4d4d' },
+                    { offset: '60%', color: '#626262' },
+                    { offset: '75%', color: '#787878' },
+                    { offset: '90%', color: '#8f8f8f' },
+                    { offset: '100%', color: '#a6a6a6' }
+                ];
+                
+                stops.forEach(stop => {
+                    const stopEl = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                    stopEl.setAttribute('offset', stop.offset);
+                    stopEl.setAttribute('stop-color', stop.color);
+                    gradient.appendChild(stopEl);
+                });
+                
+                defs.appendChild(gradient);
+                svg.appendChild(defs);
+                document.body.appendChild(svg);
             }
-        }
+        },
         
-        function hexToRGB(hex) {
-            hex = hex.replace('#', '');
-            const r = parseInt(hex.substring(0, 2), 16);
-            const g = parseInt(hex.substring(2, 4), 16);
-            const b = parseInt(hex.substring(4, 6), 16);
-            return { r, g, b };
-        }
+        setupEventListeners: function() {
+            // Listen for theme changes from localStorage
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'twitter-theme') {
+                    this.applyTheme(e.newValue || 'light');
+                }
+            });
+            
+            // Listen for custom theme change events
+            window.addEventListener('chatColorChanged', () => {
+                this.applyCurrentTheme();
+            });
+            
+            // Periodic check for theme changes
+            this.setupPeriodicCheck();
+        },
         
-        function darkenColor(hex, percent) {
-            hex = hex.replace('#', '');
-            let r = parseInt(hex.substring(0, 2), 16);
-            let g = parseInt(hex.substring(2, 4), 16);
-            let b = parseInt(hex.substring(4, 6), 16);
-            
-            r = Math.floor(r * (1 - percent));
-            g = Math.floor(g * (1 - percent));
-            b = Math.floor(b * (1 - percent));
-            
-            r = Math.max(0, r);
-            g = Math.max(0, g);
-            b = Math.max(0, b);
-            
-            return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        setupPeriodicCheck: function() {
+            let lastKnownTheme = localStorage.getItem('twitter-theme') || 'light';
+            setInterval(() => {
+                const currentTheme = localStorage.getItem('twitter-theme');
+                if (currentTheme !== lastKnownTheme) {
+                    lastKnownTheme = currentTheme || 'light';
+                    this.applyTheme(lastKnownTheme);
+                }
+            }, 1000);
         }
-    })();
+    };
+    
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            MobileThemeManager.initialize();
+        });
+    } else {
+        MobileThemeManager.initialize();
+    }
+})();
 </script>
-<script>
-    (function() {
-        // Theme manager for mobile interface - isolated scope to avoid conflicts
-        const mobileThemeManager = {
-            // Theme definitions
-            themes: {
-                light: {
-                    bg: '#ffffff',
-                    card: '#f7f9fa',
-                    line: '#ebeef0',
-                    text: '#14171a',
-                    secondaryText: '#657786',
-                    border: '#ebeef0',
-                    blue: '#1da1f2',
-                    lightBlue: '#1a91da',
-                    menuBg: 'rgba(255, 255, 255, 0.85)',
-                    sectionBg: '#ffffff',
-                    headerDivider: 'rgba(0, 0, 0, 0.08)',
-                    navShadow: '0 2px 10px rgba(0, 0, 0, 0.06)',
-                    sectionShadow: '0 0 15px rgba(0, 0, 0, 0.02)',
-                    sectionBorder: 'rgba(0, 0, 0, 0.05)',
-                    backdropBlur: 'blur(15px)'
-                },
-                dim: {
-                    bg: '#15202b',
-                    card: '#192734',
-                    line: '#38444d',
-                    text: '#ffffff',
-                    secondaryText: '#8899a6',
-                    border: '#38444d',
-                    blue: '#1da1f2',
-                    lightBlue: '#1a91da',
-                    menuBg: 'rgba(21, 32, 43, 0.85)',
-                    sectionBg: '#15202b',
-                    headerDivider: 'rgba(255, 255, 255, 0.08)',
-                    navShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-                    sectionShadow: '0 0 15px rgba(0, 0, 0, 0.1)',
-                    sectionBorder: 'rgba(255, 255, 255, 0.05)',
-                    backdropBlur: 'blur(15px)'
-                },
-                dark: {
-                    bg: '#000000',
-                    card: '#16181c',
-                    line: '#2f3336',
-                    text: '#ffffff',
-                    secondaryText: '#8899a6',
-                    border: '#2f3336',
-                    blue: '#1da1f2',
-                    lightBlue: '#1a91da',
-                    menuBg: 'rgba(0, 0, 0, 0.85)',
-                    sectionBg: '#000000',
-                    headerDivider: 'rgba(255, 255, 255, 0.05)',
-                    navShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
-                    sectionShadow: '0 0 15px rgba(0, 0, 0, 0.15)',
-                    sectionBorder: 'rgba(255, 255, 255, 0.03)',
-                    backdropBlur: 'blur(15px)'
-                }
-            },
-            
-            // Apply theme to mobile interface
-            applyTheme: function(themeName) {
-                const theme = this.themes[themeName] || this.themes.light;
-                
-                // Apply to nav container
-                const navContainer = document.querySelector('.bottom-nav');
-                if (navContainer) {
-                    navContainer.style.backgroundColor = theme.menuBg;
-                    navContainer.style.boxShadow = theme.navShadow;
-                    navContainer.style.backdropFilter = theme.backdropBlur;
-                    navContainer.style.webkitBackdropFilter = theme.backdropBlur;
-                }
-                
-                // Apply to sections
-                const sections = document.querySelectorAll('.section');
-                sections.forEach(section => {
-                    section.style.backgroundColor = theme.sectionBg;
-                    section.style.borderColor = theme.sectionBorder;
-                    section.style.boxShadow = theme.sectionShadow;
-                });
-                
-                // Apply to menu items
-                const menuItems = document.querySelectorAll('.nav-item');
-                menuItems.forEach(item => {
-                    const svg = item.querySelector('svg');
-                    if (svg) {
-                        svg.style.stroke = item.classList.contains('active') ? theme.blue : theme.secondaryText;
-                    }
-                    
-                    // Update hover state
-                    item.addEventListener('mouseenter', function() {
-                        this.style.backgroundColor = `${theme.blue}10`;
-                    });
-                    item.addEventListener('mouseleave', function() {
-                        this.style.backgroundColor = 'transparent';
-                    });
-                });
-                
-                // Apply to loading indicators
-                const spinners = document.querySelectorAll('.simple-spinner');
-                spinners.forEach(spinner => {
-                    spinner.style.borderColor = `${theme.blue}20`;
-                    spinner.style.borderTopColor = theme.blue;
-                });
-                
-                // Add theme class to body
-                document.body.classList.remove('theme-light', 'theme-dim', 'theme-dark');
-                document.body.classList.add(`theme-${themeName}`);
-                document.body.style.backgroundColor = theme.bg;
-                document.body.style.color = theme.text;
-                
-                // Store the current theme
-                this.currentTheme = themeName;
-                localStorage.setItem('twitter-theme', themeName);
-            },
-            
-            // Initialize theme from localStorage
-            init: function() {
-                const savedTheme = localStorage.getItem('twitter-theme');
-                this.applyTheme(savedTheme || 'light');
-                
-                // Set up theme toggle functionality
-                const headerLogo = document.querySelector('.bottom-nav');
-                if (headerLogo) {
-                    headerLogo.addEventListener('dblclick', () => {
-                        // Cycle through themes on double click
-                        const themes = ['light', 'dim', 'dark'];
-                        const currentIndex = themes.indexOf(this.currentTheme);
-                        const nextTheme = themes[(currentIndex + 1) % themes.length];
-                        this.applyTheme(nextTheme);
-                    });
-                }
-                
-                // Set up storage event listener
-                window.addEventListener('storage', (event) => {
-                    if (event.key === 'twitter-theme') {
-                        this.applyTheme(event.newValue || 'light');
-                    }
-                });
-            }
-        };
-        
-        // Color palette manager
-        const colorPaletteManager = {
-            applyColorPalette: function() {
-                const savedColorValue = localStorage.getItem('color-value');
-                const savedColorIndex = localStorage.getItem('color-palette');
-                
-                // Only apply if we have a valid color and it's not the default
-                if (savedColorValue && savedColorIndex !== '0') {
-                    // Convert hex to RGB
-                    const colorObj = this.hexToRGB(savedColorValue);
-                    const rgbString = `${colorObj.r}, ${colorObj.g}, ${colorObj.b}`;
-                    
-                    // Create style element for all overrides
-                    let styleEl = document.getElementById('mobile-color-palette-style');
-                    if (!styleEl) {
-                        styleEl = document.createElement('style');
-                        styleEl.id = 'mobile-color-palette-style';
-                        document.head.appendChild(styleEl);
-                    }
-                    
-                    // Apply to all blue elements in mobile interface
-                    styleEl.textContent = `
-                        /* Menu item active state */
-                        .nav-item.active svg {
-                            stroke: ${savedColorValue} !important;
-                        }
-                        
-                        /* Hover states */
-                        .nav-item:hover {
-                            background-color: rgba(${rgbString}, 0.1) !important;
-                        }
-                        
-                        /* Spinner */
-                        .simple-spinner {
-                            border-top-color: ${savedColorValue} !important;
-                        }
-                    `;
-                } else {
-                    // Remove all custom styles to revert to default
-                    const styleEl = document.getElementById('mobile-color-palette-style');
-                    if (styleEl) {
-                        styleEl.remove();
-                    }
-                }
-            },
-            
-            hexToRGB: function(hex) {
-                hex = hex.replace('#', '');
-                const r = parseInt(hex.substring(0, 2), 16);
-                const g = parseInt(hex.substring(2, 4), 16);
-                const b = parseInt(hex.substring(4, 6), 16);
-                return { r, g, b };
-            },
-            
-            darkenColor: function(hex, percent) {
-                hex = hex.replace('#', '');
-                let r = parseInt(hex.substring(0, 2), 16);
-                let g = parseInt(hex.substring(2, 4), 16);
-                let b = parseInt(hex.substring(4, 6), 16);
-                
-                r = Math.floor(r * (1 - percent));
-                g = Math.floor(g * (1 - percent));
-                b = Math.floor(b * (1 - percent));
-                
-                r = Math.max(0, r);
-                g = Math.max(0, g);
-                b = Math.max(0, b);
-                
-                return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-            },
-            
-            init: function() {
-                this.applyColorPalette();
-                
-                // Listen for changes in localStorage
-                window.addEventListener('storage', (event) => {
-                    if (event.key === 'color-value' || event.key === 'color-palette') {
-                        this.applyColorPalette();
-                    }
-                });
-                
-                // Listen for custom events
-                window.addEventListener('chatColorChanged', () => {
-                    this.applyColorPalette();
-                });
-            }
-        };
-        
-        // Initialize when DOM is ready
-        function initializeManagers() {
-            mobileThemeManager.init();
-            colorPaletteManager.init();
-        }
-        
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeManagers);
-        } else {
-            initializeManagers();
-        }
-    })();
-</script>
+
 </body>
 
 </html>
