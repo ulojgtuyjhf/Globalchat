@@ -44,6 +44,7 @@ const gallery = document.getElementById('gallery');
 const loadingContainer = document.getElementById('loadingContainer');
 const fullscreenModal = document.getElementById('fullscreenModal');
 const modalMedia = document.getElementById('modalMedia');
+const postDescription = document.getElementById('postDescription');
 const commentsList = document.getElementById('commentsList');
 const commentsCount = document.getElementById('commentsCount');
 const commentInput = document.getElementById('commentInput');
@@ -244,11 +245,13 @@ function setupEventListeners() {
                         likes: arrayRemove(currentUser.uid)
                     });
                     likePostButton.classList.remove('liked');
+                    likePostCount.textContent = (postData.likes ? postData.likes.length - 1 : 0).toString();
                 } else {
                     await updateDoc(postRef, {
                         likes: arrayUnion(currentUser.uid)
                     });
                     likePostButton.classList.add('liked');
+                    likePostCount.textContent = (postData.likes ? postData.likes.length + 1 : 1).toString();
                 }
             }
         } catch (error) {
@@ -564,6 +567,14 @@ function openModal(postData, postId) {
         this.style.display = 'none';
     };
     
+    // Set post description if available
+    if (postData.description && postData.description.trim() !== '') {
+        postDescription.textContent = postData.description;
+        postDescription.style.display = 'block';
+    } else {
+        postDescription.style.display = 'none';
+    }
+    
     if (postData.userId === currentUser?.uid) {
         followButton.style.display = 'none';
     } else {
@@ -739,6 +750,7 @@ function createCommentElement(commentData, replies = []) {
         viewProfile(commentData.userId);
     });
     
+    // Add flag to comment author
     if (commentData.country) {
         const flag = document.createElement('img');
         flag.className = 'comment-flag';
@@ -809,11 +821,13 @@ function createCommentElement(commentData, replies = []) {
                     likes: arrayRemove(currentUser.uid)
                 });
                 likeButton.classList.remove('liked');
+                likeCount.textContent = (commentData.likes ? commentData.likes.length - 1 : 0).toString();
             } else {
                 await updateDoc(commentRef, {
                     likes: arrayUnion(currentUser.uid)
                 });
                 likeButton.classList.add('liked');
+                likeCount.textContent = (commentData.likes ? commentData.likes.length + 1 : 1).toString();
             }
         } catch (error) {
             console.error('Error updating like:', error);
