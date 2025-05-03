@@ -1,0 +1,640 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #fafafa;
+            color: #262626;
+        }
+        
+        .loading-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #fff;
+            z-index: 1000;
+            transition: opacity 0.3s ease;
+        }
+        
+        .loading-container.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: #0095f6;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .profile-container {
+            max-width: 935px;
+            margin: 0 auto;
+            padding: 20px 16px;
+        }
+        
+        .profile-header {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 24px;
+        }
+        
+        @media (min-width: 736px) {
+            .profile-header {
+                flex-direction: row;
+                align-items: center;
+            }
+        }
+        
+        .profile-avatar {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            object-fit: cover;
+            border: 1px solid #dbdbdb;
+        }
+        
+        @media (min-width: 736px) {
+            .profile-avatar {
+                margin: 0 30px 0 0;
+            }
+        }
+        
+        .profile-info {
+            flex: 1;
+        }
+        
+        .profile-username {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .username {
+            font-size: 28px;
+            font-weight: 300;
+            line-height: 32px;
+            margin-right: 12px;
+        }
+        
+        .flag-container {
+            margin-left: 8px;
+        }
+        
+        .profile-stats {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        .stat-item {
+            margin-right: 40px;
+        }
+        
+        .stat-count {
+            font-weight: 600;
+        }
+        
+        .follow-button {
+            background-color: #0095f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .follow-button.followed {
+            background-color: #dbdbdb;
+            color: #262626;
+        }
+        
+        .follow-button:hover {
+            background-color: #1877f2;
+        }
+        
+        .follow-button.followed:hover {
+            background-color: #c7c7c7;
+        }
+        
+        .profile-bio {
+            margin-top: 14px;
+        }
+        
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 735px) {
+            .gallery {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 2px;
+            }
+        }
+        
+        .gallery-item {
+            position: relative;
+            padding-bottom: 100%;
+            background-color: #ededed;
+        }
+        
+        .gallery-item img, .gallery-item video {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .video-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            z-index: 1;
+        }
+        
+        .not-found {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .tabs {
+            display: flex;
+            justify-content: center;
+            border-top: 1px solid #dbdbdb;
+            margin-top: 20px;
+        }
+        
+        .tab {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            height: 44px;
+            color: #8e8e8e;
+            font-weight: 600;
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+        
+        .tab.active {
+            color: #262626;
+            border-top: 1px solid #262626;
+            margin-top: -1px;
+        }
+        
+        .tab svg {
+            margin-right: 6px;
+        }
+        
+        .empty-gallery {
+            text-align: center;
+            padding: 40px 20px;
+            color: #8e8e8e;
+        }
+        
+        .empty-gallery svg {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingContainer" class="loading-container">
+        <div class="spinner"></div>
+    </div>
+    
+    <div id="profileContainer" class="profile-container" style="display: none;">
+        <div class="profile-header">
+            <img id="profileAvatar" class="profile-avatar" src="https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png" alt="Profile">
+            
+            <div class="profile-info">
+                <div class="profile-username">
+                    <h1 id="username" class="username">Username</h1>
+                    <div class="flag-container">
+                        <img id="countryFlag" src="" alt="" style="height: 20px;">
+                    </div>
+                </div>
+                
+                <div class="profile-stats">
+                    <div class="stat-item">
+                        <span id="postsCount" class="stat-count">0</span> posts
+                    </div>
+                    <div class="stat-item">
+                        <span id="followersCount" class="stat-count">0</span> followers
+                    </div>
+                    <div class="stat-item">
+                        <span id="followingCount" class="stat-count">0</span> following
+                    </div>
+                </div>
+                
+                <button id="followButton" class="follow-button">Follow</button>
+                
+                <div id="profileBio" class="profile-bio">
+                    <!-- Bio goes here -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <div id="postsTab" class="tab active">
+                <svg aria-label="Posts" color="#262626" fill="#262626" height="12" role="img" viewBox="0 0 24 24" width="12">
+                    <rect fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="18" x="3" y="3"></rect>
+                    <line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="9.015" x2="9.015" y1="3" y2="21"></line>
+                    <line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="14.985" x2="14.985" y1="3" y2="21"></line>
+                    <line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="21" x2="3" y1="9.015" y2="9.015"></line>
+                    <line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="21" x2="3" y1="14.985" y2="14.985"></line>
+                </svg>
+                POSTS
+            </div>
+        </div>
+        
+        <div id="gallery" class="gallery">
+            <!-- Gallery items will be inserted here -->
+        </div>
+    </div>
+    
+    <div id="notFound" class="not-found" style="display: none;">
+        <h2>User not found</h2>
+        <p>The user you're looking for doesn't exist or is not available.</p>
+    </div>
+    
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, query, orderBy, getDocs, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, arrayRemove, getDoc, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+            authDomain: "globalchat-2d669.firebaseapp.com",
+            projectId: "globalchat-2d669",
+            messagingSenderId: "178714711978",
+            appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
+            databaseURL: "https://globalchat-2d669-default-rtdb.firebaseio.com/"
+        };
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // Elements
+        const loadingContainer = document.getElementById('loadingContainer');
+        const profileContainer = document.getElementById('profileContainer');
+        const notFound = document.getElementById('notFound');
+        const profileAvatar = document.getElementById('profileAvatar');
+        const username = document.getElementById('username');
+        const countryFlag = document.getElementById('countryFlag');
+        const postsCount = document.getElementById('postsCount');
+        const followersCount = document.getElementById('followersCount');
+        const followingCount = document.getElementById('followingCount');
+        const followButton = document.getElementById('followButton');
+        const profileBio = document.getElementById('profileBio');
+        const gallery = document.getElementById('gallery');
+        
+        // Get user ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId');
+        
+        // Current user state
+        let currentUser = null;
+        let profileUser = null;
+        let isFollowing = false;
+        
+        // Handle back button click from parent window
+        window.addEventListener('message', (event) => {
+            if (event.data === 'closeProfile') {
+                window.parent.postMessage('closeProfileModal', '*');
+            }
+        });
+        
+        // Initialize
+        function init() {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    
+                    // Get user's country if available
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        if (userData.country) {
+                            currentUser.country = userData.country;
+                        }
+                    }
+                    
+                    // Check if viewing own profile
+                    const isOwnProfile = userId === user.uid;
+                    
+                    if (isOwnProfile) {
+                        followButton.style.display = 'none';
+                    } else {
+                        followButton.style.display = 'inline-block';
+                        checkFollowStatus();
+                    }
+                    
+                    loadProfile();
+                } else {
+                    loadProfile();
+                }
+            });
+        }
+        
+        async function loadProfile() {
+            try {
+                const userDoc = await getDoc(doc(db, 'users', userId));
+                
+                if (!userDoc.exists()) {
+                    loadingContainer.classList.add('hidden');
+                    setTimeout(() => {
+                        loadingContainer.style.display = 'none';
+                        notFound.style.display = 'block';
+                    }, 300);
+                    return;
+                }
+                
+                profileUser = {
+                    id: userId,
+                    ...userDoc.data()
+                };
+                
+                // Set profile info
+                profileAvatar.src = profileUser.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
+                profileAvatar.onerror = function() {
+                    this.src = 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
+                };
+                
+                username.textContent = profileUser.displayName || 'User';
+                
+                if (profileUser.country) {
+                    countryFlag.src = `https://flagcdn.com/w20/${profileUser.country.toLowerCase()}.png`;
+                    countryFlag.alt = profileUser.country.toUpperCase();
+                    countryFlag.onerror = function() {
+                        this.style.display = 'none';
+                    };
+                } else {
+                    countryFlag.style.display = 'none';
+                }
+                
+                profileBio.textContent = profileUser.bio || '';
+                
+                // Load posts count
+                const postsQuery = query(
+                    collection(db, 'recence'),
+                    where('userId', '==', userId)
+                );
+                
+                const postsSnapshot = await getDocs(postsQuery);
+                postsCount.textContent = postsSnapshot.size;
+                
+                // Load followers count
+                const followersQuery = query(
+                    collection(db, 'follows'),
+                    where('followedUserId', '==', userId)
+                );
+                
+                const followersSnapshot = await getDocs(followersQuery);
+                followersCount.textContent = followersSnapshot.size;
+                
+                // Load following count
+                const followingQuery = query(
+                    collection(db, 'follows'),
+                    where('followerUserId', '==', userId)
+                );
+                
+                const followingSnapshot = await getDocs(followingQuery);
+                followingCount.textContent = followingSnapshot.size;
+                
+                // Load posts
+                await loadPosts();
+                
+                // Show profile
+                loadingContainer.classList.add('hidden');
+                setTimeout(() => {
+                    loadingContainer.style.display = 'none';
+                    profileContainer.style.display = 'block';
+                }, 300);
+                
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                loadingContainer.classList.add('hidden');
+                setTimeout(() => {
+                    loadingContainer.style.display = 'none';
+                    notFound.style.display = 'block';
+                    notFound.innerHTML = '<h2>Error</h2><p>There was an error loading this profile.</p>';
+                }, 300);
+            }
+        }
+        
+        async function loadPosts() {
+            try {
+                const postsQuery = query(
+                    collection(db, 'recence'),
+                    where('userId', '==', userId),
+                    orderBy('timestamp', 'desc')
+                );
+                
+                const postsSnapshot = await getDocs(postsQuery);
+                
+                if (postsSnapshot.empty) {
+                    gallery.innerHTML = `
+                        <div class="empty-gallery">
+                            <svg aria-label="No Posts Yet" color="#262626" fill="#262626" height="50" role="img" viewBox="0 0 24 24" width="50">
+                                <rect fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="18" x="3" y="3"></rect>
+                                <line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="9.015" x2="9.015" y1="3" y2="21"></line>
+                                <line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="14.985" x2="14.985" y1="3" y2="21"></line>
+                                <line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="21" x2="3" y1="9.015" y2="9.015"></line>
+                                <line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="21" x2="3" y1="14.985" y2="14.985"></line>
+                            </svg>
+                            <p>No Posts Yet</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                gallery.innerHTML = '';
+                
+                postsSnapshot.forEach(postDoc => {
+                    const postData = postDoc.data();
+                    const postId = postDoc.id;
+                    
+                    if (postData.media && postData.media.length > 0) {
+                        const galleryItem = document.createElement('div');
+                        galleryItem.className = 'gallery-item';
+                        galleryItem.dataset.postId = postId;
+                        
+                        const mediaItem = postData.media[0];
+                        const isVideo = mediaItem.type === 'video' || mediaItem.contentType?.startsWith('video/');
+                        
+                        if (isVideo) {
+                            const video = document.createElement('video');
+                            video.src = mediaItem.url;
+                            video.muted = true;
+                            video.loop = true;
+                            video.playsInline = true;
+                            
+                            // For touch devices, use poster or first frame
+                            video.poster = mediaItem.thumbnail || '';
+                            
+                            // Only play on hover for desktop
+                            if (window.matchMedia('(min-width: 768px)').matches) {
+                                galleryItem.addEventListener('mouseenter', () => {
+                                    video.play().catch(err => console.log('Video play prevented:', err));
+                                });
+                                
+                                galleryItem.addEventListener('mouseleave', () => {
+                                    video.pause();
+                                });
+                            }
+                            
+                            const videoIndicator = document.createElement('div');
+                            videoIndicator.className = 'video-indicator';
+                            videoIndicator.innerHTML = `
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                </svg>
+                            `;
+                            
+                            galleryItem.appendChild(video);
+                            galleryItem.appendChild(videoIndicator);
+                        } else {
+                            const img = document.createElement('img');
+                            img.src = mediaItem.url;
+                            img.alt = 'Post';
+                            img.loading = 'lazy';
+                            
+                            galleryItem.appendChild(img);
+                        }
+                        
+                        galleryItem.addEventListener('click', () => {
+                            window.parent.postMessage({
+                                type: 'openPost',
+                                postId: postId
+                            }, '*');
+                        });
+                        
+                        gallery.appendChild(galleryItem);
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error loading posts:', error);
+                gallery.innerHTML = '<div style="text-align: center; padding: 20px;">Error loading posts</div>';
+            }
+        }
+        
+        async function checkFollowStatus() {
+            if (!currentUser) return;
+            
+            try {
+                const followQuery = query(
+                    collection(db, 'follows'),
+                    where('followerUserId', '==', currentUser.uid),
+                    where('followedUserId', '==', userId)
+                );
+                
+                const followSnapshot = await getDocs(followQuery);
+                isFollowing = !followSnapshot.empty;
+                
+                updateFollowButton();
+            } catch (error) {
+                console.error('Error checking follow status:', error);
+            }
+        }
+        
+        function updateFollowButton() {
+            if (isFollowing) {
+                followButton.textContent = 'Following';
+                followButton.classList.add('followed');
+            } else {
+                followButton.textContent = 'Follow';
+                followButton.classList.remove('followed');
+            }
+        }
+        
+        async function toggleFollow() {
+            if (!currentUser || !profileUser) return;
+            
+            try {
+                const followQuery = query(
+                    collection(db, 'follows'),
+                    where('followerUserId', '==', currentUser.uid),
+                    where('followedUserId', '==', userId)
+                );
+                
+                const followSnapshot = await getDocs(followQuery);
+                
+                if (followSnapshot.empty) {
+                    // Follow
+                    await addDoc(collection(db, 'follows'), {
+                        followerUserId: currentUser.uid,
+                        followedUserId: userId,
+                        followedUserName: profileUser.displayName || 'User',
+                        timestamp: serverTimestamp()
+                    });
+                    
+                    isFollowing = true;
+                    
+                    // Update followers count
+                    const count = parseInt(followersCount.textContent) + 1;
+                    followersCount.textContent = count;
+                } else {
+                    // Unfollow
+                    followSnapshot.forEach(async doc => {
+                        await deleteDoc(doc.ref);
+                    });
+                    
+                    isFollowing = false;
+                    
+                    // Update followers count
+                    const count = Math.max(0, parseInt(followersCount.textContent) - 1);
+                    followersCount.textContent = count;
+                }
+                
+                updateFollowButton();
+            } catch (error) {
+                console.error('Error toggling follow:', error);
+            }
+        }
+        
+        // Event listeners
+        followButton.addEventListener('click', toggleFollow);
+        
+        // Initialize
+        init();
+    </script>
+</body>
+</html>
