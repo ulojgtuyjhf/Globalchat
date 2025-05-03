@@ -4,8 +4,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Top Navigation App</title>
+    <title>GlobalChat</title>
     <style>
+        /* Base Variables */
+        :root {
+            --primary-color: #626262;
+            --primary-light: #f0f0f0;
+            --primary-dark: #3a3a3a;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --background-light: #f9f9f9;
+            --background-white: #ffffff;
+            --border-light: #e0e0e0;
+            --border-radius-sm: 8px;
+            --border-radius-md: 16px;
+            --border-radius-lg: 9999px;
+            --transition-speed: 0.25s;
+            --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            --luxury-gradient: linear-gradient(
+                135deg,  
+                #0f0f0f 0%,  
+                #1c1c1c 15%,  
+                #3a3a3a 30%,  
+                #4d4d4d 45%,  
+                #626262 60%,  
+                #787878 75%,  
+                #8f8f8f 90%,  
+                #a6a6a6 100%
+            );
+            --nav-height: 56px;
+        }
+
         /* Global Reset */
         * {
             margin: 0;
@@ -13,14 +42,8 @@
             box-sizing: border-box;
         }
 
-        /* Smooth Scrolling */
-        html {
-            scroll-behavior: smooth;
-        }
-
-        /* Prevent scrolling on the main container */
+        /* Prevent scrolling on body */
         html, body {
-            overflow: hidden;
             height: 100%;
             width: 100%;
         }
@@ -29,709 +52,347 @@
             display: flex;
             flex-direction: column;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: #f9f9f9;
+            background: var(--background-light);
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            color: #333;
+            color: var(--text-primary);
         }
 
-        /* Combined Navigation Container */
-        .nav-container {
+        /* Bottom Navigation */
+        .bottom-nav {
             position: fixed;
-            top: 0;
+            bottom: 0;
             left: 0;
             right: 0;
-            z-index: 1001;
-            transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+            height: var(--nav-height);
+            background: var(--background-white);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            border-top: 1px solid var(--border-light);
         }
 
-        .nav-container.hidden {
-            transform: translateY(-100%);
-        }
-
-        /* App Header */
-        .app-header {
-            height: 48px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-        }
-
-        /* Divider Line */
-        .header-divider {
-            height: 1px;
-            background: rgba(0, 0, 0, 0.08);
-        }
-
-        /* Logo and three-dots menu */
-        .header-logo {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: #1da1f2;
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: 600;
-            font-size: 16px;
-            box-shadow: 0 2px 8px rgba(29, 161, 242, 0.25);
-            transition: transform 0.2s ease-out;
-        }
-
-        .header-logo:hover {
-            transform: scale(1.05);
-        }
-
-        /* Improved three-dots menu styling */
-        .header-more {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            position: absolute;
-            right: 12px;
-            border-radius: 50%;
-            transition: background-color 0.2s ease;
-        }
-
-        .header-more:hover {
-            background-color: rgba(29, 161, 242, 0.1);
-        }
-
-        .header-more svg {
-            width: 20px;
-            height: 20px;
-            fill: #1da1f2;
-        }
-
-        /* Vertical dots */
-        .vertical-dots circle {
-            cy: 6;
-            cx: 12;
-            r: 2.2;
-        }
-        .vertical-dots circle:nth-child(2) {
-            cy: 12;
-        }
-        .vertical-dots circle:nth-child(3) {
-            cy: 18;
-        }
-
-        /* Top Menu */
-        .mobile-menu {
-            height: 52px;
-            display: flex;
-        }
-
-        .menu-items {
+        .nav-items {
             display: flex;
             justify-content: space-around;
             align-items: center;
             height: 100%;
-            width: 100%;
+            padding: 0 12px;
         }
 
-        .menu-item {
+        .nav-item {
             position: relative;
-            width: 100%;
-            height: 100%;
+            width: 44px;
+            height: 44px;
             display: flex;
             justify-content: center;
             align-items: center;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-radius: 50%;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
-            border-radius: 4px;
-            margin: 0 2px;
+            will-change: background-color, transform;
         }
 
-        .menu-item svg {
+        .nav-item svg {
             width: 22px;
             height: 22px;
             fill: none;
-            stroke: #78797c;
-            stroke-width: 1.8;
-            transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            stroke: var(--text-secondary);
+            stroke-width: 2;
+            transition: stroke 0.2s ease;
         }
 
-        /* Updated active state styling with animation */
-        .menu-item.active {
-            position: relative;
+        .nav-item.active svg {
+            stroke: var(--primary-color);
+            fill: none;
         }
 
-        .menu-item.active::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50%;
-            height: 3px;
-            background-color: #1da1f2;
-            border-radius: 4px 4px 0 0;
-            transition: width 0.3s ease;
+        .nav-item:hover {
+            background-color: rgba(98, 98, 98, 0.1);
         }
 
-        .menu-item.active svg {
-            stroke: #1da1f2;
-            transform: translateY(-2px) scale(1.1);
+        .profile-nav-item {
+            overflow: hidden;
         }
 
-        .menu-item:active svg {
-            transform: scale(0.92);
+        .profile-nav-item img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid transparent;
+            transition: border-color 0.2s ease;
+            background-origin: border-box;
+            background-clip: content-box, border-box;
         }
 
-        .menu-item:hover {
-            background-color: rgba(29, 161, 242, 0.08);
+        .profile-nav-item.active img {
+            border-color: transparent;
+            background-image: linear-gradient(var(--background-white), var(--background-white)), 
+                             var(--luxury-gradient);
         }
 
         /* Main Content Sections */
         .content-wrapper {
-            display: flex;
             flex: 1;
             width: 100%;
             height: 100%;
             position: relative;
-            transition: margin-top 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), height 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
-            margin-top: 101px; /* Header + divider + menu height */
-        }
-
-        .content-wrapper.full-height {
-            margin-top: 0;
-            height: 100%;
+            overflow: hidden;
         }
 
         .section {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            position: relative;
-            transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
-            height: 100%;
-            border-right: 1px solid rgba(0, 0, 0, 0.05);
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.02);
-        }
-
-        /* Section widths for 5 sections */
-        .left-section, .right-section {
-            width: 20%;
-            background: #ffffff;
-        }
-
-        .middle-section {
-            width: 20%;
-            background: #ffffff;
-        }
-
-        .second-left-section, .second-right-section {
-            width: 20%;
-            background: #ffffff;
-        }
-
-        /* Active section indicator */
-        .section.active {
-            border-top: 3px solid #1da1f2;
-        }
-
-        .blue-indicator {
             position: absolute;
-            top: -3px;
+            top: 0;
             left: 0;
-            height: 3px;
-            background: #1da1f2;
-            transition: width 0.3s ease, left 0.3s ease;
-            border-radius: 0 0 4px 4px;
+            width: 100%;
+            height: calc(100% - var(--nav-height));
+            display: none;
+            overflow: hidden;
+            background: var(--background-white);
+        }
+
+        .section.active {
+            display: block;
         }
 
         iframe {
             width: 100%;
             height: 100%;
             border: none;
-            border-radius: 0;
             display: block;
-            background: #ffffff;
+            background: var(--background-white);
         }
 
-        /* Updated Twitter-style loading spinner */
-        .loading-indicator {
+        /* Simple spinner with no text */
+        .simple-spinner {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(150, 150, 150, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+            opacity: 1;
+            transition: opacity 0.3s ease;
         }
 
-        .twitter-spinner {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            border: 3px solid rgba(29, 161, 242, 0.15);
-            border-top-color: #1da1f2;
-            animation: spin 0.8s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+        .simple-spinner.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
         @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* Error message styling */
-        .error-container {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 24px;
-            height: 100%;
-            width: 100%;
-        }
-
-        .error-icon {
-            font-size: 52px;
-            color: #1da1f2;
-            margin-bottom: 20px;
-        }
-
-        .error-message {
-            font-size: 16px;
-            color: #333;
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-
-        .retry-button {
-            background-color: #1da1f2;
-            color: white;
-            border: none;
-            border-radius: 24px;
-            padding: 10px 24px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
-            box-shadow: 0 2px 8px rgba(29, 161, 242, 0.2);
-        }
-
-        .retry-button:hover {
-            background-color: #0c8cd9;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 10px rgba(29, 161, 242, 0.25);
-        }
-
-        .retry-button:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 5px rgba(29, 161, 242, 0.2);
-        }
-
-        /* Responsive Design - Improved */
-        @media (max-width: 1024px) {
-            .left-section, .right-section, 
-            .second-left-section, .second-right-section {
-                width: 22.5%;
-            }
-            
-            .middle-section {
-                width: 10%;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .content-wrapper {
-                margin-top: 101px;
-                height: calc(100% - 101px);
-            }
-
-            .section {
-                flex: 0 0 100%;
-                width: 100% !important;
-                border-right: none;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .menu-item svg {
-                width: 20px;
-                height: 20px;
-            }
-            
-            .error-message {
-                font-size: 14px;
-            }
-
-            .header-more svg {
-                width: 18px;
-                height: 18px;
-            }
-        }
-
-        /* Support for dark mode */
-        @media (prefers-color-scheme: dark) {
-            body {
-                background: #15202b;
-                color: #fff;
-            }
-            
-            .nav-container {
-                background: rgba(21, 32, 43, 0.85);
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-            }
-            
-            .header-divider {
-                background: rgba(255, 255, 255, 0.08);
-            }
-            
-            .section, iframe {
-                background: #15202b;
-                border-right-color: rgba(255, 255, 255, 0.05);
-                box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-            }
-            
-            .error-message {
-                color: #fff;
-            }
-            
-            .menu-item svg {
-                stroke: #8899a6;
-            }
-            
-            .menu-item.active svg {
-                stroke: #1da1f2;
-            }
-            
-            .menu-item:hover {
-                background-color: rgba(29, 161, 242, 0.1);
-            }
-            
-            .twitter-spinner {
-                border-color: rgba(29, 161, 242, 0.1);
-                border-top-color: #1da1f2;
-            }
-            
-            .header-more svg {
-                fill: #1da1f2;
-            }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <!-- Combined Navigation Container -->
-    <div class="nav-container" id="navContainer">
-        <!-- App Header -->
-        <div class="app-header">
-            <div class="header-logo">N</div>
-            <div class="header-more">
-                <svg class="vertical-dots" viewBox="0 0 24 24" fill="currentColor">
-                    <circle cx="12" cy="6" r="2"></circle>
-                    <circle cx="12" cy="12" r="2"></circle>
-                    <circle cx="12" cy="18" r="2"></circle>
+    <!-- Main Content -->
+    <div class="content-wrapper">
+        <div class="section active" id="homeSection">
+            <div class="simple-spinner" id="homeSpinner"></div>
+            <iframe src="./globalchat.html" onload="hideSpinner('homeSpinner')"></iframe>
+        </div>
+        <div class="section" id="searchSection">
+            <div class="simple-spinner" id="searchSpinner"></div>
+        </div>
+        <div class="section" id="uploadSection">
+            <div class="simple-spinner" id="uploadSpinner"></div>
+        </div>
+        <div class="section" id="messagesSection">
+            <div class="simple-spinner" id="messagesSpinner"></div>
+        </div>
+        <div class="section" id="profileSection">
+            <div class="simple-spinner" id="profileSpinner"></div>
+        </div>
+    </div>
+    
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav" role="navigation">
+        <div class="nav-items">
+            <div class="nav-item active" data-section="home" aria-label="Home">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
                 </svg>
             </div>
-        </div>
-        
-        <!-- Divider Line -->
-        <div class="header-divider"></div>
-        
-        <!-- Top Mobile Menu -->
-        <div class="mobile-menu">
-            <div class="menu-items">
-                <div class="menu-item active" data-section="home">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                      <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                    </svg>
-                </div>
-                <div class="menu-item" data-section="explore">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                </div>
-                <div class="menu-item" data-section="notifications">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                    </svg>
-                </div>
-                <div class="menu-item" data-section="messages">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                </div>
-                <div class="menu-item" data-section="profile">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                </div>
+            <div class="nav-item" data-section="search" aria-label="Search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </div>
+            <div class="nav-item" data-section="upload" aria-label="Upload">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="12" y1="8" x2="12" y2="16"></line>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                </svg>
+            </div>
+            <div class="nav-item" data-section="messages" aria-label="Messages">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+            </div>
+            <div class="nav-item profile-nav-item" data-section="profile" aria-label="Profile">
+                <img src="placeholder-profile.jpg" alt="Profile" id="profilePhoto">
             </div>
         </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="content-wrapper" id="contentWrapper">
-        <div class="left-section section" id="homeSection">
-            <div class="loading-indicator">
-                <div class="twitter-spinner"></div>
-            </div>
-        </div>
-        <div class="second-left-section section" id="exploreSection">
-            <div class="loading-indicator">
-                <div class="twitter-spinner"></div>
-            </div>
-        </div>
-        <div class="middle-section section active" id="notificationsSection">
-            <div class="loading-indicator">
-                <div class="twitter-spinner"></div>
-            </div>
-        </div>
-        <div class="second-right-section section" id="messagesSection">
-            <div class="loading-indicator">
-                <div class="twitter-spinner"></div>
-            </div>
-        </div>
-        <div class="right-section section" id="profileSection">
-            <div class="loading-indicator">
-                <div class="twitter-spinner"></div>
-            </div>
-        </div>
-    </div>
-
-
-  <script src="vid.js"></script>
-
-
-<script>
-    (function() {
-        // Theme manager for mobile interface - isolated scope to avoid conflicts
-        const mobileThemeManager = {
-            // Theme definitions
-            themes: {
-                light: {
-                    bg: '#ffffff',
-                    card: '#f7f9fa',
-                    line: '#ebeef0',
-                    text: '#14171a',
-                    secondaryText: '#657786',
-                    border: '#ebeef0',
-                    blue: '#1da1f2',
-                    lightBlue: '#1a91da',
-                    menuBg: 'rgba(255, 255, 255, 0.85)',
-                    sectionBg: '#ffffff',
-                    headerDivider: 'rgba(0, 0, 0, 0.08)',
-                    navShadow: '0 2px 10px rgba(0, 0, 0, 0.06)',
-                    sectionShadow: '0 0 15px rgba(0, 0, 0, 0.02)',
-                    sectionBorder: 'rgba(0, 0, 0, 0.05)',
-                    backdropBlur: 'blur(15px)'
-                },
-                dim: {
-                    bg: '#15202b',
-                    card: '#192734',
-                    line: '#38444d',
-                    text: '#ffffff',
-                    secondaryText: '#8899a6',
-                    border: '#38444d',
-                    blue: '#1da1f2',
-                    lightBlue: '#1a91da',
-                    menuBg: 'rgba(21, 32, 43, 0.85)',
-                    sectionBg: '#15202b',
-                    headerDivider: 'rgba(255, 255, 255, 0.08)',
-                    navShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-                    sectionShadow: '0 0 15px rgba(0, 0, 0, 0.1)',
-                    sectionBorder: 'rgba(255, 255, 255, 0.05)',
-                    backdropBlur: 'blur(15px)'
-                },
-                dark: {
-                    bg: '#000000',
-                    card: '#16181c',
-                    line: '#2f3336',
-                    text: '#ffffff',
-                    secondaryText: '#8899a6',
-                    border: '#2f3336',
-                    blue: '#1da1f2',
-                    lightBlue: '#1a91da',
-                    menuBg: 'rgba(0, 0, 0, 0.85)',
-                    sectionBg: '#000000',
-                    headerDivider: 'rgba(255, 255, 255, 0.05)',
-                    navShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
-                    sectionShadow: '0 0 15px rgba(0, 0, 0, 0.15)',
-                    sectionBorder: 'rgba(255, 255, 255, 0.03)',
-                    backdropBlur: 'blur(15px)'
-                }
-            },
-            
-            // Apply theme to mobile interface
-            applyTheme: function(themeName) {
-                const theme = this.themes[themeName] || this.themes.light;
-                
-                // Apply to nav container
-                const navContainer = document.getElementById('navContainer');
-                if (navContainer) {
-                    navContainer.style.backgroundColor = theme.menuBg;
-                    navContainer.style.boxShadow = theme.navShadow;
-                    navContainer.style.backdropFilter = theme.backdropBlur;
-                    navContainer.style.webkitBackdropFilter = theme.backdropBlur;
-                }
-                
-                // Apply to header divider
-                const headerDivider = document.querySelector('.header-divider');
-                if (headerDivider) {
-                    headerDivider.style.backgroundColor = theme.headerDivider;
-                }
-                
-                // Apply to logo
-                const logo = document.querySelector('.header-logo');
-                if (logo) {
-                    logo.style.boxShadow = `0 2px 8px ${theme.blue}40`;
-                }
-                
-                // Apply to three dots menu
-                const headerMore = document.querySelector('.header-more svg');
-                if (headerMore) {
-                    headerMore.style.fill = theme.blue;
-                }
-                
-                // Apply to sections
-                const sections = document.querySelectorAll('.section');
-                sections.forEach(section => {
-                    section.style.backgroundColor = theme.sectionBg;
-                    section.style.borderColor = theme.sectionBorder;
-                    section.style.boxShadow = theme.sectionShadow;
-                });
-                
-                // Apply to menu items
-                const menuItems = document.querySelectorAll('.menu-item');
-                menuItems.forEach(item => {
-                    const svg = item.querySelector('svg');
-                    if (svg) {
-                        svg.style.stroke = item.classList.contains('active') ? theme.blue : theme.secondaryText;
-                    }
-                    
-                    // Update hover state
-                    item.addEventListener('mouseenter', function() {
-                        this.style.backgroundColor = `${theme.blue}10`;
-                    });
-                    item.addEventListener('mouseleave', function() {
-                        this.style.backgroundColor = 'transparent';
-                    });
-                    
-                    // Update active indicator
-                    if (item.classList.contains('active') && item.querySelector('::after')) {
-                        const afterStyle = document.createElement('style');
-                        afterStyle.innerHTML = `.menu-item.active::after { background-color: ${theme.blue}; }`;
-                        document.head.appendChild(afterStyle);
-                    }
-                });
-                
-                // Apply to active section
-                const activeSection = document.querySelector('.section.active');
-                if (activeSection) {
-                    activeSection.style.borderTop = `3px solid ${theme.blue}`;
-                }
-                
-                // Apply to loading indicators
-                const spinners = document.querySelectorAll('.twitter-spinner');
-                spinners.forEach(spinner => {
-                    spinner.style.borderColor = `${theme.blue}20`;
-                    spinner.style.borderTopColor = theme.blue;
-                });
-                
-                // Apply to error messages
-                const errorMessages = document.querySelectorAll('.error-message');
-                errorMessages.forEach(msg => {
-                    msg.style.color = theme.text;
-                });
-                
-                // Apply to retry buttons
-                const retryButtons = document.querySelectorAll('.retry-button');
-                retryButtons.forEach(btn => {
-                    btn.style.backgroundColor = theme.blue;
-                    btn.style.boxShadow = `0 2px 8px ${theme.blue}33`;
-                    
-                    btn.addEventListener('mouseenter', function() {
-                        this.style.backgroundColor = theme.lightBlue;
-                        this.style.boxShadow = `0 4px 10px ${theme.blue}40`;
-                    });
-                    btn.addEventListener('mouseleave', function() {
-                        this.style.backgroundColor = theme.blue;
-                        this.style.boxShadow = `0 2px 8px ${theme.blue}33`;
-                    });
-                });
-                
-                // Add theme class to body
-                document.body.classList.remove('theme-light', 'theme-dim', 'theme-dark');
-                document.body.classList.add(`theme-${themeName}`);
-                document.body.style.backgroundColor = theme.bg;
-                document.body.style.color = theme.text;
-                
-                // Store the current theme
-                this.currentTheme = themeName;
-                localStorage.setItem('twitter-theme', themeName);
-            },
-            
-            // Initialize theme from localStorage
-            init: function() {
-                const savedTheme = localStorage.getItem('twitter-theme');
-                this.applyTheme(savedTheme || 'light');
-                
-                // Set up theme toggle functionality
-                const headerLogo = document.querySelector('.header-logo');
-                if (headerLogo) {
-                    headerLogo.addEventListener('dblclick', () => {
-                        // Cycle through themes on double click
-                        const themes = ['light', 'dim', 'dark'];
-                        const currentIndex = themes.indexOf(this.currentTheme);
-                        const nextTheme = themes[(currentIndex + 1) % themes.length];
-                        this.applyTheme(nextTheme);
-                    });
-                }
-                
-                // Set up storage event listener
-                window.addEventListener('storage', (event) => {
-                    if (event.key === 'twitter-theme') {
-                        this.applyTheme(event.newValue || 'light');
-                    }
-                });
-                
-                // Poll for theme changes
-                this.startPolling();
-            },
-            
-            // Poll for theme changes in localStorage
-            startPolling: function() {
-                this.currentTheme = localStorage.getItem('twitter-theme') || 'light';
-                
-                // Check periodically
-                setInterval(() => {
-                    const newTheme = localStorage.getItem('twitter-theme');
-                    if (newTheme && newTheme !== this.currentTheme) {
-                        this.applyTheme(newTheme);
-                    }
-                }, 1000);
-            }
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+            authDomain: "globalchat-2d669.firebaseapp.com", 
+            projectId: "globalchat-2d669",
+            storageBucket: "globalchat-2d669.firebasestorage.app",
+            messagingSenderId: "178714711978",
+            appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
+            measurementId: "G-LYZP41ZJ46"
         };
-        
-        // Initialize when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => mobileThemeManager.init());
-        } else {
-            mobileThemeManager.init();
+
+        // Hide spinner when content is loaded
+        function hideSpinner(spinnerId) {
+            const spinner = document.getElementById(spinnerId);
+            if (spinner) {
+                spinner.classList.add('hidden');
+                setTimeout(() => {
+                    spinner.style.display = 'none';
+                }, 300);
+            }
         }
-    })();
-</script>
+
+        // Load iframe content
+        function loadContent(sectionId, url) {
+            const section = document.getElementById(sectionId);
+            const spinnerId = sectionId.replace('Section', 'Spinner');
+            
+            // Show spinner
+            const spinner = document.getElementById(spinnerId);
+            if (spinner) {
+                spinner.style.display = 'block';
+                spinner.classList.remove('hidden');
+            }
+            
+            // Create iframe if it doesn't exist
+            let iframe = section.querySelector('iframe');
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.onload = function() {
+                    hideSpinner(spinnerId);
+                };
+                iframe.onerror = function() {
+                    hideSpinner(spinnerId);
+                };
+                iframe.src = url;
+                section.appendChild(iframe);
+            }
+        }
+
+        // Fetch profile photo from Firebase auth
+        async function fetchProfilePhoto() {
+            try {
+                const firebaseApp = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js");
+                const firebaseAuth = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
+                const firebaseFirestore = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+                
+                const { initializeApp } = firebaseApp;
+                const { getAuth, onAuthStateChanged } = firebaseAuth;
+                const { getFirestore, doc, getDoc } = firebaseFirestore;
+                
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                const db = getFirestore(app);
+                
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        try {
+                            const userDoc = await getDoc(doc(db, 'users', user.uid));
+                            if (userDoc.exists()) {
+                                const userData = userDoc.data();
+                                if (userData.photoURL) {
+                                    document.getElementById('profilePhoto').src = userData.photoURL;
+                                }
+                            }
+                        } catch (error) {
+                            console.error("Error fetching user data:", error);
+                        }
+                    } else {
+                        window.location.href = 'login.html';
+                    }
+                });
+            } catch (error) {
+                console.error("Error loading Firebase:", error);
+            }
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Fetch profile photo
+            fetchProfilePhoto();
+
+            // Navigation handling
+            const navItems = document.querySelectorAll('.nav-item');
+            const sections = document.querySelectorAll('.section');
+
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    // Update active states
+                    navItems.forEach(ni => ni.classList.remove('active'));
+                    sections.forEach(section => section.classList.remove('active'));
+
+                    item.classList.add('active');
+
+                    const sectionType = item.getAttribute('data-section');
+                    let targetSection;
+                    let targetUrl;
+
+                    switch(sectionType) {
+                        case 'home': 
+                            targetSection = document.getElementById('homeSection');
+                            targetUrl = './globalchat.html';
+                            break;
+                        case 'search': 
+                            targetSection = document.getElementById('searchSection');
+                            targetUrl = './count.html';
+                            break;
+                        case 'upload': 
+                            targetSection = document.getElementById('uploadSection');
+                            targetUrl = './post.html';
+                            break;
+                        case 'messages': 
+                            targetSection = document.getElementById('messagesSection');
+                            targetUrl = './messages.html';
+                            break;
+                        case 'profile': 
+                            targetSection = document.getElementById('profileSection');
+                            targetUrl = './profileview.html';
+                            break;
+                    }
+
+                    if (targetSection) {
+                        targetSection.classList.add('active');
+                        loadContent(targetSection.id, targetUrl);
+                    }
+                });
+            });
+        });
+    </script>
+
+
+
+
+ 
+
+
+
 
 <script>
     (function() {
@@ -837,7 +498,248 @@
         }
     })();
 </script>
-
+<script>
+    (function() {
+        // Theme manager for mobile interface - isolated scope to avoid conflicts
+        const mobileThemeManager = {
+            // Theme definitions
+            themes: {
+                light: {
+                    bg: '#ffffff',
+                    card: '#f7f9fa',
+                    line: '#ebeef0',
+                    text: '#14171a',
+                    secondaryText: '#657786',
+                    border: '#ebeef0',
+                    blue: '#1da1f2',
+                    lightBlue: '#1a91da',
+                    menuBg: 'rgba(255, 255, 255, 0.85)',
+                    sectionBg: '#ffffff',
+                    headerDivider: 'rgba(0, 0, 0, 0.08)',
+                    navShadow: '0 2px 10px rgba(0, 0, 0, 0.06)',
+                    sectionShadow: '0 0 15px rgba(0, 0, 0, 0.02)',
+                    sectionBorder: 'rgba(0, 0, 0, 0.05)',
+                    backdropBlur: 'blur(15px)'
+                },
+                dim: {
+                    bg: '#15202b',
+                    card: '#192734',
+                    line: '#38444d',
+                    text: '#ffffff',
+                    secondaryText: '#8899a6',
+                    border: '#38444d',
+                    blue: '#1da1f2',
+                    lightBlue: '#1a91da',
+                    menuBg: 'rgba(21, 32, 43, 0.85)',
+                    sectionBg: '#15202b',
+                    headerDivider: 'rgba(255, 255, 255, 0.08)',
+                    navShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
+                    sectionShadow: '0 0 15px rgba(0, 0, 0, 0.1)',
+                    sectionBorder: 'rgba(255, 255, 255, 0.05)',
+                    backdropBlur: 'blur(15px)'
+                },
+                dark: {
+                    bg: '#000000',
+                    card: '#16181c',
+                    line: '#2f3336',
+                    text: '#ffffff',
+                    secondaryText: '#8899a6',
+                    border: '#2f3336',
+                    blue: '#1da1f2',
+                    lightBlue: '#1a91da',
+                    menuBg: 'rgba(0, 0, 0, 0.85)',
+                    sectionBg: '#000000',
+                    headerDivider: 'rgba(255, 255, 255, 0.05)',
+                    navShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
+                    sectionShadow: '0 0 15px rgba(0, 0, 0, 0.15)',
+                    sectionBorder: 'rgba(255, 255, 255, 0.03)',
+                    backdropBlur: 'blur(15px)'
+                }
+            },
+            
+            // Apply theme to mobile interface
+            applyTheme: function(themeName) {
+                const theme = this.themes[themeName] || this.themes.light;
+                
+                // Apply to nav container
+                const navContainer = document.querySelector('.bottom-nav');
+                if (navContainer) {
+                    navContainer.style.backgroundColor = theme.menuBg;
+                    navContainer.style.boxShadow = theme.navShadow;
+                    navContainer.style.backdropFilter = theme.backdropBlur;
+                    navContainer.style.webkitBackdropFilter = theme.backdropBlur;
+                }
+                
+                // Apply to sections
+                const sections = document.querySelectorAll('.section');
+                sections.forEach(section => {
+                    section.style.backgroundColor = theme.sectionBg;
+                    section.style.borderColor = theme.sectionBorder;
+                    section.style.boxShadow = theme.sectionShadow;
+                });
+                
+                // Apply to menu items
+                const menuItems = document.querySelectorAll('.nav-item');
+                menuItems.forEach(item => {
+                    const svg = item.querySelector('svg');
+                    if (svg) {
+                        svg.style.stroke = item.classList.contains('active') ? theme.blue : theme.secondaryText;
+                    }
+                    
+                    // Update hover state
+                    item.addEventListener('mouseenter', function() {
+                        this.style.backgroundColor = `${theme.blue}10`;
+                    });
+                    item.addEventListener('mouseleave', function() {
+                        this.style.backgroundColor = 'transparent';
+                    });
+                });
+                
+                // Apply to loading indicators
+                const spinners = document.querySelectorAll('.simple-spinner');
+                spinners.forEach(spinner => {
+                    spinner.style.borderColor = `${theme.blue}20`;
+                    spinner.style.borderTopColor = theme.blue;
+                });
+                
+                // Add theme class to body
+                document.body.classList.remove('theme-light', 'theme-dim', 'theme-dark');
+                document.body.classList.add(`theme-${themeName}`);
+                document.body.style.backgroundColor = theme.bg;
+                document.body.style.color = theme.text;
+                
+                // Store the current theme
+                this.currentTheme = themeName;
+                localStorage.setItem('twitter-theme', themeName);
+            },
+            
+            // Initialize theme from localStorage
+            init: function() {
+                const savedTheme = localStorage.getItem('twitter-theme');
+                this.applyTheme(savedTheme || 'light');
+                
+                // Set up theme toggle functionality
+                const headerLogo = document.querySelector('.bottom-nav');
+                if (headerLogo) {
+                    headerLogo.addEventListener('dblclick', () => {
+                        // Cycle through themes on double click
+                        const themes = ['light', 'dim', 'dark'];
+                        const currentIndex = themes.indexOf(this.currentTheme);
+                        const nextTheme = themes[(currentIndex + 1) % themes.length];
+                        this.applyTheme(nextTheme);
+                    });
+                }
+                
+                // Set up storage event listener
+                window.addEventListener('storage', (event) => {
+                    if (event.key === 'twitter-theme') {
+                        this.applyTheme(event.newValue || 'light');
+                    }
+                });
+            }
+        };
+        
+        // Color palette manager
+        const colorPaletteManager = {
+            applyColorPalette: function() {
+                const savedColorValue = localStorage.getItem('color-value');
+                const savedColorIndex = localStorage.getItem('color-palette');
+                
+                // Only apply if we have a valid color and it's not the default
+                if (savedColorValue && savedColorIndex !== '0') {
+                    // Convert hex to RGB
+                    const colorObj = this.hexToRGB(savedColorValue);
+                    const rgbString = `${colorObj.r}, ${colorObj.g}, ${colorObj.b}`;
+                    
+                    // Create style element for all overrides
+                    let styleEl = document.getElementById('mobile-color-palette-style');
+                    if (!styleEl) {
+                        styleEl = document.createElement('style');
+                        styleEl.id = 'mobile-color-palette-style';
+                        document.head.appendChild(styleEl);
+                    }
+                    
+                    // Apply to all blue elements in mobile interface
+                    styleEl.textContent = `
+                        /* Menu item active state */
+                        .nav-item.active svg {
+                            stroke: ${savedColorValue} !important;
+                        }
+                        
+                        /* Hover states */
+                        .nav-item:hover {
+                            background-color: rgba(${rgbString}, 0.1) !important;
+                        }
+                        
+                        /* Spinner */
+                        .simple-spinner {
+                            border-top-color: ${savedColorValue} !important;
+                        }
+                    `;
+                } else {
+                    // Remove all custom styles to revert to default
+                    const styleEl = document.getElementById('mobile-color-palette-style');
+                    if (styleEl) {
+                        styleEl.remove();
+                    }
+                }
+            },
+            
+            hexToRGB: function(hex) {
+                hex = hex.replace('#', '');
+                const r = parseInt(hex.substring(0, 2), 16);
+                const g = parseInt(hex.substring(2, 4), 16);
+                const b = parseInt(hex.substring(4, 6), 16);
+                return { r, g, b };
+            },
+            
+            darkenColor: function(hex, percent) {
+                hex = hex.replace('#', '');
+                let r = parseInt(hex.substring(0, 2), 16);
+                let g = parseInt(hex.substring(2, 4), 16);
+                let b = parseInt(hex.substring(4, 6), 16);
+                
+                r = Math.floor(r * (1 - percent));
+                g = Math.floor(g * (1 - percent));
+                b = Math.floor(b * (1 - percent));
+                
+                r = Math.max(0, r);
+                g = Math.max(0, g);
+                b = Math.max(0, b);
+                
+                return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+            },
+            
+            init: function() {
+                this.applyColorPalette();
+                
+                // Listen for changes in localStorage
+                window.addEventListener('storage', (event) => {
+                    if (event.key === 'color-value' || event.key === 'color-palette') {
+                        this.applyColorPalette();
+                    }
+                });
+                
+                // Listen for custom events
+                window.addEventListener('chatColorChanged', () => {
+                    this.applyColorPalette();
+                });
+            }
+        };
+        
+        // Initialize when DOM is ready
+        function initializeManagers() {
+            mobileThemeManager.init();
+            colorPaletteManager.init();
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeManagers);
+        } else {
+            initializeManagers();
+        }
+    })();
+</script>
 </body>
 
 </html>
