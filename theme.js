@@ -1,16 +1,15 @@
-
 // Self-executing function to avoid conflicts with global scope
 (function() {
   // Configuration with unique identifiers
-  const MEDIA_GRID_CLASS = 'gc-media-grid-v4';
-  const MEDIA_ITEM_CLASS = 'gc-media-item-v4';
   const VIDEO_PLAYER_CLASS = 'gc-video-player-v4';
   const VIDEO_CONTROLS_CLASS = 'gc-video-controls-v4';
   const STYLE_ID = 'gc-media-grid-styles-v4';
-  const MAX_VISIBLE_ITEMS = 4;
   
   // Track currently playing video
   let currentlyPlayingVideo = null;
+  
+  // Track visibility of videos
+  const videoVisibilityMap = new Map();
   
   // Add styles only once
   function addStyles() {
@@ -18,102 +17,25 @@
       const style = document.createElement('style');
       style.id = STYLE_ID;
       style.textContent = `
-        .${MEDIA_GRID_CLASS} {
-          display: grid;
-          gap: 2px;
-          margin-top: 8px;
-          width: 100%;
-          max-width: 550px;
-          border-radius: 12px;
-          overflow: hidden;
-          background-color: #f0f0f0;
-        }
-        
-        .${MEDIA_ITEM_CLASS} {
-          position: relative;
-          width: 100%;
-          height: 100%;
-          overflow: hidden;
-          background-color: #f0f0f0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        
-        /* Skeleton loading animation */
-        .${MEDIA_ITEM_CLASS}::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(90deg, #f0f0f0, #e0e0e0, #f0f0f0);
-          background-size: 200% 100%;
-          animation: shimmer 1.5s infinite;
-          z-index: 0;
-        }
-        
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-        
-        .${MEDIA_ITEM_CLASS} img {
-          position: relative;
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-          z-index: 1;
-        }
-        
-        /* Single media item */
-        .${MEDIA_GRID_CLASS}[data-item-count="1"] {
-          grid-template-columns: 1fr;
-          height: 400px;
-        }
-        
-        /* Two media items */
-        .${MEDIA_GRID_CLASS}[data-item-count="2"] {
-          grid-template-columns: repeat(2, 1fr);
-          height: 350px;
-        }
-        
-        /* Three media items */
-        .${MEDIA_GRID_CLASS}[data-item-count="3"] {
-          grid-template-columns: 1fr 1fr;
-          grid-template-rows: 1fr 1fr;
-          height: 400px;
-        }
-        
-        .${MEDIA_GRID_CLASS}[data-item-count="3"] .${MEDIA_ITEM_CLASS}:first-child {
-          grid-row: span 2;
-        }
-        
-        /* Four media items */
-        .${MEDIA_GRID_CLASS}[data-item-count="4"] {
-          grid-template-columns: repeat(2, 1fr);
-          grid-template-rows: repeat(2, 1fr);
-          height: 450px;
-        }
-
-        /* Custom Video Player */
+        /* Custom Video Player for Fullscreen Modal */
         .${VIDEO_PLAYER_CLASS} {
           position: relative;
           width: 100%;
           height: 100%;
           background-color: #000;
           z-index: 1;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         
         .${VIDEO_PLAYER_CLASS} video {
           width: 100%;
           height: 100%;
-          object-fit: cover;
-          object-position: center;
+          object-fit: contain;
           display: block;
           cursor: pointer;
+          border-radius: 10px;
         }
         
         .${VIDEO_CONTROLS_CLASS} {
@@ -129,6 +51,8 @@
           opacity: 0;
           transition: opacity 0.2s ease;
           z-index: 10;
+          border-bottom-left-radius: 12px;
+          border-bottom-right-radius: 12px;
         }
         
         .${VIDEO_PLAYER_CLASS}:hover .${VIDEO_CONTROLS_CLASS} {
@@ -241,6 +165,7 @@
           opacity: 0;
           transition: opacity 0.3s ease;
           z-index: 3;
+          border-radius: 12px;
         }
         
         .video-overlay-visible {
@@ -283,45 +208,100 @@
           pointer-events: none;
         }
         
-        /* Hide skeleton animation once media is loaded */
-        .${MEDIA_ITEM_CLASS}.loaded::before {
-          display: none;
+        /* Video loading spinner - using your branded animation */
+        .video-loading {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          background-color: rgba(0, 0, 0, 0.7);
+          z-index: 4;
+          border-radius: 12px;
         }
-
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-          .${MEDIA_GRID_CLASS} {
-            height: auto !important;
+        
+        .video-spinner {
+          width: 30px;
+          height: 30px;
+          position: relative;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        
+        .video-spinner::before,
+        .video-spinner::after {
+          content: '';
+          position: absolute;
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: linear-gradient(
+            135deg,  
+            #0f0f0f 0%,  
+            #1c1c1c 15%,  
+            #3a3a3a 30%,  
+            #4d4d4d 45%,  
+            #626262 60%,  
+            #787878 75%,  
+            #8f8f8f 90%,  
+            #a6a6a6 100%
+          );
+          animation: spin-pulse 1s infinite ease-in-out;
+        }
+        
+        .video-spinner::before {
+          animation-delay: 0s;
+        }
+        
+        .video-spinner::after {
+          animation-delay: 0.5s;
+        }
+        
+        @keyframes spin-pulse {
+          0% {
+            transform: scale(1) translateY(0);
+            opacity: 1;
           }
-          
-          .${MEDIA_GRID_CLASS}[data-item-count="1"] {
-            height: 350px !important;
+          50% {
+            transform: scale(1.5) translateY(-15px);
+            opacity: 0.5;
           }
-          
-          .${MEDIA_GRID_CLASS}[data-item-count="2"],
-          .${MEDIA_GRID_CLASS}[data-item-count="3"],
-          .${MEDIA_GRID_CLASS}[data-item-count="4"] {
-            height: 400px !important;
-          }
-          
-          .${MEDIA_ITEM_CLASS} {
-            min-height: 180px;
+          100% {
+            transform: scale(1) translateY(0);
+            opacity: 1;
           }
         }
         
-        @media (max-width: 480px) {
-          .${MEDIA_GRID_CLASS}[data-item-count="1"] {
-            height: 300px !important;
+        /* Responsive adjustments for fullscreen modal */
+        @media (min-width: 768px) {
+          .media-container {
+            aspect-ratio: 9/16;
+            max-height: 90vh;
+            border-radius: 12px;
+            overflow: hidden;
           }
           
-          .${MEDIA_GRID_CLASS}[data-item-count="2"],
-          .${MEDIA_GRID_CLASS}[data-item-count="3"],
-          .${MEDIA_GRID_CLASS}[data-item-count="4"] {
-            height: 350px !important;
+          .media-container video {
+            object-fit: contain;
+            border-radius: 10px;
+          }
+        }
+        
+        @media (max-width: 767px) {
+          .media-container {
+            height: 35vh;
+            min-height: 250px;
+            border-radius: 12px;
+            overflow: hidden;
           }
           
-          .${MEDIA_ITEM_CLASS} {
-            min-height: 150px;
+          .media-container video {
+            object-fit: contain;
+            border-radius: 10px;
           }
         }
       `;
@@ -357,18 +337,47 @@
     });
   }
   
-  // Create custom video player
+  // Check if an element is visible in viewport
+  function isElementVisible(el) {
+    if (!el) return false;
+    
+    const rect = el.getBoundingClientRect();
+    const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+    const windowWidth = window.innerWidth || document.documentElement.clientWidth;
+    
+    // Element must be mostly visible (>70% of its area)
+    const visibleArea = (
+      Math.min(rect.right, windowWidth) - 
+      Math.max(rect.left, 0)
+    ) * (
+      Math.min(rect.bottom, windowHeight) - 
+      Math.max(rect.top, 0)
+    );
+    
+    const totalArea = rect.width * rect.height;
+    return visibleArea > (totalArea * 0.7);
+  }
+  
+  // Create custom video player for fullscreen modal
   function createVideoPlayer(videoElement) {
     // Create video player container
     const videoPlayer = document.createElement('div');
     videoPlayer.className = VIDEO_PLAYER_CLASS;
     
+    // Generate unique ID for this video player
+    const videoId = 'video-player-' + Math.random().toString(36).substr(2, 9);
+    videoPlayer.id = videoId;
+    
     // Clone original video but remove controls attribute
     const videoClone = videoElement.cloneNode(true);
     videoClone.removeAttribute('controls');
-    videoClone.muted = true;
     videoClone.playsInline = true;
-    videoClone.loop = true;
+    videoClone.dataset.videoId = videoId;
+    
+    // Ensure video has proper source
+    if (!videoClone.src && videoClone.querySelector('source')) {
+      videoClone.src = videoClone.querySelector('source').src;
+    }
     
     // Create overlay for play/pause when video is stopped
     const overlay = document.createElement('div');
@@ -379,6 +388,13 @@
           <path d="M8 5v14l11-7z"/>
         </svg>
       </button>
+    `;
+    
+    // Create loading spinner
+    const loadingSpinner = document.createElement('div');
+    loadingSpinner.className = 'video-loading';
+    loadingSpinner.innerHTML = `
+      <div class="video-spinner"></div>
     `;
     
     // Create custom controls
@@ -409,6 +425,7 @@
     
     // Append elements to video player
     videoPlayer.appendChild(videoClone);
+    videoPlayer.appendChild(loadingSpinner); // Add loading spinner before overlay
     videoPlayer.appendChild(overlay);
     videoPlayer.appendChild(controls);
     
@@ -424,9 +441,28 @@
     const volumeOn = volumeButton.querySelector('.volume-on');
     const volumeOff = volumeButton.querySelector('.volume-off');
     
+    // Add to visibility tracking
+    videoVisibilityMap.set(videoId, {
+      element: videoPlayer,
+      isVisible: false,
+      isPlaying: false
+    });
+    
     // Function to toggle play/pause
     function togglePlay(withSound = false) {
+      // Only allow playing if video is visible
+      if (!videoVisibilityMap.get(videoId)?.isVisible && !videoClone.paused) {
+        videoClone.pause();
+        pauseIcon.style.display = 'none';
+        playIcon.style.display = 'block';
+        overlay.classList.add('video-overlay-visible');
+        return;
+      }
+      
       if (videoClone.paused) {
+        // Show loading spinner while buffering
+        loadingSpinner.style.display = 'flex';
+        
         // If we're playing with sound, pause all other videos
         if (withSound) {
           videoClone.muted = false;
@@ -438,17 +474,19 @@
           volumeOff.style.display = 'none';
         }
         
-        videoClone.play().catch(error => {
-          console.error('Error playing video:', error);
-        });
-        pauseIcon.style.display = 'block';
-        playIcon.style.display = 'none';
-        overlay.classList.remove('video-overlay-visible');
+        // Check if video is visible before playing
+        if (videoVisibilityMap.get(videoId)?.isVisible) {
+          videoClone.play().catch(error => {
+            console.error('Error playing video:', error);
+            loadingSpinner.style.display = 'none';
+          });
+        }
       } else {
         videoClone.pause();
         pauseIcon.style.display = 'none';
         playIcon.style.display = 'block';
         overlay.classList.add('video-overlay-visible');
+        videoVisibilityMap.get(videoId).isPlaying = false;
         
         if (currentlyPlayingVideo === videoClone) {
           currentlyPlayingVideo = null;
@@ -467,14 +505,13 @@
         stopAllVideos(videoClone);
         currentlyPlayingVideo = videoClone;
         
-        // Ensure video is playing when unmuting
-        if (videoClone.paused) {
+        // Ensure video is playing when unmuting only if it's visible
+        if (videoClone.paused && videoVisibilityMap.get(videoId)?.isVisible) {
+          loadingSpinner.style.display = 'flex';
           videoClone.play().catch(error => {
             console.error('Error playing video after unmute:', error);
+            loadingSpinner.style.display = 'none';
           });
-          pauseIcon.style.display = 'block';
-          playIcon.style.display = 'none';
-          overlay.classList.remove('video-overlay-visible');
         }
       } else {
         videoClone.muted = true;
@@ -513,9 +550,17 @@
     videoClone.addEventListener('loadedmetadata', () => {
       const duration = formatTime(videoClone.duration || 0);
       videoTime.textContent = `0:00 / ${duration}`;
+      
+      // Force video poster to display properly if available
+      if (videoClone.poster) {
+        const poster = videoClone.poster;
+        videoClone.poster = '';
+        setTimeout(() => {
+          videoClone.poster = poster;
+        }, 50);
+      }
     });
     
-    // CRITICAL: Separate event listeners for video vs controls
     // VIDEO PLAYER - use delegation pattern for clean event handling
     videoPlayer.addEventListener('click', (e) => {
       // Check if click is directly on video or overlay play button
@@ -561,160 +606,216 @@
       pauseIcon.style.display = 'block';
       playIcon.style.display = 'none';
       overlay.classList.remove('video-overlay-visible');
+      videoVisibilityMap.get(videoId).isPlaying = true;
+      
+      // Hide loading spinner when video starts playing
+      setTimeout(() => {
+        loadingSpinner.style.display = 'none';
+      }, 300);
+    });
+    
+    videoClone.addEventListener('playing', () => {
+      // Hide loading spinner when video actually starts playing
+      loadingSpinner.style.display = 'none';
+    });
+    
+    videoClone.addEventListener('waiting', () => {
+      // Show loading spinner when video is buffering
+      if (!videoClone.paused) {
+        loadingSpinner.style.display = 'flex';
+      }
     });
     
     videoClone.addEventListener('pause', () => {
       pauseIcon.style.display = 'none';
       playIcon.style.display = 'block';
       overlay.classList.add('video-overlay-visible');
+      videoVisibilityMap.get(videoId).isPlaying = false;
+      loadingSpinner.style.display = 'none';
     });
     
-    // Show overlay on initial load
+    videoClone.addEventListener('ended', () => {
+      pauseIcon.style.display = 'none';
+      playIcon.style.display = 'block';
+      overlay.classList.add('video-overlay-visible');
+      videoVisibilityMap.get(videoId).isPlaying = false;
+      loadingSpinner.style.display = 'none';
+      
+      if (currentlyPlayingVideo === videoClone) {
+        currentlyPlayingVideo = null;
+      }
+    });
+    
+    // Handle errors
+    videoClone.addEventListener('error', (e) => {
+      console.error('Video error:', e);
+      overlay.classList.add('video-overlay-visible');
+      loadingSpinner.style.display = 'none';
+      
+      // Create an error message in the overlay
+      const errorMsg = document.createElement('div');
+      errorMsg.style.color = 'white';
+      errorMsg.style.background = 'rgba(0,0,0,0.7)';
+      errorMsg.style.padding = '10px';
+      errorMsg.style.borderRadius = '5px';
+      errorMsg.textContent = 'Error loading video';
+      
+      // Replace play button with error message
+      if (overlayButton.parentNode) {
+        overlayButton.parentNode.replaceChild(errorMsg, overlayButton);
+      }
+    });
+    
+    // Show loading spinner and overlay on initial load
+    loadingSpinner.style.display = 'flex';
     overlay.classList.add('video-overlay-visible');
+    
+    // Hide loading spinner when video can play through
+    videoClone.addEventListener('canplaythrough', () => {
+      if (videoClone.paused) {
+        loadingSpinner.style.display = 'none';
+      }
+    });
     
     return videoPlayer;
   }
   
-  // Process all media containers
-  function initMediaGrids() {
-    const mediaContainers = document.querySelectorAll('.media-container:not([data-gc-processed])');
+  // Process video elements in the fullscreen modal
+  function initVideoPlayers() {
+    const modalMedia = document.getElementById('modalMedia');
+    if (!modalMedia) return;
     
-    mediaContainers.forEach(container => {
-      // Mark as processed
-      container.setAttribute('data-gc-processed', 'true');
+    // Check if we need to force re-processing
+    const videoElements = modalMedia.querySelectorAll('video');
+    if (videoElements.length === 0) return;
+    
+    // Reset the processed flag to force reprocessing if videos are still direct video elements
+    if (videoElements.length > 0 && modalMedia.dataset.videoPlayerProcessed) {
+      const hasUnprocessedVideos = Array.from(videoElements).some(video => 
+        !video.closest(`.${VIDEO_PLAYER_CLASS}`)
+      );
       
-      const mediaItems = Array.from(container.querySelectorAll('img, video'));
-      if (mediaItems.length === 0) return;
-      
-      // Create our grid container
-      const grid = document.createElement('div');
-      grid.className = MEDIA_GRID_CLASS;
-      
-      const itemCount = Math.min(mediaItems.length, MAX_VISIBLE_ITEMS);
-      grid.setAttribute('data-item-count', itemCount.toString());
-      
-      // Add each media item to the grid
-      for (let i = 0; i < itemCount; i++) {
-        const mediaElement = mediaItems[i];
-        const gridItem = document.createElement('div');
-        gridItem.className = MEDIA_ITEM_CLASS;
-        
-        if (mediaElement.tagName.toLowerCase() === 'img') {
-          // For images
-          const imgClone = mediaElement.cloneNode(true);
-          
-          if (imgClone.complete) {
-            gridItem.classList.add('loaded');
-          } else {
-            imgClone.onload = () => gridItem.classList.add('loaded');
-          }
-          
-          gridItem.appendChild(imgClone);
-        } else if (mediaElement.tagName.toLowerCase() === 'video') {
-          // For videos - create custom player
-          const videoPlayer = createVideoPlayer(mediaElement);
-          gridItem.appendChild(videoPlayer);
-          
-          // Mark as loaded when metadata is loaded
-          const video = videoPlayer.querySelector('video');
-          if (video.readyState >= 1) {
-            gridItem.classList.add('loaded');
-          } else {
-            video.onloadedmetadata = () => gridItem.classList.add('loaded');
-          }
-        }
-        
-        grid.appendChild(gridItem);
+      if (hasUnprocessedVideos) {
+        modalMedia.dataset.videoPlayerProcessed = false;
       }
-      
-      // Replace the original container with our grid
-      container.innerHTML = '';
-      container.appendChild(grid);
-    });
-  }
-  
-  // Setup intersection observer for autoplay videos (silent)
-  function setupVideoAutoplay() {
-    if (!('IntersectionObserver' in window)) return;
-    
-    const videoObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        const videoPlayer = entry.target.closest(`.${VIDEO_PLAYER_CLASS}`);
-        if (!videoPlayer) return;
-        
-        const video = videoPlayer.querySelector('video');
-        if (!video) return;
-        
-        // If video enters viewport and isn't explicitly paused by user
-        if (entry.isIntersecting) {
-          // Only autoplay if it's not been interacted with and not currently playing with sound
-          if (!video.hasAttribute('data-user-paused') && video !== currentlyPlayingVideo) {
-            // Ensure it's muted for autoplay
-            video.muted = true;
-            
-            video.play().catch(() => {
-              // Handle autoplay restrictions
-              console.log('Autoplay prevented by browser');
-            });
-          }
-        } else {
-          // Only pause autoplaying videos (muted ones)
-          if (video.playing && video.muted && !video.hasAttribute('data-user-paused') && video !== currentlyPlayingVideo) {
-            video.pause();
-          }
-        }
-      });
-    }, {
-      root: null,
-      rootMargin: '0px',
-      threshold: 0.5 // 50% of the video must be visible
-    });
-    
-    // Observe all videos
-    document.querySelectorAll(`.${VIDEO_PLAYER_CLASS}`).forEach(player => {
-      videoObserver.observe(player);
-      
-      // Mark videos that are explicitly paused by user
-      const video = player.querySelector('video');
-      if (video) {
-        video.addEventListener('pause', function() {
-          if (this.paused && this.currentTime > 0) {
-            this.setAttribute('data-user-paused', 'true');
-          }
-        });
-        
-        video.addEventListener('play', function() {
-          this.removeAttribute('data-user-paused');
-        });
-      }
-    });
-  }
-  
-  // Set up mutation observer to detect new messages
-  function setupObservers() {
-    const observer = new MutationObserver(function(mutations) {
-      let hasNewContent = false;
-      
-      mutations.forEach(mutation => {
-        if (mutation.addedNodes.length) {
-          hasNewContent = true;
-        }
-      });
-      
-      if (hasNewContent) {
-        initMediaGrids();
-        setupVideoAutoplay();
-      }
-    });
-    
-    // Start observing the chat container
-    const chatContainer = document.getElementById('chatContainer') || document.body;
-    if (chatContainer) {
-      observer.observe(chatContainer, {
-        childList: true,
-        subtree: true
-      });
     }
+    
+    // Check if we've already processed this modal
+    if (modalMedia.dataset.videoPlayerProcessed === 'true') return;
+    modalMedia.dataset.videoPlayerProcessed = 'true';
+    
+    // Replace each video with our custom player
+    videoElements.forEach(video => {
+      // Only replace if not already in a player
+      if (!video.closest(`.${VIDEO_PLAYER_CLASS}`)) {
+        const videoPlayer = createVideoPlayer(video);
+        video.replaceWith(videoPlayer);
+      }
+    });
+    
+    // After setup, check visibility of all videos
+    checkAllVideoVisibility();
+  }
+  
+  // Check visibility of all videos and pause those not visible
+  function checkAllVideoVisibility() {
+    for (const [videoId, data] of videoVisibilityMap.entries()) {
+      const wasVisible = data.isVisible;
+      data.isVisible = isElementVisible(data.element);
+      
+      // If video became invisible but was playing, pause it
+      if (wasVisible && !data.isVisible && data.isPlaying) {
+        const video = data.element.querySelector('video');
+        if (video && !video.paused) {
+          video.pause();
+          
+          // Update UI
+          const overlay = data.element.querySelector('.video-overlay');
+          const playIcon = data.element.querySelector('.play-icon');
+          const pauseIcon = data.element.querySelector('.pause-icon');
+          const loadingSpinner = data.element.querySelector('.video-loading');
+          
+          if (overlay) overlay.classList.add('video-overlay-visible');
+          if (playIcon) playIcon.style.display = 'block';
+          if (pauseIcon) pauseIcon.style.display = 'none';
+          if (loadingSpinner) loadingSpinner.style.display = 'none';
+          
+          data.isPlaying = false;
+          
+          if (currentlyPlayingVideo === video) {
+            currentlyPlayingVideo = null;
+          }
+        }
+      }
+    }
+  }
+  
+  // Set up mutation observer to detect when modal opens
+  function setupObservers() {
+    // Observer for modal opening
+    const modalObserver = new MutationObserver(function(mutations) {
+      mutations.forEach(mutation => {
+        if (mutation.attributeName === 'class') {
+          const fullscreenModal = document.getElementById('fullscreenModal');
+          if (fullscreenModal && fullscreenModal.classList.contains('active')) {
+            // Modal opened, initialize video players with retry mechanism
+            let attempts = 0;
+            const maxAttempts = 5;
+            
+            function attemptInit() {
+              if (attempts >= maxAttempts) return;
+              attempts++;
+              
+              initVideoPlayers();
+              
+              // Verify if all videos were processed
+              const modalMedia = document.getElementById('modalMedia');
+              if (modalMedia) {
+                const unprocessedVideos = modalMedia.querySelectorAll('video:not([data-video-id])');
+                if (unprocessedVideos.length > 0) {
+                  // Retry after a delay
+                  setTimeout(attemptInit, 200);
+                }
+              }
+            }
+            
+            setTimeout(attemptInit, 100);
+          }
+        }
+      });
+    });
+    
+    // Observer for content changes inside modal
+    const contentObserver = new MutationObserver(function(mutations) {
+      // Re-initialize on content changes
+      initVideoPlayers();
+    });
+    
+    // Start observing the fullscreen modal
+    const fullscreenModal = document.getElementById('fullscreenModal');
+    if (fullscreenModal) {
+      modalObserver.observe(fullscreenModal, {
+        attributes: true,
+        attributeFilter: ['class']
+      });
+      
+      // Also observe content changes inside modalMedia
+      const modalMedia = document.getElementById('modalMedia');
+      if (modalMedia) {
+        contentObserver.observe(modalMedia, {
+          childList: true,
+          subtree: true
+        });
+      }
+    }
+    
+    // Setup scroll and resize listeners for visibility checking
+    ['scroll', 'resize', 'orientationchange'].forEach(event => {
+      window.addEventListener(event, checkAllVideoVisibility, { passive: true });
+    });
+    
+    // Setup interval to periodically check video visibility (as fallback)
+    setInterval(checkAllVideoVisibility, 1000);
   }
   
   // Main initialization
@@ -722,26 +823,29 @@
     // Add styles
     addStyles();
     
-    // Process existing media
-    initMediaGrids();
-    
-    // Setup autoplay for videos
-    setupVideoAutoplay();
-    
     // Set up observers
     setupObservers();
     
-    // Apply initial processing after a short delay
-    setTimeout(() => {
-      initMediaGrids();
-      setupVideoAutoplay();
-    }, 500);
+    // Check if modal is already open (e.g., on page refresh)
+    const fullscreenModal = document.getElementById('fullscreenModal');
+    if (fullscreenModal && fullscreenModal.classList.contains('active')) {
+      setTimeout(() => {
+        initVideoPlayers();
+        // Force a visibility check
+        setTimeout(checkAllVideoVisibility, 300);
+      }, 100);
+    }
     
-    // Periodically check for new media
-    setInterval(() => {
-      initMediaGrids();
-      setupVideoAutoplay();
-    }, 2000);
+    // Add a global event listener for dynamic content
+    document.addEventListener('DOMNodeInserted', function(e) {
+      if (e.target.nodeName === 'VIDEO' || e.target.querySelector && e.target.querySelector('video')) {
+        // New video element detected, check if we need to process it
+        const modalMedia = document.getElementById('modalMedia');
+        if (modalMedia && modalMedia.contains(e.target)) {
+          setTimeout(initVideoPlayers, 100);
+        }
+      }
+    });
   }
   
   // Run initialization when DOM is ready
