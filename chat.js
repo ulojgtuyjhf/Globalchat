@@ -279,7 +279,6 @@ function setupEventListeners() {
             closeProfileModal();
         } else if (event.data.type === 'openPost') {
             closeProfileModal();
-            // Implement opening the post modal here if needed
         }
     });
 }
@@ -412,9 +411,12 @@ async function fetchPosts() {
 
         querySnapshot.forEach((doc) => {
             const postData = doc.data();
-            const pinElement = createPinElement(postData, doc.id);
-            if (pinElement) {
-                gallery.appendChild(pinElement);
+            // Only create pin element if post has media
+            if (postData.media && postData.media.length > 0) {
+                const pinElement = createPinElement(postData, doc.id);
+                if (pinElement) {
+                    gallery.appendChild(pinElement);
+                }
             }
         });
 
@@ -430,6 +432,7 @@ async function fetchPosts() {
 }
 
 function createPinElement(postData, postId) {
+    // Only create pin if there's media
     if (!postData.media || postData.media.length === 0) return null;
 
     const pinContainer = document.createElement('div');
@@ -439,10 +442,13 @@ function createPinElement(postData, postId) {
     const galleryItem = document.createElement('div');
     galleryItem.className = 'gallery-item';
 
+    // Create media element from first media item
     const mediaItem = postData.media[0];
     const mediaElement = createMediaElement(mediaItem);
     if (mediaElement) {
         galleryItem.appendChild(mediaElement);
+    } else {
+        return null; // Skip if media element couldn't be created
     }
 
     const profileInfo = document.createElement('div');
@@ -568,8 +574,8 @@ function openModal(postData, postId) {
     };
     
     // Set post description if available
-    if (postData.description && postData.description.trim() !== '') {
-        postDescription.textContent = postData.description;
+    if (postData.text && postData.text.trim() !== '') {
+        postDescription.textContent = postData.text;
         postDescription.style.display = 'block';
     } else {
         postDescription.style.display = 'none';
@@ -586,6 +592,7 @@ function openModal(postData, postId) {
     likePostButton.classList.toggle('liked', postData.likes && postData.likes.includes(currentUser?.uid));
     likePostCount.textContent = postData.likes ? postData.likes.length : 0;
     
+    // Create media element for modal
     const mediaItem = postData.media[0];
     const isVideo = mediaItem.type === 'video' || mediaItem.contentType?.startsWith('video/');
     
@@ -613,7 +620,6 @@ function openModal(postData, postId) {
 }
 
 function viewProfile(userId) {
-    // Show loading animation
     loadingContainer.classList.remove('hidden');
     loadingContainer.style.display = 'flex';
     
@@ -634,12 +640,10 @@ function closeProfileModal() {
     profileModal.classList.remove('active');
     document.body.style.overflow = '';
     
-    // Delay clearing the iframe src to allow for transition animation
     setTimeout(() => {
         profileIframe.src = 'about:blank';
     }, 300);
     
-    // Re-open the post modal if we came from there
     if (currentPostId) {
         setTimeout(() => {
             fullscreenModal.classList.add('active');
@@ -750,7 +754,6 @@ function createCommentElement(commentData, replies = []) {
         viewProfile(commentData.userId);
     });
     
-    // Add flag to comment author
     if (commentData.country) {
         const flag = document.createElement('img');
         flag.className = 'comment-flag';
