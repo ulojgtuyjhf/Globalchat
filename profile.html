@@ -553,454 +553,705 @@
         <p>The user you're looking for doesn't exist or is not available.</p>
     </div>
     
-    <script type="module">
-        // Import Firebase modules
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, query, orderBy, getDocs, addDoc, serverTimestamp, doc, getDoc, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+   <script type="module">
+  
+// Import Firebase modules
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, query, orderBy, getDocs, addDoc, serverTimestamp, doc, getDoc, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// Firebase Configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+    authDomain: "globalchat-2d669.firebaseapp.com",
+    projectId: "globalchat-2d669",
+    messagingSenderId: "178714711978",
+    appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
+    databaseURL: "https://globalchat-2d669-default-rtdb.firebaseio.com/"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Elements
+const loadingContainer = document.getElementById('loadingContainer');
+const profileContainer = document.getElementById('profileContainer');
+const notFound = document.getElementById('notFound');
+const profileAvatar = document.getElementById('profileAvatar');
+const username = document.getElementById('username');
+const profileHandle = document.getElementById('profileHandle');
+const countryFlag = document.getElementById('countryFlag');
+const postsCount = document.getElementById('postsCount');
+const followersCount = document.getElementById('followersCount');
+const followingCount = document.getElementById('followingCount');
+const followButton = document.getElementById('followButton');
+const messageButton = document.getElementById('messageButton');
+const shareButton = document.getElementById('shareButton');
+const moreButton = document.getElementById('moreButton');
+const profileBio = document.getElementById('profileBio');
+const gallery = document.getElementById('gallery');
+const createdTab = document.getElementById('createdTab');
+const likedTab = document.getElementById('likedTab');
+const mediaTab = document.getElementById('mediaTab');
+const createdContent = document.getElementById('created-content');
+const likedContent = document.getElementById('liked-content');
+const mediaContent = document.getElementById('media-content');
+
+// Get user ID from URL
+const urlParams = new URLSearchParams(window.location.search);
+const userId = urlParams.get('userId');
+
+let currentTab = 'created';
+
+// Current user state
+let currentUser = null;
+let profileUser = null;
+let isFollowing = false;
+let userPosts = []; // Store posts for reuse across tabs
+
+// Handle back button click from parent window
+window.addEventListener('message', (event) => {
+    if (event.data === 'closeProfile') {
+        window.parent.postMessage('closeProfileModal', '*');
+    }
+});
+
+// Initialize
+function init() {
+    // Move loading animation from center to top (on mobile)
+    setTimeout(() => {
+        loadingContainer.classList.add('move-to-top');
+    }, 300);
+    
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            currentUser = user;
+            
+            // Get user's country if available
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                if (userData.country) {
+                    currentUser.country = userData.country;
+                }
+            }
+            
+            // Check if viewing own profile
+            const isOwnProfile = userId === user.uid;
+            
+            if (isOwnProfile) {
+                followButton.style.display = 'none';
+            } else {
+                followButton.style.display = 'flex';
+                checkFollowStatus();
+            }
+            
+            loadProfile();
+        } else {
+            loadProfile();
+        }
+    });
+}
+
+async function loadProfile() {
+    try {
+        const userDoc = await getDoc(doc(db, 'users', userId));
         
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
-            authDomain: "globalchat-2d669.firebaseapp.com",
-            projectId: "globalchat-2d669",
-            messagingSenderId: "178714711978",
-            appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
-            databaseURL: "https://globalchat-2d669-default-rtdb.firebaseio.com/"
+        if (!userDoc.exists()) {
+            loadingContainer.classList.add('hidden');
+            setTimeout(() => {
+                loadingContainer.style.display = 'none';
+                notFound.style.display = 'block';
+            }, 300);
+            return;
+        }
+        
+        profileUser = {
+            id: userId,
+            ...userDoc.data()
         };
         
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        // Set profile info
+        if (profileUser.photoURL) {
+            profileAvatar.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = profileUser.photoURL;
+            img.alt = profileUser.displayName || 'User';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+            img.onerror = function() {
+                profileAvatar.innerHTML = profileUser.displayName ? profileUser.displayName.charAt(0).toUpperCase() : 'N';
+            };
+            profileAvatar.appendChild(img);
+        } else {
+            profileAvatar.textContent = profileUser.displayName ? profileUser.displayName.charAt(0).toUpperCase() : 'N';
+        }
         
-        // Elements
-        const loadingContainer = document.getElementById('loadingContainer');
-        const profileContainer = document.getElementById('profileContainer');
-        const notFound = document.getElementById('notFound');
-        const profileAvatar = document.getElementById('profileAvatar');
-        const username = document.getElementById('username');
-        const profileHandle = document.getElementById('profileHandle');
-        const countryFlag = document.getElementById('countryFlag');
-        const postsCount = document.getElementById('postsCount');
-        const followersCount = document.getElementById('followersCount');
-        const followingCount = document.getElementById('followingCount');
-        const followButton = document.getElementById('followButton');
-        const messageButton = document.getElementById('messageButton');
-        const shareButton = document.getElementById('shareButton');
-        const moreButton = document.getElementById('moreButton');
-        const profileBio = document.getElementById('profileBio');
-        const gallery = document.getElementById('gallery');
-        const createdTab = document.getElementById('createdTab');
-        const likedTab = document.getElementById('likedTab');
-        const mediaTab = document.getElementById('mediaTab');
-        const createdContent = document.getElementById('created-content');
-        const likedContent = document.getElementById('liked-content');
-        const mediaContent = document.getElementById('media-content');
+        username.textContent = profileUser.displayName || 'User';
+        profileHandle.textContent = `@${profileUser.username || 'user'}`;
         
-        // Get user ID from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('userId');
+        if (profileUser.country) {
+            countryFlag.src = `https://flagcdn.com/w20/${profileUser.country.toLowerCase()}.png`;
+            countryFlag.alt = profileUser.country.toUpperCase();
+            countryFlag.style.display = 'inline';
+            countryFlag.onerror = function() {
+                this.style.display = 'none';
+            };
+        } else {
+            countryFlag.style.display = 'none';
+        }
         
-        let currentTab = 'created';
+        profileBio.textContent = profileUser.bio || '';
         
-        // Current user state
-        let currentUser = null;
-        let profileUser = null;
-        let isFollowing = false;
+        // Load posts count
+        const postsQuery = query(
+            collection(db, 'recence'),
+            where('userId', '==', userId)
+        );
         
-        // Handle back button click from parent window
-        window.addEventListener('message', (event) => {
-            if (event.data === 'closeProfile') {
-                window.parent.postMessage('closeProfileModal', '*');
-            }
-        });
+        const postsSnapshot = await getDocs(postsQuery);
+        postsCount.textContent = postsSnapshot.size;
         
-        // Initialize
-        function init() {
-            // Move loading animation from center to top (on mobile)
-            setTimeout(() => {
-                loadingContainer.classList.add('move-to-top');
-            }, 300);
-            
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    currentUser = user;
-                    
-                    // Get user's country if available
-                    const userDoc = await getDoc(doc(db, 'users', user.uid));
-                    if (userDoc.exists()) {
-                        const userData = userDoc.data();
-                        if (userData.country) {
-                            currentUser.country = userData.country;
-                        }
-                    }
-                    
-                    // Check if viewing own profile
-                    const isOwnProfile = userId === user.uid;
-                    
-                    if (isOwnProfile) {
-                        followButton.style.display = 'none';
-                    } else {
-                        followButton.style.display = 'flex';
-                        checkFollowStatus();
-                    }
-                    
-                    loadProfile();
-                } else {
-                    loadProfile();
-                }
+        // Store posts for reuse
+        userPosts = [];
+        postsSnapshot.forEach(doc => {
+            userPosts.push({
+                id: doc.id,
+                ...doc.data()
             });
+        });
+        
+        // Load followers count
+        const followersQuery = query(
+            collection(db, 'follows'),
+            where('followedUserId', '==', userId)
+        );
+        
+        const followersSnapshot = await getDocs(followersQuery);
+        followersCount.textContent = followersSnapshot.size;
+        
+        // Load following count
+        const followingQuery = query(
+            collection(db, 'follows'),
+            where('followerUserId', '==', userId)
+        );
+        
+        const followingSnapshot = await getDocs(followingQuery);
+        followingCount.textContent = followingSnapshot.size;
+        
+        // Load posts for initial tab
+        await loadTabContent();
+        
+        // Show profile with fade-in effect
+        loadingContainer.classList.add('hidden');
+        setTimeout(() => {
+            loadingContainer.style.display = 'none';
+            profileContainer.style.display = 'block';
+        }, 300);
+        
+    } catch (error) {
+        console.error('Error loading profile:', error);
+        loadingContainer.classList.add('hidden');
+        setTimeout(() => {
+            loadingContainer.style.display = 'none';
+            notFound.style.display = 'block';
+            notFound.innerHTML = '<h2>Error</h2><p>There was an error loading this profile.</p>';
+        }, 300);
+    }
+}
+
+async function loadTabContent() {
+    // Clear previous content
+    if (currentTab === 'created') {
+        gallery.innerHTML = '<div class="loading-posts">Loading...</div>';
+        await loadCreatedPosts();
+    } else if (currentTab === 'liked') {
+        likedContent.innerHTML = '<div class="loading-posts">Loading liked posts...</div>';
+        await loadLikedPosts();
+    } else if (currentTab === 'media') {
+        mediaContent.innerHTML = '<div class="loading-posts">Loading media...</div>';
+        await loadMediaContent();
+    }
+}
+
+async function loadCreatedPosts() {
+    try {
+        if (userPosts.length === 0) {
+            gallery.innerHTML = `
+                <div class="empty-content">
+                    <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <path d="M21 15l-5-5L5 21"></path>
+                    </svg>
+                    <h3 class="empty-title">No pins yet</h3>
+                    <p class="empty-text">Pins you create will appear here</p>
+                </div>
+            `;
+            return;
         }
         
-        async function loadProfile() {
-            try {
-                const userDoc = await getDoc(doc(db, 'users', userId));
-                
-                if (!userDoc.exists()) {
-                    loadingContainer.classList.add('hidden');
-                    setTimeout(() => {
-                        loadingContainer.style.display = 'none';
-                        notFound.style.display = 'block';
-                    }, 300);
-                    return;
-                }
-                
-                profileUser = {
-                    id: userId,
-                    ...userDoc.data()
-                };
-                
-                // Set profile info
-                if (profileUser.photoURL) {
-                    profileAvatar.innerHTML = '';
-                    const img = document.createElement('img');
-                    img.src = profileUser.photoURL;
-                    img.alt = profileUser.displayName || 'User';
-                    img.style.width = '100%';
-                    img.style.height = '100%';
-                    img.style.objectFit = 'cover';
-                    img.onerror = function() {
-                        profileAvatar.innerHTML = profileUser.displayName ? profileUser.displayName.charAt(0).toUpperCase() : 'N';
-                    };
-                    profileAvatar.appendChild(img);
-                } else {
-                    profileAvatar.textContent = profileUser.displayName ? profileUser.displayName.charAt(0).toUpperCase() : 'N';
-                }
-                
-                username.textContent = profileUser.displayName || 'User';
-                profileHandle.textContent = `@${profileUser.username || 'user'}`;
-                
-                if (profileUser.country) {
-                    countryFlag.src = `https://flagcdn.com/w20/${profileUser.country.toLowerCase()}.png`;
-                    countryFlag.alt = profileUser.country.toUpperCase();
-                    countryFlag.style.display = 'inline';
-                    countryFlag.onerror = function() {
-                        this.style.display = 'none';
-                    };
-                } else {
-                    countryFlag.style.display = 'none';
-                }
-                
-                profileBio.textContent = profileUser.bio || '';
-                
-                // Load posts count
-                const postsQuery = query(
-                    collection(db, 'recence'),
-                    where('userId', '==', userId)
-                );
-                
-                const postsSnapshot = await getDocs(postsQuery);
-                postsCount.textContent = postsSnapshot.size;
-                
-                // Load followers count
-                const followersQuery = query(
-                    collection(db, 'follows'),
-                    where('followedUserId', '==', userId)
-                );
-                
-                const followersSnapshot = await getDocs(followersQuery);
-                followersCount.textContent = followersSnapshot.size;
-                
-                // Load following count
-                const followingQuery = query(
-                    collection(db, 'follows'),
-                    where('followerUserId', '==', userId)
-                );
-                
-                const followingSnapshot = await getDocs(followingQuery);
-                followingCount.textContent = followingSnapshot.size;
-                
-                // Load posts
-                await loadPosts();
-                
-                // Show profile with fade-in effect
-                loadingContainer.classList.add('hidden');
-                setTimeout(() => {
-                    loadingContainer.style.display = 'none';
-                    profileContainer.style.display = 'block';
-                }, 300);
-                
-            } catch (error) {
-                console.error('Error loading profile:', error);
-                loadingContainer.classList.add('hidden');
-                setTimeout(() => {
-                    loadingContainer.style.display = 'none';
-                    notFound.style.display = 'block';
-                    notFound.innerHTML = '<h2>Error</h2><p>There was an error loading this profile.</p>';
-                }, 300);
-            }
-        }
+        gallery.innerHTML = '';
         
-        async function loadPosts() {
-            try {
-                let postsQuery;
+        // Sort posts by timestamp (newest first)
+        const sortedPosts = [...userPosts].sort((a, b) => {
+            if (!a.timestamp && !b.timestamp) return 0;
+            if (!a.timestamp) return 1;
+            if (!b.timestamp) return -1;
+            
+            const timestampA = a.timestamp.seconds || a.timestamp;
+            const timestampB = b.timestamp.seconds || b.timestamp;
+            return timestampB - timestampA;
+        });
+        
+        sortedPosts.forEach(postData => {
+            const postId = postData.id;
+            
+            if (postData.media && postData.media.length > 0) {
+                const galleryItem = document.createElement('div');
+                galleryItem.className = 'gallery-item';
+                galleryItem.dataset.postId = postId;
                 
-                if (currentTab === 'created') {
-                    gallery.innerHTML = '<div class="loading-posts">Loading...</div>';
+                const mediaItem = postData.media[0];
+                const isVideo = mediaItem.type === 'video' || 
+                               (mediaItem.contentType && mediaItem.contentType.startsWith('video/')) ||
+                               (mediaItem.url && mediaItem.url.match(/\.(mp4|mov|webm|avi)/i));
+                
+                const mediaContainer = document.createElement('div');
+                mediaContainer.style.position = 'relative';
+                
+                if (isVideo) {
+                    const video = document.createElement('video');
+                    video.src = mediaItem.url;
+                    video.muted = true;
+                    video.loop = true;
+                    video.playsInline = true;
                     
-                    postsQuery = query(
-                        collection(db, 'recence'),
-                        where('userId', '==', userId),
-                        orderBy('timestamp', 'desc')
-                    );
+                    // For touch devices, use poster or first frame
+                    video.poster = mediaItem.thumbnail || '';
                     
-                    const postsSnapshot = await getDocs(postsQuery);
-                    
-                    if (postsSnapshot.empty) {
-                        gallery.innerHTML = `
-                            <div class="empty-content">
-                                <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                    <path d="M21 15l-5-5L5 21"></path>
-                                </svg>
-                                <h3 class="empty-title">No pins yet</h3>
-                                <p class="empty-text">Pins you create will appear here</p>
-                            </div>
-                        `;
-                        return;
+                    // Only play on hover for desktop
+                    if (window.matchMedia('(min-width: 768px)').matches) {
+                        galleryItem.addEventListener('mouseenter', () => {
+                            video.play().catch(err => console.log('Video play prevented:', err));
+                        });
+                        
+                        galleryItem.addEventListener('mouseleave', () => {
+                            video.pause();
+                        });
                     }
                     
-                    gallery.innerHTML = '';
+                    const videoIndicator = document.createElement('div');
+                    videoIndicator.className = 'video-indicator';
+                    videoIndicator.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="white">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                    `;
                     
-                    postsSnapshot.forEach(postDoc => {
-                        const postData = postDoc.data();
-                        const postId = postDoc.id;
-                        
-                        if (postData.media && postData.media.length > 0) {
-                            const galleryItem = document.createElement('div');
-                            galleryItem.className = 'gallery-item';
-                            galleryItem.dataset.postId = postId;
-                            
-                            const mediaItem = postData.media[0];
-                            const isVideo = mediaItem.type === 'video' || mediaItem.contentType?.startsWith('video/');
-                            
-                            const mediaContainer = document.createElement('div');
-                            mediaContainer.style.position = 'relative';
-                            
-                            if (isVideo) {
-                                const video = document.createElement('video');
-                                video.src = mediaItem.url;
-                                video.muted = true;
-                                video.loop = true;
-                                video.playsInline = true;
-                                
-                                // For touch devices, use poster or first frame
-                                video.poster = mediaItem.thumbnail || '';
-                                
-                                // Only play on hover for desktop
-                                if (window.matchMedia('(min-width: 768px)').matches) {
-                                    galleryItem.addEventListener('mouseenter', () => {
-                                        video.play().catch(err => console.log('Video play prevented:', err));
-                                    });
-                                    
-                                    galleryItem.addEventListener('mouseleave', () => {
-                                        video.pause();
-                                    });
-                                }
-                                
-                                const videoIndicator = document.createElement('div');
-                                videoIndicator.className = 'video-indicator';
-                                videoIndicator.innerHTML = `
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="white">
-                                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                                    </svg>
-                                `;
-                                
-                                mediaContainer.appendChild(video);
-                                mediaContainer.appendChild(videoIndicator);
-                            } else {
-                                const img = document.createElement('img');
-                                img.src = mediaItem.url;
-                                img.alt = postData.text || 'Pin';
-                                img.loading = 'lazy';
-                                
-                                mediaContainer.appendChild(img);
-                            }
-                            
-                            galleryItem.appendChild(mediaContainer);
-                            
-                            galleryItem.addEventListener('click', () => {
-                                window.parent.postMessage({
-                                    type: 'openPost',
-                                    postId: postId
-                                }, '*');
-                            });
-                            
-                            gallery.appendChild(galleryItem);
-                            
-                            // Apply random heights for a more Pinterest-like look
-                            const randomHeight = Math.floor(Math.random() * (400 - 200) + 200);
-                            if (!isVideo) {
-                                const img = mediaContainer.querySelector('img');
-                                if (img) {
-                                    img.style.minHeight = `${randomHeight}px`;
-                                }
-                            }
-                        }
-                    });
-                }
-                
-            } catch (error) {
-                console.error('Error loading posts:', error);
-                gallery.innerHTML = '<div style="text-align: center; padding: 20px;">Error loading pins</div>';
-            }
-        }
-        
-        async function checkFollowStatus() {
-            if (!currentUser) return;
-            
-            try {
-                const followQuery = query(
-                    collection(db, 'follows'),
-                    where('followerUserId', '==', currentUser.uid),
-                    where('followedUserId', '==', userId)
-                );
-                
-                const followSnapshot = await getDocs(followQuery);
-                isFollowing = !followSnapshot.empty;
-                
-                updateFollowButton();
-            } catch (error) {
-                console.error('Error checking follow status:', error);
-            }
-        }
-        
-        function updateFollowButton() {
-            if (isFollowing) {
-                followButton.textContent = 'Following';
-                followButton.classList.add('followed');
-            } else {
-                followButton.textContent = 'Follow';
-                followButton.classList.remove('followed');
-            }
-        }
-        
-        async function toggleFollow() {
-            if (!currentUser || !profileUser) return;
-            
-            try {
-                const followQuery = query(
-                    collection(db, 'follows'),
-                    where('followerUserId', '==', currentUser.uid),
-                    where('followedUserId', '==', userId)
-                );
-                
-                const followSnapshot = await getDocs(followQuery);
-                
-                if (followSnapshot.empty) {
-                    // Follow
-                    await addDoc(collection(db, 'follows'), {
-                        followerUserId: currentUser.uid,
-                        followedUserId: userId,
-                        followedUserName: profileUser.displayName || 'User',
-                        timestamp: serverTimestamp()
-                    });
-                    
-                    isFollowing = true;
-                    
-                    // Update followers count
-                    const count = parseInt(followersCount.textContent) + 1;
-                    followersCount.textContent = count;
+                    mediaContainer.appendChild(video);
+                    mediaContainer.appendChild(videoIndicator);
                 } else {
-                    // Unfollow
-                    followSnapshot.forEach(async doc => {
-                        await deleteDoc(doc.ref);
-                    });
+                    const img = document.createElement('img');
+                    img.src = mediaItem.url;
+                    img.alt = postData.text || 'Pin';
+                    img.loading = 'lazy';
                     
-                    isFollowing = false;
-                    
-                    // Update followers count
-                    const count = Math.max(0, parseInt(followersCount.textContent) - 1);
-                    followersCount.textContent = count;
+                    mediaContainer.appendChild(img);
                 }
                 
-                updateFollowButton();
-            } catch (error) {
-                console.error('Error toggling follow:', error);
-            }
-        }
-        
-        function switchTab(tab) {
-            if (tab === currentTab) return;
-            
-            currentTab = tab;
-            
-            // Update tab classes
-            createdTab.classList.toggle('active', tab === 'created');
-            likedTab.classList.toggle('active', tab === 'liked');
-            mediaTab.classList.toggle('active', tab === 'media');
-            
-            // Update content visibility
-            createdContent.classList.toggle('active', tab === 'created');
-            likedContent.classList.toggle('active', tab === 'liked');
-            mediaContent.classList.toggle('active', tab === 'media');
-            
-            if (tab === 'created') {
-                loadPosts();
-            }
-        }
-        
-        // Event listeners
-        followButton.addEventListener('click', toggleFollow);
-        messageButton.addEventListener('click', () => {
-            window.parent.postMessage({
-                type: 'openMessage',
-                userId: userId,
-                username: profileUser?.displayName || 'User'
-            }, '*');
-        });
-        
-        shareButton.addEventListener('click', () => {
-            if (navigator.share) {
-                navigator.share({
-                    title: `${profileUser?.displayName || 'User'}'s Profile`,
-                    text: `Check out ${profileUser?.displayName || 'User'}'s profile on GlobalChat`,
-                    url: window.location.href
-                }).catch(err => {
-                    console.log('Error sharing:', err);
-                    alert('Profile link copied to clipboard');
-                    navigator.clipboard.writeText(window.location.href);
+                galleryItem.appendChild(mediaContainer);
+                
+                galleryItem.addEventListener('click', () => {
+                    window.parent.postMessage({
+                        type: 'openPost',
+                        postId: postId
+                    }, '*');
                 });
-            } else {
-                alert('Profile link copied to clipboard');
-                navigator.clipboard.writeText(window.location.href);
+                
+                gallery.appendChild(galleryItem);
+                
+                // Apply random heights for a more Pinterest-like look
+                const randomHeight = Math.floor(Math.random() * (400 - 200) + 200);
+                if (!isVideo) {
+                    const img = mediaContainer.querySelector('img');
+                    if (img) {
+                        img.style.minHeight = `${randomHeight}px`;
+                    }
+                }
             }
         });
         
-        moreButton.addEventListener('click', () => {
-            // Could implement a dropdown menu here
-            alert('More options coming soon!');
+        // If no media posts were added to the gallery
+        if (gallery.children.length === 0) {
+            gallery.innerHTML = `
+                <div class="empty-content">
+                    <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <path d="M21 15l-5-5L5 21"></path>
+                    </svg>
+                    <h3 class="empty-title">No media pins</h3>
+                    <p class="empty-text">Pins with images or videos will appear here</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading created posts:', error);
+        gallery.innerHTML = '<div style="text-align: center; padding: 20px;">Error loading pins</div>';
+    }
+}
+
+async function loadLikedPosts() {
+    // Implement liked posts functionality if needed
+    likedContent.innerHTML = `
+        <div class="empty-content">
+            <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+            <h3 class="empty-title">No liked pins</h3>
+            <p class="empty-text">Pins you like will appear here</p>
+        </div>
+    `;
+}
+
+async function loadMediaContent() {
+    try {
+        // We'll use the cached userPosts if available
+        if (userPosts.length === 0) {
+            mediaContent.innerHTML = `
+                <div class="empty-content">
+                    <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <path d="M21 15l-5-5L5 21"></path>
+                    </svg>
+                    <h3 class="empty-title">No media yet</h3>
+                    <p class="empty-text">Media will appear here</p>
+                </div>
+            `;
+            return;
+        }
+        
+        mediaContent.innerHTML = '';
+        
+        // Create a media grid container
+        const mediaGrid = document.createElement('div');
+        mediaGrid.className = 'media-grid';
+        mediaContent.appendChild(mediaGrid);
+        
+        // Extract all media items from posts
+        const mediaItems = [];
+        
+        userPosts.forEach(postData => {
+            const postId = postData.id;
+            
+            if (postData.media && postData.media.length > 0) {
+                postData.media.forEach(media => {
+                    let mediaUrl = null;
+                    let mediaType = 'image';
+                    let thumbnail = null;
+                    
+                    if (typeof media === 'string') {
+                        mediaUrl = media;
+                    } else if (media.url) {
+                        mediaUrl = media.url;
+                        mediaType = (media.type === 'video' || 
+                                    (media.contentType && media.contentType.startsWith('video/')) ||
+                                    mediaUrl.match(/\.(mp4|mov|webm|avi)/i)) ? 'video' : 'image';
+                        thumbnail = media.thumbnail || null;
+                    } else if (media.previewUrl) {
+                        mediaUrl = media.previewUrl;
+                        mediaType = media.type || 'image';
+                    } else if (media.src) {
+                        mediaUrl = media.src;
+                        mediaType = media.type || 'image';
+                    } else if (media.link) {
+                        mediaUrl = media.link;
+                        mediaType = media.type || 'image';
+                    }
+                    
+                    if (mediaUrl) {
+                        mediaItems.push({
+                            url: mediaUrl,
+                            type: mediaType,
+                            thumbnail: thumbnail,
+                            postId: postId
+                        });
+                    }
+                });
+            }
         });
         
-        createdTab.addEventListener('click', () => switchTab('created'));
-        likedTab.addEventListener('click', () => switchTab('liked'));
-        mediaTab.addEventListener('click', () => switchTab('media'));
+        if (mediaItems.length === 0) {
+            mediaContent.innerHTML = `
+                <div class="empty-content">
+                    <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <path d="M21 15l-5-5L5 21"></path>
+                    </svg>
+                    <h3 class="empty-title">No media found</h3>
+                    <p class="empty-text">This user hasn't shared any media yet</p>
+                </div>
+            `;
+            return;
+        }
         
-        // Initialize
-        init();
-    </script>
+        // Display media items in a grid
+        mediaItems.forEach(item => {
+            const mediaElement = document.createElement('div');
+            mediaElement.className = 'media-item';
+            
+            if (item.type === 'video') {
+                const container = document.createElement('div');
+                container.className = 'video-container';
+                
+                const video = document.createElement('video');
+                video.src = item.url;
+                video.muted = true;
+                video.playsInline = true;
+                
+                if (item.thumbnail) {
+                    video.poster = item.thumbnail;
+                }
+                
+                // Only play on hover for desktop
+                if (window.matchMedia('(min-width: 768px)').matches) {
+                    mediaElement.addEventListener('mouseenter', () => {
+                        video.play().catch(err => console.log('Video play prevented:', err));
+                    });
+                    
+                    mediaElement.addEventListener('mouseleave', () => {
+                        video.pause();
+                    });
+                }
+                
+                const videoIndicator = document.createElement('div');
+                videoIndicator.className = 'video-indicator';
+                videoIndicator.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="white">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                `;
+                
+                container.appendChild(video);
+                container.appendChild(videoIndicator);
+                mediaElement.appendChild(container);
+            } else {
+                const img = document.createElement('img');
+                img.src = item.url;
+                img.alt = 'Media';
+                img.loading = 'lazy';
+                mediaElement.appendChild(img);
+            }
+            
+            mediaElement.addEventListener('click', () => {
+                window.parent.postMessage({
+                    type: 'openPost',
+                    postId: item.postId
+                }, '*');
+            });
+            
+            mediaGrid.appendChild(mediaElement);
+        });
+        
+        // Add CSS to the page for media grid layout if not already present
+        if (!document.getElementById('media-grid-style')) {
+            const styleElement = document.createElement('style');
+            styleElement.id = 'media-grid-style';
+            styleElement.textContent = `
+                .media-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                    gap: 8px;
+                    padding: 8px;
+                }
+                
+                .media-item {
+                    position: relative;
+                    overflow: hidden;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    aspect-ratio: 1/1;
+                    background-color: #f0f0f0;
+                }
+                
+                .media-item img, .media-item video {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+                
+                .video-container {
+                    position: relative;
+                    width: 100%;
+                    height: 100%;
+                }
+                
+                .video-indicator {
+                    position: absolute;
+                    bottom: 8px;
+                    right: 8px;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    border-radius: 50%;
+                    width: 24px;
+                    height: 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                
+                .media-item:hover {
+                    transform: scale(1.02);
+                    transition: transform 0.2s ease;
+                }
+            `;
+            document.head.appendChild(styleElement);
+        }
+        
+    } catch (error) {
+        console.error('Error loading media content:', error);
+        mediaContent.innerHTML = '<div style="text-align: center; padding: 20px;">Error loading media</div>';
+    }
+}
+
+async function checkFollowStatus() {
+    if (!currentUser) return;
+    
+    try {
+        const followQuery = query(
+            collection(db, 'follows'),
+            where('followerUserId', '==', currentUser.uid),
+            where('followedUserId', '==', userId)
+        );
+        
+        const followSnapshot = await getDocs(followQuery);
+        isFollowing = !followSnapshot.empty;
+        
+        updateFollowButton();
+    } catch (error) {
+        console.error('Error checking follow status:', error);
+    }
+}
+
+function updateFollowButton() {
+    if (isFollowing) {
+        followButton.textContent = 'Following';
+        followButton.classList.add('followed');
+    } else {
+        followButton.textContent = 'Follow';
+        followButton.classList.remove('followed');
+    }
+}
+
+async function toggleFollow() {
+    if (!currentUser || !profileUser) return;
+    
+    try {
+        const followQuery = query(
+            collection(db, 'follows'),
+            where('followerUserId', '==', currentUser.uid),
+            where('followedUserId', '==', userId)
+        );
+        
+        const followSnapshot = await getDocs(followQuery);
+        
+        if (followSnapshot.empty) {
+            // Follow
+            await addDoc(collection(db, 'follows'), {
+                followerUserId: currentUser.uid,
+                followedUserId: userId,
+                followedUserName: profileUser.displayName || 'User',
+                timestamp: serverTimestamp()
+            });
+            
+            isFollowing = true;
+            
+            // Update followers count
+            const count = parseInt(followersCount.textContent) + 1;
+            followersCount.textContent = count;
+        } else {
+            // Unfollow
+            followSnapshot.forEach(async doc => {
+                await deleteDoc(doc.ref);
+            });
+            
+            isFollowing = false;
+            
+            // Update followers count
+            const count = Math.max(0, parseInt(followersCount.textContent) - 1);
+            followersCount.textContent = count;
+        }
+        
+        updateFollowButton();
+    } catch (error) {
+        console.error('Error toggling follow:', error);
+    }
+}
+
+function switchTab(tab) {
+    if (tab === currentTab) return;
+    
+    currentTab = tab;
+    
+    // Update tab classes
+    createdTab.classList.toggle('active', tab === 'created');
+    likedTab.classList.toggle('active', tab === 'liked');
+    mediaTab.classList.toggle('active', tab === 'media');
+    
+    // Update content visibility
+    createdContent.classList.toggle('active', tab === 'created');
+    likedContent.classList.toggle('active', tab === 'liked');
+    mediaContent.classList.toggle('active', tab === 'media');
+    
+    // Load content for the selected tab
+    loadTabContent();
+}
+
+// Event listeners
+followButton.addEventListener('click', toggleFollow);
+messageButton.addEventListener('click', () => {
+    window.parent.postMessage({
+        type: 'openMessage',
+        userId: userId,
+        username: profileUser?.displayName || 'User'
+    }, '*');
+});
+
+shareButton.addEventListener('click', () => {
+    if (navigator.share) {
+        navigator.share({
+            title: `${profileUser?.displayName || 'User'}'s Profile`,
+            text: `Check out ${profileUser?.displayName || 'User'}'s profile on GlobalChat`,
+            url: window.location.href
+        }).catch(err => {
+            console.log('Error sharing:', err);
+            alert('Profile link copied to clipboard');
+            navigator.clipboard.writeText(window.location.href);
+        });
+    } else {
+        alert('Profile link copied to clipboard');
+        navigator.clipboard.writeText(window.location.href);
+    }
+});
+
+moreButton.addEventListener('click', () => {
+    // Could implement a dropdown menu here
+    alert('More options coming soon!');
+});
+
+createdTab.addEventListener('click', () => switchTab('created'));
+likedTab.addEventListener('click', () => switchTab('liked'));
+mediaTab.addEventListener('click', () => switchTab('media'));
+
+// Initialize
+init();
+
+</script>
     <script>
        
 (function() {

@@ -67,6 +67,11 @@ const replyPreviewClose = document.getElementById('replyPreviewClose');
 const profileModal = document.getElementById('profileModal');
 const profileBackButton = document.getElementById('profileBackButton');
 const profileIframe = document.getElementById('profileIframe');
+const profileName = document.getElementById('profileName');
+const profileAvatar = document.getElementById('profileAvatar');
+const postsCount = document.getElementById('postsCount');
+const mediaCount = document.getElementById('mediaCount');
+const mediaContainer = document.getElementById('mediaContainer');
 
 // Current user state
 let currentUser = null;
@@ -115,9 +120,15 @@ function init() {
                 displayName: user.displayName || userData.displayName || 'User'
             };
             
+            // Update profile UI
+            updateProfileUI(currentUser);
+            
             await fetchFollowedUsers();
             fetchPosts();
             setupEventListeners();
+            
+            // Fetch user media
+            await fetchUserMedia(user.uid);
         } else {
             loadingContainer.classList.add('hidden');
             setTimeout(() => {
@@ -126,6 +137,156 @@ function init() {
             gallery.innerHTML = '<div style="text-align: center; padding: 20px;">Please sign in to view content</div>';
         }
     });
+}
+
+// Update profile UI
+function updateProfileUI(user) {
+    if (profileName) profileName.textContent = user.displayName || 'Anonymous User';
+    if (profileAvatar) {
+        profileAvatar.src = user.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
+    }
+}
+
+// Fetch user media
+async function fetchUserMedia(userId) {
+    if (!mediaContainer) return;
+    
+    try {
+        // Try different user ID field names
+        const userFields = ['userId', 'uid', 'user_id', 'authorId', 'author_id'];
+        let allPosts = [];
+        
+        // Try each possible field
+        for (const field of userFields) {
+            const postsQuery = query(
+                collection(db, 'recence'),
+                where(field, '==', userId)
+            );
+            
+            const querySnapshot = await getDocs(postsQuery);
+            if (!querySnapshot.empty) {
+                querySnapshot.forEach(doc => {
+                    allPosts.push({ id: doc.id, ...doc.data() });
+                });
+                break; // Found posts, no need to try other fields
+            }
+        }
+        
+        // If no posts found with specific queries, get recent posts
+        if (allPosts.length === 0) {
+            const recentQuery = query(
+                collection(db, 'recence'),
+                limit(20)
+            );
+            
+            const querySnapshot = await getDocs(recentQuery);
+            querySnapshot.forEach(doc => {
+                const data = doc.data();
+                // Include only posts that seem to be from this user
+                if (data.userId === userId || data.uid === userId) {
+                    allPosts.push({ id: doc.id, ...data });
+                }
+            });
+        }
+        
+        // Update stats
+        if (postsCount) postsCount.textContent = `Posts: ${allPosts.length}`;
+        
+        // Extract media from posts
+        const mediaItems = extractMediaFromPosts(allPosts);
+        if (mediaCount) mediaCount.textContent = `Media: ${mediaItems.length}`;
+        
+        // Display media
+        displayMedia(mediaItems);
+        
+    } catch (error) {
+        console.error("Error fetching media:", error);
+        if (mediaContainer) {
+            mediaContainer.innerHTML = `
+                <div class="empty-state">
+                    <p>Could not load your media. Please try again later.</p>
+                </div>
+            `;
+        }
+    }
+}
+
+// Extract media from posts
+function extractMediaFromPosts(posts) {
+    const mediaItems = [];
+    
+    posts.forEach(post => {
+        if (post.media && Array.isArray(post.media)) {
+            post.media.forEach((media, index) => {
+                // Try to extract URL from different possible structures
+                let mediaUrl = null;
+                let mediaType = 'image'; // Default
+                
+                if (typeof media === 'string') {
+                    // Case: media is just a URL string
+                    mediaUrl = media;
+                } else if (media.url) {
+                    // Case: media has url property
+                    mediaUrl = media.url;
+                    mediaType = media.type || 'image';
+                } else if (media.previewUrl) {
+                    // Case: media has previewUrl property
+                    mediaUrl = media.previewUrl;
+                    mediaType = media.type || 'image';
+                } else if (media.src) {
+                    // Case: media has src property
+                    mediaUrl = media.src;
+                    mediaType = media.type || 'image';
+                } else if (media.link) {
+                    // Case: media has link property
+                    mediaUrl = media.link;
+                    mediaType = media.type || 'image';
+                }
+                
+                if (mediaUrl) {
+                    mediaItems.push({
+                        url: mediaUrl,
+                        type: mediaType,
+                        postId: post.id
+                    });
+                }
+            });
+        }
+    });
+    
+    return mediaItems;
+}
+
+// Display media items
+function displayMedia(mediaItems) {
+    if (!mediaContainer) return;
+    
+    if (mediaItems.length > 0) {
+        mediaContainer.innerHTML = '';
+        
+        mediaItems.forEach((item) => {
+            const mediaElement = document.createElement('div');
+            mediaElement.className = 'media-item';
+            
+            if (item.type.includes('video') || item.url.match(/\.(mp4|mov|webm|avi)/i)) {
+                mediaElement.innerHTML = `
+                    <video src="${item.url}" controls></video>
+                `;
+            } else {
+                mediaElement.innerHTML = `
+                    <img src="${item.url}" alt="Media">
+                `;
+            }
+            
+            mediaContainer.appendChild(mediaElement);
+        });
+    } else {
+        mediaContainer.innerHTML = `
+            <div class="empty-state">
+                <p>No media found. Share something to see it here!</p>
+            </div>
+        `;
+    }
 }
 
 async function fetchFollowedUsers() {
