@@ -793,9 +793,12 @@ body {
 .slide-action-icon {
     width: 42px; height: 42px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.18);
+    background: rgba(0,0,0,0.35);
     display: flex; align-items: center; justify-content: center;
     transition: transform 0.15s, background 0.2s;
+}
+.slide-action-icon svg {
+    filter: drop-shadow(0 0 3px rgba(0,0,0,0.8));
 }
 .slide-action-btn:active .slide-action-icon { transform: scale(0.88); }
 .slide-action-icon svg {
@@ -983,17 +986,23 @@ body {
     gap: 12px;
     flex-shrink: 0;
     background: #ffffff;
+    position: relative;
+    z-index: 9999;
 }
 .fp-back {
     background: rgba(0,0,0,0.08); border: none; cursor: pointer;
     color: #111;
     display: flex; align-items: center; justify-content: center;
-    width: 30px; height: 30px; border-radius: 50%;
+    width: 34px; height: 34px; border-radius: 50%;
     -webkit-tap-highlight-color: transparent;
     transition: background 0.15s;
+    position: relative;
+    z-index: 9999;
+    pointer-events: all !important;
+    flex-shrink: 0;
 }
-.fp-back:active { background: rgba(0,0,0,0.15); }
-.fp-back svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2.5; fill: none; }
+.fp-back:active { background: rgba(0,0,0,0.2); }
+.fp-back svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2.5; fill: none; pointer-events: none; }
 .fp-title { font-size: 15px; font-weight: 700; color: #111; }
 
 /* Profile card — dark theme matching panel */
@@ -1718,17 +1727,21 @@ async function setupVideoVisibility() {
     const visObs = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             const video = entry.target;
-            if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+            if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+                // Resume playing with sound when scrolled back into view
                 video.muted = false;
-                video.play().catch(() => { video.muted = true; video.play().catch(() => {}); });
+                video.play().catch(() => {
+                    video.muted = true;
+                    video.play().catch(() => {});
+                });
             } else {
+                // Pause and reset when off-screen
                 video.pause();
             }
         });
-    }, { threshold: 0.6 });
+    }, { threshold: [0, 0.5, 1.0] });
 
-    document.querySelectorAll('.gallery video').forEach(v => visObs.observe(v));
-    // Also observe new videos added later
+    document.querySelectorAll('#gallery video').forEach(v => visObs.observe(v));
     window._videoVisObs = visObs;
 }
 
@@ -1948,7 +1961,7 @@ function createPinElement(postData, postId) {
     cmtBtn.setAttribute('aria-label', 'Comments');
     cmtBtn.innerHTML =
         '<div class="slide-action-icon">' +
-            '<svg viewBox="0 0 122.97 122.88" fill="#fff" xmlns="http://www.w3.org/2000/svg"><path d="M61.44,0a61.46,61.46,0,0,1,54.91,89l6.44,25.74a5.83,5.83,0,0,1-7.25,7L91.62,115A61.43,61.43,0,1,1,61.44,0ZM96.63,26.25a49.78,49.78,0,1,0-9,77.52A5.83,5.83,0,0,1,92.4,103L109,107.77l-4.5-18a5.86,5.86,0,0,1,.51-4.34,49.06,49.06,0,0,0,4.62-11.58,50,50,0,0,0-13-47.62Z"/></svg>' +
+            '<svg viewBox="0 0 122.97 122.88" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M61.44,0a61.46,61.46,0,0,1,54.91,89l6.44,25.74a5.83,5.83,0,0,1-7.25,7L91.62,115A61.43,61.43,0,1,1,61.44,0ZM96.63,26.25a49.78,49.78,0,1,0-9,77.52A5.83,5.83,0,0,1,92.4,103L109,107.77l-4.5-18a5.86,5.86,0,0,1,.51-4.34,49.06,49.06,0,0,0,4.62-11.58,50,50,0,0,0-13-47.62Z" fill="#ffffff" stroke="rgba(255,255,255,0.3)" stroke-width="1"/></svg>' +
         '</div>' +
         '<span class="slide-action-label cmt-count">' + (postData.commentCount || 0) + '</span>';
     cmtBtn.addEventListener('click', (e) => {
@@ -2591,6 +2604,100 @@ init();
         </button>
     </nav>
 
+
+    <script>
+    // ── Download notification (isolated IIFE — no conflicts) ──
+    (function() {
+        'use strict';
+        function createDownloadNotification() {
+            if (window.matchMedia('(display-mode: standalone)').matches ||
+                window.navigator.standalone ||
+                document.referrer.includes('android-app://')) return;
+            var isApple = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+            if (isApple) return;
+            var ua = navigator.userAgent.toLowerCase();
+            var isWebView = /(webview|wv)/.test(ua) || (/android/.test(ua) && /wv/.test(ua));
+            var isMobile = /android|windows phone/.test(ua);
+            var isDesktop = !/(android|iphone|ipad|ipod|windows phone)/i.test(ua);
+            if (!isMobile || isWebView || isDesktop) return;
+
+            var isAndroid = /android/.test(ua);
+            var brandGradient = 'linear-gradient(135deg,#0f0f0f 0%,#3a3a3a 40%,#626262 70%,#a6a6a6 100%)';
+            var brandDark = '#3a3a3a';
+            var brandMid = '#626262';
+
+            var notification = document.createElement('div');
+            notification.id = 'dlNotif';
+            notification.style.cssText = [
+                'position:fixed','bottom:80px','left:50%',
+                'transform:translateX(-50%) translateY(120px)',
+                'background:#1a1a1a',
+                'color:#fff',
+                'padding:14px 16px',
+                'border-radius:18px',
+                'font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif',
+                'box-shadow:0 6px 24px rgba(0,0,0,0.5)',
+                'display:flex','align-items:center','gap:12px',
+                'opacity:0',
+                'transition:all 0.45s cubic-bezier(0.4,0,0.2,1)',
+                'z-index:99999','max-width:92%','width:auto',
+                'border:1px solid #3a3a3a'
+            ].join(';');
+
+            var iconEl = document.createElement('div');
+            iconEl.innerHTML = '<svg width="36" height="36" viewBox="0 0 36 36"><defs><linearGradient id="dlGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0f0f0f"/><stop offset="50%" stop-color="#626262"/><stop offset="100%" stop-color="#a6a6a6"/></linearGradient></defs><circle cx="18" cy="18" r="18" fill="url(#dlGrad)"/><text x="50%" y="50%" text-anchor="middle" fill="#fff" font-size="15" font-weight="700" dy=".35em" font-family="sans-serif">N</text></svg>';
+
+            var textEl = document.createElement('div');
+            textEl.innerHTML = '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:3px;">Get the App</div>'
+                + '<div style="font-size:11px;color:rgba(255,255,255,0.55);">' + (isAndroid ? 'Download for Android' : 'Download for Windows') + '</div>';
+
+            var btnWrap = document.createElement('div');
+            btnWrap.style.cssText = 'display:flex;gap:8px;margin-left:8px;flex-shrink:0;';
+
+            var installBtn = document.createElement('button');
+            installBtn.textContent = 'Install';
+            installBtn.style.cssText = 'background:linear-gradient(135deg,#3a3a3a,#8f8f8f);color:#fff;border:none;padding:7px 14px;border-radius:20px;font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap;';
+
+            var cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Later';
+            cancelBtn.style.cssText = 'background:transparent;color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.25);padding:7px 12px;border-radius:20px;font-weight:500;font-size:12px;cursor:pointer;white-space:nowrap;';
+
+            function hide() {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(-50%) translateY(120px)';
+                setTimeout(function(){ if (notification.parentNode) notification.parentNode.removeChild(notification); }, 500);
+            }
+
+            installBtn.onclick = function() {
+                var url = isAndroid ? 'https://median.co/share/zjajxa#apk' : 'https://median.co/share/bzqkem#apk';
+                var a = document.createElement('a');
+                a.href = url; a.download = 'app.apk';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                hide();
+            };
+            cancelBtn.onclick = hide;
+
+            btnWrap.appendChild(installBtn);
+            btnWrap.appendChild(cancelBtn);
+            notification.appendChild(iconEl);
+            notification.appendChild(textEl);
+            notification.appendChild(btnWrap);
+            document.body.appendChild(notification);
+
+            setTimeout(function() {
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateX(-50%) translateY(0)';
+            }, 1200);
+
+            setTimeout(hide, 12000);
+        }
+        if (document.readyState === 'complete') {
+            createDownloadNotification();
+        } else {
+            window.addEventListener('load', createDownloadNotification, { once: true });
+        }
+    })();
+    </script>
     <script>
     // ── TikTok snap scroll + sound on first tap ──
     (function() {
@@ -2693,6 +2800,34 @@ init();
         }
         if (btn) btn.addEventListener('click', close);
         if (ov)  ov.addEventListener('click', close);
+    })();
+
+    // ── Profile/Following panel — GLOBAL X close (works however panel was opened) ──
+    (function() {
+        var fpBackBtn = document.getElementById('fpBack');
+        var fpPanelEl = document.getElementById('followingPanel');
+        var fpOvEl    = document.getElementById('fpOverlay');
+        function closeFpPanel() {
+            if (fpPanelEl) fpPanelEl.classList.remove('open');
+            if (fpOvEl)    fpOvEl.classList.remove('open');
+            document.body.style.overflow = '';
+            var tabFY = document.getElementById('tabForYou');
+            var tabFL = document.getElementById('tabFollowing');
+            if (tabFY) tabFY.classList.add('active');
+            if (tabFL) tabFL.classList.remove('active');
+        }
+        if (fpBackBtn) {
+            fpBackBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeFpPanel();
+            });
+        }
+        if (fpOvEl) {
+            fpOvEl.addEventListener('click', function() {
+                closeFpPanel();
+            });
+        }
     })();
 
     // ── Nav ──
@@ -2810,13 +2945,8 @@ init();
             });
         }
         if (tabForYou)  tabForYou.addEventListener('click', closePanel);
-        if (fpBack) {
-            fpBack.addEventListener('click', function(e) {
-                e.stopPropagation();
-                closePanel();
-            });
-        }
-        if (ov)         ov.addEventListener('click', closePanel);
+        // fpBack is handled by global close handler below
+        // ov click also handled globally
 
         // receive posts from module and build feed
         document.addEventListener('fpFeedReady', function(e) {
@@ -2840,180 +2970,6 @@ init();
         });
     })();
     </script>
-     <script>
-  function createDownloadNotification() {
-    // Check if running as PWA or standalone app
-    if (window.matchMedia('(display-mode: standalone)').matches ||
-      window.navigator.standalone ||
-      document.referrer.includes('android-app://')) {
-      return; // Don't show notification if it's installed as PWA
-    }
-    
-    // Check if it's an Apple device (iPhone, iPad, etc.)
-    const isAppleDevice = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
-    if (isAppleDevice) {
-      return; // Don't show notification on Apple devices
-    }
-    
-    // More thorough browser detection
-    const isBrowser = () => {
-      const ua = navigator.userAgent.toLowerCase();
-      
-      // Check if it's a WebView
-      const isWebView = /(webview|wv)/.test(ua) ||
-        /windows.*phone/.test(ua) ||
-        /android.*mobile/.test(ua) && /wv/.test(ua);
-      
-      // Check if it's a known mobile browser
-      const isMobileBrowser = /chrome|safari|firefox|opera|edge|ie/i.test(ua) &&
-        !isWebView &&
-        !ua.includes('samsung') &&
-        !ua.includes('miui') &&
-        !ua.includes('huawei');
-      
-      // Check if it's a desktop browser
-      const isDesktopBrowser = /chrome|firefox|opera|edge|ie/i.test(ua) &&
-        !/(android|iphone|ipad|ipod|windows phone)/i.test(ua);
-      
-      // Return true only for mobile browsers, exclude desktop browsers
-      return isMobileBrowser && !isDesktopBrowser;
-    };
-    
-    // Only proceed if it's a regular mobile browser
-    if (!isBrowser()) {
-      return;
-    }
-    
-    // Detect OS for customizing the message
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isAndroid = /android/.test(userAgent);
-    const isWindows = /windows/.test(userAgent);
-    
-    // Create notification container
-    const notification = document.createElement("div");
-    notification.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%) translateY(100px);
-        background: #ffffff;
-        color: #1da1f2; /* Twitter blue for text */
-        padding: 16px;
-        border-radius: 16px;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        opacity: 0;
-        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 10000;
-        max-width: 90%;
-        width: auto;
-    `;
-    
-    // Add icon (N circle with blue fill)
-    const iconContainer = document.createElement("div");
-    iconContainer.innerHTML = `
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="#1da1f2" stroke="#1da1f2" stroke-width="2">
-            <circle cx="12" cy="12" r="10" fill="#1da1f2" />
-            <text x="50%" y="50%" text-anchor="middle" stroke="none" fill="#ffffff" font-size="12" dy=".3em">N</text>
-        </svg>
-    `;
-    
-    // Create content
-    const content = document.createElement("div");
-    content.innerHTML = `
-        <div style="font-size: 14px; font-weight: 500; margin-bottom: 4px; color: #1da1f2;">
-            Download Available
-        </div>
-        <div style="font-size: 12px; opacity: 0.7; color: #1da1f2;">
-            ${isAndroid ? 'Get it on Android' : 'Download for Windows'}
-        </div>
-    `;
-    
-    // Create buttons container
-    const buttons = document.createElement("div");
-    buttons.style.cssText = `
-        display: flex;
-        gap: 8px;
-        margin-left: 12px;
-    `;
-    
-    // Create action buttons
-    const installButton = document.createElement("button");
-    installButton.textContent = "Install";
-    installButton.style.cssText = `
-        background: #1da1f2; /* Twitter blue */
-        color: #ffffff;
-        border: none;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background 0.3s;
-    `;
-    
-    const cancelButton = document.createElement("button");
-    cancelButton.textContent = "Not Now";
-    cancelButton.style.cssText = `
-        background: transparent;
-        color: #1da1f2; /* Twitter blue */
-        border: 1px solid #1da1f2;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background 0.3s;
-    `;
-    
-    // Add hover effects
-    installButton.onmouseover = () => installButton.style.background = '#1991db'; /* Darker blue on hover */
-    installButton.onmouseout = () => installButton.style.background = '#1da1f2';
-    cancelButton.onmouseover = () => cancelButton.style.background = 'rgba(29, 161, 242, 0.1)'; /* Light blue on hover */
-    cancelButton.onmouseout = () => cancelButton.style.background = 'transparent';
-    
-    // Handle button clicks
-    installButton.onclick = () => {
-      if (isAndroid) {
-        const link = document.createElement('a');
-        link.href = 'https://median.co/share/zjajxa#apk';
-        link.download = 'app.apk';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else {
-        window.open('https://median.co/share/bzqkem#apk', '_blank');
-      }
-      hideNotification();
-    };
-    
-    cancelButton.onclick = hideNotification;
-    
-    // Assemble notification
-    buttons.appendChild(installButton);
-    buttons.appendChild(cancelButton);
-    notification.appendChild(iconContainer);
-    notification.appendChild(content);
-    notification.appendChild(buttons);
-    document.body.appendChild(notification);
-    
-    // Show animation
-    setTimeout(() => {
-      notification.style.opacity = '1';
-      notification.style.transform = 'translateX(-50%) translateY(0)';
-    }, 100);
-    
-    function hideNotification() {
-      notification.style.opacity = '0';
-      notification.style.transform = 'translateX(-50%) translateY(100px)';
-      setTimeout(() => notification.remove(), 500);
-    }
-  }
-  
-  // Show notification when page loads
-  window.addEventListener('load', createDownloadNotification);
-</script>
 
 </body>
 </html>
