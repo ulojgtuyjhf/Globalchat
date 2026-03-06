@@ -361,68 +361,73 @@ body {
 /* ─── COMMENT SHEET ─── */
 .cs-overlay {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.45);
     z-index: 2500; opacity: 0; pointer-events: none;
     transition: opacity 0.3s ease;
+    backdrop-filter: blur(2px);
 }
 .cs-overlay.open { opacity: 1; pointer-events: all; }
 
 .comment-sheet {
     position: fixed; left: 0; right: 0; bottom: 0;
     height: 74dvh;
-    background: var(--white);
-    border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
-    border: none;
+    background: #fafafa;
+    border-radius: 28px 28px 0 0;
     z-index: 2600;
     display: flex; flex-direction: column;
     transform: translateY(100%);
     transition: transform 0.44s cubic-bezier(0.22,1,0.36,1);
     overflow: hidden;
-    box-shadow: 0 -20px 60px rgba(0,0,0,0.25);
+    box-shadow: 0 -24px 60px rgba(0,0,0,0.22);
 }
 .comment-sheet.open { transform: translateY(0); }
-/* Brand top line */
+
+/* Brand accent bar at top */
 .comment-sheet::before {
-    content: ''; display: block; height: 4px; flex-shrink: 0;
+    content: ''; display: block; height: 3px; flex-shrink: 0;
     background: var(--brand-gradient);
 }
+
 .cs-handle {
-    width: 44px; height: 5px; border-radius: 3px;
-    background: #e8e8e8; margin: 12px auto 0; flex-shrink: 0;
+    width: 36px; height: 4px; border-radius: 2px;
+    background: #ddd; margin: 10px auto 0; flex-shrink: 0;
 }
+
 .cs-head {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 18px 16px;
-    border-bottom: 1px solid var(--border);
+    padding: 12px 18px 14px;
     flex-shrink: 0;
+    background: #fff;
+    border-bottom: 1px solid #f0f0f0;
 }
 .cs-head-left { display: flex; align-items: center; gap: 10px; }
 .cs-live-pill {
     display: flex; align-items: center; gap: 5px;
-    background: #111; color: #fff;
-    font-size: 9px; font-weight: 900; letter-spacing: 0.14em;
-    padding: 4px 10px; border-radius: 99px; line-height: 1;
+    background: var(--brand-dark); color: #fff;
+    font-size: 9px; font-weight: 900; letter-spacing: 0.16em;
+    padding: 5px 11px; border-radius: 99px; line-height: 1;
 }
 .cs-live-dot {
     width: 6px; height: 6px; border-radius: 50%;
-    background: var(--red);
+    background: #fff;
     animation: livePulse 1.4s ease-in-out infinite;
 }
-.cs-head-title { font-size: 16px; font-weight: 800; color: var(--text-dark); letter-spacing: -0.01em; }
+.cs-head-title { font-size: 16px; font-weight: 900; color: #111; letter-spacing: -0.02em; }
 .cs-close {
-    background: #f5f5f5; border: 1px solid #e8e8e8; border-radius: 50%;
-    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
-    cursor: pointer; transition: all 0.15s; z-index: 9999; pointer-events: all;
+    background: #f0f0f0; border: none; border-radius: 50%;
+    width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background 0.15s; z-index: 9999; pointer-events: all;
 }
-.cs-close:active { background: #ebebeb; }
-.cs-close svg { width: 14px; height: 14px; fill: none; stroke: #555; stroke-width: 2.5; stroke-linecap: round; pointer-events: none; }
+.cs-close:active { background: #e0e0e0; }
+.cs-close svg { width: 13px; height: 13px; fill: none; stroke: #666; stroke-width: 2.5; stroke-linecap: round; pointer-events: none; }
 
 /* Typing indicator */
 .typing-indicator {
-    padding: 5px 18px; font-size: 12px; color: #aaa;
-    font-style: italic; min-height: 22px; flex-shrink: 0;
+    padding: 4px 18px; font-size: 11.5px; color: #aaa;
+    font-style: italic; min-height: 20px; flex-shrink: 0;
     display: flex; align-items: center; gap: 6px;
     opacity: 0; transition: opacity 0.3s;
+    background: #fff;
 }
 .typing-indicator.visible { opacity: 1; }
 .typing-dots { display: flex; gap: 3px; }
@@ -437,319 +442,276 @@ body {
     30% { transform: translateY(-5px); opacity: 1; }
 }
 
-/* Post header inside sheet — actions only, no avatar/description */
-#modalMedia { display: none; }
-.post-header {
-    padding: 10px 18px 12px;
-    background: var(--white);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
+/* ─── COMMENTS LOADING STATE ─── */
+.comments-loading {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 40px 20px; gap: 14px;
 }
-.post-actions-row {
-    display: flex; align-items: center; gap: 10px;
+.cs-spinner {
+    width: 36px; height: 36px;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
 }
-
-/* ── Premium Like Button ── */
-.like-post-button {
-    display: flex; align-items: center; gap: 8px;
-    background: #f8f8f8;
-    border: 1.5px solid #ebebeb;
-    border-radius: 14px; cursor: pointer;
-    font-size: 13px; font-weight: 800; color: #888;
-    font-family: var(--font);
-    padding: 9px 18px 9px 14px;
-    transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1);
-    position: relative; overflow: hidden;
-}
-.like-post-button::before {
+.cs-spinner::before, .cs-spinner::after {
     content: '';
-    position: absolute; inset: 0;
-    background: linear-gradient(135deg, rgba(255,59,92,0.08) 0%, rgba(255,59,92,0.04) 100%);
-    opacity: 0; transition: opacity 0.22s;
+    position: absolute;
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    animation: spinPulse 1s ease-in-out infinite;
 }
-.like-post-button:active { transform: scale(0.93); }
-.like-post-button.liked {
-    background: #fff0f3;
-    border-color: rgba(255,59,92,0.3);
-    color: var(--red);
-    box-shadow: 0 2px 12px rgba(255,59,92,0.18);
-}
-.like-post-button.liked::before { opacity: 1; }
-.like-post-button .lbtn-icon {
-    width: 20px; height: 20px; flex-shrink: 0;
-    position: relative; display: flex; align-items: center; justify-content: center;
-}
-.like-post-button .lbtn-icon svg {
-    width: 20px; height: 20px;
-    transition: all 0.28s cubic-bezier(0.34,1.56,0.64,1);
-    fill: none; stroke: #aaa; stroke-width: 1.8;
-}
-.like-post-button.liked .lbtn-icon svg {
-    fill: var(--red); stroke: var(--red);
-    transform: scale(1.2);
-    filter: drop-shadow(0 2px 6px rgba(255,59,92,0.45));
-}
-@keyframes heartBeat {
-    0%   { transform: scale(1); }
-    25%  { transform: scale(1.45); }
-    50%  { transform: scale(0.92); }
-    75%  { transform: scale(1.15); }
-    100% { transform: scale(1); }
-}
-.like-post-button.pop .lbtn-icon svg { animation: heartBeat 0.48s cubic-bezier(0.34,1.56,0.64,1); }
-.like-post-count { font-size: 13px; font-weight: 800; min-width: 14px; text-align: center; }
-
-/* Ripple spark on like */
-.like-spark {
-    position: absolute; border-radius: 50%; pointer-events: none;
-    width: 6px; height: 6px;
-    background: var(--red); opacity: 0.7;
-    animation: sparkOut 0.5s ease-out forwards;
-}
-@keyframes sparkOut {
-    0%   { transform: scale(0) translate(0,0); opacity: 0.8; }
-    100% { transform: scale(1) translate(var(--tx), var(--ty)); opacity: 0; }
-}
-
-.follow-btn {
-    margin-left: auto;
-    background: #f0f0f0;
-    border: 1.5px solid #e0e0e0;
-    border-radius: 14px; cursor: pointer; padding: 9px 20px;
-    font-size: 13px; font-weight: 800; color: #555;
-    font-family: var(--font);
-    transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1);
-    letter-spacing: 0.01em;
-}
-.follow-btn.following {
-    background: var(--brand-gradient); color: #fff; border-color: transparent;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.22);
-}
-.follow-btn:active { transform: scale(0.93); }
-#postDescriptionWrap { padding: 8px 18px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.post-desc-text { font-size: 13px; line-height: 1.5; color: #444; overflow: hidden; max-height: 42px; transition: max-height 0.3s ease; }
-.post-desc-text.expanded { max-height: 300px; }
-.post-desc-toggle { font-size: 12px; color: var(--brand-mid); font-weight: 700; cursor: pointer; margin-left: 4px; }
+.cs-spinner::before { background: var(--brand-dark); animation-delay: 0s; }
+.cs-spinner::after  { background: var(--brand-mid); animation-delay: 0.5s; }
+.cs-spinner-text { font-size: 12px; font-weight: 600; color: #bbb; letter-spacing: 0.04em; }
 
 /* ─── COMMENTS LIST ─── */
-#commentsList { flex: 1; overflow-y: auto; padding: 12px 0 8px; background: #fff; }
+#commentsList { flex: 1; overflow-y: auto; padding: 10px 0 4px; background: #fafafa; }
 #commentsList::-webkit-scrollbar { display: none; }
 
 .comment {
-    display: flex; padding: 0 18px;
-    margin-bottom: 16px;
-    animation: cmtIn 0.28s ease-out;
+    display: flex; padding: 10px 16px;
+    gap: 10px;
+    animation: cmtIn 0.3s cubic-bezier(0.22,1,0.36,1);
+    border-radius: 0;
 }
-@keyframes cmtIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-.comment.new-comment { animation: cmtIn 0.28s ease-out; }
+@keyframes cmtIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+.comment.new-comment { animation: cmtIn 0.3s cubic-bezier(0.22,1,0.36,1); }
 
 .comment-avatar {
-    width: 34px; height: 34px; border-radius: 50%;
-    object-fit: cover; margin-right: 10px;
-    flex-shrink: 0; cursor: pointer;
-    border: none;
+    width: 36px; height: 36px; border-radius: 50%;
+    object-fit: cover; flex-shrink: 0; cursor: pointer;
+    border: 2px solid #eee;
 }
-.comment-content { flex: 1; min-width: 0; }
+.comment-bubble {
+    flex: 1; min-width: 0;
+    background: #fff;
+    border-radius: 0 16px 16px 16px;
+    padding: 10px 13px 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
 .comment-author {
-    font-size: 13px; font-weight: 800; color: var(--text-dark);
-    margin-bottom: 3px; display: block;
+    font-size: 12.5px; font-weight: 800; color: #111;
+    margin-bottom: 3px; display: flex; align-items: center; gap: 5px;
+    flex-wrap: wrap;
 }
-.comment-text { font-size: 14px; font-weight: 400; color: #222; line-height: 1.45; word-break: break-word; overflow-wrap: anywhere; }
-.comment-actions { display: flex; align-items: center; margin-top: 5px; gap: 0; }
-.comment-time { font-size: 11px; color: var(--text-light); margin-right: 10px; }
+.comment-flag { width: 16px; height: 12px; border-radius: 2px; vertical-align: middle; }
+.comment-creator-badge {
+    font-size: 10px; font-weight: 800; color: #fff;
+    background: var(--brand-gradient);
+    padding: 1px 7px; border-radius: 99px; letter-spacing: 0.04em;
+}
+.comment-text { font-size: 13.5px; font-weight: 400; color: #222; line-height: 1.5; word-break: break-word; overflow-wrap: anywhere; }
+.comment-actions {
+    display: flex; align-items: center; margin-top: 7px; gap: 2px;
+}
+.comment-time { font-size: 11px; color: #c0c0c0; margin-right: 8px; font-weight: 500; }
+
+/* Comment like button — brand style */
 .like-button {
-    display: flex; align-items: center; gap: 5px;
+    display: flex; align-items: center; gap: 4px;
     background: transparent; border: none;
-    border-radius: 10px; cursor: pointer;
-    font-size: 12px; font-weight: 700; color: #bbb;
-    font-family: var(--font); padding: 4px 8px;
+    border-radius: 8px; cursor: pointer;
+    font-size: 11.5px; font-weight: 700; color: #c0c0c0;
+    font-family: var(--font); padding: 3px 7px;
     transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
 }
-.like-button:active { transform: scale(0.88); }
-.like-button.liked { color: var(--red); }
+.like-button:active { transform: scale(0.84); }
+.like-button.liked { color: var(--brand-dark); }
 .like-button svg {
-    width: 14px; height: 14px;
+    width: 13px; height: 13px;
     transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
-    fill: none; stroke: #ccc; stroke-width: 1.8;
-    flex-shrink: 0;
+    fill: none; stroke: #ccc; stroke-width: 1.8; flex-shrink: 0;
 }
-.like-button.liked svg { fill: var(--red); stroke: var(--red); transform: scale(1.25); filter: drop-shadow(0 1px 4px rgba(255,59,92,0.5)); }
-.like-count { font-size: 12px; font-weight: 700; color: #ccc; min-width: 10px; transition: color 0.2s; }
-.like-button.liked + .like-count, .like-button.liked ~ .like-count { color: var(--red); }
+.like-button.liked svg {
+    fill: var(--brand-dark); stroke: var(--brand-dark);
+    transform: scale(1.3);
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.25));
+}
+@keyframes cLikePop {
+    0%{transform:scale(1)} 35%{transform:scale(1.5)} 65%{transform:scale(0.88)} 100%{transform:scale(1)}
+}
+.like-button.pop svg { animation: cLikePop 0.38s cubic-bezier(0.34,1.56,0.64,1); }
+.like-count { font-size: 11.5px; font-weight: 700; color: #c0c0c0; min-width: 8px; transition: color 0.2s; }
+.like-button.liked ~ .like-count { color: var(--brand-dark); }
+
 .reply-btn {
     background: none; border: none; cursor: pointer;
-    font-size: 12px; font-weight: 600; color: var(--text-light);
+    font-size: 11.5px; font-weight: 700; color: #c0c0c0;
     font-family: var(--font); padding: 3px 8px; transition: color 0.15s;
+    letter-spacing: 0.01em;
 }
 .reply-btn:active { color: var(--brand-mid); }
 
 /* Top comment */
-.top-comment { position: relative; }
+.top-comment { position: relative; padding-top: 18px !important; }
 .top-comment-badge {
-    position: absolute; top: -8px; left: 18px;
+    position: absolute; top: 4px; left: 62px;
     background: var(--brand-gradient); color: #fff;
-    font-size: 9px; font-weight: 900; letter-spacing: 0.08em;
-    padding: 2px 8px; border-radius: 10px;
+    font-size: 9px; font-weight: 900; letter-spacing: 0.1em;
+    padding: 2px 9px; border-radius: 99px;
     text-transform: uppercase;
 }
 
-/* Reply preview */
+/* Reply preview inside form */
 .reply-preview {
-    display: none; align-items: center; justify-content: space-between;
-    padding: 6px 18px; background: var(--off-white);
-    border-bottom: 1px solid var(--border);
-    border-left: 3px solid var(--brand-mid); flex-shrink: 0;
+    display: none; align-items: center; gap: 6px;
+    padding: 6px 14px 4px; background: transparent;
+    flex-shrink: 0;
 }
-.reply-preview-text { font-size: 12px; color: var(--brand-mid); font-weight: 600; }
-.reply-preview-close { background: none; border: none; cursor: pointer; color: var(--text-light); font-size: 16px; }
-.reply-preview-close:active { color: #333; }
+.reply-preview.show { display: flex; }
+.reply-preview-icon { font-size: 14px; color: var(--brand-mid); flex-shrink: 0; }
+.reply-preview-text { font-size: 12px; color: var(--brand-mid); font-weight: 700; flex: 1; }
+.reply-preview-close {
+    background: #eee; border: none; cursor: pointer; color: #888;
+    border-radius: 50%; width: 20px; height: 20px; flex-shrink: 0;
+    font-size: 14px; display: flex; align-items: center; justify-content: center;
+    line-height: 1; transition: background 0.15s;
+}
+.reply-preview-close:active { background: #ddd; }
 
 /* Replies */
-.replies-container { margin-left: 44px; margin-top: 6px; }
+.replies-container { margin-left: 46px; margin-top: 4px; }
 .view-replies-btn {
     background: none; border: none; cursor: pointer;
     font-size: 12px; font-weight: 800; color: var(--brand-mid);
     font-family: var(--font); padding: 4px 0 8px;
-    letter-spacing: 0.01em;
-    display: flex; align-items: center; gap: 5px;
+    display: flex; align-items: center; gap: 6px;
     transition: color 0.15s;
 }
 .view-replies-btn::before {
     content: ''; display: block;
-    width: 20px; height: 1.5px;
-    background: #ddd; border-radius: 1px;
+    width: 22px; height: 1.5px;
+    background: #ddd; border-radius: 1px; flex-shrink: 0;
 }
 .view-replies-btn:active { color: var(--brand-dark); }
 
 /* ─── COMMENT FORM ─── */
 .comment-form {
-    background: #fff; border-top: 1px solid var(--border);
-    padding: 10px 14px 14px; flex-shrink: 0;
-    display: flex; flex-direction: column; gap: 8px;
+    background: #fff;
+    border-top: 1px solid #eeeeee;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px)) 14px;
+    flex-shrink: 0;
+    display: flex; flex-direction: column; gap: 0;
 }
+
+.cf-row {
+    display: flex; align-items: flex-end; gap: 10px;
+}
+
+.cf-avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    object-fit: cover; flex-shrink: 0;
+    border: 2px solid #eee;
+    margin-bottom: 4px;
+}
+
+.cf-input-pill {
+    flex: 1; display: flex; align-items: center; gap: 6px;
+    background: #f4f4f4;
+    border-radius: 24px;
+    padding: 8px 8px 8px 16px;
+    border: 1.5px solid transparent;
+    transition: all 0.2s;
+    position: relative; overflow: visible;
+}
+.cf-input-pill:focus-within {
+    background: #fff;
+    border-color: #ddd;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+
 .send-spinner {
-    width: 22px; height: 22px;
-    border: 2.5px solid #e8e8e8; border-top-color: var(--brand-mid);
+    width: 18px; height: 18px; flex-shrink: 0;
+    border: 2px solid #e0e0e0; border-top-color: var(--brand-mid);
     border-radius: 50%; animation: spin 0.7s linear infinite;
-    display: none; align-self: center;
+    display: none;
 }
 .send-spinner.visible { display: block; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.comment-input-wrap { display: flex; align-items: flex-end; gap: 8px; }
-.comment-input-container {
-    flex: 1; display: flex; align-items: flex-end; gap: 6px;
-    background: #f6f6f6; border-radius: 28px;
-    padding: 8px 12px; border: 1.5px solid transparent;
-    transition: all 0.18s;
-}
-.comment-input-container:focus-within { background: #fff; border-color: #ddd; }
+
 .comment-input {
     flex: 1; background: transparent; border: none; outline: none; resize: none;
     font-size: 14px; font-weight: 500; font-family: var(--font);
-    color: var(--text-dark); max-height: 80px; line-height: 1.4;
+    color: #111; max-height: 72px; line-height: 1.45;
+    min-height: 20px; overflow-y: auto;
 }
-.comment-input::placeholder { color: var(--text-light); font-weight: 400; }
-.gif-button {
-    background: none; border: none; cursor: pointer; padding: 2px;
-    color: #bbb; transition: color 0.15s; flex-shrink: 0;
+.comment-input::placeholder { color: #bbb; font-weight: 400; }
+
+/* GIF button — noticeable, brand-styled */
+.cf-gif-btn {
+    flex-shrink: 0;
+    background: var(--brand-gradient);
+    border: none; cursor: pointer;
+    width: 30px; height: 30px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
-.gif-button:active { color: var(--brand-mid); }
-.gif-button svg { width: 22px; height: 22px; display: block; }
-.submit-button {
-    width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
-    background: var(--brand-gradient); border: none; cursor: pointer;
+.cf-gif-btn:active { transform: scale(0.86); }
+.cf-gif-btn svg { width: 16px; height: 16px; stroke: #fff; flex-shrink: 0; }
+
+/* Send button — brand gradient circle */
+.cf-send-btn {
+    flex-shrink: 0;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--brand-gradient);
+    border: none; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 4px 14px rgba(0,0,0,0.22);
-    transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), opacity 0.18s;
+    transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    margin-right: -2px;
 }
-.submit-button:active { transform: scale(0.88); }
-.submit-button:disabled { opacity: 0.4; }
-.submit-button svg { width: 18px; height: 18px; fill: #fff; }
+.cf-send-btn:active { transform: scale(0.86); }
+.cf-send-btn:disabled { opacity: 0.35; box-shadow: none; }
+.cf-send-btn svg { width: 15px; height: 15px; stroke: #fff; margin-left: 1px; flex-shrink: 0; }
 
 /* GIF selector */
-.gif-selector { background: #fff; border-top: 1px solid var(--border); padding: 10px; flex-shrink: 0; display: none; }
-.gif-selector.open { display: flex; flex-direction: column; gap: 8px; }
-.gif-search { width: 100%; border: 1.5px solid var(--border); border-radius: 12px; padding: 8px 12px; font-family: var(--font); font-size: 13px; outline: none; }
-.gif-search:focus { border-color: #bbb; }
+.gif-selector { background: #fff; border-top: 1px solid #f0f0f0; padding: 10px; flex-shrink: 0; display: none; }
+.gif-selector.active, .gif-selector.open { display: flex; flex-direction: column; gap: 8px; }
+.gif-search {
+    width: 100%; border: 1.5px solid #eee; border-radius: 14px;
+    padding: 9px 14px; font-family: var(--font); font-size: 13px; outline: none;
+    background: #f8f8f8;
+}
+.gif-search:focus { border-color: var(--brand-mid); background: #fff; }
 .gif-results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; max-height: 160px; overflow-y: auto; }
-.gif-item { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; cursor: pointer; }
+.gif-item { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; cursor: pointer; transition: opacity 0.15s; }
+.gif-item:active { opacity: 0.75; }
+
+/* GIF preview */
+.gif-preview {
+    width: 100%; max-height: 110px; border-radius: 12px;
+    overflow: hidden; margin-bottom: 6px; position: relative;
+}
+.gif-preview img { width: 100%; height: 110px; object-fit: cover; border-radius: 12px; display: block; }
+.gif-preview-close {
+    position: absolute; top: 6px; right: 6px;
+    background: rgba(0,0,0,0.55); border: none; cursor: pointer;
+    color: #fff; border-radius: 50%;
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; line-height: 1;
+}
+
+/* GIF in comment */
+.comment-gif { max-width: 180px; border-radius: 10px; display: block; margin-top: 6px; }
 
 /* Empty comments */
 .comments-empty {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 48px 20px; color: #ccc; gap: 10px; text-align: center;
+    padding: 52px 20px; color: #ccc; gap: 10px; text-align: center;
 }
-.comments-empty svg { width: 44px; height: 44px; opacity: 0.25; }
-.comments-empty span { font-size: 14px; font-weight: 600; }
-.comments-empty span:last-child { font-size: 12px; font-weight: 400; color: #ddd; }
+.comments-empty svg { width: 40px; height: 40px; opacity: 0.2; }
+.comments-empty span { font-size: 14px; font-weight: 700; color: #bbb; }
+.comments-empty span:last-child { font-size: 12px; font-weight: 400; color: #d0d0d0; }
 
 /* Download notification */
-#dlNotif { z-index: 99999; }
-
-
-/* ─── GIF PREVIEW in comment form ─── */
-.gif-preview {
-    width: 100%; max-height: 120px;
-    border-radius: 12px; overflow: hidden;
-    margin-bottom: 6px; position: relative;
-}
-.gif-preview img { width: 100%; height: 120px; object-fit: cover; border-radius: 12px; display: block; }
-.gif-preview-close {
-    position: absolute; top: 6px; right: 6px;
-    background: rgba(0,0,0,0.6); border: none; cursor: pointer;
-    color: #fff; border-radius: 50%;
-    width: 24px; height: 24px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; line-height: 1;
-}
-
-/* ─── GIF in comment ─── */
-.comment-gif {
-    max-width: 200px; border-radius: 10px;
-    display: block; margin-top: 6px;
-}
-
-/* ─── PROFILE PANEL (fp-) — kept hidden but CSS correct ─── */
-#fpOverlay  { display: none !important; pointer-events: none !important; }
-#followingPanel { display: none !important; }
-.fp-drag-handle { width: 40px; height: 4px; border-radius: 2px; background: #ddd; margin: 10px auto 0; }
-.fp-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid #f0f0f0; }
-.fp-title { font-size: 15px; font-weight: 800; color: #111; font-family: var(--font); }
-.fp-back { background: rgba(0,0,0,0.06); border: none; cursor: pointer; color: #111; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; -webkit-tap-highlight-color: transparent; transition: background 0.15s; z-index: 9999; pointer-events: all !important; }
-.fp-back:active { background: rgba(0,0,0,0.12); }
-.fp-back svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2.5; fill: none; pointer-events: none; }
-.fp-profile-card { display: flex; flex-direction: column; align-items: center; padding: 20px 16px; gap: 8px; }
-.fp-big-avatar { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border); }
-.fp-user-name { font-size: 16px; font-weight: 800; color: #111; font-family: var(--font); }
-.fp-counts { display: flex; gap: 24px; margin-top: 4px; }
-.fp-count-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.fp-count-num { font-size: 17px; font-weight: 800; color: #111; font-family: var(--font); }
-.fp-count-label { font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.45); text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font); }
-.fp-name { font-size: 15px; font-weight: 700; color: #111; font-family: var(--font); }
-.fp-sub  { font-size: 12px; color: rgba(0,0,0,0.45); font-family: var(--font); }
-
-/* ─── POST ACTION ROW in comment sheet header ─── */
-.post-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.post-actions-row { display: flex; align-items: center; gap: 10px; }
-
-/* ─── MODAL MEDIA — hidden ─── */
-#modalMedia { display: none !important; }
-
-/* ─── COMMENT COUNT in slide action button ─── */
-.cmt-count { font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.92); text-shadow: 0 1px 6px rgba(0,0,0,0.9); }
-
-/* ─── DOWNLOAD NOTIFICATION ─── */
 #dlNotif { z-index: 99999 !important; }
 
-/* ─── FEED TABS — hidden ─── */
+/* Feed tabs — hidden */
 #feed-tabs { display: none !important; }
 
-/* ─── OPTIONS (3-dot) — hidden ─── */
+/* Options (3-dot) — hidden */
 .options { display: none !important; }
-
-/* ─── LAZY LOAD ─── */
-.lazy-load { opacity: 0; transition: opacity 0.3s ease-in; }
-.lazy-load.loaded { opacity: 1; }
 
 </style>
 </head>
@@ -806,52 +768,48 @@ body {
             <div class="typing-dots"><span></span><span></span><span></span></div>
             <span id="typingText">Someone is typing...</span>
         </div>
-        <!-- hidden element kept for JS compatibility -->
-        <div id="modalMedia" style="display:none;"></div>
         <!-- hidden elements kept for JS compatibility -->
-        <img id="postUserAvatar" src="" alt="User" style="display:none;">
+        <div id="modalMedia" style="display:none;"></div>
+        <img id="postUserAvatar" src="" alt="" style="display:none;">
         <span id="postUserName" style="display:none;"></span>
-        <img id="postUserFlag" src="" alt="Flag" style="display:none;">
+        <img id="postUserFlag" src="" alt="" style="display:none;">
         <div id="postDescriptionWrap" style="display:none;"><div id="postDescription"></div><button id="postDescToggle" style="display:none;"></button></div>
-        <div class="post-header" id="postHeader">
-            <div class="post-actions-row">
-                <button class="like-post-button" id="likePostButton">
-                    <span class="lbtn-icon">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                        </svg>
-                    </span>
-                    <span class="like-post-count" id="likePostCount">0</span>
-                </button>
-                <button class="follow-btn" id="followButton" style="display:none;">Follow</button>
+        <div id="postHeader" style="display:none;">
+            <button id="likePostButton" style="display:none;"><span id="likePostCount">0</span></button>
+            <button id="followButton" style="display:none;"></button>
+        </div>
+        <div class="comments-list" id="commentsList">
+            <!-- loading state injected by JS -->
+        </div>
+        <div class="comment-form" id="commentForm">
+            <div class="reply-preview" id="replyPreview" style="display:none;">
+                <span class="reply-preview-icon">↩</span>
+                <div class="reply-preview-text" id="replyPreviewText"></div>
+                <button class="reply-preview-close" id="replyPreviewClose">&#215;</button>
             </div>
-        </div>
-        <div class="reply-preview" id="replyPreview" style="display:none;">
-            <div class="reply-preview-text" id="replyPreviewText"></div>
-            <button class="reply-preview-close" id="replyPreviewClose">&#215;</button>
-        </div>
-        <div class="comments-header" style="display:none;"><span>Comments</span><span id="commentsCountLabel"></span></div>
-        <div class="comments-list" id="commentsList"></div>
-        <div class="comment-form">
-            <div class="send-spinner" id="sendSpinner"></div>
-            <div class="comment-input-container">
-                <textarea class="comment-input" id="commentInput" placeholder="Add a comment..."></textarea>
-                <div class="action-buttons">
-                    <button class="gif-button" id="gifButton">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="2" y="3" width="20" height="18" rx="2" ry="2"></rect>
-                            <path d="M8 7v10M16 7v10M12 7v10"></path><path d="M5 7h14"></path>
+            <div class="cf-row">
+                <img class="cf-avatar" id="cfAvatar" src="https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png" alt="">
+                <div class="cf-input-pill" id="cfInputPill">
+                    <div class="send-spinner" id="sendSpinner"></div>
+                    <textarea class="comment-input" id="commentInput" placeholder="Say something..." rows="1"></textarea>
+                    <button class="cf-gif-btn" id="gifButton" title="GIF">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="5" width="20" height="14" rx="3"/>
+                            <path d="M9 9v6M9 12h3M15 9v6M19 9v6M19 12h-2"/>
+                        </svg>
+                    </button>
+                    <button class="cf-send-btn" id="submitComment" disabled>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"/>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
                         </svg>
                     </button>
                 </div>
             </div>
-            <button class="submit-button" id="submitComment" disabled>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
-            </button>
-        </div>
-        <div class="gif-selector" id="gifSelector">
-            <input type="text" class="gif-search" id="gifSearch" placeholder="Search GIFs...">
-            <div class="gif-results" id="gifResults"></div>
+            <div class="gif-selector" id="gifSelector">
+                <input type="text" class="gif-search" id="gifSearch" placeholder="Search GIFs...">
+                <div class="gif-results" id="gifResults"></div>
+            </div>
         </div>
     </div>
 
@@ -1146,7 +1104,8 @@ function setupEventListeners() {
 
     replyPreviewClose.addEventListener('click', () => {
         currentReplyTo = null;
-        replyPreview.style.display = 'none';
+        replyPreview.style.display = 'none'; replyPreview.classList.remove('show');
+        replyPreview.classList.remove('show');
     });
 }
 
@@ -1634,7 +1593,7 @@ function openModal(postData, postId) {
     submitComment.disabled = true;
     selectedGif = null;
     currentReplyTo = null;
-    replyPreview.style.display = 'none';
+    replyPreview.style.display = 'none'; replyPreview.classList.remove('show');
     
     postUserAvatar.src = postData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
     postUserAvatar.onerror = function() {
@@ -1777,9 +1736,14 @@ function closeModal() {
 }
 
 function loadComments(postId) {
+    // Set cfAvatar to current user's photo
+    const cfAv = document.getElementById('cfAvatar');
+    if (cfAv && currentUser) cfAv.src = currentUser.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
+
     commentsList.innerHTML = `
-        <div class="comment-loading" style="display: flex; justify-content: center; padding: 20px;">
-            <div class="spinner" style="width: 20px; height: 20px;"></div>
+        <div class="comments-loading">
+            <div class="cs-spinner"></div>
+            <span class="cs-spinner-text">Loading comments</span>
         </div>
     `;
     
@@ -1874,81 +1838,69 @@ function createCommentElement(commentData, replies = []) {
     const comment = document.createElement('div');
     comment.className = 'comment';
     comment.dataset.commentId = commentData.id;
-    
+
     const avatar = document.createElement('img');
     avatar.className = 'comment-avatar';
     avatar.src = commentData.userPhotoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    avatar.onerror = function() {
-        this.src = 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    };
-    avatar.addEventListener('click', (e) => {
-        e.stopPropagation();
-        viewProfile(commentData.userId);
-    });
-    
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'comment-content';
-    
+    avatar.onerror = function() { this.src = 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'; };
+    avatar.addEventListener('click', (e) => { e.stopPropagation(); viewProfile(commentData.userId); });
+
+    const bubble = document.createElement('div');
+    bubble.className = 'comment-bubble';
+
+    // Author row
     const author = document.createElement('div');
     author.className = 'comment-author';
-    author.textContent = commentData.userName || 'Anonymous';
+    const nameNode = document.createTextNode(commentData.userName || 'Anonymous');
+    author.appendChild(nameNode);
     author.style.cursor = 'pointer';
-    author.addEventListener('click', (e) => {
-        e.stopPropagation();
-        viewProfile(commentData.userId);
-    });
-    
+    author.addEventListener('click', (e) => { e.stopPropagation(); viewProfile(commentData.userId); });
+
     if (commentData.country) {
         const flag = document.createElement('img');
         flag.className = 'comment-flag';
         flag.src = `https://flagcdn.com/w20/${commentData.country}.png`;
-        flag.alt = commentData.country;
-        flag.onerror = function() {
-            this.style.display = 'none';
-        };
+        flag.onerror = function() { this.style.display = 'none'; };
         author.appendChild(flag);
     }
-    
     if (currentPostData && commentData.userId === currentPostData.userId) {
-        const creatorBadge = document.createElement('span');
-        creatorBadge.textContent = ' (Creator)';
-        creatorBadge.style.color = '#0095f6';
-        creatorBadge.style.fontSize = '12px';
-        creatorBadge.style.marginLeft = '4px';
-        author.appendChild(creatorBadge);
+        const cb = document.createElement('span');
+        cb.className = 'comment-creator-badge';
+        cb.textContent = 'Creator';
+        author.appendChild(cb);
     }
-    
-    contentDiv.appendChild(author);
-    
-    if (commentData.text && commentData.text.trim() !== '') {
+    bubble.appendChild(author);
+
+    // Text
+    if (commentData.text && commentData.text.trim()) {
         const text = document.createElement('div');
         text.className = 'comment-text';
         text.textContent = commentData.text;
-        contentDiv.appendChild(text);
+        bubble.appendChild(text);
     }
-    
+
+    // GIF
     if (commentData.gifUrl) {
         const gif = document.createElement('img');
         gif.className = 'comment-gif';
         gif.src = commentData.gifUrl;
         gif.loading = 'lazy';
-        contentDiv.appendChild(gif);
-    }
-    
-    const actions = document.createElement('div');
-    actions.className = 'comment-actions';
-    
-    const likeButton = document.createElement('button');
-    likeButton.className = 'like-button';
-    if (commentData.likes && commentData.likes.includes(currentUser?.uid)) {
-        likeButton.classList.add('liked');
+        bubble.appendChild(gif);
     }
 
-    likeButton.innerHTML = `
-        <svg viewBox="0 0 24 24">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-        </svg>
-    `;
+    // Actions row
+    const actions = document.createElement('div');
+    actions.className = 'comment-actions';
+
+    const timestamp = document.createElement('span');
+    timestamp.className = 'comment-time';
+    timestamp.textContent = (commentData.timestamp && commentData.timestamp.toDate) ? formatTimestamp(commentData.timestamp.toDate()) : 'Just now';
+    actions.appendChild(timestamp);
+
+    // Like button
+    const likeButton = document.createElement('button');
+    likeButton.className = 'like-button' + (commentData.likes && commentData.likes.includes(currentUser?.uid) ? ' liked' : '');
+    likeButton.innerHTML = `<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
 
     const likeCount = document.createElement('span');
     likeCount.className = 'like-count';
@@ -1958,97 +1910,68 @@ function createCommentElement(commentData, replies = []) {
     likeButton.addEventListener('click', async (e) => {
         e.stopPropagation();
         if (!currentUser) return;
+        if (navigator.vibrate) navigator.vibrate(20);
         const isLiked = likeButton.classList.contains('liked');
-        // Instant UI update
+        likeButton.classList.remove('pop'); void likeButton.offsetWidth; likeButton.classList.add('pop');
         if (isLiked) {
             likeButton.classList.remove('liked');
             _localLikes = _localLikes.filter(id => id !== currentUser.uid);
         } else {
             likeButton.classList.add('liked');
             _localLikes.push(currentUser.uid);
-            // Bounce animation
-            likeButton.animate([{transform:'scale(1)'},{transform:'scale(1.35)'},{transform:'scale(1)'}], {duration:250, easing:'cubic-bezier(0.34,1.56,0.64,1)'});
         }
         likeCount.textContent = _localLikes.length;
-        // Fire-and-forget to Firestore
         try {
             const commentRef = doc(db, 'recence', currentPostId, 'comments', commentData.id);
             await updateDoc(commentRef, { likes: isLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
         } catch (err) {
-            // Rollback
             if (isLiked) { likeButton.classList.add('liked'); _localLikes.push(currentUser.uid); }
             else { likeButton.classList.remove('liked'); _localLikes = _localLikes.filter(id => id !== currentUser.uid); }
             likeCount.textContent = _localLikes.length;
         }
     });
+    actions.appendChild(likeButton);
+    actions.appendChild(likeCount);
 
+    // Reply button
     const replyButton = document.createElement('button');
     replyButton.className = 'reply-btn';
     replyButton.textContent = 'Reply';
-
     replyButton.addEventListener('click', (e) => {
         e.stopPropagation();
-        currentReplyTo = {
-            id: commentData.id,
-            name: commentData.userName
-        };
+        currentReplyTo = { id: commentData.id, name: commentData.userName };
         replyPreviewText.textContent = `Replying to ${commentData.userName}`;
+        replyPreview.classList.add('show');
         replyPreview.style.display = 'flex';
         commentInput.focus();
     });
-
-    const timestamp = document.createElement('span');
-    timestamp.className = 'comment-time';
-
-    if (commentData.timestamp && commentData.timestamp.toDate) {
-        const date = commentData.timestamp.toDate();
-        timestamp.textContent = formatTimestamp(date);
-    } else {
-        timestamp.textContent = 'Just now';
-    }
-
-    actions.appendChild(likeButton);
-    actions.appendChild(likeCount);
     actions.appendChild(replyButton);
-    actions.appendChild(timestamp);
 
-    contentDiv.appendChild(actions);
+    bubble.appendChild(actions);
 
+    // Replies
     if (replies.length > 0) {
         const repliesContainer = document.createElement('div');
         repliesContainer.className = 'replies-container';
-        
         const viewRepliesBtn = document.createElement('button');
         viewRepliesBtn.className = 'view-replies-btn';
         viewRepliesBtn.textContent = `View ${replies.length} repl${replies.length === 1 ? 'y' : 'ies'}`;
-        
         const repliesList = document.createElement('div');
         repliesList.style.display = 'none';
-        
-        replies.forEach(reply => {
-            const replyElement = createCommentElement(reply);
-            repliesList.appendChild(replyElement);
-        });
-        
+        replies.forEach(reply => repliesList.appendChild(createCommentElement(reply)));
         viewRepliesBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (repliesList.style.display === 'none') {
-                repliesList.style.display = 'block';
-                viewRepliesBtn.textContent = 'Hide replies';
-            } else {
-                repliesList.style.display = 'none';
-                viewRepliesBtn.textContent = `View ${replies.length} repl${replies.length === 1 ? 'y' : 'ies'}`;
-            }
+            const open = repliesList.style.display === 'none';
+            repliesList.style.display = open ? 'block' : 'none';
+            viewRepliesBtn.textContent = open ? 'Hide replies' : `View ${replies.length} repl${replies.length === 1 ? 'y' : 'ies'}`;
         });
-        
         repliesContainer.appendChild(viewRepliesBtn);
         repliesContainer.appendChild(repliesList);
-        contentDiv.appendChild(repliesContainer);
+        bubble.appendChild(repliesContainer);
     }
 
     comment.appendChild(avatar);
-    comment.appendChild(contentDiv);
-
+    comment.appendChild(bubble);
     return comment;
 }
 
@@ -2112,7 +2035,7 @@ async function addComment() {
     selectedGif = null;
     const savedReply = currentReplyTo;
     currentReplyTo = null;
-    replyPreview.style.display = 'none';
+    replyPreview.style.display = 'none'; replyPreview.classList.remove('show');
     const previewGif = document.querySelector('.gif-preview');
     if (previewGif) previewGif.remove();
     
