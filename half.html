@@ -437,38 +437,94 @@ body {
     30% { transform: translateY(-5px); opacity: 1; }
 }
 
-/* Post header inside sheet */
+/* Post header inside sheet — actions only, no avatar/description */
 #modalMedia { display: none; }
 .post-header {
-    padding: 12px 18px 10px;
+    padding: 10px 18px 12px;
     background: var(--white);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
 }
-.post-user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.post-user-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); }
-.post-user-name { font-size: 14px; font-weight: 800; color: var(--text-dark); flex: 1; }
-.post-user-flag { width: 18px; height: 14px; border-radius: 2px; }
+.post-actions-row {
+    display: flex; align-items: center; gap: 10px;
+}
+
+/* ── Premium Like Button ── */
 .like-post-button {
-    display: flex; align-items: center; gap: 5px;
-    background: var(--off-white); border: 1px solid var(--border);
-    border-radius: 99px; cursor: pointer;
-    font-size: 13px; font-weight: 700; color: #666;
+    display: flex; align-items: center; gap: 8px;
+    background: #f8f8f8;
+    border: 1.5px solid #ebebeb;
+    border-radius: 14px; cursor: pointer;
+    font-size: 13px; font-weight: 800; color: #888;
     font-family: var(--font);
-    padding: 6px 14px; transition: all 0.18s;
+    padding: 9px 18px 9px 14px;
+    transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1);
+    position: relative; overflow: hidden;
+}
+.like-post-button::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,59,92,0.08) 0%, rgba(255,59,92,0.04) 100%);
+    opacity: 0; transition: opacity 0.22s;
 }
 .like-post-button:active { transform: scale(0.93); }
-.like-post-button.liked { background: #fff0f2; border-color: #ffb3be; color: var(--red); }
-.like-post-button svg { width: 15px; height: 15px; transition: all 0.2s; }
-.like-post-button.liked svg { fill: var(--red); stroke: var(--red); transform: scale(1.15); }
-.like-post-count { font-size: 12px; font-weight: 700; }
-.follow-btn {
-    background: var(--off-white); border: 1px solid var(--border);
-    border-radius: 99px; cursor: pointer; padding: 6px 16px;
-    font-size: 13px; font-weight: 700; color: var(--text-mid);
-    font-family: var(--font); transition: all 0.18s; margin-left: auto;
+.like-post-button.liked {
+    background: #fff0f3;
+    border-color: rgba(255,59,92,0.3);
+    color: var(--red);
+    box-shadow: 0 2px 12px rgba(255,59,92,0.18);
 }
-.follow-btn.following { background: var(--brand-gradient); color: #fff; border-color: transparent; }
+.like-post-button.liked::before { opacity: 1; }
+.like-post-button .lbtn-icon {
+    width: 20px; height: 20px; flex-shrink: 0;
+    position: relative; display: flex; align-items: center; justify-content: center;
+}
+.like-post-button .lbtn-icon svg {
+    width: 20px; height: 20px;
+    transition: all 0.28s cubic-bezier(0.34,1.56,0.64,1);
+    fill: none; stroke: #aaa; stroke-width: 1.8;
+}
+.like-post-button.liked .lbtn-icon svg {
+    fill: var(--red); stroke: var(--red);
+    transform: scale(1.2);
+    filter: drop-shadow(0 2px 6px rgba(255,59,92,0.45));
+}
+@keyframes heartBeat {
+    0%   { transform: scale(1); }
+    25%  { transform: scale(1.45); }
+    50%  { transform: scale(0.92); }
+    75%  { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+.like-post-button.pop .lbtn-icon svg { animation: heartBeat 0.48s cubic-bezier(0.34,1.56,0.64,1); }
+.like-post-count { font-size: 13px; font-weight: 800; min-width: 14px; text-align: center; }
+
+/* Ripple spark on like */
+.like-spark {
+    position: absolute; border-radius: 50%; pointer-events: none;
+    width: 6px; height: 6px;
+    background: var(--red); opacity: 0.7;
+    animation: sparkOut 0.5s ease-out forwards;
+}
+@keyframes sparkOut {
+    0%   { transform: scale(0) translate(0,0); opacity: 0.8; }
+    100% { transform: scale(1) translate(var(--tx), var(--ty)); opacity: 0; }
+}
+
+.follow-btn {
+    margin-left: auto;
+    background: #f0f0f0;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 14px; cursor: pointer; padding: 9px 20px;
+    font-size: 13px; font-weight: 800; color: #555;
+    font-family: var(--font);
+    transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1);
+    letter-spacing: 0.01em;
+}
+.follow-btn.following {
+    background: var(--brand-gradient); color: #fff; border-color: transparent;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.22);
+}
 .follow-btn:active { transform: scale(0.93); }
 #postDescriptionWrap { padding: 8px 18px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .post-desc-text { font-size: 13px; line-height: 1.5; color: #444; overflow: hidden; max-height: 42px; transition: max-height 0.3s ease; }
@@ -498,21 +554,28 @@ body {
     font-size: 13px; font-weight: 800; color: var(--text-dark);
     margin-bottom: 3px; display: block;
 }
-.comment-text { font-size: 14px; font-weight: 400; color: #222; line-height: 1.45; word-break: break-word; }
+.comment-text { font-size: 14px; font-weight: 400; color: #222; line-height: 1.45; word-break: break-word; overflow-wrap: anywhere; }
 .comment-actions { display: flex; align-items: center; margin-top: 5px; gap: 0; }
 .comment-time { font-size: 11px; color: var(--text-light); margin-right: 10px; }
 .like-button {
-    display: flex; align-items: center; gap: 4px;
+    display: flex; align-items: center; gap: 5px;
     background: transparent; border: none;
-    border-radius: 99px; cursor: pointer;
-    font-size: 12px; font-weight: 600; color: var(--text-light);
-    font-family: var(--font); padding: 3px 8px; transition: all 0.18s;
+    border-radius: 10px; cursor: pointer;
+    font-size: 12px; font-weight: 700; color: #bbb;
+    font-family: var(--font); padding: 4px 8px;
+    transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
 }
-.like-button:active { transform: scale(0.9); }
+.like-button:active { transform: scale(0.88); }
 .like-button.liked { color: var(--red); }
-.like-button svg { width: 13px; height: 13px; transition: all 0.2s; }
-.like-button.liked svg { fill: var(--red); stroke: var(--red); }
-.like-count { font-size: 12px; font-weight: 700; color: var(--text-light); }
+.like-button svg {
+    width: 14px; height: 14px;
+    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    fill: none; stroke: #ccc; stroke-width: 1.8;
+    flex-shrink: 0;
+}
+.like-button.liked svg { fill: var(--red); stroke: var(--red); transform: scale(1.25); filter: drop-shadow(0 1px 4px rgba(255,59,92,0.5)); }
+.like-count { font-size: 12px; font-weight: 700; color: #ccc; min-width: 10px; transition: color 0.2s; }
+.like-button.liked + .like-count, .like-button.liked ~ .like-count { color: var(--red); }
 .reply-btn {
     background: none; border: none; cursor: pointer;
     font-size: 12px; font-weight: 600; color: var(--text-light);
@@ -542,7 +605,21 @@ body {
 .reply-preview-close:active { color: #333; }
 
 /* Replies */
-.replies-container { margin-left: 44px; margin-top: 4px; }
+.replies-container { margin-left: 44px; margin-top: 6px; }
+.view-replies-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 12px; font-weight: 800; color: var(--brand-mid);
+    font-family: var(--font); padding: 4px 0 8px;
+    letter-spacing: 0.01em;
+    display: flex; align-items: center; gap: 5px;
+    transition: color 0.15s;
+}
+.view-replies-btn::before {
+    content: ''; display: block;
+    width: 20px; height: 1.5px;
+    background: #ddd; border-radius: 1px;
+}
+.view-replies-btn:active { color: var(--brand-dark); }
 
 /* ─── COMMENT FORM ─── */
 .comment-form {
@@ -653,6 +730,7 @@ body {
 
 /* ─── POST ACTION ROW in comment sheet header ─── */
 .post-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.post-actions-row { display: flex; align-items: center; gap: 10px; }
 
 /* ─── MODAL MEDIA — hidden ─── */
 #modalMedia { display: none !important; }
@@ -730,23 +808,24 @@ body {
         </div>
         <!-- hidden element kept for JS compatibility -->
         <div id="modalMedia" style="display:none;"></div>
+        <!-- hidden elements kept for JS compatibility -->
+        <img id="postUserAvatar" src="" alt="User" style="display:none;">
+        <span id="postUserName" style="display:none;"></span>
+        <img id="postUserFlag" src="" alt="Flag" style="display:none;">
+        <div id="postDescriptionWrap" style="display:none;"><div id="postDescription"></div><button id="postDescToggle" style="display:none;"></button></div>
         <div class="post-header" id="postHeader">
-            <div class="post-user-info">
-                <img class="post-user-avatar" id="postUserAvatar" src="" alt="User">
-                <span class="post-user-name" id="postUserName"></span>
-                <img class="post-user-flag" id="postUserFlag" src="" alt="Flag">
-            </div>
-            <div class="post-actions">
+            <div class="post-actions-row">
                 <button class="like-post-button" id="likePostButton">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
-                    </svg>
+                    <span class="lbtn-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                        </svg>
+                    </span>
                     <span class="like-post-count" id="likePostCount">0</span>
                 </button>
                 <button class="follow-btn" id="followButton" style="display:none;">Follow</button>
             </div>
         </div>
-        <div id="postDescriptionWrap" style="display:none;"><div id="postDescription"></div><button id="postDescToggle" style="display:none;"></button></div>
         <div class="reply-preview" id="replyPreview" style="display:none;">
             <div class="reply-preview-text" id="replyPreviewText"></div>
             <button class="reply-preview-close" id="replyPreviewClose">&#215;</button>
@@ -973,8 +1052,8 @@ async function toggleFollow(userId, userName) {
 
 function updateFollowButtons() {
     if (currentPostData && currentPostData.userId !== currentUser?.uid) {
-        followButton.textContent = followedUsers.has(currentPostData.userId) ? 'Following' : 'Follow';
-        followButton.classList.toggle('followed', followedUsers.has(currentPostData.userId));
+        followButton.textContent = followedUsers.has(currentPostData.userId) ? 'Following ✓' : 'Follow';
+        followButton.classList.toggle('following', followedUsers.has(currentPostData.userId));
     }
 }
 
@@ -1016,27 +1095,39 @@ function setupEventListeners() {
         }
     });
 
-    likePostButton.addEventListener('click', async () => {
+    likePostButton.addEventListener('click', async (e) => {
         if (!currentUser || !currentPostId) return;
-        
+        if (navigator.vibrate) navigator.vibrate(28);
+        // Instant pop animation
+        likePostButton.classList.remove('pop');
+        void likePostButton.offsetWidth;
+        likePostButton.classList.add('pop');
+        setTimeout(() => likePostButton.classList.remove('pop'), 500);
+        // Spark particles on like
+        if (!likePostButton.classList.contains('liked')) {
+            for (let i = 0; i < 6; i++) {
+                const spark = document.createElement('span');
+                spark.className = 'like-spark';
+                const angle = (i / 6) * Math.PI * 2;
+                spark.style.setProperty('--tx', Math.cos(angle) * 22 + 'px');
+                spark.style.setProperty('--ty', Math.sin(angle) * 22 + 'px');
+                spark.style.left = '50%'; spark.style.top = '50%';
+                likePostButton.appendChild(spark);
+                setTimeout(() => spark.remove(), 520);
+            }
+        }
         try {
             const postRef = doc(db, 'recence', currentPostId);
             const postDoc = await getDoc(postRef);
-            
             if (postDoc.exists()) {
                 const postData = postDoc.data();
                 const isLiked = postData.likes && postData.likes.includes(currentUser.uid);
-                
                 if (isLiked) {
-                    await updateDoc(postRef, {
-                        likes: arrayRemove(currentUser.uid)
-                    });
+                    await updateDoc(postRef, { likes: arrayRemove(currentUser.uid) });
                     likePostButton.classList.remove('liked');
                     likePostCount.textContent = (postData.likes ? postData.likes.length - 1 : 0).toString();
                 } else {
-                    await updateDoc(postRef, {
-                        likes: arrayUnion(currentUser.uid)
-                    });
+                    await updateDoc(postRef, { likes: arrayUnion(currentUser.uid) });
                     likePostButton.classList.add('liked');
                     likePostCount.textContent = (postData.likes ? postData.likes.length + 1 : 1).toString();
                 }
@@ -1440,6 +1531,7 @@ function createPinElement(postData, postId) {
     const profileBtn = document.createElement('button');
     profileBtn.className = 'slide-action-btn';
     profileBtn.setAttribute('aria-label', 'Follow creator');
+    profileBtn.dataset.uid = postData.userId || '';
     const profileAvatarEl = document.createElement('div');
     profileAvatarEl.className = 'slide-action-icon profile-action-icon';
     const profileAvatarImg = document.createElement('img');
@@ -1450,13 +1542,33 @@ function createPinElement(postData, postId) {
     // Follow + badge overlaid at bottom of avatar
     const followBadge = document.createElement('div');
     followBadge.className = 'follow-badge';
-    followBadge.innerHTML = '<svg viewBox="0 0 14 14" fill="none"><line x1="7" y1="2" x2="7" y2="12" stroke="#111" stroke-width="2.2" stroke-linecap="round"/><line x1="2" y1="7" x2="12" y2="7" stroke="#111" stroke-width="2.2" stroke-linecap="round"/></svg>';
+    const _isFollowedInit = currentUser && followedUsers.has(postData.userId);
+    followBadge.innerHTML = _isFollowedInit
+        ? '<svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 5.5,11 12,3" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+        : '<svg viewBox="0 0 14 14" fill="none"><line x1="7" y1="2" x2="7" y2="12" stroke="#111" stroke-width="2.2" stroke-linecap="round"/><line x1="2" y1="7" x2="12" y2="7" stroke="#111" stroke-width="2.2" stroke-linecap="round"/></svg>';
+    if (_isFollowedInit) followBadge.style.background = 'var(--brand-gradient)';
     profileAvatarEl.appendChild(followBadge);
     const profileLblEl = document.createElement('span');
     profileLblEl.className = 'slide-action-label';
     profileLblEl.textContent = '';
     profileBtn.appendChild(profileAvatarEl);
     profileBtn.appendChild(profileLblEl);
+
+    // Profile follow click — toggle follow state and update badge instantly
+    profileBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!currentUser || postData.userId === currentUser.uid) return;
+        if (navigator.vibrate) navigator.vibrate(25);
+        const nowFollowing = !followedUsers.has(postData.userId);
+        // Instant visual feedback
+        followBadge.innerHTML = nowFollowing
+            ? '<svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 5.5,11 12,3" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+            : '<svg viewBox="0 0 14 14" fill="none"><line x1="7" y1="2" x2="7" y2="12" stroke="#111" stroke-width="2.2" stroke-linecap="round"/><line x1="2" y1="7" x2="12" y2="7" stroke="#111" stroke-width="2.2" stroke-linecap="round"/></svg>';
+        followBadge.style.background = nowFollowing ? 'var(--brand-gradient)' : '';
+        profileBtn.querySelector('.slide-action-icon').style.borderColor = nowFollowing ? 'rgba(255,255,255,0.7)' : '';
+        await toggleFollow(postData.userId, postData.name || 'User');
+    });
+
     slideActions.appendChild(profileBtn);
 
     slideActions.appendChild(thumbBtn);
@@ -1573,8 +1685,8 @@ function openModal(postData, postId) {
         followButton.style.display = 'none';
     } else {
         followButton.style.display = 'inline-block';
-        followButton.textContent = followedUsers.has(postData.userId) ? 'Following' : 'Follow';
-        followButton.classList.toggle('followed', followedUsers.has(postData.userId));
+        followButton.textContent = followedUsers.has(postData.userId) ? 'Following ✓' : 'Follow';
+        followButton.classList.toggle('following', followedUsers.has(postData.userId));
     }
     
     likePostButton.classList.toggle('liked', postData.likes && postData.likes.includes(currentUser?.uid));
@@ -1833,10 +1945,9 @@ function createCommentElement(commentData, replies = []) {
     }
 
     likeButton.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg viewBox="0 0 24 24">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
         </svg>
-        Like
     `;
 
     const likeCount = document.createElement('span');
