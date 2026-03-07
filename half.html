@@ -99,6 +99,7 @@ body {
     scroll-snap-stop: always;
     overflow: hidden;
     background: #000;
+    background: #000;
     -webkit-tap-highlight-color: transparent;
 }
 .pin-container.leaving  { opacity: 0.5; transform: scale(0.97); transition: all 0.3s ease; }
@@ -472,16 +473,13 @@ body {
     gap: 10px;
     animation: cmtIn 0.25s ease-out;
 }
-@keyframes cmtIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
-.comment.new-comment { animation: cmtIn 0.3s ease-out; }
+@keyframes cmtIn { from { opacity:0; } to { opacity:1; } }
+.comment.new-comment { animation: cmtIn 0.2s ease-out; }
 
-.comment-avatar {
-    width: 32px; height: 32px; border-radius: 50%;
-    object-fit: cover; flex-shrink: 0; cursor: pointer;
-    border: 1.5px solid #f0f0f0;
-}
+.comment-avatar { display: none; } /* video-only platform — no profile pics */
 .comment-bubble {
     flex: 1; min-width: 0;
+    margin-left: 0 !important;
 }
 .comment-author {
     font-size: 12px; font-weight: 800; color: #111;
@@ -714,317 +712,409 @@ body {
    ═══════════════════════════════════════════════ */
 @media (min-width: 900px) {
 
-  body { overflow: auto !important; background: #0a0a0a; }
+  html, body {
+    overflow: hidden; height: 100%;
+    background: #efefef;
+    font-family: var(--font);
+  }
+  #bottom-nav          { display: none !important; }
+  .loading-container   { display: none !important; }
+  #gallery             { display: none !important; }
+  .gallery             { display: none !important; }
+  .comment-sheet       { display: none !important; }
+  .cs-overlay          { display: none !important; }
 
-  /* Hide mobile-only elements */
-  #bottom-nav { display: none !important; }
-  .loading-container { display: none !important; }
-
-  /* ── Desktop wrapper ── */
+  /* ── Root shell — 3 floating islands with gaps ── */
   #desktop-wrapper {
     display: flex;
-    min-height: 100vh;
-    width: 100%;
+    align-items: flex-start;
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+    position: fixed; top: 0; left: 0;
+    gap: 12px;
+    padding: 12px;
+    box-sizing: border-box;
+    background: #efefef;
   }
 
-  /* ── Left sidebar ── */
+  /* ══════════════════════════════
+     LEFT SIDEBAR ISLAND
+  ══════════════════════════════ */
   #desktop-sidebar {
-    width: 240px;
+    width: clamp(180px, 14vw, 220px);
     flex-shrink: 0;
-    background: #111;
-    display: flex;
-    flex-direction: column;
-    padding: 28px 0 20px;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow-y: auto;
-    border-right: 1px solid rgba(255,255,255,0.06);
+    background: #ffffff;
+    display: flex; flex-direction: column;
+    height: calc(100vh - 24px);
+    overflow-y: auto; overflow-x: hidden;
+    scrollbar-width: none;
+    border-radius: 20px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.07);
+    z-index: 20;
+    padding-bottom: 20px;
   }
+  #desktop-sidebar::-webkit-scrollbar { display: none; }
+
   .ds-logo {
-    padding: 0 22px 28px;
+    padding: 22px 18px 20px;
     display: flex; align-items: center; gap: 10px;
+    flex-shrink: 0;
   }
   .ds-logo-mark {
-    width: 36px; height: 36px; border-radius: 12px;
+    width: 32px; height: 32px; border-radius: 10px;
     background: var(--brand-gradient);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.16);
   }
-  .ds-logo-mark svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2.2; }
-  .ds-logo-name { font-size: 17px; font-weight: 900; color: #fff; letter-spacing: -0.03em; }
+  .ds-logo-mark svg { width: 15px; height: 15px; fill: none; stroke: #fff; stroke-width: 2.4; }
+  .ds-logo-name { font-size: 15px; font-weight: 900; color: #111; letter-spacing: -0.03em; }
 
-  .ds-section-label {
-    font-size: 9.5px; font-weight: 800; color: rgba(255,255,255,0.3);
-    letter-spacing: 0.13em; text-transform: uppercase;
-    padding: 0 22px 8px;
-    margin-top: 10px;
-  }
   .ds-nav-item {
-    display: flex; align-items: center; gap: 12px;
-    padding: 11px 22px;
+    display: flex; align-items: center; gap: 11px;
+    padding: 10px 14px;
     cursor: pointer;
-    border-radius: 0;
-    transition: background 0.15s;
-    font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.55);
-    text-decoration: none;
-    border: none; background: none; width: 100%; text-align: left;
+    transition: background 0.14s, color 0.14s;
+    font-size: 13.5px; font-weight: 600; color: #999;
+    border: none; background: none; text-align: left;
     font-family: var(--font);
+    border-radius: 14px;
+    margin: 2px 8px;
+    width: calc(100% - 16px);
   }
-  .ds-nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
-  .ds-nav-item.active { color: #fff; background: rgba(255,255,255,0.1); }
-  .ds-nav-item.active .ds-nav-icon { background: var(--brand-gradient); }
-  .ds-nav-item.active .ds-nav-icon svg { stroke: #fff; }
+  .ds-nav-item:hover { background: #f7f7f7; color: #222; }
+  .ds-nav-item.active { color: #111; background: #f2f2f2; }
+  .ds-nav-item.active .ds-nav-icon { background: var(--brand-gradient); box-shadow: 0 4px 10px rgba(0,0,0,0.16); }
+  .ds-nav-item.active .ds-nav-icon svg { stroke: #fff; fill: #fff; }
   .ds-nav-icon {
-    width: 34px; height: 34px; border-radius: 10px;
-    background: rgba(255,255,255,0.08);
+    width: 32px; height: 32px; border-radius: 10px;
+    background: #f2f2f2;
     display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; transition: background 0.15s;
+    flex-shrink: 0; transition: background 0.14s;
   }
-  .ds-nav-icon svg { width: 17px; height: 17px; fill: none; stroke: rgba(255,255,255,0.6); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .ds-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 10px 22px; }
+  .ds-nav-icon svg { width: 16px; height: 16px; fill: none; stroke: #777; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-  /* ── Center feed ── */
+  .ds-upload-btn .ds-nav-icon { background: var(--brand-gradient) !important; box-shadow: 0 4px 10px rgba(0,0,0,0.14); }
+  .ds-upload-btn .ds-nav-icon svg { stroke: #fff !important; fill: none !important; }
+  .ds-upload-btn { color: #444 !important; }
+
+  /* ══════════════════════════════
+     CENTER FEED ISLAND — scroll-snap, one video at a time
+  ══════════════════════════════ */
   #desktop-feed {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0;
-    overflow-y: auto;
-    gap: 0;
-    background: #0a0a0a;
+    height: calc(100vh - 24px);
+    overflow-y: scroll; overflow-x: hidden;
     scroll-snap-type: y mandatory;
     scrollbar-width: none;
+    background: transparent;
+    position: relative;
+    /* No background — the #efefef body shows between cards */
   }
   #desktop-feed::-webkit-scrollbar { display: none; }
 
-  /* ── Video card — full-height, centered, TikTok style ── */
+  /* Each slot = exactly the visible feed area */
   .desktop-card {
     width: 100%;
-    height: 100vh;
+    height: calc(100vh - 24px); /* 24px = top+bottom padding of wrapper */
+    min-height: calc(100vh - 24px);
     flex-shrink: 0;
-    position: relative;
     scroll-snap-align: start;
     scroll-snap-stop: always;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #0a0a0a;
+    background: transparent;
     cursor: pointer;
+    position: relative;
   }
+
+  /* The video card — truly floating alone */
   .desktop-card-video-wrap {
-    height: calc(100vh - 40px);
-    aspect-ratio: 9/16;
-    border-radius: 18px;
+    height: calc(100vh - 24px - 32px); /* wrapper padding + breathing room */
+    max-height: calc(100vh - 56px);
+    aspect-ratio: 9 / 16;
+    border-radius: 22px;
     overflow: hidden;
     background: #000;
     position: relative;
-    box-shadow: 0 8px 48px rgba(0,0,0,0.8);
-    transition: transform 0.2s;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.08);
+    transition: box-shadow 0.35s, opacity 0.35s, transform 0.35s;
+    flex-shrink: 0;
   }
-  .desktop-card:hover .desktop-card-video-wrap { transform: scale(1.005); }
   .desktop-card-video-wrap video {
     width: 100%; height: 100%; object-fit: cover; display: block;
   }
   .desktop-card-video-wrap::after {
     content: "";
     position: absolute; inset: 0;
-    background: linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.88) 100%);
+    background: linear-gradient(to bottom,
+      transparent 50%,
+      rgba(0,0,0,0.5) 80%,
+      rgba(0,0,0,0.82) 100%
+    );
     pointer-events: none;
-    border-radius: 18px;
+    border-radius: 22px;
   }
+
+  /* Shimmer while buffering */
+  .desktop-card-video-wrap.loading::before {
+    content: "";
+    position: absolute; inset: 0; z-index: 2;
+    background: linear-gradient(110deg, #e0e0e0 25%, #f2f2f2 50%, #e0e0e0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 22px;
+  }
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Active vs inactive */
+  .desktop-card:not(.active) .desktop-card-video-wrap {
+    opacity: 0.4; transform: scale(0.96);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+  }
+  .desktop-card.active .desktop-card-video-wrap {
+    opacity: 1; transform: scale(1);
+    box-shadow: 0 16px 56px rgba(0,0,0,0.24), 0 4px 14px rgba(0,0,0,0.10);
+  }
+
+  /* Caption bottom-left of video */
   .desktop-card-info {
-    position: absolute; bottom: 0; left: 0; right: 64px;
-    padding: 20px 18px; z-index: 5;
+    position: absolute; bottom: 20px; left: 0; right: 0;
+    padding: 0 16px;
+    z-index: 5; pointer-events: none;
   }
   .desktop-card-creator {
-    font-size: 15px; font-weight: 900; color: #fff;
-    margin-bottom: 5px; text-shadow: 0 1px 8px rgba(0,0,0,0.8);
+    font-size: 14px; font-weight: 900; color: #fff;
+    margin-bottom: 4px; text-shadow: 0 1px 8px rgba(0,0,0,0.6);
   }
   .desktop-card-caption {
-    font-size: 13px; color: rgba(255,255,255,0.85);
-    line-height: 1.45; text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+    font-size: 12px; color: rgba(255,255,255,0.88);
+    line-height: 1.4; text-shadow: 0 1px 6px rgba(0,0,0,0.6);
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  /* ── Action buttons: float in the gap between video and comment panel ──
+     They sit to the RIGHT of the video card, OUTSIDE the comment box
+     Achieved via absolute positioning on .desktop-card (which is full width)
+     The buttons are positioned at the right edge of the video wrap + some overlap */
   .desktop-card-actions {
-    position: absolute; right: 12px; bottom: 16px;
-    display: flex; flex-direction: column; align-items: center; gap: 16px;
-    z-index: 6;
+    position: absolute;
+    /* sits right at the right edge of the video wrap, overlapping the gap */
+    right: -28px;
+    bottom: 60px;
+    display: flex; flex-direction: column; align-items: center; gap: 20px;
+    z-index: 30;
+    transform: translateX(-50%);
   }
   .desktop-action-btn {
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
     background: none; border: none; cursor: pointer;
     transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
   }
   .desktop-action-btn:active { transform: scale(0.82); }
   .desktop-action-icon {
-    width: 46px; height: 46px; border-radius: 50%;
-    background: rgba(0,0,0,0.52);
-    border: 1.5px solid rgba(255,255,255,0.22);
+    width: 52px; height: 52px; border-radius: 50%;
+    background: #ffffff;
+    border: none;
     display: flex; align-items: center; justify-content: center;
-    transition: all 0.18s;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.08);
   }
-  .desktop-action-icon svg { width: 22px; height: 22px; fill: none; stroke: #fff; stroke-width: 1.8; }
-  .desktop-action-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.88); }
-  .desktop-action-btn.on .desktop-action-icon { background: rgba(98,98,98,0.25); border-color: rgba(150,150,150,0.5); }
-  .desktop-action-btn.on .desktop-action-icon svg.heart-icon { fill: #999; stroke: #999; }
+  .desktop-action-icon svg { width: 24px; height: 24px; fill: none; stroke: #222; stroke-width: 1.9; }
+  .desktop-action-label { font-size: 11px; font-weight: 800; color: #444; }
+  .desktop-action-btn.on .desktop-action-icon { background: #111; }
+  .desktop-action-btn.on .desktop-action-icon svg.heart-icon { fill: #fff; stroke: #fff; }
+  .desktop-action-btn:hover .desktop-action-icon { box-shadow: 0 6px 24px rgba(0,0,0,0.18); transform: scale(1.06); }
 
-  /* ── Right comments panel ── */
+  /* ══════════════════════════════
+     RIGHT COMMENT PANEL ISLAND
+  ══════════════════════════════ */
   #desktop-comments {
-    width: 340px;
+    width: clamp(280px, 24vw, 360px);
     flex-shrink: 0;
-    background: #161616;
-    display: flex;
-    flex-direction: column;
-    position: sticky;
-    top: 0;
-    height: 100vh;
+    height: calc(100vh - 24px);
+    display: flex; flex-direction: column;
+    background: #ffffff;
     overflow: hidden;
-    border-left: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.07);
+    z-index: 20;
+    position: relative;
   }
+
+  /* Comment panel top */
   .dc-head {
-    padding: 22px 18px 14px;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding: 20px 16px 12px;
+    border-bottom: 1px solid #f2f2f2;
     flex-shrink: 0;
   }
-  .dc-creator-row {
-    display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
-  }
-  .dc-creator-avatar {
-    width: 36px; height: 36px; border-radius: 50%;
-    object-fit: cover; border: 2px solid rgba(255,255,255,0.15);
-  }
-  .dc-creator-name { font-size: 14px; font-weight: 800; color: #fff; }
+  .dc-creator-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .dc-creator-avatar { display: none; }
+  .dc-creator-name { font-size: 14px; font-weight: 900; color: #111; flex: 1; min-width: 0; }
   .dc-follow-btn {
-    margin-left: auto;
-    padding: 6px 16px; border-radius: 8px;
+    padding: 6px 16px; border-radius: 10px;
     background: var(--brand-gradient); color: #fff;
     font-size: 12px; font-weight: 800; border: none; cursor: pointer;
-    font-family: var(--font); transition: opacity 0.15s;
+    font-family: var(--font); transition: opacity 0.15s; flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.10);
   }
   .dc-follow-btn:active { opacity: 0.8; }
-  .dc-follow-btn.following { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); }
-  .dc-caption { font-size: 13px; color: rgba(255,255,255,0.75); line-height: 1.5; margin-bottom: 10px; }
-  .dc-music-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: rgba(255,255,255,0.45); }
-  .dc-music-row svg { width: 11px; height: 11px; flex-shrink: 0; }
+  .dc-follow-btn.following { background: #f2f2f2; color: #888; box-shadow: none; }
+  .dc-caption { font-size: 12.5px; color: #555; line-height: 1.5; margin-bottom: 6px; }
+  .dc-music-row { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #bbb; }
+  .dc-music-row svg { width: 10px; height: 10px; flex-shrink: 0; stroke: #bbb; }
+
   .dc-comments-label {
-    font-size: 14px; font-weight: 900; color: #fff;
-    padding: 14px 18px 8px;
+    font-size: 13px; font-weight: 900; color: #111;
+    padding: 10px 16px 8px;
     flex-shrink: 0;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid #f5f5f5;
   }
-  #dc-list {
-    flex: 1; overflow-y: auto; padding: 6px 0;
-    min-height: 0;
-    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;
-  }
-  #dc-list::-webkit-scrollbar { width: 4px; }
-  #dc-list::-webkit-scrollbar-track { background: transparent; }
-  #dc-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
-  /* Dark-themed comments for desktop */
-  #dc-list .comment { background: transparent; }
-  #dc-list .comment-author { color: rgba(255,255,255,0.9); }
-  #dc-list .comment-text { color: rgba(255,255,255,0.72); }
-  #dc-list .comment-time { color: rgba(255,255,255,0.3); }
-  #dc-list .like-button svg { stroke: rgba(255,255,255,0.3); }
-  #dc-list .like-button.liked svg { fill: #888; stroke: #888; }
-  #dc-list .like-count { color: rgba(255,255,255,0.35); }
-  #dc-list .like-button.liked ~ .like-count { color: rgba(255,255,255,0.7); }
-  #dc-list .reply-btn { color: rgba(255,255,255,0.3); }
-  #dc-list .view-replies-btn { color: rgba(255,255,255,0.45); }
-  #dc-list .view-replies-btn::before { background: rgba(255,255,255,0.12); }
-  #dc-list .comment-creator-badge { background: var(--brand-gradient); }
-  #dc-list .comment-avatar { border-color: rgba(255,255,255,0.1); }
-  .dc-input-row {
-    padding: 10px 14px calc(10px + env(safe-area-inset-bottom,0px));
-    border-top: 1px solid rgba(255,255,255,0.07);
-    display: flex; align-items: center; gap: 8px;
-    flex-shrink: 0;
-    background: #161616;
-  }
-  .dc-input-row img.cf-avatar { border-color: rgba(255,255,255,0.15); }
-  .dc-input-pill {
-    flex: 1; display: flex; align-items: center; gap: 6px;
-    background: rgba(255,255,255,0.07);
-    border-radius: 24px; padding: 8px 8px 8px 14px;
-    border: 1.5px solid transparent; transition: all 0.2s;
-  }
-  .dc-input-pill:focus-within { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.15); }
-  .dc-input-pill textarea {
-    flex: 1; background: transparent; border: none; outline: none; resize: none;
-    font-size: 13px; font-weight: 500; color: #fff;
-    font-family: var(--font); max-height: 64px; line-height: 1.4;
-  }
-  .dc-input-pill textarea::placeholder { color: rgba(255,255,255,0.3); }
 
-  /* Hide mobile comment sheet on desktop — use inline panel instead */
-  .comment-sheet { display: none !important; }
-  .cs-overlay { display: none !important; }
-
-  /* Gallery hidden on desktop — desktop-feed is used instead */
-  #gallery { display: none !important; }
-  .gallery { display: none !important; }
-
-  /* Desktop reply-preview banner (dark) */
-  .dc-reply-preview {
-    display: none; align-items: center; gap: 6px;
-    padding: 6px 14px 4px; background: rgba(255,255,255,0.04);
-    flex-shrink: 0;
-  }
-  .dc-reply-preview.show { display: flex; }
-  .dc-reply-icon { font-size: 13px; color: rgba(255,255,255,0.45); }
-  .dc-reply-text { font-size: 12px; color: rgba(255,255,255,0.55); font-weight: 700; flex: 1; }
-  .dc-reply-close {
-    background: rgba(255,255,255,0.1); border: none; cursor: pointer;
-    color: rgba(255,255,255,0.6); border-radius: 50%;
-    width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
-    font-size: 13px;
-  }
   .dc-typing {
-    padding: 3px 18px; font-size: 11px; color: rgba(255,255,255,0.3);
+    padding: 4px 16px; font-size: 11px; color: #bbb;
     font-style: italic; display: flex; align-items: center; gap: 6px;
     min-height: 18px; opacity: 0; transition: opacity 0.3s; flex-shrink: 0;
   }
   .dc-typing.visible { opacity: 1; }
+  .dc-typing .typing-dots span { background: #ccc; }
 
-  /* Active card highlight */
-  .desktop-card.active .desktop-card-video-wrap {
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.15), 0 12px 60px rgba(0,0,0,0.9);
+  /* Comment list */
+  #dc-list {
+    flex: 1; overflow-y: auto; min-height: 0;
+    padding: 4px 0; background: #fff;
+    scrollbar-width: thin; scrollbar-color: #eee transparent;
+  }
+  #dc-list::-webkit-scrollbar { width: 3px; }
+  #dc-list::-webkit-scrollbar-thumb { background: #eee; border-radius: 3px; }
+  #dc-list .comment { background: transparent; }
+  #dc-list .comment-avatar { display: none; }
+  #dc-list .comment-bubble { margin-left: 0 !important; }
+  #dc-list .comment-author { color: #111; }
+  #dc-list .comment-text { color: #333; }
+  #dc-list .comment-time { color: #ccc; }
+  #dc-list .like-button svg { stroke: #ddd; }
+  #dc-list .like-button.liked svg { fill: #222; stroke: #222; }
+  #dc-list .like-count { color: #ccc; }
+  #dc-list .reply-btn { color: #ccc; }
+  #dc-list .view-replies-btn { color: #aaa; }
+  #dc-list .view-replies-btn::before { background: #eee; }
+
+  /* Skeleton */
+  .dc-comment-skeleton { padding: 10px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .dc-skel-line {
+    height: 10px; border-radius: 8px;
+    background: linear-gradient(110deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%);
+    background-size: 200% 100%; animation: shimmer 1.4s infinite;
+  }
+  .dc-skel-line.short { width: 50%; }
+  .dc-skel-line.long  { width: 82%; }
+  .dc-skel-line.name  { width: 32%; height: 9px; }
+
+  /* Desktop GIF selector */
+  #dc-gif-selector {
+    background: #fff; border-top: 1px solid #f0f0f0;
+    padding: 10px; flex-shrink: 0; display: none;
+  }
+  #dc-gif-selector.open { display: flex; flex-direction: column; gap: 8px; }
+  #dc-gif-search {
+    width: 100%; padding: 7px 12px; border-radius: 10px;
+    border: 1.5px solid #eee; font-size: 13px; font-family: var(--font);
+    outline: none; color: #111; background: #fafafa; box-sizing: border-box;
+  }
+  #dc-gif-search:focus { border-color: #ccc; background: #fff; }
+  #dc-gif-results {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+    max-height: 150px; overflow-y: auto;
+  }
+  #dc-gif-results img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; cursor: pointer; }
+  #dc-gif-results img:hover { opacity: 0.82; }
+  #dc-gif-preview { display: none; align-items: center; gap: 8px; padding: 6px 16px 4px; border-top: 1px solid #f5f5f5; }
+  #dc-gif-preview.show { display: flex; }
+  #dc-gif-preview img { height: 50px; border-radius: 8px; }
+  #dc-gif-preview-close { background: #eee; border: none; cursor: pointer; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; color: #888; display: flex; align-items: center; justify-content: center; margin-left: auto; }
+
+  /* Reply preview */
+  .dc-reply-preview {
+    display: none; align-items: center; gap: 6px;
+    padding: 5px 14px 4px; background: #fafafa;
+    border-top: 1px solid #f0f0f0; flex-shrink: 0;
+  }
+  .dc-reply-preview.show { display: flex; }
+  .dc-reply-icon { font-size: 12px; color: #bbb; }
+  .dc-reply-text { font-size: 12px; color: #777; font-weight: 700; flex: 1; }
+  .dc-reply-close {
+    background: #efefef; border: none; cursor: pointer; color: #aaa;
+    border-radius: 50%; width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center; font-size: 12px;
   }
 
-  /* Muted badge on non-active cards */
-  .desktop-card:not(.active) .desktop-card-video-wrap {
-    opacity: 0.65;
-    transition: opacity 0.3s;
+  /* Comment input row */
+  .dc-input-row {
+    padding: 10px 12px 14px;
+    border-top: 1px solid #f2f2f2;
+    display: flex; align-items: center; gap: 6px;
+    flex-shrink: 0; background: #fff;
   }
-  .desktop-card.active .desktop-card-video-wrap {
-    opacity: 1;
+  .dc-input-row .cf-avatar { display: none; }
+  .dc-input-pill {
+    flex: 1; display: flex; align-items: center; gap: 5px;
+    background: #f5f5f5; border-radius: 18px;
+    padding: 8px 8px 8px 14px;
+    border: 1.5px solid transparent; transition: all 0.2s;
   }
+  .dc-input-pill:focus-within { background: #fff; border-color: #e0e0e0; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+  .dc-input-pill textarea {
+    flex: 1; background: transparent; border: none; outline: none; resize: none;
+    font-size: 13px; font-weight: 500; color: #111;
+    font-family: var(--font); max-height: 60px; line-height: 1.4;
+  }
+  .dc-input-pill textarea::placeholder { color: #bbb; }
+  /* GIF button inside desktop input */
+  .dc-gif-btn {
+    font-size: 11px; font-weight: 800; color: #888;
+    background: #ebebeb; border: none; cursor: pointer;
+    border-radius: 6px; padding: 3px 7px;
+    font-family: var(--font); transition: background 0.14s;
+    flex-shrink: 0;
+  }
+  .dc-gif-btn:hover { background: #e0e0e0; color: #444; }
+  .dc-gif-btn.active { background: #222; color: #fff; }
 
-  /* Scroll arrows */
+  /* Scroll nav arrows — sit in the feed gap area */
   .desktop-nav-arrows {
-    position: fixed; right: 360px; top: 50%; transform: translateY(-50%);
-    display: flex; flex-direction: column; gap: 12px; z-index: 200;
-    pointer-events: none;
+    position: fixed;
+    right: calc(clamp(280px, 24vw, 360px) + 30px);
+    top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 10px;
+    z-index: 50;
   }
   .desktop-nav-arrow {
-    width: 40px; height: 40px; border-radius: 50%;
-    background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.15);
+    width: 38px; height: 38px; border-radius: 50%;
+    background: #fff;
+    border: none;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; pointer-events: all; transition: background 0.15s;
+    cursor: pointer; transition: all 0.15s;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
   }
-  .desktop-nav-arrow:hover { background: rgba(255,255,255,0.18); }
-  .desktop-nav-arrow svg { width: 16px; height: 16px; fill: none; stroke: rgba(255,255,255,0.8); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .desktop-nav-arrow:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.16); transform: scale(1.08); }
+  .desktop-nav-arrow:active { transform: scale(0.92); }
+  .desktop-nav-arrow svg { width: 15px; height: 15px; fill: none; stroke: #333; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
 }
 
 /* Mobile: hide desktop-only elements */
 @media (max-width: 899px) {
-  #desktop-wrapper { display: contents; }
+  #desktop-wrapper { display: none; }
   #desktop-sidebar { display: none !important; }
   #desktop-feed { display: none !important; }
   #desktop-comments { display: none !important; }
+  .desktop-nav-arrows { display: none !important; }
 }
 
 </style>
@@ -1057,50 +1147,25 @@ body {
           <span class="ds-logo-name">Choose Life</span>
         </div>
 
-        <div class="ds-section-label">Discover</div>
+        <!-- Same 3 items as mobile nav, in same order -->
         <button class="ds-nav-item active" id="dsNavHome">
           <div class="ds-nav-icon">
-            <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
           </div>
-          For You
+          Home
         </button>
-        <button class="ds-nav-item" id="dsNavFollowing">
-          <div class="ds-nav-icon">
-            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-          </div>
-          Following
-        </button>
-        <button class="ds-nav-item" id="dsNavExplore">
-          <div class="ds-nav-icon">
-            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </div>
-          Explore
-        </button>
-
-        <div class="ds-divider"></div>
-        <div class="ds-section-label">You</div>
-        <button class="ds-nav-item" id="dsNavProfile">
-          <div class="ds-nav-icon">
-            <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          </div>
-          Profile
-        </button>
-        <button class="ds-nav-item" id="dsNavUpload">
-          <div class="ds-nav-icon">
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        <button class="ds-nav-item ds-upload-btn" id="dsNavUpload">
+          <div class="ds-nav-icon" style="background:var(--brand-gradient);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </div>
           Upload
         </button>
-
-        <div class="ds-divider"></div>
-
-        <!-- Search bar -->
-        <div style="padding:0 16px 14px;">
-          <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.07);border-radius:12px;padding:9px 14px;border:1.5px solid transparent;transition:border-color 0.2s;" id="dsSidebarSearch">
-            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2" stroke-linecap="round" style="width:14px;height:14px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input id="dsSearchInput" placeholder="Search..." style="background:transparent;border:none;outline:none;font-size:13px;font-weight:500;color:#fff;font-family:var(--font);width:100%;" onfocus="this.parentElement.style.borderColor='rgba(255,255,255,0.2)'" onblur="this.parentElement.style.borderColor='transparent'">
+        <button class="ds-nav-item" id="dsNavProfile">
+          <div class="ds-nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </div>
-        </div>
+          Profile
+        </button>
       </aside>
 
       <!-- Center feed — cards populated by JS -->
@@ -1133,10 +1198,21 @@ body {
           <div class="dc-reply-text" id="dc-reply-text"></div>
           <button class="dc-reply-close" id="dc-reply-close">&#215;</button>
         </div>
+        <!-- Desktop GIF preview -->
+        <div id="dc-gif-preview">
+          <img id="dc-gif-preview-img" src="" alt="GIF">
+          <button id="dc-gif-preview-close">&#215;</button>
+        </div>
+        <!-- Desktop GIF selector -->
+        <div id="dc-gif-selector">
+          <input id="dc-gif-search" placeholder="Search GIFs..." autocomplete="off">
+          <div id="dc-gif-results"></div>
+        </div>
         <div class="dc-input-row">
           <img class="cf-avatar" id="dc-cf-avatar" src="https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png" alt="">
           <div class="dc-input-pill">
             <textarea id="dc-comment-input" placeholder="Add a comment..." rows="1"></textarea>
+            <button class="dc-gif-btn" id="dc-gif-btn" title="GIF">GIF</button>
             <button class="cf-send-btn" id="dc-submit" disabled>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13"/>
@@ -1246,6 +1322,7 @@ body {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, collection, query, orderBy, getDocs, addDoc, serverTimestamp, onSnapshot, updateDoc, doc, arrayUnion, arrayRemove, getDoc, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getDatabase, ref, onValue, set, serverTimestamp as rtServerTimestamp, onDisconnect, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 // Firebase Configuration
 const firebaseConfig = {
     apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
@@ -1260,6 +1337,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const rtdb = getDatabase(app);
+
+// ── Presence tracking: write user to RTDB on login, remove on disconnect ──
+function trackPresence(postId) {
+    if (!currentUser || !postId) return;
+    const presRef = ref(rtdb, 'viewers/' + postId + '/' + currentUser.uid);
+    set(presRef, { uid: currentUser.uid, t: Date.now() });
+    onDisconnect(presRef).remove();
+}
 
 // Appwrite Configuration
 const APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1";
@@ -1636,18 +1722,22 @@ async function setupVideoVisibility() {
     const galleryEl = document.getElementById('gallery');
 
     function playVideo(video) {
+        // Load src if missing
+        if (!video.src && video.dataset && video.dataset.src) {
+            loadMediaElement(video);
+        }
         const doPlay = () => {
+            // Always try unmuted first; browser may block, fall back to muted then unmute on first interaction
             video.muted = false;
             video.play().catch(() => {
                 video.muted = true;
                 video.play().catch(() => {});
+                // Unmute on next user touch/click
+                const unmute = () => { video.muted = false; video.play().catch(()=>{}); };
+                document.addEventListener('touchstart', unmute, { once: true, passive: true });
+                document.addEventListener('click', unmute, { once: true });
             });
         };
-        // If src not yet set (still has data-src), load it first
-        if (!video.src && video.dataset && video.dataset.src) {
-            loadMediaElement(video);
-        }
-        // Wait until video has data before playing to avoid black flash
         if (video.readyState >= 2) {
             doPlay();
         } else {
@@ -1658,7 +1748,7 @@ async function setupVideoVisibility() {
     const visObs = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             const video = entry.target;
-            if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+            if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
                 playVideo(video);
             } else {
                 video.pause();
@@ -1666,12 +1756,11 @@ async function setupVideoVisibility() {
         });
     }, {
         root: galleryEl,
-        threshold: [0, 0.6, 1.0]
+        threshold: [0, 0.55, 1.0]
     });
 
     document.querySelectorAll('#gallery video').forEach(v => visObs.observe(v));
     window._videoVisObs = visObs;
-    // Expose so newly added videos can be registered
     window._playVideo = playVideo;
 }
 
@@ -1698,6 +1787,10 @@ async function fetchPosts() {
         querySnapshot.forEach((doc) => {
             const postData = doc.data();
             if (postData.media && postData.media.length > 0) {
+                // Video-only platform — skip image posts
+                const _m = postData.media[0];
+                const _isVid = _m && (_m.type === 'video' || (_m.contentType && _m.contentType.startsWith('video/')));
+                if (!_isVid) return;
                 // Mobile feed
                 if (!isDesktop) {
                     const pinElement = createPinElement(postData, doc.id);
@@ -1834,22 +1927,19 @@ function createPinElement(postData, postId) {
     // Live viewer badge
     const viewerBadge = document.createElement('div');
     viewerBadge.className = 'live-viewer-badge';
-    viewerBadge.innerHTML = '<div class="live-dot"></div><span class="live-viewer-text live-viewer-num">...</span>';
-    // Real-time viewer count from Firestore
-    (async () => {
-        try {
-            const postRef = doc(db, 'recence', postId);
-            onSnapshot(postRef, (snap) => {
-                const d = snap.data() || {};
-                const num = (d.viewerCount) || (d.likes ? d.likes.length * 14 + 120 : 200);
-                const numEl = viewerBadge.querySelector('.live-viewer-num');
-                if (numEl) numEl.textContent = num > 999 ? (num/1000).toFixed(1)+'K' : num + ' watching';
-            });
-        } catch(e) {
+    viewerBadge.innerHTML = '<div class="live-dot"></div><span class="live-viewer-text live-viewer-num">0 watching</span>';
+    // Real-time viewer count from RTDB presence
+    try {
+        const viewersRef = ref(rtdb, 'viewers/' + postId);
+        onValue(viewersRef, (snap) => {
+            const count = snap.exists() ? Object.keys(snap.val()).length : 0;
             const numEl = viewerBadge.querySelector('.live-viewer-num');
-            if (numEl) numEl.textContent = '1.2K watching';
-        }
-    })();
+            if (numEl) numEl.textContent = count > 999 ? (count/1000).toFixed(1)+'K watching' : count + ' watching';
+        });
+    } catch(e) {
+        const numEl = viewerBadge.querySelector('.live-viewer-num');
+        if (numEl) numEl.textContent = '0 watching';
+    }
     pinContainer.appendChild(viewerBadge);
 
     // Pause indicator (brand styled)
@@ -1862,14 +1952,15 @@ function createPinElement(postData, postId) {
     if (mediaElement && mediaElement.tagName === 'VIDEO') {
         mediaElement.addEventListener('click', (e) => {
             e.stopPropagation();
-            mediaElement.muted = false;
             if (mediaElement.paused) {
-                mediaElement.play().catch(() => {});
+                mediaElement.muted = false;
+                var pr = mediaElement.play();
+                if (pr && pr.catch) pr.catch(() => { mediaElement.muted = true; mediaElement.play().catch(() => {}); });
                 pauseEl.classList.remove('show');
             } else {
                 mediaElement.pause();
                 pauseEl.classList.add('show');
-                setTimeout(() => pauseEl.classList.remove('show'), 900);
+                setTimeout(() => pauseEl.classList.remove('show'), 800);
             }
         });
     }
@@ -2189,20 +2280,10 @@ function loadComments(postId) {
     const commentsRef = collection(db, 'recence', postId, 'comments');
     const q = query(commentsRef, orderBy('timestamp', 'asc'));
     
-    // Typing indicator simulation
+    // Typing indicator — disabled for performance on mobile
     const typingEl = document.getElementById('typingIndicator');
-    const typingNames = ['Alex', 'Sam', 'Jordan', 'Riley', 'Casey'];
     let typingTimer;
-    function showTyping() {
-        if (!typingEl) return;
-        const name = typingNames[Math.floor(Math.random() * typingNames.length)];
-        document.getElementById('typingText').textContent = name + ' is typing...';
-        typingEl.classList.add('visible');
-        clearTimeout(typingTimer);
-        typingTimer = setTimeout(() => typingEl.classList.remove('visible'), 2500);
-    }
-    // Show typing randomly
-    const typingInterval = setInterval(showTyping, Math.random() * 18000 + 10000);
+    const typingInterval = null; // disabled
 
     const _renderedIds = new Set();
     commentsUnsubscribe = onSnapshot(q, (snapshot) => {
@@ -2239,12 +2320,13 @@ function loadComments(postId) {
         });
 
         // Only add NEW root comments — don't re-render existing
+        // Use RAF to avoid blocking main thread
+        const newComments = [];
         let firstRoot = true;
         snapshot.forEach((d) => {
             const c = d.data(); c.id = d.id;
-            if (c.parentId) return; // skip replies handled below
-            if (_renderedIds.has(c.id)) return; // already rendered
-            // Remove optimistic duplicate
+            if (c.parentId) return;
+            if (_renderedIds.has(c.id)) return;
             const opt = commentsList.querySelector('[data-comment-id^="temp_"]');
             if (opt && c.text && opt.querySelector('.comment-text') &&
                 opt.querySelector('.comment-text').textContent === c.text) {
@@ -2252,8 +2334,6 @@ function loadComments(postId) {
             }
             _renderedIds.add(c.id);
             const el = createCommentElement(c, repliesMap[c.id] || []);
-            el.classList.add('new-comment');
-            // Top comment badge only for first comment with likes
             if (firstRoot && c.likes && c.likes.length > 0) {
                 el.classList.add('top-comment');
                 const badge = document.createElement('div');
@@ -2262,11 +2342,18 @@ function loadComments(postId) {
                 el.appendChild(badge);
             }
             firstRoot = false;
-            commentsList.appendChild(el);
+            newComments.push(el);
         });
 
-        clearInterval(typingInterval);
-        setTimeout(() => { commentsList.scrollTop = commentsList.scrollHeight; }, 40);
+        // Batch DOM writes in next frame
+        if (newComments.length > 0) {
+            requestAnimationFrame(() => {
+                const frag = document.createDocumentFragment();
+                newComments.forEach(el => frag.appendChild(el));
+                commentsList.appendChild(frag);
+                commentsList.scrollTop = commentsList.scrollHeight;
+            });
+        }
     }, (error) => {
         console.error("Error loading comments:", error);
         commentsList.innerHTML = '<div style="text-align: center; padding: 10px;">Error loading comments</div>';
@@ -2661,19 +2748,16 @@ init();
     wrap.className = 'desktop-card-video-wrap';
 
     var videoEl = null;
-    if (isVid) {
-      videoEl = document.createElement('video');
-      videoEl.src = mediaItem.url;
-      videoEl.muted = true; videoEl.loop = true; videoEl.playsInline = true;
-      videoEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-      wrap.appendChild(videoEl);
-      card._video = videoEl;
-    } else if (mediaItem) {
-      var img = document.createElement('img');
-      img.src = mediaItem.url;
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-      wrap.appendChild(img);
-    }
+    if (!isVid) return null; // video-only platform — skip images/other
+    videoEl = document.createElement('video');
+    videoEl.src = mediaItem.url;
+    videoEl.muted = true; videoEl.loop = true; videoEl.playsInline = true;
+    videoEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    // Shimmer while loading
+    wrap.classList.add('loading');
+    videoEl.addEventListener('canplay', function() { wrap.classList.remove('loading'); }, { once: true });
+    wrap.appendChild(videoEl);
+    card._video = videoEl;
 
     // Caption overlay
     var info = document.createElement('div');
@@ -2685,20 +2769,6 @@ init();
     // Side action buttons
     var actions = document.createElement('div');
     actions.className = 'desktop-card-actions';
-
-    // Avatar / profile
-    var profileBtn = document.createElement('button');
-    profileBtn.className = 'desktop-action-btn';
-    var profileIconWrap = document.createElement('div');
-    profileIconWrap.className = 'desktop-action-icon';
-    profileIconWrap.style.cssText = 'padding:0;overflow:hidden;border:2.5px solid #fff;background:#555;';
-    var profileImg = document.createElement('img');
-    profileImg.src = postData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    profileImg.style.cssText = 'width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;';
-    profileImg.onerror = function(){ this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'; };
-    profileIconWrap.appendChild(profileImg);
-    profileBtn.appendChild(profileIconWrap);
-    actions.appendChild(profileBtn);
 
     // Like btn
     var likeBtn = document.createElement('button');
@@ -2732,15 +2802,40 @@ init();
     });
     actions.appendChild(cmtBtn);
 
-    wrap.appendChild(actions);
-    card.appendChild(wrap);
+    // Container holds video+actions together so actions can overflow right edge
+    var cardInner = document.createElement('div');
+    cardInner.style.cssText = 'position:relative;height:100%;display:flex;align-items:center;justify-content:center;';
+    cardInner.appendChild(wrap);
+    // Actions sit just outside the right edge of the video
+    cardInner.appendChild(actions);
+    card.appendChild(cardInner);
 
-    // Click card — open comments in right panel
+    // Click active card = toggle play/pause
+    // Click non-active card = make it active (scroll to it)
     card.addEventListener('click', function() {
-      openDesktopComments(postData, postId);
-      // Highlight active card
-      document.querySelectorAll('.desktop-card').forEach(function(c){ c.classList.remove('active'); });
-      card.classList.add('active');
+      var isActive = card.classList.contains('active');
+      if (isActive && videoEl) {
+        // Toggle play/pause
+        if (videoEl.paused) {
+          playDesktopVideo(videoEl);
+          // Hide pause overlay if any
+          var po = card.querySelector('.d-pause-overlay');
+          if (po) po.style.opacity = '0';
+        } else {
+          videoEl.pause();
+          // Show pause overlay
+          var po = card.querySelector('.d-pause-overlay');
+          if (!po) {
+            po = document.createElement('div');
+            po.className = 'd-pause-overlay';
+            po.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:8;border-radius:24px;background:rgba(0,0,0,0.18);transition:opacity 0.2s;';
+            po.innerHTML = '<div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,0.22);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" fill="rgba(255,255,255,0.95)" width="28" height="28"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></div>';
+            wrap.appendChild(po);
+          } else {
+            po.style.opacity = '1';
+          }
+        }
+      }
     });
 
     return card;
@@ -2781,7 +2876,14 @@ init();
 
     // Unsubscribe previous
     if (dcCommentsUnsub) { dcCommentsUnsub(); dcCommentsUnsub = null; }
-    if (dcList) dcList.innerHTML = '<div class="comments-loading"><div class="cs-spinner"></div><span class="cs-spinner-text">Loading</span></div>';
+    // Show skeleton cards while real comments load
+    if (dcList) {
+      var skel = '';
+      for (var _s = 0; _s < 4; _s++) {
+        skel += '<div class="dc-comment-skeleton"><div class="dc-skel-line name"></div><div class="dc-skel-line long"></div><div class="dc-skel-line short"></div></div>';
+      }
+      dcList.innerHTML = skel;
+    }
 
     // Load comments real-time
     var commentsRef2 = collection(db, 'recence', postId, 'comments');
@@ -2838,10 +2940,21 @@ init();
   // Desktop comment submit
   var dcInput = document.getElementById('dc-comment-input');
   var dcSubmit = document.getElementById('dc-submit');
+  var dcGifBtn = document.getElementById('dc-gif-btn');
+  var dcGifSelector = document.getElementById('dc-gif-selector');
+  var dcGifSearch = document.getElementById('dc-gif-search');
+  var dcGifResults = document.getElementById('dc-gif-results');
+  var dcGifPreview = document.getElementById('dc-gif-preview');
+  var dcGifPreviewImg = document.getElementById('dc-gif-preview-img');
+  var dcGifPreviewClose = document.getElementById('dc-gif-preview-close');
+  var dcSelectedGif = null;
+
+  function dcUpdateSubmit() {
+    if (dcSubmit) dcSubmit.disabled = !(dcInput && dcInput.value.trim()) && !dcSelectedGif;
+  }
+
   if (dcInput) {
-    dcInput.addEventListener('input', function() {
-      if (dcSubmit) dcSubmit.disabled = !dcInput.value.trim();
-    });
+    dcInput.addEventListener('input', dcUpdateSubmit);
     dcInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -2851,6 +2964,66 @@ init();
   }
   if (dcSubmit) {
     dcSubmit.addEventListener('click', function() { submitDcComment(); });
+  }
+
+  // GIF button toggle
+  if (dcGifBtn) {
+    dcGifBtn.addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      var open = dcGifSelector.classList.toggle('open');
+      dcGifBtn.classList.toggle('active', open);
+      if (open) { dcLoadGifs(); if (dcGifSearch) dcGifSearch.focus(); }
+    });
+  }
+  if (dcGifSearch) {
+    dcGifSearch.addEventListener('input', function() {
+      clearTimeout(dcGifSearch._t);
+      dcGifSearch._t = setTimeout(function(){ dcLoadGifs(dcGifSearch.value); }, 400);
+    });
+  }
+  if (dcGifPreviewClose) {
+    dcGifPreviewClose.addEventListener('click', function() {
+      dcSelectedGif = null;
+      if (dcGifPreview) dcGifPreview.classList.remove('show');
+      if (dcGifPreviewImg) dcGifPreviewImg.src = '';
+      dcUpdateSubmit();
+    });
+  }
+  document.addEventListener('click', function(e) {
+    if (dcGifSelector && dcGifSelector.classList.contains('open') &&
+        !dcGifSelector.contains(e.target) && e.target !== dcGifBtn) {
+      dcGifSelector.classList.remove('open');
+      if (dcGifBtn) dcGifBtn.classList.remove('active');
+    }
+  });
+
+  async function dcLoadGifs(q) {
+    if (!dcGifResults) return;
+    dcGifResults.innerHTML = '<div style="padding:8px;font-size:12px;color:#bbb;text-align:center">Loading...</div>';
+    try {
+      var apiKey = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L65';
+      var url = q
+        ? 'https://api.giphy.com/v1/gifs/search?api_key='+apiKey+'&q='+encodeURIComponent(q)+'&limit=12'
+        : 'https://api.giphy.com/v1/gifs/trending?api_key='+apiKey+'&limit=12';
+      var res = await fetch(url);
+      var data = await res.json();
+      dcGifResults.innerHTML = '';
+      (data.data || []).forEach(function(gif) {
+        var img = document.createElement('img');
+        img.src = gif.images.fixed_height_small.url;
+        img.addEventListener('click', function() {
+          dcSelectedGif = gif.images.fixed_height.url;
+          dcGifSelector.classList.remove('open');
+          if (dcGifBtn) dcGifBtn.classList.remove('active');
+          if (dcGifPreviewImg) dcGifPreviewImg.src = dcSelectedGif;
+          if (dcGifPreview) dcGifPreview.classList.add('show');
+          dcUpdateSubmit();
+        });
+        dcGifResults.appendChild(img);
+      });
+    } catch(e) {
+      dcGifResults.innerHTML = '<div style="padding:8px;font-size:12px;color:#bbb;text-align:center">Error loading GIFs</div>';
+    }
   }
 
   var dcReplyPreview = document.getElementById('dc-reply-preview');
@@ -2863,9 +3036,12 @@ init();
   }
 
   async function submitDcComment() {
-    if (!currentUser || !dcCurrentPostId || !dcInput || !dcInput.value.trim()) return;
-    var text = dcInput.value.trim();
-    dcInput.value = '';
+    var text = dcInput ? dcInput.value.trim() : '';
+    if (!currentUser || !dcCurrentPostId || (!text && !dcSelectedGif)) return;
+    if (dcInput) dcInput.value = '';
+    var savedGif = dcSelectedGif; dcSelectedGif = null;
+    if (dcGifPreview) dcGifPreview.classList.remove('show');
+    if (dcGifPreviewImg) dcGifPreviewImg.src = '';
     if (dcSubmit) dcSubmit.disabled = true;
     try {
       var commentData2 = {
@@ -2877,6 +3053,7 @@ init();
         likes: [],
         country: currentUser.country
       };
+      if (savedGif) commentData2.gifUrl = savedGif;
       if (dcReplyTo) {
         commentData2.parentId = dcReplyTo.id;
         commentData2.parentUserName = dcReplyTo.name;
@@ -2887,7 +3064,12 @@ init();
       var postRef3 = doc(db, 'recence', dcCurrentPostId);
       var postDoc3 = await getDoc(postRef3);
       if (postDoc3.exists()) await updateDoc(postRef3, { commentCount: (postDoc3.data().commentCount || 0) + 1 });
-    } catch(err) { console.error('DC comment error:', err); dcInput.value = text; if (dcSubmit) dcSubmit.disabled = false; }
+    } catch(err) {
+      console.error('DC comment error:', err);
+      if (dcInput) dcInput.value = text;
+      dcSelectedGif = savedGif;
+      if (dcSubmit) dcSubmit.disabled = false;
+    }
   }
 
   // Sidebar nav active states
@@ -2899,6 +3081,22 @@ init();
   });
 
   // Desktop scroll: IntersectionObserver auto-plays visible card & opens its comments
+  function playDesktopVideo(v) {
+    if (!v) return;
+    v.muted = false;
+    var p = v.play();
+    if (p && p.catch) {
+      p.catch(function() {
+        v.muted = true;
+        v.play().catch(function(){});
+        // Unmute on first click/key
+        var unmute = function() { v.muted = false; v.play().catch(function(){}); };
+        document.addEventListener('click', unmute, { once: true });
+        document.addEventListener('keydown', unmute, { once: true });
+      });
+    }
+  }
+
   function setupDesktopFeedObserver() {
     var feed = document.getElementById('desktop-feed');
     if (!feed) return;
@@ -2906,21 +3104,21 @@ init();
       entries.forEach(function(entry) {
         var card = entry.target;
         var v = card._video;
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
-          // Mark active
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
           document.querySelectorAll('.desktop-card').forEach(function(c){ c.classList.remove('active'); });
           card.classList.add('active');
-          // Play this video
-          if (v) { v.muted = false; v.play().catch(function(){ v.muted = true; v.play().catch(function(){}); }); }
-          // Open its comments
+          if (v) { v.currentTime = 0; playDesktopVideo(v); }
           var pid = card.dataset.postId;
           var pdata = card._postData;
-          if (pid && pdata) openDesktopComments(pdata, pid);
+          if (pid && pdata) {
+            openDesktopComments(pdata, pid);
+            if (typeof trackPresence === 'function') trackPresence(pid);
+          }
         } else {
           if (v) { v.pause(); v.currentTime = 0; }
         }
       });
-    }, { root: feed, threshold: 0.6 });
+    }, { root: feed, threshold: 0.55 });
 
     document.querySelectorAll('.desktop-card').forEach(function(card) {
       obs.observe(card);
@@ -2962,8 +3160,10 @@ init();
       openDesktopComments(posts[0].data, posts[0].id);
       if (cards[0]) cards[0].classList.add('active');
       if (cards[0] && cards[0]._video) {
-        cards[0]._video.muted = false;
-        cards[0]._video.play().catch(function(){ cards[0]._video.muted = true; cards[0]._video.play().catch(function(){}); });
+        var fv = cards[0]._video;
+        var doFirstPlay = function() { playDesktopVideo(fv); };
+        if (fv.readyState >= 2) { doFirstPlay(); }
+        else { fv.addEventListener('canplay', doFirstPlay, { once: true }); }
       }
     }
     setTimeout(function() {
@@ -3162,15 +3362,18 @@ init();
                 var v = s.querySelector('video');
                 if (!v) return;
                 if (i === current) {
-                    v.currentTime = 0; // always restart from beginning
+                    v.currentTime = 0;
                     v.muted = false;
                     v.play().catch(function(){ 
                         v.muted = true;
                         v.play().catch(function(){});
                     });
+                    // Track real-time presence on this post
+                    var pid = s.dataset.postId;
+                    if (pid && typeof trackPresence === 'function') trackPresence(pid);
                 } else {
                     v.pause();
-                    v.currentTime = 0; // reset so it starts fresh if revisited
+                    v.currentTime = 0;
                 }
             });
 
