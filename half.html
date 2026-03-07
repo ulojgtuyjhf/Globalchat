@@ -476,10 +476,37 @@ body {
 @keyframes cmtIn { from { opacity:0; } to { opacity:1; } }
 .comment.new-comment { animation: cmtIn 0.2s ease-out; }
 
-.comment-avatar { display: none; } /* video-only platform — no profile pics */
+.comment-avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    flex-shrink: 0; object-fit: cover;
+    border: 2px solid #eee; align-self: flex-start; margin-top: 2px;
+}
+/* Letter placeholder avatar */
+.comment-avatar-placeholder {
+    width: 34px; height: 34px; border-radius: 50%;
+    flex-shrink: 0; background: var(--brand-gradient);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 900; color: #fff;
+    letter-spacing: -0.02em; align-self: flex-start; margin-top: 2px;
+    border: 2px solid rgba(255,255,255,0.3);
+}
+/* Guest placeholder */
+.comment-avatar-guest {
+    width: 34px; height: 34px; border-radius: 50%;
+    flex-shrink: 0; background: #f0f0f0;
+    display: flex; align-items: center; justify-content: center;
+    align-self: flex-start; margin-top: 2px;
+    border: 2px solid #e0e0e0;
+}
+.comment-avatar-guest svg { width: 18px; height: 18px; stroke: #bbb; fill: none; }
+.comment-guest-badge {
+    font-size: 9px; font-weight: 900; color: #888;
+    background: #f0f0f0; border: 1px solid #ddd;
+    padding: 1px 6px; border-radius: 99px; letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
 .comment-bubble {
     flex: 1; min-width: 0;
-    margin-left: 0 !important;
 }
 .comment-author {
     font-size: 12px; font-weight: 800; color: #111;
@@ -898,18 +925,15 @@ body {
     overflow: hidden;
   }
 
-  /* ── Action buttons: float in the gap between video and comment panel ──
-     They sit to the RIGHT of the video card, OUTSIDE the comment box
-     Achieved via absolute positioning on .desktop-card (which is full width)
-     The buttons are positioned at the right edge of the video wrap + some overlap */
+  /* ── Action buttons: float OUTSIDE the right edge of the video card ──
+     They sit to the right of the video, in the gap between video and comment panel */
   .desktop-card-actions {
     position: absolute;
-    /* sits right at the right edge of the video wrap, overlapping the gap */
-    right: -28px;
-    bottom: 60px;
+    /* right of the video wrap, outside the rounded box */
+    left: calc(50% + (min(calc((100vh - 56px) * 9 / 16), 100%) / 2) + 14px);
+    bottom: 80px;
     display: flex; flex-direction: column; align-items: center; gap: 20px;
     z-index: 30;
-    transform: translateX(-50%);
   }
   .desktop-action-btn {
     display: flex; flex-direction: column; align-items: center; gap: 5px;
@@ -956,6 +980,12 @@ body {
   .dc-creator-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
   .dc-creator-avatar { display: none; }
   .dc-creator-name { font-size: 14px; font-weight: 900; color: #111; flex: 1; min-width: 0; }
+  .dc-creator-profession {
+    font-size: 11px; font-weight: 600; color: #999;
+    margin-bottom: 8px; display: flex; align-items: center; gap: 5px;
+    letter-spacing: 0.01em;
+  }
+  .dc-creator-profession svg { width: 11px; height: 11px; stroke: #bbb; flex-shrink: 0; }
   .dc-follow-btn {
     padding: 6px 16px; border-radius: 10px;
     background: var(--brand-gradient); color: #fff;
@@ -993,7 +1023,7 @@ body {
   #dc-list::-webkit-scrollbar { width: 3px; }
   #dc-list::-webkit-scrollbar-thumb { background: #eee; border-radius: 3px; }
   #dc-list .comment { background: transparent; }
-  #dc-list .comment-avatar { display: none; }
+  #dc-list .comment-avatar, #dc-list .comment-avatar-placeholder, #dc-list .comment-avatar-guest { display: flex; }
   #dc-list .comment-bubble { margin-left: 0 !important; }
   #dc-list .comment-author { color: #111; }
   #dc-list .comment-text { color: #333; }
@@ -1180,6 +1210,10 @@ body {
             <img class="dc-creator-avatar" id="dc-avatar" src="https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png" alt="">
             <span class="dc-creator-name" id="dc-creator-name">Select a video</span>
             <button class="dc-follow-btn" id="dc-follow-btn" style="display:none">Follow</button>
+          </div>
+          <div class="dc-creator-profession" id="dc-creator-profession" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+            <span id="dc-creator-profession-text"></span>
           </div>
           <div class="dc-caption" id="dc-caption"></div>
           <div class="dc-music-row">
@@ -2360,16 +2394,42 @@ function loadComments(postId) {
     });
 }
 
+function makePlaceholderAvatar(name, isGuest) {
+    var el = document.createElement('div');
+    el.className = 'comment-avatar-placeholder';
+    var letter = (name && name.trim() && !isGuest) ? name.trim()[0].toUpperCase() : '?';
+    el.textContent = letter;
+    return el;
+}
+
 function createCommentElement(commentData, replies = []) {
     const comment = document.createElement('div');
     comment.className = 'comment';
     comment.dataset.commentId = commentData.id;
 
-    const avatar = document.createElement('img');
-    avatar.className = 'comment-avatar';
-    avatar.src = commentData.userPhotoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    avatar.onerror = function() { this.src = 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'; };
-    avatar.addEventListener('click', (e) => { e.stopPropagation(); viewProfile(commentData.userId); });
+    // Determine if guest (name starts with "user" case-insensitive)
+    var userName = commentData.userName || 'Anonymous';
+    var isGuest = /^user/i.test(userName);
+
+    // Build avatar: real photo → letter placeholder → guest icon
+    var avatarEl;
+    if (commentData.userPhotoURL && !commentData.userPhotoURL.includes('default_profile')) {
+        avatarEl = document.createElement('img');
+        avatarEl.className = 'comment-avatar';
+        avatarEl.src = commentData.userPhotoURL;
+        avatarEl.onerror = function() {
+            // Swap to letter placeholder on error
+            var ph = makePlaceholderAvatar(userName, isGuest);
+            avatarEl.parentNode && avatarEl.parentNode.replaceChild(ph, avatarEl);
+        };
+    } else if (isGuest) {
+        avatarEl = document.createElement('div');
+        avatarEl.className = 'comment-avatar-guest';
+        avatarEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    } else {
+        avatarEl = makePlaceholderAvatar(userName, false);
+    }
+    avatarEl.addEventListener('click', (e) => { e.stopPropagation(); viewProfile(commentData.userId); });
 
     const bubble = document.createElement('div');
     bubble.className = 'comment-bubble';
@@ -2377,11 +2437,17 @@ function createCommentElement(commentData, replies = []) {
     // Author row
     const author = document.createElement('div');
     author.className = 'comment-author';
-    const nameNode = document.createTextNode(commentData.userName || 'Anonymous');
+    const nameNode = document.createTextNode(userName);
     author.appendChild(nameNode);
     author.style.cursor = 'pointer';
     author.addEventListener('click', (e) => { e.stopPropagation(); viewProfile(commentData.userId); });
 
+    if (isGuest) {
+        const gb = document.createElement('span');
+        gb.className = 'comment-guest-badge';
+        gb.textContent = 'Guest';
+        author.appendChild(gb);
+    }
     if (commentData.country) {
         const flag = document.createElement('img');
         flag.className = 'comment-flag';
@@ -2506,7 +2572,7 @@ function createCommentElement(commentData, replies = []) {
         bubble.appendChild(repliesContainer);
     }
 
-    comment.appendChild(avatar);
+    comment.appendChild(avatarEl);
     comment.appendChild(bubble);
     return comment;
 }
@@ -2802,13 +2868,13 @@ init();
     });
     actions.appendChild(cmtBtn);
 
-    // Container holds video+actions together so actions can overflow right edge
+    // Container holds video — actions are on the card itself, positioned outside the video wrap
     var cardInner = document.createElement('div');
     cardInner.style.cssText = 'position:relative;height:100%;display:flex;align-items:center;justify-content:center;';
     cardInner.appendChild(wrap);
-    // Actions sit just outside the right edge of the video
-    cardInner.appendChild(actions);
     card.appendChild(cardInner);
+    // Actions sit outside the video box, appended to card so CSS left positioning works
+    card.appendChild(actions);
 
     // Click active card = toggle play/pause
     // Click non-active card = make it active (scroll to it)
@@ -2857,6 +2923,23 @@ init();
     if (avatarEl) avatarEl.src = postData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
     if (nameEl) nameEl.textContent = '@' + (postData.name || 'creator');
     if (captionEl) captionEl.textContent = postData.text || '';
+
+    // Profession — fetch from users collection
+    var profEl = document.getElementById('dc-creator-profession');
+    var profText = document.getElementById('dc-creator-profession-text');
+    if (profEl && profText) {
+      profEl.style.display = 'none';
+      if (postData.userId) {
+        getDoc(doc(db, 'users', postData.userId)).then(function(uDoc) {
+          var u = uDoc.data() || {};
+          var prof = u.profession || u.title || u.bio || '';
+          if (prof) {
+            profText.textContent = prof;
+            profEl.style.display = 'flex';
+          }
+        }).catch(function(){});
+      }
+    }
     if (followEl) {
       followEl.style.display = postData.userId !== (currentUser && currentUser.uid) ? '' : 'none';
       var isF = followedUsers.has(postData.userId);
@@ -2876,13 +2959,19 @@ init();
 
     // Unsubscribe previous
     if (dcCommentsUnsub) { dcCommentsUnsub(); dcCommentsUnsub = null; }
-    // Show skeleton cards while real comments load
+    // Show skeleton after a short delay (only if real comments haven't arrived yet)
+    var skelTimer = null;
     if (dcList) {
-      var skel = '';
-      for (var _s = 0; _s < 4; _s++) {
-        skel += '<div class="dc-comment-skeleton"><div class="dc-skel-line name"></div><div class="dc-skel-line long"></div><div class="dc-skel-line short"></div></div>';
-      }
-      dcList.innerHTML = skel;
+      dcList.innerHTML = ''; // clear immediately, skeleton comes after delay
+      skelTimer = setTimeout(function() {
+        if (dcRenderedIds.size === 0 && dcList) {
+          var skel = '';
+          for (var _s = 0; _s < 4; _s++) {
+            skel += '<div class="dc-comment-skeleton"><div class="dc-skel-line name"></div><div class="dc-skel-line long"></div><div class="dc-skel-line short"></div></div>';
+          }
+          dcList.innerHTML = skel;
+        }
+      }, 300);
     }
 
     // Load comments real-time
@@ -2904,6 +2993,7 @@ init();
     var typingInterval2 = setInterval(showDcTyping, Math.random() * 8000 + 5000);
 
     dcCommentsUnsub = onSnapshot(q2, function(snapshot) {
+      if (skelTimer) { clearTimeout(skelTimer); skelTimer = null; }
       if (countEl) countEl.textContent = snapshot.size;
       if (snapshot.empty && dcRenderedIds.size === 0) {
         if (dcList) dcList.innerHTML = '<div class="comments-empty" style="color:rgba(255,255,255,0.25)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span style="color:rgba(255,255,255,0.35)">No comments yet</span></div>';
