@@ -242,7 +242,7 @@ body {
 }
 .dc-share-btn:hover { background: #eee; color: #222; border-color: #ddd; }
 .dc-share-btn:active { transform: scale(0.96); }
-.dc-share-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.dc-share-btn svg { width: 16px; height: 16px; fill: currentColor; stroke: none; flex-shrink: 0; }
 .dc-share-btn.copied { background: #111; color: #fff; border-color: #111; }
 
 /* ─── VIDEO CAPTION STRIP (bottom-left) ─── */
@@ -255,13 +255,23 @@ body {
     z-index: 6;
     pointer-events: none;
 }
+/* Creator name row — name truncates, date stays visible */
+.video-creator-row {
+    display: flex; align-items: baseline; gap: 7px;
+    margin-bottom: 5px; overflow: hidden;
+}
 .video-creator-name {
-    display: block;
-    font-size: 18px; font-weight: 900;
-    color: #fff;
-    letter-spacing: -0.02em;
+    font-size: 17px; font-weight: 900;
+    color: #fff; letter-spacing: -0.02em;
     text-shadow: 0 2px 16px rgba(0,0,0,0.9);
-    margin-bottom: 6px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    min-width: 0; flex-shrink: 1;
+}
+.video-creator-date {
+    font-size: 10.5px; font-weight: 600;
+    color: rgba(255,255,255,0.55);
+    text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+    white-space: nowrap; flex-shrink: 0;
 }
 .video-caption-text {
     font-size: 13px; font-weight: 500;
@@ -507,24 +517,49 @@ body {
 
 .cs-head {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 18px 14px;
+    padding: 12px 18px 10px;
     flex-shrink: 0;
     background: #fff;
     border-bottom: 1px solid #f0f0f0;
+    position: relative;
 }
-.cs-head-left { display: flex; align-items: center; gap: 10px; }
-.cs-live-pill {
+.cs-head-left { display: flex; align-items: center; gap: 8px; }
+
+/* Red live dot next to comment count */
+.cs-live-indicator {
     display: flex; align-items: center; gap: 5px;
-    background: var(--brand-dark); color: #fff;
-    font-size: 9px; font-weight: 900; letter-spacing: 0.16em;
-    padding: 5px 11px; border-radius: 99px; line-height: 1;
 }
-.cs-live-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #fff;
-    animation: livePulse 1.4s ease-in-out infinite;
+.cs-live-red-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #ff3b5c;
+    box-shadow: 0 0 0 0 rgba(255,59,92,0.5);
+    animation: liveRedPulse 1.6s ease-in-out infinite;
+    flex-shrink: 0;
 }
-.cs-head-title { font-size: 16px; font-weight: 900; color: #111; letter-spacing: -0.02em; }
+@keyframes liveRedPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(255,59,92,0.6); transform: scale(1); }
+    50%  { box-shadow: 0 0 0 6px rgba(255,59,92,0); transform: scale(1.15); }
+    100% { box-shadow: 0 0 0 0 rgba(255,59,92,0); transform: scale(1); }
+}
+.cs-live-label {
+    font-size: 10px; font-weight: 900; color: #ff3b5c;
+    letter-spacing: 0.1em; text-transform: uppercase;
+}
+.cs-head-title {
+    font-size: 16px; font-weight: 900; color: #111; letter-spacing: -0.02em;
+}
+.cs-head-title .cs-count-num {
+    color: #111;
+    transition: all 0.2s;
+}
+.cs-head-title .cs-count-num.bump {
+    animation: countBump 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes countBump {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.35); color: #ff3b5c; }
+    100% { transform: scale(1); }
+}
 .cs-close {
     background: #f0f0f0; border: none; border-radius: 50%;
     width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
@@ -533,7 +568,7 @@ body {
 .cs-close:active { background: #e0e0e0; }
 .cs-close svg { width: 13px; height: 13px; fill: none; stroke: #666; stroke-width: 2.5; stroke-linecap: round; pointer-events: none; }
 
-/* Typing indicator */
+/* ── typing indicator ── */
 .typing-indicator {
     padding: 4px 18px; font-size: 11.5px; color: #aaa;
     font-style: italic; min-height: 20px; flex-shrink: 0;
@@ -576,90 +611,141 @@ body {
 .cs-spinner-text { font-size: 12px; font-weight: 600; color: #bbb; letter-spacing: 0.04em; }
 
 /* ─── COMMENTS LIST ─── */
-#commentsList { flex: 1; overflow-y: auto; padding: 8px 0 4px; background: #fff; }
+#commentsList {
+    flex: 1; overflow-y: auto; padding: 6px 0 8px;
+    background: #fff; position: relative;
+    scroll-behavior: smooth;
+}
 #commentsList::-webkit-scrollbar { display: none; }
 
-.comment {
-    display: flex; padding: 8px 16px;
-    gap: 10px;
-    animation: cmtIn 0.25s ease-out;
+/* ─── NEW COMMENTS PILL (floating) ─── */
+.new-cmt-pill {
+    position: sticky; bottom: 10px; left: 50%;
+    transform: translateX(-50%);
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #111; color: #fff;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.01em;
+    padding: 7px 16px; border-radius: 99px;
+    cursor: pointer; z-index: 60; white-space: nowrap;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.28);
+    border: 1.5px solid rgba(255,255,255,0.08);
+    animation: pillUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    margin: 4px auto; width: fit-content;
 }
-@keyframes cmtIn { from { opacity:0; } to { opacity:1; } }
-.comment.new-comment { animation: cmtIn 0.2s ease-out; }
+@keyframes pillUp {
+    from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.88); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+.new-cmt-pill-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #ff3b5c; flex-shrink: 0;
+    box-shadow: 0 0 8px rgba(255,59,92,0.9);
+    animation: liveRedPulse 1.4s ease-in-out infinite;
+}
 
-.comment-avatar {
-    width: 34px; height: 34px; border-radius: 50%;
-    flex-shrink: 0; object-fit: cover;
-    border: 2px solid #eee; align-self: flex-start; margin-top: 2px;
+/* ─── COMMENT ITEM ─── */
+.comment {
+    display: flex; padding: 9px 16px;
+    gap: 10px; position: relative;
+    transition: background 0.15s;
 }
-/* Letter placeholder avatar */
+.comment:active { background: rgba(0,0,0,0.025); }
+@keyframes cmtIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+.comment.new-comment { animation: cmtIn 0.26s cubic-bezier(0.22,1,0.36,1); }
+.comment.new-live    { animation: cmtIn 0.32s cubic-bezier(0.22,1,0.36,1); }
+.comment.new-live::after {
+    content: ''; position: absolute; inset: 0;
+    background: rgba(255,59,92,0.035);
+    animation: liveFlash 0.9s ease-out forwards;
+    pointer-events: none;
+}
+@keyframes liveFlash { 0%{opacity:1} 100%{opacity:0} }
+
+/* Avatars */
+.comment-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    flex-shrink: 0; object-fit: cover;
+    border: 2px solid #eee; align-self: flex-start; margin-top: 1px;
+}
 .comment-avatar-placeholder {
-    width: 34px; height: 34px; border-radius: 50%;
+    width: 36px; height: 36px; border-radius: 50%;
     flex-shrink: 0; background: var(--brand-gradient);
     display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 900; color: #fff;
-    letter-spacing: -0.02em; align-self: flex-start; margin-top: 2px;
-    border: 2px solid rgba(255,255,255,0.3);
+    font-size: 14px; font-weight: 900; color: #fff;
+    align-self: flex-start; margin-top: 1px;
+    border: 2px solid rgba(255,255,255,0.25);
 }
-/* Guest placeholder */
 .comment-avatar-guest {
-    width: 34px; height: 34px; border-radius: 50%;
+    width: 36px; height: 36px; border-radius: 50%;
     flex-shrink: 0; background: #f0f0f0;
     display: flex; align-items: center; justify-content: center;
-    align-self: flex-start; margin-top: 2px;
-    border: 2px solid #e0e0e0;
+    align-self: flex-start; margin-top: 1px; border: 2px solid #e5e5e5;
 }
 .comment-avatar-guest svg { width: 18px; height: 18px; stroke: #bbb; fill: none; }
-.comment-guest-badge {
-    font-size: 9px; font-weight: 900; color: #888;
-    background: #f0f0f0; border: 1px solid #ddd;
-    padding: 1px 6px; border-radius: 99px; letter-spacing: 0.04em;
-    text-transform: uppercase;
-}
-.comment-bubble {
-    flex: 1; min-width: 0;
-}
+
+/* Bubble */
+.comment-bubble { flex: 1; min-width: 0; }
+
+/* Author row — name truncated + date + badges all on one line */
 .comment-author {
-    font-size: 12px; font-weight: 800; color: #111;
-    margin-bottom: 2px; display: flex; align-items: center; gap: 5px;
-    flex-wrap: wrap;
+    display: flex; align-items: center; gap: 5px;
+    margin-bottom: 3px; overflow: hidden; flex-wrap: nowrap;
 }
-.comment-flag { width: 15px; height: 11px; border-radius: 2px; vertical-align: middle; }
+.comment-author-name {
+    font-size: 12.5px; font-weight: 800; color: #111;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    min-width: 0; flex-shrink: 1; cursor: pointer; line-height: 1.3;
+}
+.comment-author-name:hover { text-decoration: underline; }
+.comment-author-date {
+    font-size: 10px; font-weight: 500; color: #c0c0c0;
+    white-space: nowrap; flex-shrink: 0;
+}
+.comment-author-badges {
+    display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+}
+.comment-guest-badge {
+    font-size: 8.5px; font-weight: 900; color: #888;
+    background: #f0f0f0; border: 1px solid #e0e0e0;
+    padding: 1px 5px; border-radius: 99px; letter-spacing: 0.04em;
+    text-transform: uppercase; line-height: 1.4;
+}
+.comment-flag { width: 14px; height: 10px; border-radius: 2px; vertical-align: middle; }
 .comment-creator-badge {
-    font-size: 9.5px; font-weight: 800; color: #fff;
+    font-size: 9px; font-weight: 900; color: #fff;
     background: var(--brand-gradient);
-    padding: 1px 6px; border-radius: 99px; letter-spacing: 0.03em;
+    padding: 1px 6px; border-radius: 99px; letter-spacing: 0.03em; line-height: 1.4;
 }
-.comment-text { font-size: 13px; font-weight: 400; color: #333; line-height: 1.45; word-break: break-word; overflow-wrap: anywhere; }
+
+/* Comment text */
+.comment-text {
+    font-size: 13.5px; font-weight: 400; color: #222;
+    line-height: 1.45; word-break: break-word; overflow-wrap: anywhere;
+}
+
+/* Actions */
 .comment-actions {
-    display: flex; align-items: center; margin-top: 4px; gap: 0;
+    display: flex; align-items: center; margin-top: 5px; gap: 0;
 }
 .comment-time { font-size: 10.5px; color: #c8c8c8; margin-right: 6px; font-weight: 500; }
 
-/* Comment like button — brand, no red ever */
+/* Like button */
 .like-button {
     display: flex; align-items: center; gap: 4px;
-    background: transparent; border: none;
-    border-radius: 6px; cursor: pointer;
+    background: transparent; border: none; border-radius: 6px; cursor: pointer;
     font-family: var(--font); padding: 2px 6px;
     transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
 }
 .like-button:active { transform: scale(0.84); }
 .like-button svg {
-    width: 13px; height: 13px;
-    transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1);
+    width: 13px; height: 13px; transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1);
     fill: none; stroke: #ccc; stroke-width: 1.8; flex-shrink: 0;
 }
-.like-button.liked svg {
-    fill: var(--brand-dark); stroke: var(--brand-dark);
-    transform: scale(1.25);
-}
-@keyframes cLikePop {
-    0%{transform:scale(1)} 40%{transform:scale(1.25)} 70%{transform:scale(0.95)} 100%{transform:scale(1)}
-}
+.like-button.liked svg { fill: var(--brand-dark); stroke: var(--brand-dark); transform: scale(1.25); }
+@keyframes cLikePop { 0%{transform:scale(1)} 40%{transform:scale(1.25)} 70%{transform:scale(0.95)} 100%{transform:scale(1)} }
 .like-button.pop svg { animation: cLikePop 0.36s cubic-bezier(0.34,1.56,0.64,1); }
 .like-count { font-size: 11px; font-weight: 700; color: #ccc; min-width: 8px; transition: color 0.18s; }
-.like-button.liked ~ .like-count { color: var(--brand-dark); }
+.like-button.liked .like-count { color: var(--brand-dark); }
 
 .reply-btn {
     background: none; border: none; cursor: pointer;
@@ -668,14 +754,14 @@ body {
 }
 .reply-btn:active { color: var(--brand-mid); }
 
-/* Top comment */
-.top-comment { position: relative; padding-top: 18px !important; }
+/* Top pinned comment */
+.comment.top-comment { background: #fffdf5; border-left: 3px solid #f7c948; }
 .top-comment-badge {
-    position: absolute; top: 4px; left: 62px;
-    background: var(--brand-gradient); color: #fff;
-    font-size: 9px; font-weight: 900; letter-spacing: 0.1em;
-    padding: 2px 9px; border-radius: 99px;
-    text-transform: uppercase;
+    position: absolute; top: 6px; left: 64px;
+    background: linear-gradient(135deg,#f7c948,#f59e0b); color: #fff;
+    font-size: 8.5px; font-weight: 900; letter-spacing: 0.1em;
+    padding: 2px 8px; border-radius: 99px; text-transform: uppercase;
+    box-shadow: 0 1px 4px rgba(245,158,11,0.3);
 }
 
 /* Reply preview inside form */
@@ -1158,7 +1244,15 @@ body {
   }
   .dc-creator-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
   .dc-creator-avatar { display: none; }
-  .dc-creator-name { font-size: 14px; font-weight: 900; color: #111; flex: 1; min-width: 0; }
+  .dc-creator-name {
+    font-size: 14px; font-weight: 900; color: #111;
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .dc-creator-upload-date {
+    font-size: 10px; font-weight: 500; color: #c0c0c0;
+    white-space: nowrap; flex-shrink: 0;
+  }
   .dc-creator-profession {
     font-size: 11px; font-weight: 600; color: #999;
     margin-bottom: 8px; display: flex; align-items: center; gap: 5px;
@@ -1174,7 +1268,23 @@ body {
   }
   .dc-follow-btn:active { opacity: 0.8; }
   .dc-follow-btn.following { background: #f2f2f2; color: #888; box-shadow: none; }
-  .dc-caption { font-size: 12.5px; color: #555; line-height: 1.5; margin-bottom: 6px; }
+  .dc-caption {
+    font-size: 12.5px; color: #555; line-height: 1.55; margin-bottom: 4px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; cursor: pointer;
+  }
+  .dc-caption.expanded { display: block; -webkit-line-clamp: unset; overflow: visible; }
+  .dc-caption-toggle {
+    display: none; align-items: center; gap: 3px;
+    font-size: 11px; font-weight: 800; color: #aaa;
+    background: none; border: none; cursor: pointer;
+    font-family: var(--font); padding: 0 0 6px; line-height: 1;
+    transition: color 0.15s;
+  }
+  .dc-caption-toggle.show { display: inline-flex; }
+  .dc-caption-toggle:hover { color: #555; }
+  .dc-caption-toggle svg { width: 10px; height: 10px; stroke: currentColor; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.2s; flex-shrink: 0; }
+  .dc-caption-toggle.open svg { transform: rotate(180deg); }
   .dc-music-row { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #bbb; }
   .dc-music-row svg { width: 10px; height: 10px; flex-shrink: 0; stroke: #bbb; }
 
@@ -1389,18 +1499,25 @@ body {
             <img class="dc-creator-avatar" id="dc-avatar" src="https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png" alt="">
             <span class="dc-creator-name" id="dc-creator-name">Select a video</span>
             <button class="dc-follow-btn" id="dc-follow-btn" style="display:none">Follow</button>
+            <span class="dc-creator-upload-date" id="dc-upload-date"></span>
           </div>
           <div class="dc-creator-profession" id="dc-creator-profession" style="display:none;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
             <span id="dc-creator-profession-text"></span>
           </div>
           <div class="dc-caption" id="dc-caption"></div>
+          <button class="dc-caption-toggle" id="dc-caption-toggle">
+            more <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
           <div class="dc-music-row">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
             <span id="dc-music">Original Sound</span>
           </div>
         </div>
-        <div class="dc-comments-label"><span id="dc-count">0</span> comments</div>
+        <div class="dc-comments-label" style="display:flex;align-items:center;gap:7px;">
+          <div class="cs-live-red-dot" style="width:7px;height:7px;flex-shrink:0;"></div>
+          <span class="cs-count-num" id="dc-count">0</span> comments
+        </div>
         <!-- Live activity strip -->
         <div class="dc-live-strip" id="dc-live-strip" style="display:none;">
           <div class="dc-live-pill"><div class="dc-live-pill-dot"></div>LIVE</div>
@@ -1442,7 +1559,7 @@ body {
         </div>
         <div class="dc-share-row">
           <button class="dc-share-btn" id="dc-share-btn">
-            <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            <svg viewBox="0 0 122.88 103.44" fill="currentColor" width="16" height="16" xmlns="http://www.w3.org/2000/svg"><path d="M69.49,102.77L49.8,84.04l-20.23,18.27c-0.45,0.49-1.09,0.79-1.8,0.79c-1.35,0-2.44-1.09-2.44-2.44V60.77L0.76,37.41c-0.98-0.93-1.01-2.47-0.09-3.45c0.31-0.33,0.7-0.55,1.11-0.67l0,0l118-33.2c1.3-0.36,2.64,0.39,3.01,1.69c0.19,0.66,0.08,1.34-0.24,1.89l-49.2,98.42c-0.6,1.2-2.06,1.69-3.26,1.09C69.86,103.07,69.66,102.93,69.49,102.77L69.49,102.77z"/></svg>
             Share this video
           </button>
         </div>
@@ -1492,7 +1609,7 @@ body {
         <div class="share-options-grid">
             <button class="share-option-btn" data-share="native">
                 <div class="share-option-icon" style="background:var(--brand-gradient);">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                    <svg viewBox="0 0 122.88 103.44" fill="#fff" width="22" height="22" xmlns="http://www.w3.org/2000/svg"><path d="M69.49,102.77L49.8,84.04l-20.23,18.27c-0.45,0.49-1.09,0.79-1.8,0.79c-1.35,0-2.44-1.09-2.44-2.44V60.77L0.76,37.41c-0.98-0.93-1.01-2.47-0.09-3.45c0.31-0.33,0.7-0.55,1.11-0.67l0,0l118-33.2c1.3-0.36,2.64,0.39,3.01,1.69c0.19,0.66,0.08,1.34-0.24,1.89l-49.2,98.42c-0.6,1.2-2.06,1.69-3.26,1.09C69.86,103.07,69.66,102.93,69.49,102.77L69.49,102.77z"/></svg>
                 </div>
                 <span class="share-option-label">Share</span>
             </button>
@@ -1529,8 +1646,11 @@ body {
         <div class="cs-handle"></div>
         <div class="cs-head">
             <div class="cs-head-left">
-                <div class="cs-live-pill"><span class="cs-live-dot"></span>LIVE</div>
-                <span class="cs-head-title"><span id="commentsCount">0</span> comments</span>
+                <div class="cs-live-indicator">
+                    <div class="cs-live-red-dot"></div>
+                    <span class="cs-live-label">Live</span>
+                </div>
+                <span class="cs-head-title"><span class="cs-count-num" id="commentsCount">0</span> comments</span>
             </div>
             <button class="cs-close" id="csClose">
                 <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1579,7 +1699,7 @@ body {
             </div>
             <div class="dc-share-row" style="padding:6px 14px 10px;">
                 <button class="dc-share-btn" id="mobile-share-btn">
-                    <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                    <svg viewBox="0 0 122.88 103.44" fill="currentColor" width="16" height="16" xmlns="http://www.w3.org/2000/svg"><path d="M69.49,102.77L49.8,84.04l-20.23,18.27c-0.45,0.49-1.09,0.79-1.8,0.79c-1.35,0-2.44-1.09-2.44-2.44V60.77L0.76,37.41c-0.98-0.93-1.01-2.47-0.09-3.45c0.31-0.33,0.7-0.55,1.11-0.67l0,0l118-33.2c1.3-0.36,2.64,0.39,3.01,1.69c0.19,0.66,0.08,1.34-0.24,1.89l-49.2,98.42c-0.6,1.2-2.06,1.69-3.26,1.09C69.86,103.07,69.66,102.93,69.49,102.77L69.49,102.77z"/></svg>
                     Share this video
                 </button>
             </div>
@@ -2176,13 +2296,24 @@ function createPinElement(postData, postId) {
     pinContainer.appendChild(galleryItem);
     pinContainer.appendChild(profileInfo);
 
-    // Video caption strip (creator name + description + music pill)
+    // Video caption strip (creator name + date + description + music pill)
     const captionEl = document.createElement('div');
     captionEl.className = 'video-caption';
+
+    // Creator name row with truncated name + upload date
+    const creatorRow = document.createElement('div');
+    creatorRow.className = 'video-creator-row';
     const creatorNameEl = document.createElement('span');
     creatorNameEl.className = 'video-creator-name';
     creatorNameEl.textContent = '@' + (postData.name || 'creator');
-    captionEl.appendChild(creatorNameEl);
+    const creatorDateEl = document.createElement('span');
+    creatorDateEl.className = 'video-creator-date';
+    var _ts = postData.timestamp;
+    if (_ts && _ts.toDate) creatorDateEl.textContent = _ts.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    else if (_ts && _ts.seconds) creatorDateEl.textContent = new Date(_ts.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    creatorRow.appendChild(creatorNameEl);
+    creatorRow.appendChild(creatorDateEl);
+    captionEl.appendChild(creatorRow);
     if (postData.text && postData.text.trim()) {
         const captionText = document.createElement('div');
         captionText.className = 'video-caption-text';
@@ -2193,22 +2324,6 @@ function createPinElement(postData, postId) {
     musicPill.className = 'video-music-pill';
     musicPill.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span class="music-ticker"><span class="music-ticker-inner">Original Sound &nbsp;•&nbsp; Original Sound &nbsp;•&nbsp; </span></span>';
     captionEl.appendChild(musicPill);
-
-    // Upload date
-    const dateEl = document.createElement('div');
-    dateEl.className = 'video-upload-date';
-    const ts = postData.timestamp;
-    let dateStr = '';
-    if (ts && ts.toDate) {
-        dateStr = ts.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    } else if (ts && ts.seconds) {
-        dateStr = new Date(ts.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    } else {
-        dateStr = 'Today';
-    }
-    dateEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' + dateStr;
-    captionEl.appendChild(dateEl);
-
     pinContainer.appendChild(captionEl);
 
     // Video-only platform — no image badge needed
@@ -2391,7 +2506,7 @@ function createPinElement(postData, postId) {
     shareBtn.setAttribute('aria-label', 'Share');
     shareBtn.innerHTML =
         '<div class="slide-action-icon">' +
-            '<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>' +
+            '<svg viewBox="0 0 122.88 103.44" fill="rgba(255,255,255,0.95)" width="22" height="22" xmlns="http://www.w3.org/2000/svg"><path d="M69.49,102.77L49.8,84.04l-20.23,18.27c-0.45,0.49-1.09,0.79-1.8,0.79c-1.35,0-2.44-1.09-2.44-2.44V60.77L0.76,37.41c-0.98-0.93-1.01-2.47-0.09-3.45c0.31-0.33,0.7-0.55,1.11-0.67l0,0l118-33.2c1.3-0.36,2.64,0.39,3.01,1.69c0.19,0.66,0.08,1.34-0.24,1.89l-49.2,98.42c-0.6,1.2-2.06,1.69-3.26,1.09C69.86,103.07,69.66,102.93,69.49,102.77L69.49,102.77z"/></svg>' +
         '</div>' +
         '<span class="slide-action-label">Share</span>';
     shareBtn.addEventListener('click', (e) => {
@@ -2655,7 +2770,6 @@ function closeModal() {
 }
 
 function loadComments(postId) {
-    // Set cfAvatar to current user's photo
     const cfAv = document.getElementById('cfAvatar');
     if (cfAv && currentUser) cfAv.src = currentUser.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
 
@@ -2665,42 +2779,74 @@ function loadComments(postId) {
             <span class="cs-spinner-text">Loading comments</span>
         </div>
     `;
-    
+
     const commentsRef = collection(db, 'recence', postId, 'comments');
     const q = query(commentsRef, orderBy('timestamp', 'asc'));
-    
-    // Typing indicator — disabled for performance on mobile
-    const typingEl = document.getElementById('typingIndicator');
-    let typingTimer;
-    const typingInterval = null; // disabled
 
-    const _renderedIds = new Set();
-    commentsUnsubscribe = onSnapshot(q, (snapshot) => {
-        // Update count only
-        commentsCount.textContent = snapshot.size;
+    // Accurate count — root comments only (no replies)
+    function updateCount(snapshot) {
+        let rootCount = 0;
+        snapshot.forEach(d => { if (!d.data().parentId) rootCount++; });
+        const countEl = document.getElementById('commentsCount');
+        const prev = countEl ? parseInt(countEl.textContent) || 0 : 0;
+        if (countEl) {
+            countEl.textContent = rootCount;
+            if (rootCount > prev) {
+                countEl.classList.remove('bump');
+                void countEl.offsetWidth;
+                countEl.classList.add('bump');
+                setTimeout(() => countEl.classList.remove('bump'), 400);
+            }
+        }
+        // Sync the slide action button count
         if (currentPostId) {
             const slideEl = document.querySelector(`.pin-container[data-post-id="${currentPostId}"]`);
             if (slideEl) {
                 const cmtCountEl = slideEl.querySelector('.cmt-count');
-                if (cmtCountEl) cmtCountEl.textContent = snapshot.size;
+                if (cmtCountEl) cmtCountEl.textContent = rootCount;
             }
         }
+        return rootCount;
+    }
+
+    // "New comments" floating pill — shows when user scrolled up and comments arrive
+    let _newPillCount = 0;
+    let _pillEl = null;
+    function showNewPill(n) {
+        if (_pillEl) _pillEl.remove();
+        _pillEl = document.createElement('div');
+        _pillEl.className = 'new-cmt-pill';
+        _pillEl.innerHTML = `<span class="new-cmt-pill-dot"></span>${n} new comment${n>1?'s':''} ↓`;
+        _pillEl.addEventListener('click', () => {
+            commentsList.scrollTo({ top: commentsList.scrollHeight, behavior: 'smooth' });
+            _pillEl && _pillEl.remove(); _pillEl = null; _newPillCount = 0;
+        });
+        commentsList.appendChild(_pillEl);
+    }
+    const isAtBottom = () => (commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight) < 60;
+    commentsList.addEventListener('scroll', () => {
+        if (isAtBottom() && _pillEl) { _pillEl.remove(); _pillEl = null; _newPillCount = 0; }
+    }, { passive: true });
+
+    let isFirstLoad = true;
+    const _renderedIds = new Set();
+
+    commentsUnsubscribe = onSnapshot(q, (snapshot) => {
+        updateCount(snapshot);
 
         if (snapshot.empty) {
-            // Clear only if truly empty (first load)
             if (_renderedIds.size === 0) {
-                commentsList.innerHTML = '<div class="comments-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>No comments yet</span><span style="font-size:12px;color:#ddd;">Be the first to share your thoughts</span></div>';
+                commentsList.innerHTML = '<div class="comments-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>No comments yet</span><span style="font-size:12px;color:#ccc;">Be the first to say something</span></div>';
             }
-            clearInterval(typingInterval);
+            isFirstLoad = false;
             return;
         }
 
-        // Remove empty placeholder if present
         if (_renderedIds.size === 0) commentsList.innerHTML = '';
 
         // Build replies map
         const repliesMap = {};
-        snapshot.forEach((d) => {
+        snapshot.forEach(d => {
             const c = d.data(); c.id = d.id;
             if (c.parentId) {
                 if (!repliesMap[c.parentId]) repliesMap[c.parentId] = [];
@@ -2708,21 +2854,19 @@ function loadComments(postId) {
             }
         });
 
-        // Only add NEW root comments — don't re-render existing
-        // Use RAF to avoid blocking main thread
-        const newComments = [];
+        const newEls = [];
         let firstRoot = true;
-        snapshot.forEach((d) => {
+        snapshot.forEach(d => {
             const c = d.data(); c.id = d.id;
             if (c.parentId) return;
             if (_renderedIds.has(c.id)) return;
+            // Swap out optimistic temp element if present
             const opt = commentsList.querySelector('[data-comment-id^="temp_"]');
-            if (opt && c.text && opt.querySelector('.comment-text') &&
-                opt.querySelector('.comment-text').textContent === c.text) {
-                opt.remove();
-            }
+            if (opt && c.text && opt.querySelector('.comment-text')?.textContent === c.text) opt.remove();
             _renderedIds.add(c.id);
             const el = createCommentElement(c, repliesMap[c.id] || []);
+            if (!isFirstLoad) el.classList.add('new-live');
+            else el.classList.add('new-comment');
             if (firstRoot && c.likes && c.likes.length > 0) {
                 el.classList.add('top-comment');
                 const badge = document.createElement('div');
@@ -2731,21 +2875,27 @@ function loadComments(postId) {
                 el.appendChild(badge);
             }
             firstRoot = false;
-            newComments.push(el);
+            newEls.push(el);
         });
 
-        // Batch DOM writes in next frame
-        if (newComments.length > 0) {
+        if (newEls.length > 0) {
             requestAnimationFrame(() => {
                 const frag = document.createDocumentFragment();
-                newComments.forEach(el => frag.appendChild(el));
+                newEls.forEach(el => frag.appendChild(el));
                 commentsList.appendChild(frag);
-                commentsList.scrollTop = commentsList.scrollHeight;
+                if (isAtBottom() || isFirstLoad) {
+                    commentsList.scrollTop = commentsList.scrollHeight;
+                } else if (!isFirstLoad) {
+                    // User scrolled up — show pill instead of jumping
+                    _newPillCount += newEls.length;
+                    showNewPill(_newPillCount);
+                }
             });
         }
-    }, (error) => {
-        console.error("Error loading comments:", error);
-        commentsList.innerHTML = '<div style="text-align: center; padding: 10px;">Error loading comments</div>';
+        isFirstLoad = false;
+    }, (err) => {
+        console.error('loadComments error:', err);
+        commentsList.innerHTML = '<div style="text-align:center;padding:20px;color:#ccc;">Could not load comments</div>';
     });
 }
 
@@ -2789,33 +2939,44 @@ function createCommentElement(commentData, replies = []) {
     const bubble = document.createElement('div');
     bubble.className = 'comment-bubble';
 
-    // Author row
+    // ── Author row: [name…] [· time] [badges] ──
     const author = document.createElement('div');
     author.className = 'comment-author';
-    const nameNode = document.createTextNode(userName);
-    author.appendChild(nameNode);
-    author.style.cursor = 'pointer';
-    author.addEventListener('click', (e) => { e.stopPropagation(); viewProfile(commentData.userId); });
 
+    const nameEl = document.createElement('span');
+    nameEl.className = 'comment-author-name';
+    nameEl.textContent = userName;
+    nameEl.title = userName;
+    nameEl.addEventListener('click', (e) => { e.stopPropagation(); viewProfile(commentData.userId); });
+    author.appendChild(nameEl);
+
+    const dateEl = document.createElement('span');
+    dateEl.className = 'comment-author-date';
+    dateEl.textContent = (commentData.timestamp && commentData.timestamp.toDate)
+        ? '· ' + formatTimestamp(commentData.timestamp.toDate())
+        : '· now';
+    author.appendChild(dateEl);
+
+    const badges = document.createElement('span');
+    badges.className = 'comment-author-badges';
     if (isGuest) {
         const gb = document.createElement('span');
-        gb.className = 'comment-guest-badge';
-        gb.textContent = 'Guest';
-        author.appendChild(gb);
+        gb.className = 'comment-guest-badge'; gb.textContent = 'Guest';
+        badges.appendChild(gb);
     }
     if (commentData.country) {
         const flag = document.createElement('img');
         flag.className = 'comment-flag';
         flag.src = `https://flagcdn.com/w20/${commentData.country}.png`;
-        flag.onerror = function() { this.style.display = 'none'; };
-        author.appendChild(flag);
+        flag.onerror = function(){ this.style.display='none'; };
+        badges.appendChild(flag);
     }
     if (currentPostData && commentData.userId === currentPostData.userId) {
         const cb = document.createElement('span');
-        cb.className = 'comment-creator-badge';
-        cb.textContent = 'Creator';
-        author.appendChild(cb);
+        cb.className = 'comment-creator-badge'; cb.textContent = 'Creator';
+        badges.appendChild(cb);
     }
+    author.appendChild(badges);
     bubble.appendChild(author);
 
     // Text
@@ -2835,14 +2996,9 @@ function createCommentElement(commentData, replies = []) {
         bubble.appendChild(gif);
     }
 
-    // Actions row
+    // Actions row — like + reply only (date is in author row)
     const actions = document.createElement('div');
     actions.className = 'comment-actions';
-
-    const timestamp = document.createElement('span');
-    timestamp.className = 'comment-time';
-    timestamp.textContent = (commentData.timestamp && commentData.timestamp.toDate) ? formatTimestamp(commentData.timestamp.toDate()) : 'Just now';
-    actions.appendChild(timestamp);
 
     // Like button
     const likeButton = document.createElement('button');
@@ -3194,16 +3350,18 @@ init();
     } catch(e) {}
     wrap.appendChild(liveBadge);
 
-    // Caption overlay
     var info = document.createElement('div');
     info.className = 'desktop-card-info';
     var tsD = postData.timestamp;
-    var dateStrD = 'Today';
-    if (tsD && tsD.toDate) { dateStrD = tsD.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
-    else if (tsD && tsD.seconds) { dateStrD = new Date(tsD.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
-    info.innerHTML = '<div class="desktop-card-creator">@' + (postData.name || 'creator') + '</div>'
-      + (postData.text ? '<div class="desktop-card-caption">' + postData.text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' : '')
-      + '<div class="video-upload-date" style="margin-top:5px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="10" height="10"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' + dateStrD + '</div>';
+    var dateStrD = '';
+    if (tsD && tsD.toDate) dateStrD = tsD.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    else if (tsD && tsD.seconds) dateStrD = new Date(tsD.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    info.innerHTML =
+      '<div style="display:flex;align-items:baseline;gap:7px;overflow:hidden;">'
+      + '<div class="desktop-card-creator" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex-shrink:1;">@' + (postData.name || 'creator') + '</div>'
+      + (dateStrD ? '<span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);white-space:nowrap;flex-shrink:0;">' + dateStrD + '</span>' : '')
+      + '</div>'
+      + (postData.text ? '<div class="desktop-card-caption">' + postData.text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' : '');
     wrap.appendChild(info);
 
     // Side action buttons
@@ -3246,7 +3404,7 @@ init();
     var dShareBtn = document.createElement('button');
     dShareBtn.className = 'desktop-action-btn';
     dShareBtn.setAttribute('aria-label', 'Share');
-    dShareBtn.innerHTML = '<div class="desktop-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></div>'
+    dShareBtn.innerHTML = '<div class="desktop-action-icon"><svg viewBox="0 0 122.88 103.44" fill="#222" width="22" height="22" xmlns="http://www.w3.org/2000/svg"><path d="M69.49,102.77L49.8,84.04l-20.23,18.27c-0.45,0.49-1.09,0.79-1.8,0.79c-1.35,0-2.44-1.09-2.44-2.44V60.77L0.76,37.41c-0.98-0.93-1.01-2.47-0.09-3.45c0.31-0.33,0.7-0.55,1.11-0.67l0,0l118-33.2c1.3-0.36,2.64,0.39,3.01,1.69c0.19,0.66,0.08,1.34-0.24,1.89l-49.2,98.42c-0.6,1.2-2.06,1.69-3.26,1.09C69.86,103.07,69.66,102.93,69.49,102.77L69.49,102.77z"/></svg></div>'
       + '<span class="desktop-action-label">Share</span>';
     dShareBtn.addEventListener('click', function(e) {
       e.stopPropagation();
@@ -3308,7 +3466,39 @@ init();
 
     if (avatarEl) avatarEl.src = postData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
     if (nameEl) nameEl.textContent = '@' + (postData.name || 'creator');
-    if (captionEl) captionEl.textContent = postData.text || '';
+
+    // Upload date next to name
+    var uploadDateEl = document.getElementById('dc-upload-date');
+    if (uploadDateEl) {
+      var ts = postData.timestamp;
+      var dStr = '';
+      if (ts && ts.toDate) dStr = ts.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      else if (ts && ts.seconds) dStr = new Date(ts.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      uploadDateEl.textContent = dStr;
+    }
+    if (captionEl) {
+      captionEl.textContent = postData.text || '';
+      captionEl.classList.remove('expanded');
+    }
+    // Caption expand / collapse
+    var captionToggle = document.getElementById('dc-caption-toggle');
+    if (captionToggle) {
+      captionToggle.classList.remove('show', 'open');
+      captionToggle.innerHTML = 'more <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>';
+      captionToggle.onclick = null;
+      if (postData.text && postData.text.trim()) {
+        requestAnimationFrame(function() {
+          if (captionEl && captionEl.scrollHeight > captionEl.clientHeight + 2) {
+            captionToggle.classList.add('show');
+            captionToggle.onclick = function() {
+              var exp = captionEl.classList.toggle('expanded');
+              captionToggle.classList.toggle('open', exp);
+              captionToggle.innerHTML = (exp ? 'less' : 'more') + ' <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>';
+            };
+          }
+        });
+      }
+    }
 
     // Profession — fetch from users collection
     var profEl = document.getElementById('dc-creator-profession');
@@ -3409,11 +3599,46 @@ init();
     }
     var typingInterval2 = setInterval(showDcTyping, Math.random() * 8000 + 5000);
 
+    var dcIsFirstLoad = true;
+    var _dcPillCount = 0;
+    var _dcPillEl = null;
+    function dcShowPill(n) {
+      if (_dcPillEl) _dcPillEl.remove();
+      _dcPillEl = document.createElement('div');
+      _dcPillEl.className = 'new-cmt-pill';
+      _dcPillEl.style.cssText = 'position:sticky;bottom:10px;left:50%;transform:translateX(-50%);margin:4px auto;';
+      _dcPillEl.innerHTML = '<span class="new-cmt-pill-dot"></span>' + n + ' new comment' + (n>1?'s':'') + ' ↓';
+      _dcPillEl.addEventListener('click', function() {
+        if (dcList) dcList.scrollTo({ top: dcList.scrollHeight, behavior: 'smooth' });
+        _dcPillEl && _dcPillEl.remove(); _dcPillEl = null; _dcPillCount = 0;
+      });
+      if (dcList) dcList.appendChild(_dcPillEl);
+    }
+    var dcIsAtBottom = function() { return dcList ? (dcList.scrollHeight - dcList.scrollTop - dcList.clientHeight) < 60 : true; };
+    if (dcList) {
+      dcList.addEventListener('scroll', function() {
+        if (dcIsAtBottom() && _dcPillEl) { _dcPillEl.remove(); _dcPillEl = null; _dcPillCount = 0; }
+      }, { passive: true });
+    }
+
     dcCommentsUnsub = onSnapshot(q2, function(snapshot) {
       if (skelTimer) { clearTimeout(skelTimer); skelTimer = null; }
-      if (countEl) countEl.textContent = snapshot.size;
+      // Accurate count — root comments only
+      var rootCount = 0;
+      snapshot.forEach(function(d) { if (!d.data().parentId) rootCount++; });
+      if (countEl) {
+        var prevCount = parseInt(countEl.textContent) || 0;
+        countEl.textContent = rootCount;
+        if (rootCount > prevCount) {
+          countEl.classList.remove('bump');
+          void countEl.offsetWidth;
+          countEl.classList.add('bump');
+          setTimeout(function(){ countEl.classList.remove('bump'); }, 400);
+        }
+      }
       if (snapshot.empty && dcRenderedIds.size === 0) {
-        if (dcList) dcList.innerHTML = '<div class="comments-empty" style="color:rgba(255,255,255,0.25)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span style="color:rgba(255,255,255,0.35)">No comments yet</span></div>';
+        if (dcList) dcList.innerHTML = '<div class="comments-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>No comments yet</span><span>Be the first to comment</span></div>';
+        dcIsFirstLoad = false;
         clearInterval(typingInterval2);
         return;
       }
@@ -3429,18 +3654,31 @@ init();
         }
       });
 
+      var newDcEls = [];
       snapshot.forEach(function(d) {
         var c = d.data(); c.id = d.id;
         if (c.parentId) return;
         if (dcRenderedIds.has(c.id)) return;
         dcRenderedIds.add(c.id);
         var el = createCommentElement(c, repliesMap2[c.id] || []);
-        el.classList.add('new-comment');
-        if (dcList) dcList.appendChild(el);
+        if (!dcIsFirstLoad) el.classList.add('new-live');
+        else el.classList.add('new-comment');
+        newDcEls.push(el);
       });
+      if (newDcEls.length > 0 && dcList) {
+        var frag2 = document.createDocumentFragment();
+        newDcEls.forEach(function(el) { frag2.appendChild(el); });
+        dcList.appendChild(frag2);
+        if (dcIsAtBottom() || dcIsFirstLoad) {
+          setTimeout(function(){ if (dcList) dcList.scrollTop = dcList.scrollHeight; }, 40);
+        } else if (!dcIsFirstLoad) {
+          _dcPillCount += newDcEls.length;
+          dcShowPill(_dcPillCount);
+        }
+      }
 
+      dcIsFirstLoad = false;
       clearInterval(typingInterval2);
-      setTimeout(function(){ if (dcList) dcList.scrollTop = dcList.scrollHeight; }, 40);
     });
   }
 
