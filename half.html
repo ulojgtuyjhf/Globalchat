@@ -908,6 +908,74 @@ body {
     box-shadow: 0 16px 56px rgba(0,0,0,0.24), 0 4px 14px rgba(0,0,0,0.10);
   }
 
+  /* ── Live viewer badge — top-left of the desktop video card ── */
+  .desktop-live-badge {
+    position: absolute;
+    top: 14px; left: 14px;
+    z-index: 8; pointer-events: none;
+    display: flex; align-items: center; gap: 7px;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 24px;
+    padding: 6px 12px 6px 10px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: opacity 0.3s;
+  }
+  .desktop-live-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 8px rgba(255,59,92,0.9);
+    animation: livePulse 1.4s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  .desktop-live-count {
+    font-size: 12px; font-weight: 800; color: #fff;
+    letter-spacing: 0.02em; white-space: nowrap;
+  }
+
+  /* ── Live activity strip at top of comment panel ── */
+  .dc-live-strip {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px 10px;
+    background: #fff;
+    border-bottom: 1px solid #f0f0f0;
+    flex-shrink: 0;
+  }
+  .dc-live-pill {
+    display: flex; align-items: center; gap: 5px;
+    background: #111; color: #fff;
+    font-size: 9px; font-weight: 900; letter-spacing: 0.16em;
+    padding: 4px 10px; border-radius: 99px; line-height: 1;
+    flex-shrink: 0;
+  }
+  .dc-live-pill-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 5px rgba(255,59,92,0.9);
+    animation: livePulse 1.4s ease-in-out infinite;
+  }
+  .dc-live-viewers-text {
+    font-size: 12px; font-weight: 700; color: #555;
+    flex: 1;
+  }
+  .dc-live-viewers-text span { font-weight: 900; color: #111; }
+  .dc-live-avatars {
+    display: flex; align-items: center;
+    flex-direction: row-reverse;
+  }
+  .dc-live-avatar {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid #fff;
+    background: var(--brand-gradient);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 900; color: #fff;
+    margin-left: -6px; flex-shrink: 0;
+    overflow: hidden;
+  }
+  .dc-live-avatar:last-child { margin-left: 0; }
+  .dc-live-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
   /* Caption bottom-left of video */
   .desktop-card-info {
     position: absolute; bottom: 20px; left: 0; right: 0;
@@ -1222,6 +1290,12 @@ body {
           </div>
         </div>
         <div class="dc-comments-label"><span id="dc-count">0</span> comments</div>
+        <!-- Live activity strip -->
+        <div class="dc-live-strip" id="dc-live-strip" style="display:none;">
+          <div class="dc-live-pill"><div class="dc-live-pill-dot"></div>LIVE</div>
+          <div class="dc-live-viewers-text"><span id="dc-live-num">0</span> watching now</div>
+          <div class="dc-live-avatars" id="dc-live-avatars"></div>
+        </div>
         <div class="dc-typing" id="dc-typing">
           <div class="typing-dots"><span></span><span></span><span></span></div>
           <span id="dc-typing-text">Someone is typing...</span>
@@ -2825,6 +2899,20 @@ init();
     wrap.appendChild(videoEl);
     card._video = videoEl;
 
+    // Live viewer badge — top-left inside video wrap
+    var liveBadge = document.createElement('div');
+    liveBadge.className = 'desktop-live-badge';
+    liveBadge.innerHTML = '<div class="desktop-live-dot"></div><span class="desktop-live-count">0 watching</span>';
+    try {
+      var viewersRef2 = ref(rtdb, 'viewers/' + postId);
+      onValue(viewersRef2, function(snap) {
+        var count = snap.exists() ? Object.keys(snap.val()).length : 0;
+        var numEl = liveBadge.querySelector('.desktop-live-count');
+        if (numEl) numEl.textContent = count > 999 ? (count/1000).toFixed(1)+'K watching' : count + ' watching';
+      });
+    } catch(e) {}
+    wrap.appendChild(liveBadge);
+
     // Caption overlay
     var info = document.createElement('div');
     info.className = 'desktop-card-info';
@@ -2956,6 +3044,37 @@ init();
     // Update current user avatar
     var dcAv = document.getElementById('dc-cf-avatar');
     if (dcAv && currentUser) dcAv.src = currentUser.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
+
+    // Live activity strip — real-time viewer count from RTDB
+    var liveStrip = document.getElementById('dc-live-strip');
+    var liveNum = document.getElementById('dc-live-num');
+    var liveAvatars = document.getElementById('dc-live-avatars');
+    if (liveStrip) {
+      liveStrip.style.display = 'flex';
+      try {
+        onValue(ref(rtdb, 'viewers/' + postId), function(snap) {
+          var count = snap.exists() ? Object.keys(snap.val()).length : 0;
+          if (liveNum) liveNum.textContent = count > 999 ? (count/1000).toFixed(1)+'K' : count;
+          // Show up to 4 mini letter avatars of recent viewers
+          if (liveAvatars) {
+            liveAvatars.innerHTML = '';
+            if (snap.exists()) {
+              var viewers = Object.values(snap.val()).slice(0, 4);
+              viewers.forEach(function(v) {
+                var av = document.createElement('div');
+                av.className = 'dc-live-avatar';
+                // Random letter from uid
+                var letter = (v.uid || 'V')[0].toUpperCase();
+                av.textContent = letter;
+                liveAvatars.appendChild(av);
+              });
+            }
+          }
+        });
+      } catch(e) {
+        if (liveNum) liveNum.textContent = '0';
+      }
+    }
 
     // Unsubscribe previous
     if (dcCommentsUnsub) { dcCommentsUnsub(); dcCommentsUnsub = null; }
