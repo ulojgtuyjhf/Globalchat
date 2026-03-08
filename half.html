@@ -102,10 +102,7 @@ body {
     z-index: 2; transition: opacity 0.3s ease;
 }
 #section-overlay-loader.hidden { opacity: 0; pointer-events: none; }
-#section-overlay-frame {
-    flex: 1; border: none; width: 100%; height: 100%;
-    position: relative; z-index: 1;
-}
+/* section-overlay-frame css removed — using inline panels */
 #section-overlay-back {
     position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); left: 14px;
     z-index: 10; background: rgba(0,0,0,0.55); border: none; cursor: pointer;
@@ -1073,6 +1070,7 @@ body {
     box-shadow: 0 2px 20px rgba(0,0,0,0.07);
     z-index: 20;
     padding-bottom: 20px;
+    overscroll-behavior: contain;
   }
   #desktop-sidebar::-webkit-scrollbar { display: none; }
 
@@ -1197,41 +1195,33 @@ body {
   .ds-skel-line.w70 { width: 70%; }
 
   /* Top commenter card */
-  .ds-top-commenter-card {
-    margin: 0 8px 10px;
-    background: linear-gradient(135deg,#fff7f0,#fff0f5);
-    border: 1.5px solid #ffe4d0;
-    border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
+  /* Most active post card */
+  .ds-top-post-card {
+    margin: 0 8px 10px; cursor: pointer;
+    background: #f9f9f9; border: 1.5px solid #f0f0f0;
+    border-radius: 14px; padding: 10px;
+    transition: background 0.14s;
   }
-  .ds-top-cmtr-row { display: flex; align-items: center; gap: 9px; }
-  .ds-top-cmtr-av {
-    width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
-    border: 2px solid #fbbf24; background: #eee;
+  .ds-top-post-card:hover { background: #f2f2f2; }
+  .ds-top-post-inner { display: flex; align-items: center; gap: 10px; }
+  .ds-top-post-thumb {
+    width: 44px; height: 44px; border-radius: 10px;
+    object-fit: cover; flex-shrink: 0; background: #ddd;
   }
-  .ds-top-cmtr-av-ph {
-    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
-    background: var(--brand-gradient);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 900; color: #fff;
-    border: 2px solid #fbbf24;
+  .ds-top-post-thumb-ph {
+    width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0;
+    background: #111; display: flex; align-items: center; justify-content: center;
   }
-  .ds-top-cmtr-info { flex: 1; min-width: 0; }
-  .ds-top-cmtr-name { font-size: 12px; font-weight: 800; color: #111; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ds-top-cmtr-count { font-size: 10px; color: #f59e0b; font-weight: 700; }
-  .ds-top-cmtr-badge {
-    background: linear-gradient(135deg,#fbbf24,#f59e0b); color: #fff;
-    font-size: 8px; font-weight: 900; padding: 2px 7px; border-radius: 99px;
-    letter-spacing: 0.08em; text-transform: uppercase; flex-shrink: 0;
+  .ds-top-post-thumb-ph svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2; }
+  .ds-top-post-info { flex: 1; min-width: 0; }
+  .ds-top-post-creator { font-size: 12px; font-weight: 800; color: #111; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ds-top-post-meta { font-size: 10px; color: #888; font-weight: 600; display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+  .ds-top-post-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    background: #111; color: #fff;
+    font-size: 8px; font-weight: 900; padding: 2px 7px;
+    border-radius: 99px; letter-spacing: 0.08em; text-transform: uppercase; flex-shrink: 0;
   }
-  .ds-top-cmtr-meta {
-    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-  }
-  .ds-top-cmtr-tag {
-    display: flex; align-items: center; gap: 3px;
-    font-size: 10px; color: #999; background: #fff;
-    padding: 2px 7px; border-radius: 99px; border: 1px solid #f0e8e0;
-  }
-  .ds-top-cmtr-tag svg { width: 9px; height: 9px; stroke: #ccc; fill: none; flex-shrink: 0; }
 
   /* ══════════════════════════════
      CENTER FEED ISLAND — scroll-snap, one video at a time
@@ -1244,7 +1234,7 @@ body {
     scrollbar-width: none;
     background: transparent;
     position: relative;
-    /* No background — the #efefef body shows between cards */
+    overscroll-behavior: contain;
   }
   #desktop-feed::-webkit-scrollbar { display: none; }
 
@@ -1683,15 +1673,36 @@ body {
         <div class="spinner"></div>
     </div>
 
-    <!-- Fullscreen section overlay (Profile / Upload pages — mobile + tablet) -->
+    <!-- Fullscreen section overlay (Profile / Upload — mobile) -->
     <div id="section-overlay">
         <button id="section-overlay-back" aria-label="Back">
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <div id="section-overlay-loader">
-            <div class="spinner"></div>
+        <div id="section-overlay-title" style="position:absolute;top:calc(env(safe-area-inset-top,0px)+14px);left:60px;right:16px;font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.02em;z-index:10;"></div>
+
+        <!-- Profile panel -->
+        <div id="mob-profile-panel" style="display:none;flex-direction:column;flex:1;overflow-y:auto;padding-top:calc(env(safe-area-inset-top,0px)+60px);background:#fff;">
+            <div style="display:flex;flex-direction:column;align-items:center;padding:24px 20px 16px;">
+                <div id="mob-prof-av" style="width:80px;height:80px;border-radius:50%;background:#111;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:900;color:#fff;flex-shrink:0;overflow:hidden;margin-bottom:12px;"></div>
+                <div id="mob-prof-name" style="font-size:20px;font-weight:900;color:#111;letter-spacing:-0.02em;margin-bottom:4px;"></div>
+                <div id="mob-prof-handle" style="font-size:13px;color:#888;font-weight:500;margin-bottom:16px;"></div>
+                <div id="mob-prof-stats" style="display:flex;gap:28px;margin-bottom:20px;"></div>
+            </div>
+            <div style="border-top:1px solid #f0f0f0;padding:16px 20px 8px;font-size:11px;font-weight:900;color:#bbb;letter-spacing:0.08em;text-transform:uppercase;">Your Videos</div>
+            <div id="mob-prof-feed" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:0 2px 100px;"></div>
         </div>
-        <iframe id="section-overlay-frame" src="about:blank" allow="autoplay; camera; microphone" allowfullscreen></iframe>
+
+        <!-- Upload panel -->
+        <div id="mob-upload-panel" style="display:none;flex-direction:column;align-items:center;justify-content:center;flex:1;background:#fff;padding:40px 24px;text-align:center;">
+            <div style="width:72px;height:72px;border-radius:20px;background:#111;display:flex;align-items:center;justify-content:center;margin-bottom:20px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+            <div style="font-size:22px;font-weight:900;color:#111;letter-spacing:-0.02em;margin-bottom:8px;">Share a video</div>
+            <div style="font-size:14px;color:#888;line-height:1.6;margin-bottom:28px;">Upload from your camera roll or record something new to share with the community.</div>
+            <input type="file" id="mob-upload-input" accept="video/*" style="display:none;">
+            <button onclick="document.getElementById('mob-upload-input').click()" style="background:#111;color:#fff;border:none;padding:14px 32px;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:var(--font);letter-spacing:-0.01em;">Choose Video</button>
+            <div style="margin-top:12px;font-size:12px;color:#ccc;">Opens the upload page on your device</div>
+        </div>
     </div>
     <!-- Hidden SVG defs for brand gradients used in icons -->
     <svg width="0" height="0" style="position:absolute;overflow:hidden;">
@@ -1738,13 +1749,10 @@ body {
 
         <div class="ds-divider"></div>
 
-        <!-- People to follow -->
-        <div class="ds-section-label">Suggested for you</div>
-        <div id="ds-suggested" class="ds-people-list">
-          <!-- populated by JS -->
-          <div class="ds-person-skel"><div class="ds-skel-av"></div><div class="ds-skel-lines"><div class="ds-skel-line w60"></div><div class="ds-skel-line w40"></div></div></div>
-          <div class="ds-person-skel"><div class="ds-skel-av"></div><div class="ds-skel-lines"><div class="ds-skel-line w70"></div><div class="ds-skel-line w50"></div></div></div>
-          <div class="ds-person-skel"><div class="ds-skel-av"></div><div class="ds-skel-lines"><div class="ds-skel-line w55"></div><div class="ds-skel-line w35"></div></div></div>
+        <!-- Most commented video — top of sidebar -->
+        <div class="ds-section-label">🔥 Most Active</div>
+        <div id="ds-top-post" class="ds-top-post-card">
+          <div class="ds-person-skel" style="padding:0;"><div class="ds-skel-av" style="width:44px;height:44px;border-radius:10px;flex-shrink:0;"></div><div class="ds-skel-lines"><div class="ds-skel-line w70"></div><div class="ds-skel-line w45"></div></div></div>
         </div>
 
         <div class="ds-divider"></div>
@@ -1757,10 +1765,13 @@ body {
 
         <div class="ds-divider"></div>
 
-        <!-- Top commenter -->
-        <div class="ds-section-label">Top Commenter 🏆</div>
-        <div id="ds-top-commenter" class="ds-top-commenter-card">
+        <!-- People to follow -->
+        <div class="ds-section-label">Suggested for you</div>
+        <div id="ds-suggested" class="ds-people-list">
           <!-- populated by JS -->
+          <div class="ds-person-skel"><div class="ds-skel-av"></div><div class="ds-skel-lines"><div class="ds-skel-line w60"></div><div class="ds-skel-line w40"></div></div></div>
+          <div class="ds-person-skel"><div class="ds-skel-av"></div><div class="ds-skel-lines"><div class="ds-skel-line w70"></div><div class="ds-skel-line w50"></div></div></div>
+          <div class="ds-person-skel"><div class="ds-skel-av"></div><div class="ds-skel-lines"><div class="ds-skel-line w55"></div><div class="ds-skel-line w35"></div></div></div>
         </div>
 
       </aside>
@@ -1774,7 +1785,7 @@ body {
       <aside id="desktop-comments">
         <div class="dc-head" id="dc-head">
           <div class="dc-creator-row">
-            <img class="dc-creator-avatar" id="dc-avatar" src="https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png" alt="">
+            <div class="dc-creator-avatar" id="dc-avatar" style="display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#fff;background:#555;overflow:hidden;flex-shrink:0;"></div>
             <span class="dc-creator-name" id="dc-creator-name">Select a video</span>
             <button class="dc-follow-btn" id="dc-follow-btn" style="display:none">Follow</button>
             <span class="dc-creator-upload-date" id="dc-upload-date"></span>
@@ -1841,7 +1852,7 @@ body {
           <div id="dc-gif-results"></div>
         </div>
         <div class="dc-input-row">
-          <img class="cf-avatar" id="dc-cf-avatar" src="https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png" alt="">
+          <div class="cf-avatar" id="dc-cf-avatar" style="display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;background:#555;overflow:hidden;flex-shrink:0;"></div>
           <div class="dc-input-pill">
             <textarea id="dc-comment-input" placeholder="Add a comment..." rows="1"></textarea>
             <button class="dc-gif-btn" id="dc-gif-btn" title="GIF">GIF</button>
@@ -1994,7 +2005,7 @@ body {
                 <button class="reply-preview-close" id="replyPreviewClose">&#215;</button>
             </div>
             <div class="cf-row">
-                <img class="cf-avatar" id="cfAvatar" src="https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png" alt="">
+                <div class="cf-avatar" id="cfAvatar" style="display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;background:#555;overflow:hidden;flex-shrink:0;"></div>
                 <div class="cf-input-pill" id="cfInputPill">
                     <div class="send-spinner" id="sendSpinner"></div>
                     <textarea class="comment-input" id="commentInput" placeholder="Say something..." rows="1"></textarea>
@@ -2039,6 +2050,8 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const rtdb = getDatabase(app);
+
+// currentUser exposed for non-module scripts via window._currentUser (set in init())
 
 // ── Presence tracking: write user to RTDB on login, remove on disconnect ──
 function trackPresence(postId) {
@@ -2155,6 +2168,7 @@ function init() {
                 photoURL: user.photoURL || userData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png',
                 displayName: user.displayName || userData.displayName || 'User'
             };
+            window._currentUser = currentUser; // expose for non-module scripts
             
             await fetchFollowedUsers();
             fetchPosts();
@@ -2570,13 +2584,26 @@ function createPinElement(postData, postId) {
     const profileLeft = document.createElement('div');
     profileLeft.className = 'profile-left';
 
-    const profileImage = document.createElement('img');
-    profileImage.className = 'lazy-load';
-    profileImage.dataset.src = postData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    profileImage.alt = 'Profile';
-    profileImage.onerror = function() {
-        this.src = 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    };
+    var _pinLetter = ((postData.name || postData.userName || 'U')[0]).toUpperCase();
+    var _pinHue = (_pinLetter.charCodeAt(0) * 37) % 360;
+    var profileImage;
+    if (postData.photoURL && !postData.photoURL.includes('default_profile')) {
+        profileImage = document.createElement('img');
+        profileImage.className = 'lazy-load';
+        profileImage.dataset.src = postData.photoURL;
+        profileImage.alt = 'Profile';
+        profileImage.onerror = function() {
+            var ph = document.createElement('div');
+            ph.className = 'creator-profile-av-ph';
+            ph.style.cssText = 'width:36px;height:36px;border-radius:50%;background:hsl('+_pinHue+',50%,42%);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0;border:2px solid rgba(255,255,255,0.7);';
+            ph.textContent = _pinLetter;
+            this.parentNode && this.parentNode.replaceChild(ph, this);
+        };
+    } else {
+        profileImage = document.createElement('div');
+        profileImage.style.cssText = 'width:36px;height:36px;border-radius:50%;background:hsl('+_pinHue+',50%,42%);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0;border:2px solid rgba(255,255,255,0.7);';
+        profileImage.textContent = _pinLetter;
+    }
 
 
     const nameSpan = document.createElement('span');
@@ -3171,7 +3198,16 @@ function closeModal() {
 
 function loadComments(postId) {
     const cfAv = document.getElementById('cfAvatar');
-    if (cfAv && currentUser) cfAv.src = currentUser.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
+    if (cfAv && currentUser) {
+        var _uL = (currentUser.displayName || currentUser.email || 'U')[0].toUpperCase();
+        var _uH = (_uL.charCodeAt(0) * 37) % 360;
+        if (currentUser.photoURL && !currentUser.photoURL.includes('default_profile')) {
+            cfAv.innerHTML = '<img src="'+currentUser.photoURL+'" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" onerror="this.parentNode.innerHTML=\''+_uL+'\';this.parentNode.style.background=\'hsl('+_uH+',50%,42%)\';">';
+        } else {
+            cfAv.innerHTML = _uL;
+            cfAv.style.background = 'hsl('+_uH+',50%,42%)';
+        }
+    }
 
     function skelRows(n) {
         let s = '<div class="comments-loading">';
@@ -3555,8 +3591,27 @@ async function addComment() {
     const optimisticEl = createCommentElement(optimisticData, []);
     optimisticEl.classList.add('new-comment');
     optimisticEl.style.opacity = '0.7';
-    commentsList.appendChild(optimisticEl);
-    commentsList.scrollTop = commentsList.scrollHeight;
+
+    // If replying, place it inside the parent comment's replies container
+    var placed = false;
+    if (currentReplyTo) {
+        var parentEl = commentsList.querySelector('[data-comment-id="' + currentReplyTo.id + '"]');
+        if (parentEl) {
+            var repliesContainer = parentEl.querySelector('.replies-container');
+            if (!repliesContainer) {
+                repliesContainer = document.createElement('div');
+                repliesContainer.className = 'replies-container';
+                parentEl.appendChild(repliesContainer);
+            }
+            repliesContainer.appendChild(optimisticEl);
+            parentEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            placed = true;
+        }
+    }
+    if (!placed) {
+        commentsList.appendChild(optimisticEl);
+        commentsList.scrollTop = commentsList.scrollHeight;
+    }
     
     const savedGif = selectedGif;
     selectedGif = null;
@@ -3731,6 +3786,8 @@ init();
     var card = document.createElement('div');
     card.className = 'desktop-card';
     card.dataset.postId = postId;
+    card.dataset.userId = postData.userId || postData.uid || '';
+    card.dataset.commentCount = '0'; // updated by comment listener
 
     var mediaItem = postData.media && postData.media[0];
     var isVid = mediaItem && (mediaItem.type === 'video' || (mediaItem.contentType && mediaItem.contentType.startsWith('video/')));
@@ -3957,7 +4014,17 @@ init();
     var countEl = document.getElementById('dc-count');
     var dcList = document.getElementById('dc-list');
 
-    if (avatarEl) avatarEl.src = postData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
+    if (avatarEl) {
+      var creatorName = postData.name || 'C';
+      var cLetter = creatorName[0].toUpperCase();
+      var cHue = (cLetter.charCodeAt(0) * 37) % 360;
+      if (postData.photoURL && !postData.photoURL.includes('default_profile')) {
+        avatarEl.innerHTML = '<img src="'+postData.photoURL+'" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" onerror="this.parentNode.innerHTML=\''+cLetter+'\';this.parentNode.style.background=\'hsl('+cHue+',50%,42%)\';">';
+      } else {
+        avatarEl.innerHTML = cLetter;
+        avatarEl.style.background = 'hsl('+cHue+',50%,42%)';
+      }
+    }
     if (nameEl) nameEl.textContent = '@' + (postData.name || 'creator');
 
     // Upload date next to name
@@ -4022,9 +4089,18 @@ init();
       };
     }
 
-    // Update current user avatar
+    // Update current user avatar in comment form
     var dcAv = document.getElementById('dc-cf-avatar');
-    if (dcAv && currentUser) dcAv.src = currentUser.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
+    if (dcAv && currentUser) {
+      var uLetter = (currentUser.displayName || currentUser.email || 'U')[0].toUpperCase();
+      var uHue = (uLetter.charCodeAt(0) * 37) % 360;
+      if (currentUser.photoURL && !currentUser.photoURL.includes('default_profile')) {
+        dcAv.innerHTML = '<img src="'+currentUser.photoURL+'" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" onerror="this.parentNode.innerHTML=\''+uLetter+'\';this.parentNode.style.background=\'hsl('+uHue+',50%,42%)\';">';
+      } else {
+        dcAv.innerHTML = uLetter;
+        dcAv.style.background = 'hsl('+uHue+',50%,42%)';
+      }
+    }
 
     // Live activity strip — real-time viewer count from RTDB
     var liveStrip = document.getElementById('dc-live-strip');
@@ -4424,6 +4500,7 @@ init();
   function loadFollowingList() {
     var container = document.getElementById('ds-following');
     if (!container || !currentUser) return;
+    container.innerHTML = '<div class="ds-person-skel"><div class="ds-skel-av"></div><div class="ds-skel-lines"><div class="ds-skel-line w60"></div><div class="ds-skel-line w40"></div></div></div>';
     getDocs(query(collection(db, 'follows'), where('followerUserId', '==', currentUser.uid))).then(function(snap) {
       if (snap.empty) {
         container.innerHTML = '<div class="ds-section-empty">Not following anyone yet</div>';
@@ -4431,105 +4508,111 @@ init();
       }
       var uids = [];
       snap.forEach(function(d){ uids.push(d.data().followedUserId); });
-      // Fetch user docs (batch max 10)
-      var batch = uids.slice(0,8);
-      Promise.all(batch.map(function(uid){ return getDoc(doc(db,'users',uid)); })).then(function(docs) {
-        container.innerHTML = '';
-        docs.forEach(function(d) {
-          if (!d.exists()) return;
-          var u = d.data(); u._id = d.id;
-          container.appendChild(buildPersonRow(u, false));
+      var batch = uids.slice(0, 10);
+      Promise.all(batch.map(function(uid){
+        return getDoc(doc(db,'users',uid)).then(function(d){
+          // Even if doc doesn't exist, return a placeholder with uid
+          return { exists: d.exists(), data: d.exists() ? d.data() : {}, id: uid };
         });
-      });
-    }).catch(function(){});
+      })).then(function(results) {
+        container.innerHTML = '';
+        results.forEach(function(d) {
+          var raw = d.data;
+          // Support any field naming: displayName, name, userName, email
+          var u = {
+            _id: d.id,
+            displayName: raw.displayName || raw.name || raw.userName || (raw.email ? raw.email.split('@')[0] : 'User'),
+            photoURL: raw.photoURL || raw.photo || '',
+            country: raw.country || '',
+            profession: raw.profession || raw.title || raw.bio || ''
+          };
+          container.appendChild(buildPersonRow(u, true, true));
+        });
+        if (results.length === 0) container.innerHTML = '<div class="ds-section-empty">Not following anyone yet</div>';
+      }).catch(function(e){ console.warn('following list error', e); container.innerHTML = '<div class="ds-section-empty">Could not load</div>'; });
+    }).catch(function(e){ console.warn('follows query error', e); container.innerHTML = '<div class="ds-section-empty">Could not load</div>'; });
   }
 
   // ── Sidebar: load top commenter ──
-  function loadTopCommenter() {
-    var container = document.getElementById('ds-top-commenter');
+  function loadMostCommentedPost() {
+    var container = document.getElementById('ds-top-post');
     if (!container) return;
-    container.innerHTML = '<div class="ds-person-skel" style="padding:0;margin-bottom:6px;"><div class="ds-skel-av" style="width:38px;height:38px;"></div><div class="ds-skel-lines"><div class="ds-skel-line w60"></div><div class="ds-skel-line w40"></div></div></div>';
-    // Sample up to 15 posts and tally comment counts by userId
-    getDocs(query(collection(db,'recence'), limit(15))).then(function(posts) {
-      var postIds = [];
-      posts.forEach(function(d){ postIds.push(d.id); });
-      if (postIds.length === 0) { container.innerHTML = '<div class="ds-section-empty">No posts yet</div>'; return; }
-      var counts = {};
-      var userMeta = {};
-      Promise.all(postIds.map(function(pid){
-        return getDocs(query(collection(db,'recence',pid,'comments'), limit(50)));
-      })).then(function(results) {
-        results.forEach(function(snap){
-          snap.forEach(function(d){
-            var c = d.data();
-            // Skip guests (name starts with "user") and anonymous
-            if (!c.userId || /^user/i.test(c.userName||'') || !c.userName) return;
-            counts[c.userId] = (counts[c.userId]||0) + 1;
-            if (!userMeta[c.userId]) userMeta[c.userId] = {
-              name: c.userName||'User',
-              photo: c.userPhotoURL||'',
-              country: c.country||''
-            };
-          });
+    // Get up to 20 recent posts, count comments on each, show the one with most
+    getDocs(query(collection(db,'recence'), orderBy('timestamp','desc'), limit(20))).then(function(posts) {
+      if (posts.empty) { container.innerHTML = '<div class="ds-section-empty">No posts yet</div>'; return; }
+      var postData = [];
+      posts.forEach(function(d){ postData.push({ id: d.id, data: d.data() }); });
+      Promise.all(postData.map(function(p){
+        return getDocs(query(collection(db,'recence',p.id,'comments'), limit(200))).then(function(snap){
+          return { id: p.id, data: p.data, count: snap.size };
         });
-        var topUid = Object.keys(counts).sort(function(a,b){ return counts[b]-counts[a]; })[0];
-        if (!topUid) { container.innerHTML = '<div class="ds-section-empty" style="padding:8px;">No comments yet</div>'; return; }
-        var u = userMeta[topUid];
-        var flagHtml = u.country
-          ? '<img src="https://flagcdn.com/w20/'+u.country+'.png" style="width:12px;height:9px;border-radius:1px;flex-shrink:0;" onerror="this.style.display=\'none\'">'
-          : '';
-        var avHtml = u.photo
-          ? '<img class="ds-top-cmtr-av" src="'+u.photo+'" onerror="this.outerHTML=\'<div class=&quot;ds-top-cmtr-av-ph&quot;>'+u.name[0].toUpperCase()+'</div>\'">'
-          : '<div class="ds-top-cmtr-av-ph">'+u.name[0].toUpperCase()+'</div>';
+      })).then(function(results) {
+        results.sort(function(a,b){ return b.count - a.count; });
+        var top = results[0];
+        if (!top || top.count === 0) { container.innerHTML = '<div class="ds-section-empty">No activity yet</div>'; return; }
+        var p = top.data;
+        var creator = p.name || p.userName || 'Creator';
+        var thumbHtml = p.thumbnail
+          ? '<img class="ds-top-post-thumb" src="'+p.thumbnail+'" onerror="this.outerHTML=\'<div class=&quot;ds-top-post-thumb-ph&quot;><svg viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;#fff&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><polygon points=&quot;5 3 19 12 5 21 5 3&quot;/></svg></div>\'">'
+          : '<div class="ds-top-post-thumb-ph"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>';
         container.innerHTML =
-          '<div class="ds-top-cmtr-row">'
-          + avHtml
-          + '<div class="ds-top-cmtr-info">'
-          + '<div class="ds-top-cmtr-name">'+u.name+'</div>'
-          + '<div class="ds-top-cmtr-count">'+counts[topUid]+' comment'+(counts[topUid]>1?'s':'')+'</div>'
+          '<div class="ds-top-post-inner">'
+          + thumbHtml
+          + '<div class="ds-top-post-info">'
+          + '<div class="ds-top-post-creator">@'+creator+'</div>'
+          + '<div class="ds-top-post-meta">'
+          + '<svg viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="10" height="10"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
+          + top.count + ' comment'+(top.count!==1?'s':'')
           + '</div>'
-          + '<span class="ds-top-cmtr-badge">🏆</span>'
           + '</div>'
-          + '<div class="ds-top-cmtr-meta">'
-          + (u.country ? '<div class="ds-top-cmtr-tag">'+flagHtml+'<span>'+u.country.toUpperCase()+'</span></div>' : '')
-          + '<div class="ds-top-cmtr-tag"><svg viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="9" height="9"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>'+counts[topUid]+' total</span></div>'
+          + '<span class="ds-top-post-badge">Hot</span>'
           + '</div>';
-        container.style.cursor = 'pointer';
-        // remove old listener before adding new
-        var newContainer = container.cloneNode(true);
-        container.parentNode.replaceChild(newContainer, container);
-        newContainer.addEventListener('click', function(){ viewProfile(topUid); });
+        container.addEventListener('click', function() {
+          // Scroll desktop feed to this post card
+          var card = document.querySelector('.desktop-card[data-post-id="'+top.id+'"]');
+          if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.style.outline = '2px solid #111'; card.style.outlineOffset = '3px';
+            setTimeout(function(){ card.style.outline=''; card.style.outlineOffset=''; }, 1800);
+          }
+        });
       }).catch(function(){ container.innerHTML = '<div class="ds-section-empty">Could not load</div>'; });
     }).catch(function(){ container.innerHTML = '<div class="ds-section-empty">Could not load</div>'; });
   }
 
-  function buildPersonRow(u, showFollowBtn) {
+  function buildPersonRow(u, showFollowBtn, forceFollowing) {
     var row = document.createElement('div');
     row.className = 'ds-person-row';
+    var letter = ((u.displayName||u.name||'U')[0]).toUpperCase();
+    var hue = (letter.charCodeAt(0) * 37) % 360;
     var avHtml = u.photoURL
-      ? '<img class="ds-person-av" src="'+u.photoURL+'" onerror="this.parentNode.replaceChild(makePlaceholderAv(\''+((u.displayName||u.name||'U')[0].toUpperCase())+'\'),this)">'
-      : '<div class="ds-person-av-ph">'+((u.displayName||u.name||'U')[0].toUpperCase())+'</div>';
+      ? '<img class="ds-person-av" src="'+u.photoURL+'" onerror="this.outerHTML=\'<div class=&quot;ds-person-av-ph&quot; style=&quot;background:hsl('+hue+',50%,44%)&quot;>'+letter+'</div>\'">'
+      : '<div class="ds-person-av-ph" style="background:hsl('+hue+',50%,44%)">'+letter+'</div>';
     var flagHtml = u.country ? '<img class="ds-person-flag" src="https://flagcdn.com/w20/'+u.country+'.png" onerror="this.style.display=\'none\'">' : '';
-    var isFollowing = followedUsers && followedUsers.has(u._id);
+    var isFollowing = forceFollowing || (followedUsers && followedUsers.has(u._id));
     var followHtml = showFollowBtn
-      ? '<button class="ds-follow-btn-sm'+(isFollowing?' following':'')+'" data-uid="'+u._id+'">'+(isFollowing?'Following':'Follow')+'</button>'
+      ? '<button class="ds-follow-btn-sm'+(isFollowing?' following':'')+'" data-uid="'+u._id+'">'+(isFollowing?'Unfollow':'Follow')+'</button>'
       : '';
+    var handle = u.username || u.name ? '@'+(u.username||u.name||'').toLowerCase().replace(/\s/g,'') : '';
     row.innerHTML = avHtml
       + '<div class="ds-person-info">'
       + '<div class="ds-person-name">'+(u.displayName||u.name||'User')+'</div>'
-      + '<div class="ds-person-meta">'+flagHtml+'<span>'+(u.profession||u.title||('@'+(u.name||'').toLowerCase().replace(/\s/g,''))||'')+'</span></div>'
+      + '<div class="ds-person-meta">'+flagHtml+'<span>'+(u.profession||u.title||handle||'')+'</span></div>'
       + '</div>'
       + followHtml;
-    // Click row → view profile
-    row.addEventListener('click', function(e){ if (e.target.closest('.ds-follow-btn-sm')) return; viewProfile(u._id); });
-    // Follow button
+    // Click row → scroll desktop feed to their latest video
+    row.addEventListener('click', function(e){
+      if (e.target.closest('.ds-follow-btn-sm')) return;
+      scrollFeedToUser(u._id);
+    });
+    // Follow/Unfollow button
     var fbtn = row.querySelector('.ds-follow-btn-sm');
     if (fbtn) {
       fbtn.addEventListener('click', function(e) {
         e.stopPropagation();
         toggleFollow(u._id, u.displayName||u.name||'User').then(function() {
           var nowF = followedUsers.has(u._id);
-          fbtn.textContent = nowF ? 'Following' : 'Follow';
+          fbtn.textContent = nowF ? 'Unfollow' : 'Follow';
           fbtn.classList.toggle('following', nowF);
         }).catch(function(){});
       });
@@ -4537,14 +4620,109 @@ init();
     return row;
   }
 
+  // Scroll desktop feed to most commented/latest video by a user
+  function scrollFeedToUser(uid) {
+    if (!uid) return;
+    // First try to find their card already in the feed
+    var cards = document.querySelectorAll('.desktop-card');
+    var match = null;
+    // Find card with most comments for this user
+    var bestCard = null, bestCount = -1;
+    cards.forEach(function(card) {
+      if (card.dataset.userId === uid) {
+        var count = parseInt(card.dataset.commentCount || '0', 10);
+        if (count > bestCount) { bestCount = count; bestCard = card; }
+        if (!match) match = card; // fallback to first
+      }
+    });
+    var target = bestCard || match;
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Highlight briefly
+      target.style.outline = '2px solid #111';
+      target.style.outlineOffset = '3px';
+      setTimeout(function(){ target.style.outline = ''; target.style.outlineOffset = ''; }, 1800);
+    } else {
+      // Not in feed yet — open their profile in the iframe panel
+      viewProfile(uid);
+    }
+  }
+
   // Load sidebar data — called after auth + followedUsers ready
   function initSidebar() {
-    loadSuggestedUsers();
+    loadMostCommentedPost();
     loadFollowingList();
-    loadTopCommenter();
+    loadSuggestedUsers();
   }
   // Fallback: if auth fires before this script block runs
   if (window._sidebarReady) initSidebar();
+
+  // ── Mobile profile panel — populated from module scope (has direct Firebase access) ──
+  function populateMobileProfile() {
+    var avEl     = document.getElementById('mob-prof-av');
+    var nameEl   = document.getElementById('mob-prof-name');
+    var handleEl = document.getElementById('mob-prof-handle');
+    var statsEl  = document.getElementById('mob-prof-stats');
+    var feedEl   = document.getElementById('mob-prof-feed');
+    if (!avEl || !currentUser) return;
+
+    var displayName = currentUser.displayName || currentUser.email || 'You';
+    var letter = (displayName[0] || 'U').toUpperCase();
+    var hue = (letter.charCodeAt(0) * 37) % 360;
+
+    // Avatar
+    if (currentUser.photoURL && !currentUser.photoURL.includes('default_profile')) {
+      avEl.innerHTML = '<img src="'+currentUser.photoURL+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentNode.textContent=\''+letter+'\';this.parentNode.style.background=\'hsl('+hue+',50%,44%)\';">';
+    } else {
+      avEl.textContent = letter;
+      avEl.style.background = 'hsl('+hue+',50%,44%)';
+    }
+
+    if (nameEl) nameEl.textContent = displayName;
+    if (handleEl) {
+      var handle = (currentUser.email || '').split('@')[0];
+      handleEl.textContent = handle ? '@'+handle : '';
+    }
+
+    // Stats skeleton
+    if (statsEl) statsEl.innerHTML =
+      '<div style="text-align:center"><div style="font-size:18px;font-weight:900;color:#111" id="mob-stat-posts">—</div><div style="font-size:11px;color:#888;font-weight:600;margin-top:2px">Posts</div></div>'
+      +'<div style="text-align:center"><div style="font-size:18px;font-weight:900;color:#111" id="mob-stat-followers">—</div><div style="font-size:11px;color:#888;font-weight:600;margin-top:2px">Followers</div></div>'
+      +'<div style="text-align:center"><div style="font-size:18px;font-weight:900;color:#111" id="mob-stat-following">—</div><div style="font-size:11px;color:#888;font-weight:600;margin-top:2px">Following</div></div>';
+
+    // Posts count + video grid
+    getDocs(query(collection(db,'recence'), where('userId','==',currentUser.uid))).then(function(snap){
+      var el = document.getElementById('mob-stat-posts');
+      if (el) el.textContent = snap.size;
+      if (!feedEl) return;
+      feedEl.innerHTML = '';
+      snap.forEach(function(d){
+        var p = d.data();
+        var media = p.media && p.media[0];
+        if (!media) return;
+        var thumb = document.createElement('div');
+        thumb.style.cssText = 'aspect-ratio:9/16;background:#111;border-radius:6px;overflow:hidden;cursor:pointer;';
+        var vid = document.createElement('video');
+        vid.src = media.url; vid.muted = true; vid.preload = 'metadata';
+        vid.style.cssText = 'width:100%;height:100%;object-fit:cover;pointer-events:none;';
+        thumb.appendChild(vid);
+        feedEl.appendChild(thumb);
+      });
+      if (snap.empty) feedEl.innerHTML = '<div style="grid-column:1/-1;padding:24px;text-align:center;color:#ccc;font-size:13px;">No videos yet</div>';
+    }).catch(function(){});
+
+    // Followers count
+    getDocs(query(collection(db,'follows'), where('followedUserId','==',currentUser.uid))).then(function(s){
+      var el = document.getElementById('mob-stat-followers'); if (el) el.textContent = s.size;
+    }).catch(function(){});
+
+    // Following count
+    getDocs(query(collection(db,'follows'), where('followerUserId','==',currentUser.uid))).then(function(s){
+      var el = document.getElementById('mob-stat-following'); if (el) el.textContent = s.size;
+    }).catch(function(){});
+  }
+  // Expose so the non-module nav IIFE can call it
+  window._populateMobileProfile = populateMobileProfile;
 
   // Desktop scroll: IntersectionObserver auto-plays visible card & opens its comments
   function playDesktopVideo(v) {
@@ -4935,49 +5113,59 @@ init();
         window._closeFpPanel = closeFpPanel;
     })();
 
-    // ── Nav ──
+    // ── Nav — mobile section switching (inline panels, no iframes) ──
     (function() {
         var home = document.getElementById('navHome');
         var prof = document.getElementById('navProfile');
         var up   = document.getElementById('navUpload');
         var gal  = document.getElementById('gallery');
+        var overlay     = document.getElementById('section-overlay');
+        var overlayBack = document.getElementById('section-overlay-back');
+        var titleEl     = document.getElementById('section-overlay-title');
+        var profPanel   = document.getElementById('mob-profile-panel');
+        var upPanel     = document.getElementById('mob-upload-panel');
 
-        // ── Section overlay (mobile fullscreen iframe) ──
-        var overlay      = document.getElementById('section-overlay');
-        var overlayFrame = document.getElementById('section-overlay-frame');
-        var overlayLoader= document.getElementById('section-overlay-loader');
-        var overlayBack  = document.getElementById('section-overlay-back');
+        function showPanel(which) {
+            // Hide all inline panels
+            if (profPanel) profPanel.style.display = 'none';
+            if (upPanel)   upPanel.style.display   = 'none';
+            // Show the right one
+            if (which === 'profile' && profPanel) {
+                profPanel.style.display = 'flex';
+                if (titleEl) titleEl.textContent = 'Profile';
+                if (typeof window._populateMobileProfile === 'function') window._populateMobileProfile();
+            } else if (which === 'upload' && upPanel) {
+                upPanel.style.display = 'flex';
+                if (titleEl) titleEl.textContent = 'Upload';
+            }
+        }
 
-        function openSection(page) {
+        function openSection(which) {
             if (!overlay) return;
-            // Show overlay + loader immediately
+            showPanel(which);
             overlay.classList.add('open');
-            overlayLoader.classList.remove('hidden');
-            // Pause all feed videos
+            if (gal) { gal.style.overflow = 'hidden'; gal.style.pointerEvents = 'none'; }
+            document.body.style.overflow = 'hidden';
             if (gal) gal.querySelectorAll('video').forEach(function(v){ v.pause(); });
-            // Load iframe
-            overlayFrame.src = page;
-            overlayFrame.onload = function() {
-                overlayLoader.classList.add('hidden');
-            };
         }
 
         function closeSection() {
             if (!overlay) return;
             overlay.classList.remove('open');
-            // Wait for slide-down animation to finish before clearing iframe
+            if (gal) { gal.style.overflow = ''; gal.style.pointerEvents = ''; }
+            document.body.style.overflow = '';
+            if (home) home.classList.add('active');
+            if (prof) prof.classList.remove('active');
+            if (up)   up.classList.remove('active');
             setTimeout(function() {
-                overlayFrame.src = 'about:blank';
+                if (profPanel) profPanel.style.display = 'none';
+                if (upPanel)   upPanel.style.display   = 'none';
             }, 400);
-            // Resume active video
+            // Resume video
             if (gal) {
                 var active = gal.querySelector('.pin-container.active video') || gal.querySelector('video');
                 if (active) active.play().catch(function(){});
             }
-            // Reset nav
-            if (home) home.classList.add('active');
-            if (prof) prof.classList.remove('active');
-            if (up)   up.classList.remove('active');
         }
 
         if (overlayBack) overlayBack.addEventListener('click', closeSection);
@@ -4986,14 +5174,13 @@ init();
             closeSection();
             if (gal) gal.scrollTo({ top: 0, behavior: 'smooth' });
         });
-
         if (prof) prof.addEventListener('click', function() {
-            prof.classList.add('active'); home.classList.remove('active');
-            openSection('profile.html');
+            prof.classList.add('active');
+            if (home) home.classList.remove('active');
+            openSection('profile');
         });
-
         if (up) up.addEventListener('click', function() {
-            openSection('upload.html');
+            openSection('upload');
         });
     })();
 
