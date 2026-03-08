@@ -242,7 +242,7 @@ body {
 }
 .dc-share-btn:hover { background: #eee; color: #222; border-color: #ddd; }
 .dc-share-btn:active { transform: scale(0.96); }
-.dc-share-btn svg { width: 16px; height: 16px; fill: currentColor; stroke: none; flex-shrink: 0; }
+.dc-share-btn svg { width: 16px; height: 16px; fill: none; stroke: #888; flex-shrink: 0; }
 .dc-share-btn.copied { background: #111; color: #fff; border-color: #111; }
 
 /* ─── VIDEO CAPTION STRIP (bottom-left) ─── */
@@ -359,6 +359,13 @@ body {
     fill: none; stroke: rgba(255,255,255,0.95);
     stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
     transition: all 0.2s;
+}
+/* Send/share icon uses fill — add class to override */
+.slide-action-icon svg.send-icon,
+.slide-action-icon svg.send-icon * {
+    fill: rgba(255,255,255,0.95) !important;
+    stroke: none !important;
+    width: 24px; height: 24px;
 }
 .slide-action-label {
     font-size: 12px; font-weight: 800;
@@ -480,184 +487,163 @@ body {
 .lazy-load { opacity: 0; transition: opacity 0.3s ease-in; }
 .lazy-load.loaded { opacity: 1; }
 
-/* ─── COMMENT SHEET ─── */
+/* ═══════════════════════════════════════
+   TIKTOK-STYLE LIVE COMMENT SHEET
+═══════════════════════════════════════ */
 .cs-overlay {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.45);
+    background: rgba(0,0,0,0.5);
     z-index: 2500; opacity: 0; pointer-events: none;
     transition: opacity 0.3s ease;
-    backdrop-filter: blur(2px);
 }
 .cs-overlay.open { opacity: 1; pointer-events: all; }
 
 .comment-sheet {
     position: fixed; left: 0; right: 0; bottom: 0;
-    height: 74dvh;
-    background: #fafafa;
-    border-radius: 28px 28px 0 0;
+    height: 76dvh;
+    background: #fff;
+    border-radius: 20px 20px 0 0;
     z-index: 2600;
     display: flex; flex-direction: column;
     transform: translateY(100%);
-    transition: transform 0.44s cubic-bezier(0.22,1,0.36,1);
+    transition: transform 0.42s cubic-bezier(0.22,1,0.36,1);
     overflow: hidden;
-    box-shadow: 0 -24px 60px rgba(0,0,0,0.22);
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.18);
 }
 .comment-sheet.open { transform: translateY(0); }
 
-/* Brand accent bar at top */
-.comment-sheet::before {
-    content: ''; display: block; height: 3px; flex-shrink: 0;
-    background: var(--brand-gradient);
-}
-
 .cs-handle {
     width: 36px; height: 4px; border-radius: 2px;
-    background: #ddd; margin: 10px auto 0; flex-shrink: 0;
+    background: #e8e8e8; margin: 10px auto 0; flex-shrink: 0;
 }
 
+/* ── Header ── */
 .cs-head {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 18px 10px;
-    flex-shrink: 0;
-    background: #fff;
-    border-bottom: 1px solid #f0f0f0;
-    position: relative;
+    padding: 10px 16px; flex-shrink: 0; background: #fff;
+    border-bottom: 1px solid #f2f2f2;
 }
 .cs-head-left { display: flex; align-items: center; gap: 8px; }
-
-/* Red live dot next to comment count */
-.cs-live-indicator {
-    display: flex; align-items: center; gap: 5px;
-}
+.cs-live-indicator { display: flex; align-items: center; gap: 5px; }
 .cs-live-red-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: #ff3b5c;
-    box-shadow: 0 0 0 0 rgba(255,59,92,0.5);
-    animation: liveRedPulse 1.6s ease-in-out infinite;
-    flex-shrink: 0;
+    width: 7px; height: 7px; border-radius: 50%; background: #fe2c55;
+    box-shadow: 0 0 0 0 rgba(254,44,85,0.5);
+    animation: liveRedPulse 1.6s ease-in-out infinite; flex-shrink: 0;
 }
 @keyframes liveRedPulse {
-    0%   { box-shadow: 0 0 0 0 rgba(255,59,92,0.6); transform: scale(1); }
-    50%  { box-shadow: 0 0 0 6px rgba(255,59,92,0); transform: scale(1.15); }
-    100% { box-shadow: 0 0 0 0 rgba(255,59,92,0); transform: scale(1); }
+    0%   { box-shadow: 0 0 0 0 rgba(254,44,85,0.6); transform: scale(1); }
+    50%  { box-shadow: 0 0 0 5px rgba(254,44,85,0); transform: scale(1.2); }
+    100% { box-shadow: 0 0 0 0 rgba(254,44,85,0); transform: scale(1); }
 }
-.cs-live-label {
-    font-size: 10px; font-weight: 900; color: #ff3b5c;
-    letter-spacing: 0.1em; text-transform: uppercase;
+@keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
-.cs-head-title {
-    font-size: 16px; font-weight: 900; color: #111; letter-spacing: -0.02em;
-}
-.cs-head-title .cs-count-num {
-    color: #111;
-    transition: all 0.2s;
-}
-.cs-head-title .cs-count-num.bump {
-    animation: countBump 0.3s cubic-bezier(0.34,1.56,0.64,1);
-}
+.cs-live-label { font-size: 10px; font-weight: 900; color: #fe2c55; letter-spacing: 0.1em; text-transform: uppercase; }
+.cs-head-title { font-size: 15px; font-weight: 700; color: #111; }
+.cs-count-num { display: inline; }
+.cs-count-num.bump { animation: countBump 0.32s cubic-bezier(0.34,1.56,0.64,1); }
 @keyframes countBump {
-    0%   { transform: scale(1); }
-    50%  { transform: scale(1.35); color: #ff3b5c; }
-    100% { transform: scale(1); }
+    0%  { transform: scale(1); }
+    50% { transform: scale(1.4); color: #fe2c55; }
+    100%{ transform: scale(1); }
 }
 .cs-close {
-    background: #f0f0f0; border: none; border-radius: 50%;
-    width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
-    cursor: pointer; transition: background 0.15s; z-index: 9999; pointer-events: all;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #f2f2f2; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s; z-index: 9999; pointer-events: all;
 }
-.cs-close:active { background: #e0e0e0; }
-.cs-close svg { width: 13px; height: 13px; fill: none; stroke: #666; stroke-width: 2.5; stroke-linecap: round; pointer-events: none; }
+.cs-close:active { background: #e5e5e5; }
+.cs-close svg { width: 13px; height: 13px; fill: none; stroke: #555; stroke-width: 2.5; stroke-linecap: round; pointer-events: none; }
 
-/* ── typing indicator ── */
+/* ── Typing indicator ── */
 .typing-indicator {
-    padding: 4px 18px; font-size: 11.5px; color: #aaa;
-    font-style: italic; min-height: 20px; flex-shrink: 0;
+    padding: 3px 16px; font-size: 11px; color: #aaa;
+    font-style: italic; min-height: 18px; flex-shrink: 0;
     display: flex; align-items: center; gap: 6px;
-    opacity: 0; transition: opacity 0.3s;
-    background: #fff;
+    opacity: 0; transition: opacity 0.3s; background: #fff;
 }
 .typing-indicator.visible { opacity: 1; }
 .typing-dots { display: flex; gap: 3px; }
 .typing-dots span {
-    width: 5px; height: 5px; border-radius: 50%; background: #bbb;
+    width: 5px; height: 5px; border-radius: 50%; background: #ccc;
     animation: typingBounce 1.2s infinite;
 }
 .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
 .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes typingBounce {
     0%,60%,100% { transform: translateY(0); opacity: 0.35; }
-    30% { transform: translateY(-3px); opacity: 0.8; }
+    30%          { transform: translateY(-3px); opacity: 0.9; }
 }
 
-/* ─── COMMENTS LOADING STATE ─── */
-.comments-loading {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; padding: 40px 20px; gap: 14px;
+/* ── Loading skeleton (shimmer rows, same as desktop) ── */
+.comments-loading { display: flex; flex-direction: column; gap: 0; padding: 4px 0; }
+.cmt-skel-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 16px;
 }
-.cs-spinner {
-    width: 36px; height: 36px;
-    position: relative;
-    display: flex; align-items: center; justify-content: center;
+.cmt-skel-avatar {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(110deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%);
+    background-size: 200% 100%; animation: shimmer 1.4s infinite;
 }
-.cs-spinner::before, .cs-spinner::after {
-    content: '';
-    position: absolute;
-    width: 11px; height: 11px;
-    border-radius: 50%;
-    animation: spinPulse 1s ease-in-out infinite;
+.cmt-skel-lines { flex: 1; display: flex; flex-direction: column; gap: 6px; padding-top: 3px; }
+.cmt-skel-line {
+    height: 10px; border-radius: 8px;
+    background: linear-gradient(110deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%);
+    background-size: 200% 100%; animation: shimmer 1.4s infinite;
 }
-.cs-spinner::before { background: var(--brand-dark); animation-delay: 0s; }
-.cs-spinner::after  { background: var(--brand-mid); animation-delay: 0.5s; }
-.cs-spinner-text { font-size: 12px; font-weight: 600; color: #bbb; letter-spacing: 0.04em; }
+.cmt-skel-line.name  { width: 32%; height: 9px; }
+.cmt-skel-line.long  { width: 88%; }
+.cmt-skel-line.short { width: 55%; }
 
-/* ─── COMMENTS LIST ─── */
+/* ── Comment list ── */
 #commentsList {
-    flex: 1; overflow-y: auto; padding: 6px 0 8px;
+    flex: 1; overflow-y: auto; padding: 4px 0 8px;
     background: #fff; position: relative;
-    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
 }
 #commentsList::-webkit-scrollbar { display: none; }
 
-/* ─── NEW COMMENTS PILL (floating) ─── */
+/* ── New comments pill ── */
 .new-cmt-pill {
-    position: sticky; bottom: 10px; left: 50%;
-    transform: translateX(-50%);
+    position: sticky; bottom: 10px; left: 50%; transform: translateX(-50%);
     display: inline-flex; align-items: center; gap: 6px;
-    background: #111; color: #fff;
-    font-size: 11px; font-weight: 800; letter-spacing: 0.01em;
-    padding: 7px 16px; border-radius: 99px;
-    cursor: pointer; z-index: 60; white-space: nowrap;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.28);
-    border: 1.5px solid rgba(255,255,255,0.08);
+    background: #111; color: #fff; font-size: 11px; font-weight: 800;
+    padding: 7px 16px; border-radius: 99px; cursor: pointer;
+    z-index: 60; white-space: nowrap;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
     animation: pillUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
     margin: 4px auto; width: fit-content;
+    -webkit-tap-highlight-color: transparent;
 }
 @keyframes pillUp {
-    from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.88); }
+    from { opacity: 0; transform: translateX(-50%) translateY(6px) scale(0.88); }
     to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 }
 .new-cmt-pill-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: #ff3b5c; flex-shrink: 0;
-    box-shadow: 0 0 8px rgba(255,59,92,0.9);
+    width: 6px; height: 6px; border-radius: 50%; background: #fe2c55; flex-shrink: 0;
+    box-shadow: 0 0 6px rgba(254,44,85,0.9);
     animation: liveRedPulse 1.4s ease-in-out infinite;
 }
 
-/* ─── COMMENT ITEM ─── */
+/* ── Comment item ── */
 .comment {
-    display: flex; padding: 9px 16px;
-    gap: 10px; position: relative;
-    transition: background 0.15s;
+    display: flex; padding: 9px 16px; gap: 10px; position: relative;
+    transition: background 0.12s; -webkit-tap-highlight-color: transparent;
 }
-.comment:active { background: rgba(0,0,0,0.025); }
-@keyframes cmtIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-.comment.new-comment { animation: cmtIn 0.26s cubic-bezier(0.22,1,0.36,1); }
-.comment.new-live    { animation: cmtIn 0.32s cubic-bezier(0.22,1,0.36,1); }
+.comment:active { background: #f9f9f9; }
+@keyframes cmtIn {
+    from { opacity:0; transform:translateY(8px); }
+    to   { opacity:1; transform:translateY(0); }
+}
+.comment.new-comment { animation: cmtIn 0.24s cubic-bezier(0.22,1,0.36,1); }
+.comment.new-live    { animation: cmtIn 0.3s  cubic-bezier(0.22,1,0.36,1); }
 .comment.new-live::after {
-    content: ''; position: absolute; inset: 0;
-    background: rgba(255,59,92,0.035);
-    animation: liveFlash 0.9s ease-out forwards;
-    pointer-events: none;
+    content:''; position:absolute; inset:0;
+    background: rgba(254,44,85,0.04);
+    animation: liveFlash 1s ease-out forwards; pointer-events:none;
 }
 @keyframes liveFlash { 0%{opacity:1} 100%{opacity:0} }
 
@@ -665,232 +651,172 @@ body {
 .comment-avatar {
     width: 36px; height: 36px; border-radius: 50%;
     flex-shrink: 0; object-fit: cover;
-    border: 2px solid #eee; align-self: flex-start; margin-top: 1px;
+    border: 1.5px solid #f0f0f0; align-self: flex-start; margin-top: 1px;
 }
 .comment-avatar-placeholder {
-    width: 36px; height: 36px; border-radius: 50%;
-    flex-shrink: 0; background: var(--brand-gradient);
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    background: var(--brand-gradient);
     display: flex; align-items: center; justify-content: center;
     font-size: 14px; font-weight: 900; color: #fff;
     align-self: flex-start; margin-top: 1px;
-    border: 2px solid rgba(255,255,255,0.25);
 }
 .comment-avatar-guest {
-    width: 36px; height: 36px; border-radius: 50%;
-    flex-shrink: 0; background: #f0f0f0;
-    display: flex; align-items: center; justify-content: center;
-    align-self: flex-start; margin-top: 1px; border: 2px solid #e5e5e5;
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    background: #f2f2f2; display: flex; align-items: center; justify-content: center;
+    align-self: flex-start; margin-top: 1px; border: 1.5px solid #e8e8e8;
 }
 .comment-avatar-guest svg { width: 18px; height: 18px; stroke: #bbb; fill: none; }
 
 /* Bubble */
 .comment-bubble { flex: 1; min-width: 0; }
 
-/* Author row — name truncated + date + badges all on one line */
+/* Author row: name… · date [badges] */
 .comment-author {
     display: flex; align-items: center; gap: 5px;
-    margin-bottom: 3px; overflow: hidden; flex-wrap: nowrap;
+    margin-bottom: 2px; overflow: hidden; flex-wrap: nowrap;
 }
 .comment-author-name {
-    font-size: 12.5px; font-weight: 800; color: #111;
+    font-size: 13px; font-weight: 700; color: #111;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    min-width: 0; flex-shrink: 1; cursor: pointer; line-height: 1.3;
+    min-width: 0; flex-shrink: 1; cursor: pointer;
 }
 .comment-author-name:hover { text-decoration: underline; }
-.comment-author-date {
-    font-size: 10px; font-weight: 500; color: #c0c0c0;
-    white-space: nowrap; flex-shrink: 0;
-}
-.comment-author-badges {
-    display: flex; align-items: center; gap: 4px; flex-shrink: 0;
-}
+.comment-author-date { font-size: 10px; color: #c0c0c0; white-space: nowrap; flex-shrink: 0; }
+.comment-author-badges { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .comment-guest-badge {
-    font-size: 8.5px; font-weight: 900; color: #888;
-    background: #f0f0f0; border: 1px solid #e0e0e0;
-    padding: 1px 5px; border-radius: 99px; letter-spacing: 0.04em;
-    text-transform: uppercase; line-height: 1.4;
+    font-size: 8px; font-weight: 900; color: #999; background: #f2f2f2;
+    border: 1px solid #e8e8e8; padding: 1px 5px; border-radius: 99px; text-transform: uppercase;
 }
-.comment-flag { width: 14px; height: 10px; border-radius: 2px; vertical-align: middle; }
+.comment-flag { width: 14px; height: 10px; border-radius: 2px; }
 .comment-creator-badge {
     font-size: 9px; font-weight: 900; color: #fff;
-    background: var(--brand-gradient);
-    padding: 1px 6px; border-radius: 99px; letter-spacing: 0.03em; line-height: 1.4;
+    background: var(--brand-gradient); padding: 1px 6px; border-radius: 99px;
 }
 
-/* Comment text */
-.comment-text {
-    font-size: 13.5px; font-weight: 400; color: #222;
-    line-height: 1.45; word-break: break-word; overflow-wrap: anywhere;
-}
+/* Text */
+.comment-text { font-size: 14px; font-weight: 400; color: #1a1a1a; line-height: 1.45; word-break: break-word; overflow-wrap: anywhere; }
+.comment-gif { max-width: 160px; border-radius: 10px; margin-top: 6px; display: block; }
 
 /* Actions */
-.comment-actions {
-    display: flex; align-items: center; margin-top: 5px; gap: 0;
-}
-.comment-time { font-size: 10.5px; color: #c8c8c8; margin-right: 6px; font-weight: 500; }
+.comment-actions { display: flex; align-items: center; margin-top: 4px; gap: 0; }
+.comment-time { font-size: 11px; color: #c8c8c8; margin-right: 8px; font-weight: 400; }
 
-/* Like button */
 .like-button {
     display: flex; align-items: center; gap: 4px;
-    background: transparent; border: none; border-radius: 6px; cursor: pointer;
-    font-family: var(--font); padding: 2px 6px;
-    transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    background: transparent; border: none; cursor: pointer;
+    font-family: var(--font); padding: 3px 6px 3px 0;
+    transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    -webkit-tap-highlight-color: transparent;
 }
-.like-button:active { transform: scale(0.84); }
-.like-button svg {
-    width: 13px; height: 13px; transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1);
-    fill: none; stroke: #ccc; stroke-width: 1.8; flex-shrink: 0;
-}
-.like-button.liked svg { fill: var(--brand-dark); stroke: var(--brand-dark); transform: scale(1.25); }
-@keyframes cLikePop { 0%{transform:scale(1)} 40%{transform:scale(1.25)} 70%{transform:scale(0.95)} 100%{transform:scale(1)} }
-.like-button.pop svg { animation: cLikePop 0.36s cubic-bezier(0.34,1.56,0.64,1); }
-.like-count { font-size: 11px; font-weight: 700; color: #ccc; min-width: 8px; transition: color 0.18s; }
-.like-button.liked .like-count { color: var(--brand-dark); }
+.like-button:active { transform: scale(0.82); }
+.like-button svg { width: 14px; height: 14px; fill: none; stroke: #c8c8c8; stroke-width: 1.8; flex-shrink: 0; transition: all 0.2s; }
+.like-button.liked svg { fill: #111; stroke: #111; transform: scale(1.2); }
+@keyframes cLikePop { 0%{transform:scale(1)} 40%{transform:scale(1.3)} 70%{transform:scale(0.95)} 100%{transform:scale(1.2)} }
+.like-button.pop svg { animation: cLikePop 0.32s cubic-bezier(0.34,1.56,0.64,1); }
+.like-count { font-size: 12px; font-weight: 600; color: #c8c8c8; min-width: 10px; transition: color 0.15s; }
+.like-button.liked .like-count { color: #111; }
 
 .reply-btn {
     background: none; border: none; cursor: pointer;
-    font-size: 11px; font-weight: 700; color: #ccc;
-    font-family: var(--font); padding: 2px 8px; transition: color 0.15s;
+    font-size: 12px; font-weight: 600; color: #c8c8c8;
+    font-family: var(--font); padding: 3px 8px; transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
 }
-.reply-btn:active { color: var(--brand-mid); }
+.reply-btn:active { color: #555; }
 
-/* Top pinned comment */
-.comment.top-comment { background: #fffdf5; border-left: 3px solid #f7c948; }
+/* Top comment */
+.comment.top-comment { background: #fffbf0; border-left: 3px solid #fbbf24; }
 .top-comment-badge {
-    position: absolute; top: 6px; left: 64px;
-    background: linear-gradient(135deg,#f7c948,#f59e0b); color: #fff;
-    font-size: 8.5px; font-weight: 900; letter-spacing: 0.1em;
+    position: absolute; top: 5px; left: 64px;
+    background: linear-gradient(135deg,#fbbf24,#f59e0b); color: #fff;
+    font-size: 8px; font-weight: 900; letter-spacing: 0.1em;
     padding: 2px 8px; border-radius: 99px; text-transform: uppercase;
-    box-shadow: 0 1px 4px rgba(245,158,11,0.3);
 }
-
-/* Reply preview inside form */
-.reply-preview {
-    display: none; align-items: center; gap: 6px;
-    padding: 6px 14px 4px; background: transparent;
-    flex-shrink: 0;
-}
-.reply-preview.show { display: flex; }
-.reply-preview-icon { font-size: 14px; color: var(--brand-mid); flex-shrink: 0; }
-.reply-preview-text { font-size: 12px; color: var(--brand-mid); font-weight: 700; flex: 1; }
-.reply-preview-close {
-    background: #eee; border: none; cursor: pointer; color: #888;
-    border-radius: 50%; width: 20px; height: 20px; flex-shrink: 0;
-    font-size: 14px; display: flex; align-items: center; justify-content: center;
-    line-height: 1; transition: background 0.15s;
-}
-.reply-preview-close:active { background: #ddd; }
 
 /* Replies */
-.replies-container { margin-left: 46px; margin-top: 4px; }
+.replies-container { margin-left: 46px; margin-top: 2px; }
 .view-replies-btn {
     background: none; border: none; cursor: pointer;
-    font-size: 12px; font-weight: 800; color: var(--brand-mid);
-    font-family: var(--font); padding: 4px 0 8px;
-    display: flex; align-items: center; gap: 6px;
-    transition: color 0.15s;
+    font-size: 12px; font-weight: 700; color: #888;
+    font-family: var(--font); padding: 4px 0 6px;
+    display: flex; align-items: center; gap: 6px; transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
 }
-.view-replies-btn::before {
-    content: ''; display: block;
-    width: 22px; height: 1.5px;
-    background: #ddd; border-radius: 1px; flex-shrink: 0;
-}
-.view-replies-btn:active { color: var(--brand-dark); }
+.view-replies-btn::before { content:''; display:block; width:22px; height:1px; background:#e0e0e0; border-radius:1px; flex-shrink:0; }
+.view-replies-btn:active { color: #333; }
 
-/* ─── COMMENT FORM ─── */
+/* Reply preview */
+.reply-preview { display:none; align-items:center; gap:6px; padding:6px 14px 4px; flex-shrink:0; }
+.reply-preview.show { display: flex; }
+.reply-preview-icon { font-size:14px; color:#888; flex-shrink:0; }
+.reply-preview-text { font-size:12px; color:#888; font-weight:600; flex:1; }
+.reply-preview-close {
+    background:#eee; border:none; cursor:pointer; color:#888;
+    border-radius:50%; width:20px; height:20px; flex-shrink:0;
+    font-size:14px; display:flex; align-items:center; justify-content:center; line-height:1;
+}
+.reply-preview-close:active { background:#ddd; }
+
+/* Empty */
+.comments-empty { display:flex; flex-direction:column; align-items:center; padding:40px 20px; gap:10px; color:#ccc; }
+.comments-empty svg { width:44px; height:44px; stroke:#e0e0e0; }
+.comments-empty span { font-size:14px; font-weight:600; }
+.comments-empty span:nth-child(3) { font-size:12px; font-weight:400; color:#ddd; }
+
+/* ── Comment form ── */
 .comment-form {
-    background: #fff;
-    border-top: 1px solid #eeeeee;
-    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px)) 14px;
-    flex-shrink: 0;
-    display: flex; flex-direction: column; gap: 0;
+    background: #fff; border-top: 1px solid #f0f0f0;
+    padding: 8px 14px calc(8px + env(safe-area-inset-bottom, 0px)) 14px;
+    flex-shrink: 0; display: flex; flex-direction: column; gap: 0;
 }
-
-.cf-row {
-    display: flex; align-items: flex-end; gap: 10px;
-}
-
-.cf-avatar {
-    width: 34px; height: 34px; border-radius: 50%;
-    object-fit: cover; flex-shrink: 0;
-    border: 2px solid #eee;
-    margin-bottom: 4px;
-}
-
+.cf-row { display: flex; align-items: flex-end; gap: 10px; }
+.cf-avatar { width:34px; height:34px; border-radius:50%; object-fit:cover; flex-shrink:0; border:1.5px solid #f0f0f0; margin-bottom:4px; }
 .cf-input-pill {
-    flex: 1; display: flex; align-items: center; gap: 6px;
-    background: #f4f4f4;
-    border-radius: 24px;
-    padding: 8px 8px 8px 16px;
-    border: 1.5px solid transparent;
-    transition: all 0.2s;
-    position: relative; overflow: visible;
+    flex:1; display:flex; align-items:center; gap:6px;
+    background:#f5f5f5; border-radius:22px;
+    padding:8px 8px 8px 14px; border:1.5px solid transparent;
+    transition:all 0.2s; position:relative; overflow:visible;
 }
-.cf-input-pill:focus-within {
-    background: #fff;
-    border-color: #ddd;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-}
-
+.cf-input-pill:focus-within { background:#fff; border-color:#e0e0e0; box-shadow:0 2px 10px rgba(0,0,0,0.06); }
 .send-spinner {
-    width: 18px; height: 18px; flex-shrink: 0;
-    border: 2px solid #e0e0e0; border-top-color: var(--brand-mid);
-    border-radius: 50%; animation: spin 0.7s linear infinite;
-    display: none;
+    width:18px; height:18px; flex-shrink:0;
+    border:2px solid #e0e0e0; border-top-color:#555;
+    border-radius:50%; animation:spin 0.7s linear infinite; display:none;
 }
-.send-spinner.visible { display: block; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
+.send-spinner.visible { display:block; }
+@keyframes spin { to { transform:rotate(360deg); } }
 .comment-input {
-    flex: 1; background: transparent; border: none; outline: none; resize: none;
-    font-size: 14px; font-weight: 500; font-family: var(--font);
-    color: #111; max-height: 72px; line-height: 1.45;
-    min-height: 20px; overflow-y: auto;
+    flex:1; background:transparent; border:none; outline:none; resize:none;
+    font-size:14px; font-weight:400; font-family:var(--font);
+    color:#111; max-height:72px; line-height:1.45; min-height:20px; overflow-y:auto;
 }
-.comment-input::placeholder { color: #bbb; font-weight: 400; }
-
-/* GIF button — clean text pill, on-brand */
+.comment-input::placeholder { color:#c0c0c0; font-weight:400; }
 .cf-gif-btn {
-    flex-shrink: 0;
-    background: #f0f0f0;
-    border: 1.5px solid #e0e0e0;
-    border-radius: 8px; cursor: pointer;
-    font-size: 11px; font-weight: 900; color: #666;
-    font-family: var(--font);
-    padding: 4px 8px; letter-spacing: 0.08em;
-    transition: all 0.15s cubic-bezier(0.34,1.56,0.64,1);
-    line-height: 1;
+    flex-shrink:0; background:transparent; border:none; cursor:pointer;
+    font-size:11px; font-weight:900; color:#aaa;
+    font-family:var(--font); padding:4px 2px; letter-spacing:0.06em; transition:color 0.15s;
 }
-.cf-gif-btn:active { transform: scale(0.9); background: #e8e8e8; }
-.cf-gif-btn.active {
-    background: var(--brand-gradient); color: #fff; border-color: transparent;
-}
-
-/* Send button — brand gradient circle */
+.cf-gif-btn:active { color:#555; }
+.cf-gif-btn.active { color:#111; }
 .cf-send-btn {
-    flex-shrink: 0;
-    width: 34px; height: 34px; border-radius: 50%;
-    background: var(--brand-gradient);
-    border: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.18);
-    transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    flex-shrink:0; width:34px; height:34px; border-radius:50%;
+    background:#fe2c55; border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 10px rgba(254,44,85,0.3);
+    transition:all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    -webkit-tap-highlight-color:transparent;
 }
 .cf-send-btn:active { transform: scale(0.88); }
-.cf-send-btn:disabled { opacity: 0.32; box-shadow: none; cursor: default; }
-.cf-send-btn svg { width: 14px; height: 14px; color: #fff; margin-left: 1px; }
+.cf-send-btn:disabled { opacity:0.28; box-shadow:none; cursor:default; background:#ccc; }
+.cf-send-btn svg { width:14px; height:14px; color:#fff; margin-left:1px; }
 
 /* GIF selector */
-.gif-selector { background: #fff; border-top: 1px solid #f0f0f0; padding: 10px; flex-shrink: 0; display: none; }
-.gif-selector.active, .gif-selector.open { display: flex; flex-direction: column; gap: 8px; }
-.gif-search {
-    width: 100%; border: 1.5px solid #eee; border-radius: 14px;
-    padding: 9px 14px; font-family: var(--font); font-size: 13px; outline: none;
-    background: #f8f8f8;
-}
-.gif-search:focus { border-color: var(--brand-mid); background: #fff; }
-.gif-results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; max-height: 160px; overflow-y: auto; }
-.gif-item { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; cursor: pointer; transition: opacity 0.15s; }
+.gif-selector { background:#fff; border-top:1px solid #f2f2f2; padding:10px; flex-shrink:0; display:none; }
+.gif-selector.active, .gif-selector.open { display:flex; flex-direction:column; gap:8px; }
+.gif-search { width:100%; border:1.5px solid #eee; border-radius:14px; padding:9px 14px; font-family:var(--font); font-size:13px; outline:none; background:#f8f8f8; }
+.gif-search:focus { border-color:#bbb; background:#fff; }
+.gif-results { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; max-height:160px; overflow-y:auto; }
+.gif-item { width:100%; aspect-ratio:1; object-fit:cover; border-radius:10px; cursor:pointer; transition:opacity 0.15s; }
 .gif-item:active { opacity: 0.75; }
 
 /* GIF preview */
@@ -1021,6 +947,120 @@ body {
   .ds-upload-btn .ds-nav-icon { background: var(--brand-gradient) !important; box-shadow: 0 4px 10px rgba(0,0,0,0.14); }
   .ds-upload-btn .ds-nav-icon svg { stroke: #fff !important; fill: none !important; }
   .ds-upload-btn { color: #444 !important; }
+
+  /* Divider */
+  .ds-divider { height: 1px; background: #f2f2f2; margin: 10px 14px; flex-shrink: 0; }
+
+  /* Section label */
+  .ds-section-label {
+    font-size: 10px; font-weight: 900; color: #bbb;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 0 16px 6px; flex-shrink: 0;
+  }
+
+  /* People list */
+  .ds-people-list { display: flex; flex-direction: column; gap: 2px; padding: 0 8px; }
+  .ds-section-empty { font-size: 11px; color: #ccc; padding: 6px 8px; }
+
+  /* Person row */
+  .ds-person-row {
+    display: flex; align-items: center; gap: 9px;
+    padding: 7px 8px; border-radius: 12px; cursor: pointer;
+    transition: background 0.12s; position: relative;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ds-person-row:hover { background: #f7f7f7; }
+  .ds-person-row:active { background: #f0f0f0; }
+
+  .ds-person-av {
+    width: 34px; height: 34px; border-radius: 50%;
+    object-fit: cover; flex-shrink: 0;
+    border: 1.5px solid #f0f0f0; background: #eee;
+  }
+  .ds-person-av-ph {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: var(--brand-gradient);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 900; color: #fff;
+  }
+
+  .ds-person-info { flex: 1; min-width: 0; }
+  .ds-person-name {
+    font-size: 12px; font-weight: 700; color: #111;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .ds-person-meta {
+    font-size: 10px; color: #aaa; font-weight: 500;
+    display: flex; align-items: center; gap: 4px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .ds-person-flag { width: 12px; height: 9px; border-radius: 1px; flex-shrink: 0; }
+
+  .ds-follow-btn-sm {
+    font-size: 10px; font-weight: 800; flex-shrink: 0;
+    padding: 4px 10px; border-radius: 8px; border: none; cursor: pointer;
+    font-family: var(--font); transition: all 0.14s;
+    background: var(--brand-gradient); color: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  }
+  .ds-follow-btn-sm.following { background: #f0f0f0; color: #888; box-shadow: none; }
+  .ds-follow-btn-sm:active { transform: scale(0.9); }
+
+  /* Skeleton rows */
+  .ds-person-skel { display: flex; align-items: center; gap: 9px; padding: 7px 8px; }
+  .ds-skel-av {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(110deg,#f0f0f0 25%,#f8f8f8 50%,#f0f0f0 75%);
+    background-size: 200% 100%; animation: shimmer 1.4s infinite;
+  }
+  .ds-skel-lines { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+  .ds-skel-line {
+    height: 8px; border-radius: 6px;
+    background: linear-gradient(110deg,#f0f0f0 25%,#f8f8f8 50%,#f0f0f0 75%);
+    background-size: 200% 100%; animation: shimmer 1.4s infinite;
+  }
+  .ds-skel-line.w40 { width: 40%; }
+  .ds-skel-line.w50 { width: 50%; }
+  .ds-skel-line.w55 { width: 55%; }
+  .ds-skel-line.w60 { width: 60%; }
+  .ds-skel-line.w70 { width: 70%; }
+
+  /* Top commenter card */
+  .ds-top-commenter-card {
+    margin: 0 8px 10px;
+    background: linear-gradient(135deg,#fff7f0,#fff0f5);
+    border: 1.5px solid #ffe4d0;
+    border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .ds-top-cmtr-row { display: flex; align-items: center; gap: 9px; }
+  .ds-top-cmtr-av {
+    width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+    border: 2px solid #fbbf24; background: #eee;
+  }
+  .ds-top-cmtr-av-ph {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+    background: var(--brand-gradient);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 900; color: #fff;
+    border: 2px solid #fbbf24;
+  }
+  .ds-top-cmtr-info { flex: 1; min-width: 0; }
+  .ds-top-cmtr-name { font-size: 12px; font-weight: 800; color: #111; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ds-top-cmtr-count { font-size: 10px; color: #f59e0b; font-weight: 700; }
+  .ds-top-cmtr-badge {
+    background: linear-gradient(135deg,#fbbf24,#f59e0b); color: #fff;
+    font-size: 8px; font-weight: 900; padding: 2px 7px; border-radius: 99px;
+    letter-spacing: 0.08em; text-transform: uppercase; flex-shrink: 0;
+  }
+  .ds-top-cmtr-meta {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  }
+  .ds-top-cmtr-tag {
+    display: flex; align-items: center; gap: 3px;
+    font-size: 10px; color: #999; background: #fff;
+    padding: 2px 7px; border-radius: 99px; border: 1px solid #f0e8e0;
+  }
+  .ds-top-cmtr-tag svg { width: 9px; height: 9px; stroke: #ccc; fill: none; flex-shrink: 0; }
 
   /* ══════════════════════════════
      CENTER FEED ISLAND — scroll-snap, one video at a time
@@ -1204,21 +1244,48 @@ body {
     display: flex; flex-direction: column; align-items: center; gap: 5px;
     background: none; border: none; cursor: pointer;
     transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    -webkit-tap-highlight-color: transparent;
   }
   .desktop-action-btn:active { transform: scale(0.82); }
   .desktop-action-icon {
     width: 52px; height: 52px; border-radius: 50%;
-    background: #ffffff;
-    border: none;
+    background: rgba(0,0,0,0.45);
+    border: 1.5px solid rgba(255,255,255,0.2);
     display: flex; align-items: center; justify-content: center;
-    transition: all 0.2s;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.08);
+    transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    position: relative;
   }
-  .desktop-action-icon svg { width: 24px; height: 24px; fill: none; stroke: #222; stroke-width: 1.9; }
-  .desktop-action-label { font-size: 11px; font-weight: 800; color: #444; }
-  .desktop-action-btn.on .desktop-action-icon { background: #111; }
-  .desktop-action-btn.on .desktop-action-icon svg.heart-icon { fill: #fff; stroke: #fff; }
-  .desktop-action-btn:hover .desktop-action-icon { box-shadow: 0 6px 24px rgba(0,0,0,0.18); transform: scale(1.06); }
+  /* All icons white stroke by default */
+  .desktop-action-icon svg {
+    width: 24px; height: 24px;
+    fill: none; stroke: rgba(255,255,255,0.95);
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  /* comment icon uses fill not stroke */
+  .desktop-action-icon svg[viewBox="0 0 122.97 122.88"] {
+    fill: rgba(255,255,255,0.95) !important; stroke: none !important;
+  }
+  /* send/share icon uses fill not stroke */
+  .desktop-action-icon svg.send-icon,
+  .desktop-action-icon svg[viewBox="0 0 122.88 103.44"] {
+    fill: rgba(255,255,255,0.95) !important; stroke: none !important;
+    width: 22px; height: 22px;
+  }
+  .desktop-action-label { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.88); text-shadow: 0 1px 4px rgba(0,0,0,0.7); }
+  /* Liked state */
+  .desktop-action-btn.on .desktop-action-icon { background: rgba(80,80,80,0.35); border-color: rgba(255,255,255,0.35); }
+  .desktop-action-btn.on .desktop-action-icon svg.heart-icon { fill: rgba(255,255,255,0.95) !important; stroke: rgba(255,255,255,0.95); }
+  .desktop-action-btn:hover .desktop-action-icon { transform: scale(1.07); background: rgba(0,0,0,0.58); }
+  /* Profile btn inside desktop actions */
+  .desktop-action-btn .desktop-action-icon.profile-desktop {
+    padding: 0; overflow: visible;
+    border: 2.5px solid rgba(255,255,255,0.88) !important;
+    background: #555;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.15), 0 4px 16px rgba(0,0,0,0.5);
+  }
+  .desktop-action-btn .desktop-action-icon.profile-desktop img {
+    width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;
+  }
 
   /* ══════════════════════════════
      RIGHT COMMENT PANEL ISLAND
@@ -1466,7 +1533,7 @@ body {
           <span class="ds-logo-name">Choose Life</span>
         </div>
 
-        <!-- Same 3 items as mobile nav, in same order -->
+        <!-- Nav items -->
         <button class="ds-nav-item active" id="dsNavHome">
           <div class="ds-nav-icon">
             <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
@@ -1485,6 +1552,34 @@ body {
           </div>
           Profile
         </button>
+
+        <div class="ds-divider"></div>
+
+        <!-- People to follow -->
+        <div class="ds-section-label">Suggested for you</div>
+        <div id="ds-suggested" class="ds-people-list">
+          <!-- populated by JS -->
+          <div class="ds-person-skel"><div class="ds-skel-av"></div><div class="ds-skel-lines"><div class="ds-skel-line w60"></div><div class="ds-skel-line w40"></div></div></div>
+          <div class="ds-person-skel"><div class="ds-skel-av"></div><div class="ds-skel-lines"><div class="ds-skel-line w70"></div><div class="ds-skel-line w50"></div></div></div>
+          <div class="ds-person-skel"><div class="ds-skel-av"></div><div class="ds-skel-lines"><div class="ds-skel-line w55"></div><div class="ds-skel-line w35"></div></div></div>
+        </div>
+
+        <div class="ds-divider"></div>
+
+        <!-- Who you're following -->
+        <div class="ds-section-label">Following</div>
+        <div id="ds-following" class="ds-people-list">
+          <div class="ds-section-empty">Sign in to see following</div>
+        </div>
+
+        <div class="ds-divider"></div>
+
+        <!-- Top commenter -->
+        <div class="ds-section-label">Top Commenter 🏆</div>
+        <div id="ds-top-commenter" class="ds-top-commenter-card">
+          <!-- populated by JS -->
+        </div>
+
       </aside>
 
       <!-- Center feed — cards populated by JS -->
@@ -1559,7 +1654,7 @@ body {
         </div>
         <div class="dc-share-row">
           <button class="dc-share-btn" id="dc-share-btn">
-            <svg viewBox="0 0 122.88 103.44" fill="currentColor" width="16" height="16" xmlns="http://www.w3.org/2000/svg"><path d="M69.49,102.77L49.8,84.04l-20.23,18.27c-0.45,0.49-1.09,0.79-1.8,0.79c-1.35,0-2.44-1.09-2.44-2.44V60.77L0.76,37.41c-0.98-0.93-1.01-2.47-0.09-3.45c0.31-0.33,0.7-0.55,1.11-0.67l0,0l118-33.2c1.3-0.36,2.64,0.39,3.01,1.69c0.19,0.66,0.08,1.34-0.24,1.89l-49.2,98.42c-0.6,1.2-2.06,1.69-3.26,1.09C69.86,103.07,69.66,102.93,69.49,102.77L69.49,102.77z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
             Share this video
           </button>
         </div>
@@ -1699,7 +1794,7 @@ body {
             </div>
             <div class="dc-share-row" style="padding:6px 14px 10px;">
                 <button class="dc-share-btn" id="mobile-share-btn">
-                    <svg viewBox="0 0 122.88 103.44" fill="currentColor" width="16" height="16" xmlns="http://www.w3.org/2000/svg"><path d="M69.49,102.77L49.8,84.04l-20.23,18.27c-0.45,0.49-1.09,0.79-1.8,0.79c-1.35,0-2.44-1.09-2.44-2.44V60.77L0.76,37.41c-0.98-0.93-1.01-2.47-0.09-3.45c0.31-0.33,0.7-0.55,1.11-0.67l0,0l118-33.2c1.3-0.36,2.64,0.39,3.01,1.69c0.19,0.66,0.08,1.34-0.24,1.89l-49.2,98.42c-0.6,1.2-2.06,1.69-3.26,1.09C69.86,103.07,69.66,102.93,69.49,102.77L69.49,102.77z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
                     Share this video
                 </button>
             </div>
@@ -2506,7 +2601,7 @@ function createPinElement(postData, postId) {
     shareBtn.setAttribute('aria-label', 'Share');
     shareBtn.innerHTML =
         '<div class="slide-action-icon">' +
-            '<svg viewBox="0 0 122.88 103.44" fill="rgba(255,255,255,0.95)" width="22" height="22" xmlns="http://www.w3.org/2000/svg"><path d="M69.49,102.77L49.8,84.04l-20.23,18.27c-0.45,0.49-1.09,0.79-1.8,0.79c-1.35,0-2.44-1.09-2.44-2.44V60.77L0.76,37.41c-0.98-0.93-1.01-2.47-0.09-3.45c0.31-0.33,0.7-0.55,1.11-0.67l0,0l118-33.2c1.3-0.36,2.64,0.39,3.01,1.69c0.19,0.66,0.08,1.34-0.24,1.89l-49.2,98.42c-0.6,1.2-2.06,1.69-3.26,1.09C69.86,103.07,69.66,102.93,69.49,102.77L69.49,102.77z"/></svg>' +
+            '<svg class="send-icon" viewBox="0 0 122.88 103.44" fill="rgba(255,255,255,0.95)" xmlns="http://www.w3.org/2000/svg"><path d="M69.49,102.77L49.8,84.04l-20.23,18.27c-0.45,0.49-1.09,0.79-1.8,0.79c-1.35,0-2.44-1.09-2.44-2.44V60.77L0.76,37.41c-0.98-0.93-1.01-2.47-0.09-3.45c0.31-0.33,0.7-0.55,1.11-0.67l0,0l118-33.2c1.3-0.36,2.64,0.39,3.01,1.69c0.19,0.66,0.08,1.34-0.24,1.89l-49.2,98.42c-0.6,1.2-2.06,1.69-3.26,1.09C69.86,103.07,69.66,102.93,69.49,102.77L69.49,102.77z"/></svg>' +
         '</div>' +
         '<span class="slide-action-label">Share</span>';
     shareBtn.addEventListener('click', (e) => {
@@ -2558,7 +2653,7 @@ function openModal(postData, postId) {
     
     modalMedia.innerHTML = '';
     commentsList.innerHTML = '';
-    commentsCount.textContent = '0 comments';
+    commentsCount.textContent = '0';
     commentInput.value = '';
     submitComment.disabled = true;
     selectedGif = null;
@@ -2621,6 +2716,7 @@ function openPanel() {
 }
 
 function viewProfile(userId) {
+    if (!userId) return;
     const panel = document.getElementById('followingPanel');
     const card  = document.getElementById('fpProfileCard');
     const fpFeedEl = document.getElementById('fpFeed');
@@ -2773,12 +2869,21 @@ function loadComments(postId) {
     const cfAv = document.getElementById('cfAvatar');
     if (cfAv && currentUser) cfAv.src = currentUser.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
 
-    commentsList.innerHTML = `
-        <div class="comments-loading">
-            <div class="cs-spinner"></div>
-            <span class="cs-spinner-text">Loading comments</span>
-        </div>
-    `;
+    function skelRows(n) {
+        let s = '<div class="comments-loading">';
+        for (let i = 0; i < n; i++) {
+            s += '<div class="cmt-skel-row">'
+               + '<div class="cmt-skel-avatar"></div>'
+               + '<div class="cmt-skel-lines">'
+               + '<div class="cmt-skel-line name"></div>'
+               + '<div class="cmt-skel-line long"></div>'
+               + '<div class="cmt-skel-line short"></div>'
+               + '</div></div>';
+        }
+        return s + '</div>';
+    }
+
+    commentsList.innerHTML = skelRows(5);
 
     const commentsRef = collection(db, 'recence', postId, 'comments');
     const q = query(commentsRef, orderBy('timestamp', 'asc'));
@@ -3368,11 +3473,38 @@ init();
     var actions = document.createElement('div');
     actions.className = 'desktop-card-actions';
 
+    // Profile avatar btn — FIRST (above like)
+    var dProfileBtn = document.createElement('button');
+    dProfileBtn.className = 'desktop-action-btn';
+    dProfileBtn.setAttribute('aria-label', 'View profile');
+    var dAvatarWrap = document.createElement('div');
+    dAvatarWrap.className = 'desktop-action-icon profile-desktop';
+    var dAvatarImg = document.createElement('img');
+    dAvatarImg.src = postData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
+    dAvatarImg.onerror = function(){ this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'; };
+    dAvatarImg.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
+    dAvatarWrap.appendChild(dAvatarImg);
+    // Follow badge below avatar
+    var dFollowBadge = document.createElement('div');
+    dFollowBadge.className = 'follow-badge';
+    var dIsFollowed = currentUser && followedUsers.has(postData.userId);
+    dFollowBadge.innerHTML = dIsFollowed
+      ? '<svg viewBox="0 0 14 14" fill="none" width="10" height="10"><polyline points="2,7 5.5,11 12,3" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      : '<svg viewBox="0 0 14 14" fill="none" width="10" height="10"><line x1="7" y1="2" x2="7" y2="12" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><line x1="2" y1="7" x2="12" y2="7" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>';
+    dAvatarWrap.appendChild(dFollowBadge);
+    dProfileBtn.appendChild(dAvatarWrap);
+    dProfileBtn.appendChild(Object.assign(document.createElement('span'), { className:'desktop-action-label', textContent:'' }));
+    dProfileBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (postData.userId) viewProfile(postData.userId);
+    });
+    actions.appendChild(dProfileBtn);
+
     // Like btn
     var likeBtn = document.createElement('button');
     likeBtn.className = 'desktop-action-btn' + (currentUser && postData.likes && postData.likes.includes(currentUser.uid) ? ' on' : '');
     likeBtn.setAttribute('aria-label', 'Like');
-    likeBtn.innerHTML = '<div class="desktop-action-icon"><svg class="heart-icon" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>'
+    likeBtn.innerHTML = '<div class="desktop-action-icon"><svg class="heart-icon" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>'
       + '<span class="desktop-action-label">' + ((postData.likes && postData.likes.length) || 0) + '</span>';
     likeBtn.addEventListener('click', function(e) {
       e.stopPropagation();
@@ -3404,7 +3536,7 @@ init();
     var dShareBtn = document.createElement('button');
     dShareBtn.className = 'desktop-action-btn';
     dShareBtn.setAttribute('aria-label', 'Share');
-    dShareBtn.innerHTML = '<div class="desktop-action-icon"><svg viewBox="0 0 122.88 103.44" fill="#222" width="22" height="22" xmlns="http://www.w3.org/2000/svg"><path d="M69.49,102.77L49.8,84.04l-20.23,18.27c-0.45,0.49-1.09,0.79-1.8,0.79c-1.35,0-2.44-1.09-2.44-2.44V60.77L0.76,37.41c-0.98-0.93-1.01-2.47-0.09-3.45c0.31-0.33,0.7-0.55,1.11-0.67l0,0l118-33.2c1.3-0.36,2.64,0.39,3.01,1.69c0.19,0.66,0.08,1.34-0.24,1.89l-49.2,98.42c-0.6,1.2-2.06,1.69-3.26,1.09C69.86,103.07,69.66,102.93,69.49,102.77L69.49,102.77z"/></svg></div>'
+    dShareBtn.innerHTML = '<div class="desktop-action-icon"><svg class="send-icon" viewBox="0 0 122.88 103.44" fill="rgba(255,255,255,0.9)" xmlns="http://www.w3.org/2000/svg"><path d="M69.49,102.77L49.8,84.04l-20.23,18.27c-0.45,0.49-1.09,0.79-1.8,0.79c-1.35,0-2.44-1.09-2.44-2.44V60.77L0.76,37.41c-0.98-0.93-1.01-2.47-0.09-3.45c0.31-0.33,0.7-0.55,1.11-0.67l0,0l118-33.2c1.3-0.36,2.64,0.39,3.01,1.69c0.19,0.66,0.08,1.34-0.24,1.89l-49.2,98.42c-0.6,1.2-2.06,1.69-3.26,1.09C69.86,103.07,69.66,102.93,69.49,102.77L69.49,102.77z"/></svg></div>'
       + '<span class="desktop-action-label">Share</span>';
     dShareBtn.addEventListener('click', function(e) {
       e.stopPropagation();
@@ -3572,10 +3704,17 @@ init();
       dcList.innerHTML = ''; // clear immediately, skeleton comes after delay
       skelTimer = setTimeout(function() {
         if (dcRenderedIds.size === 0 && dcList) {
-          var skel = '';
-          for (var _s = 0; _s < 4; _s++) {
-            skel += '<div class="dc-comment-skeleton"><div class="dc-skel-line name"></div><div class="dc-skel-line long"></div><div class="dc-skel-line short"></div></div>';
+          var skel = '<div class="comments-loading">';
+          for (var _s = 0; _s < 5; _s++) {
+            skel += '<div class="cmt-skel-row">'
+              + '<div class="cmt-skel-avatar"></div>'
+              + '<div class="cmt-skel-lines">'
+              + '<div class="cmt-skel-line name"></div>'
+              + '<div class="cmt-skel-line long"></div>'
+              + '<div class="cmt-skel-line short"></div>'
+              + '</div></div>';
           }
+          skel += '</div>';
           dcList.innerHTML = skel;
         }
       }, 300);
@@ -3584,20 +3723,6 @@ init();
     // Load comments real-time
     var commentsRef2 = collection(db, 'recence', postId, 'comments');
     var q2 = query(commentsRef2, orderBy('timestamp', 'asc'));
-
-    // Typing simulation
-    var dcTyping = document.getElementById('dc-typing');
-    var dcTypingText = document.getElementById('dc-typing-text');
-    var typingNames2 = ['Alex', 'Sam', 'Jordan', 'Riley', 'Casey'];
-    var typingTimer2;
-    function showDcTyping() {
-      if (!dcTyping) return;
-      dcTypingText.textContent = typingNames2[Math.floor(Math.random() * typingNames2.length)] + ' is typing...';
-      dcTyping.classList.add('visible');
-      clearTimeout(typingTimer2);
-      typingTimer2 = setTimeout(function(){ dcTyping.classList.remove('visible'); }, 2500);
-    }
-    var typingInterval2 = setInterval(showDcTyping, Math.random() * 8000 + 5000);
 
     var dcIsFirstLoad = true;
     var _dcPillCount = 0;
@@ -3639,7 +3764,6 @@ init();
       if (snapshot.empty && dcRenderedIds.size === 0) {
         if (dcList) dcList.innerHTML = '<div class="comments-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>No comments yet</span><span>Be the first to comment</span></div>';
         dcIsFirstLoad = false;
-        clearInterval(typingInterval2);
         return;
       }
       if (dcRenderedIds.size === 0 && dcList) dcList.innerHTML = '';
@@ -3678,7 +3802,6 @@ init();
       }
 
       dcIsFirstLoad = false;
-      clearInterval(typingInterval2);
     });
   }
 
@@ -3817,13 +3940,223 @@ init();
     }
   }
 
-  // Sidebar nav active states
-  document.querySelectorAll('.ds-nav-item').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.ds-nav-item').forEach(function(b){ b.classList.remove('active'); });
-      btn.classList.add('active');
+  // ══════════════════════════════════════════════
+  //  DESKTOP SIDEBAR — section swap + live data
+  // ══════════════════════════════════════════════
+
+  // ── Section swap: Home / Profile / Upload ──
+  var dsFeed    = document.getElementById('desktop-feed');
+  var dsComments = document.getElementById('desktop-comments');
+
+  // Section panels injected into desktop-feed area
+  function showDesktopSection(section) {
+    document.querySelectorAll('.ds-nav-item').forEach(function(b){ b.classList.remove('active'); });
+    var btn = document.getElementById('dsNav' + section);
+    if (btn) btn.classList.add('active');
+
+    var panel = document.getElementById('ds-section-panel');
+
+    if (section === 'Home') {
+      dsFeed.style.display = '';
+      dsComments.style.display = '';
+      if (panel) panel.style.display = 'none';
+      // Re-trigger observer on visible cards
+      if (window._desktopFeedObs) {
+        document.querySelectorAll('.desktop-card').forEach(function(card){ window._desktopFeedObs.observe(card); });
+      }
+      return;
+    }
+
+    // All non-Home sections: hide feed + comments panel, show iframe panel
+    dsFeed.style.display = 'none';
+    dsComments.style.display = 'none';
+
+    // Create iframe panel once, reuse it
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'ds-section-panel';
+      panel.style.cssText = [
+        'flex:1', 'height:calc(100vh - 24px)', 'border-radius:20px',
+        'overflow:hidden', 'box-shadow:0 2px 20px rgba(0,0,0,0.07)',
+        'background:#fff', 'position:relative'
+      ].join(';');
+      var frame = document.createElement('iframe');
+      frame.id = 'ds-section-frame';
+      frame.style.cssText = 'width:100%;height:100%;border:none;display:block;';
+      frame.setAttribute('allow', 'autoplay; camera; microphone');
+      panel.appendChild(frame);
+      document.getElementById('desktop-wrapper').appendChild(panel);
+    }
+
+    panel.style.display = '';
+    var frame = document.getElementById('ds-section-frame');
+
+    if (section === 'Profile') {
+      frame.src = 'profile.html';
+    } else if (section === 'Upload') {
+      // Trigger existing upload modal, stay on home
+      var uploadTrigger = document.getElementById('uploadBtn') || document.getElementById('mobileUploadBtn') || document.querySelector('[data-action="upload"]');
+      if (uploadTrigger) uploadTrigger.click();
+      showDesktopSection('Home');
+    }
+  }
+
+  // Nav listeners
+  document.getElementById('dsNavHome').addEventListener('click', function(){ showDesktopSection('Home'); });
+  document.getElementById('dsNavProfile').addEventListener('click', function(){ showDesktopSection('Profile'); });
+  document.getElementById('dsNavUpload').addEventListener('click', function(){ showDesktopSection('Upload'); });
+
+  // ── Sidebar: load suggested users ──
+  function loadSuggestedUsers() {
+    var container = document.getElementById('ds-suggested');
+    if (!container) return;
+    // Get users with most posts, exclude self
+    getDocs(query(collection(db, 'users'), limit(20))).then(function(snap) {
+      var users = [];
+      snap.forEach(function(d) { var u = d.data(); u._id = d.id; users.push(u); });
+      // Exclude self
+      if (currentUser) users = users.filter(function(u){ return u._id !== currentUser.uid; });
+      // Shuffle and take 5
+      users = users.sort(function(){ return Math.random()-0.5; }).slice(0, 5);
+      container.innerHTML = '';
+      if (users.length === 0) {
+        container.innerHTML = '<div class="ds-section-empty">No suggestions yet</div>';
+        return;
+      }
+      users.forEach(function(u) {
+        container.appendChild(buildPersonRow(u, true));
+      });
+    }).catch(function(e){
+      container.innerHTML = '<div class="ds-section-empty">Could not load</div>';
     });
-  });
+  }
+
+  // ── Sidebar: load following list ──
+  function loadFollowingList() {
+    var container = document.getElementById('ds-following');
+    if (!container || !currentUser) return;
+    getDocs(query(collection(db, 'follows'), where('followerUserId', '==', currentUser.uid))).then(function(snap) {
+      if (snap.empty) {
+        container.innerHTML = '<div class="ds-section-empty">Not following anyone yet</div>';
+        return;
+      }
+      var uids = [];
+      snap.forEach(function(d){ uids.push(d.data().followedUserId); });
+      // Fetch user docs (batch max 10)
+      var batch = uids.slice(0,8);
+      Promise.all(batch.map(function(uid){ return getDoc(doc(db,'users',uid)); })).then(function(docs) {
+        container.innerHTML = '';
+        docs.forEach(function(d) {
+          if (!d.exists()) return;
+          var u = d.data(); u._id = d.id;
+          container.appendChild(buildPersonRow(u, false));
+        });
+      });
+    }).catch(function(){});
+  }
+
+  // ── Sidebar: load top commenter ──
+  function loadTopCommenter() {
+    var container = document.getElementById('ds-top-commenter');
+    if (!container) return;
+    container.innerHTML = '<div class="ds-person-skel" style="padding:0;margin-bottom:6px;"><div class="ds-skel-av" style="width:38px;height:38px;"></div><div class="ds-skel-lines"><div class="ds-skel-line w60"></div><div class="ds-skel-line w40"></div></div></div>';
+    // Sample up to 15 posts and tally comment counts by userId
+    getDocs(query(collection(db,'recence'), limit(15))).then(function(posts) {
+      var postIds = [];
+      posts.forEach(function(d){ postIds.push(d.id); });
+      if (postIds.length === 0) { container.innerHTML = '<div class="ds-section-empty">No posts yet</div>'; return; }
+      var counts = {};
+      var userMeta = {};
+      Promise.all(postIds.map(function(pid){
+        return getDocs(query(collection(db,'recence',pid,'comments'), limit(50)));
+      })).then(function(results) {
+        results.forEach(function(snap){
+          snap.forEach(function(d){
+            var c = d.data();
+            // Skip guests (name starts with "user") and anonymous
+            if (!c.userId || /^user/i.test(c.userName||'') || !c.userName) return;
+            counts[c.userId] = (counts[c.userId]||0) + 1;
+            if (!userMeta[c.userId]) userMeta[c.userId] = {
+              name: c.userName||'User',
+              photo: c.userPhotoURL||'',
+              country: c.country||''
+            };
+          });
+        });
+        var topUid = Object.keys(counts).sort(function(a,b){ return counts[b]-counts[a]; })[0];
+        if (!topUid) { container.innerHTML = '<div class="ds-section-empty" style="padding:8px;">No comments yet</div>'; return; }
+        var u = userMeta[topUid];
+        var flagHtml = u.country
+          ? '<img src="https://flagcdn.com/w20/'+u.country+'.png" style="width:12px;height:9px;border-radius:1px;flex-shrink:0;" onerror="this.style.display=\'none\'">'
+          : '';
+        var avHtml = u.photo
+          ? '<img class="ds-top-cmtr-av" src="'+u.photo+'" onerror="this.outerHTML=\'<div class=&quot;ds-top-cmtr-av-ph&quot;>'+u.name[0].toUpperCase()+'</div>\'">'
+          : '<div class="ds-top-cmtr-av-ph">'+u.name[0].toUpperCase()+'</div>';
+        container.innerHTML =
+          '<div class="ds-top-cmtr-row">'
+          + avHtml
+          + '<div class="ds-top-cmtr-info">'
+          + '<div class="ds-top-cmtr-name">'+u.name+'</div>'
+          + '<div class="ds-top-cmtr-count">'+counts[topUid]+' comment'+(counts[topUid]>1?'s':'')+'</div>'
+          + '</div>'
+          + '<span class="ds-top-cmtr-badge">🏆</span>'
+          + '</div>'
+          + '<div class="ds-top-cmtr-meta">'
+          + (u.country ? '<div class="ds-top-cmtr-tag">'+flagHtml+'<span>'+u.country.toUpperCase()+'</span></div>' : '')
+          + '<div class="ds-top-cmtr-tag"><svg viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="9" height="9"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>'+counts[topUid]+' total</span></div>'
+          + '</div>';
+        container.style.cursor = 'pointer';
+        // remove old listener before adding new
+        var newContainer = container.cloneNode(true);
+        container.parentNode.replaceChild(newContainer, container);
+        newContainer.addEventListener('click', function(){ viewProfile(topUid); });
+      }).catch(function(){ container.innerHTML = '<div class="ds-section-empty">Could not load</div>'; });
+    }).catch(function(){ container.innerHTML = '<div class="ds-section-empty">Could not load</div>'; });
+  }
+
+  function buildPersonRow(u, showFollowBtn) {
+    var row = document.createElement('div');
+    row.className = 'ds-person-row';
+    var avHtml = u.photoURL
+      ? '<img class="ds-person-av" src="'+u.photoURL+'" onerror="this.parentNode.replaceChild(makePlaceholderAv(\''+((u.displayName||u.name||'U')[0].toUpperCase())+'\'),this)">'
+      : '<div class="ds-person-av-ph">'+((u.displayName||u.name||'U')[0].toUpperCase())+'</div>';
+    var flagHtml = u.country ? '<img class="ds-person-flag" src="https://flagcdn.com/w20/'+u.country+'.png" onerror="this.style.display=\'none\'">' : '';
+    var isFollowing = followedUsers && followedUsers.has(u._id);
+    var followHtml = showFollowBtn
+      ? '<button class="ds-follow-btn-sm'+(isFollowing?' following':'')+'" data-uid="'+u._id+'">'+(isFollowing?'Following':'Follow')+'</button>'
+      : '';
+    row.innerHTML = avHtml
+      + '<div class="ds-person-info">'
+      + '<div class="ds-person-name">'+(u.displayName||u.name||'User')+'</div>'
+      + '<div class="ds-person-meta">'+flagHtml+'<span>'+(u.profession||u.title||('@'+(u.name||'').toLowerCase().replace(/\s/g,''))||'')+'</span></div>'
+      + '</div>'
+      + followHtml;
+    // Click row → view profile
+    row.addEventListener('click', function(e){ if (e.target.closest('.ds-follow-btn-sm')) return; viewProfile(u._id); });
+    // Follow button
+    var fbtn = row.querySelector('.ds-follow-btn-sm');
+    if (fbtn) {
+      fbtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        toggleFollow(u._id, u.displayName||u.name||'User').then(function() {
+          var nowF = followedUsers.has(u._id);
+          fbtn.textContent = nowF ? 'Following' : 'Follow';
+          fbtn.classList.toggle('following', nowF);
+        }).catch(function(){});
+      });
+    }
+    return row;
+  }
+
+  // Load sidebar data when auth ready
+  function initSidebar() {
+    loadSuggestedUsers();
+    loadFollowingList();
+    loadTopCommenter();
+  }
+
+  // Call after auth state resolves (hook into existing auth listener timing)
+  setTimeout(initSidebar, 1800);
 
   // Desktop scroll: IntersectionObserver auto-plays visible card & opens its comments
   function playDesktopVideo(v) {
