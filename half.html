@@ -2033,7 +2033,7 @@ body {
         // Import Firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, getDocs, addDoc, serverTimestamp, onSnapshot, updateDoc, doc, arrayUnion, arrayRemove, getDoc, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, onSnapshot, updateDoc, doc, arrayUnion, arrayRemove, getDoc, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getDatabase, ref, onValue, set, serverTimestamp as rtServerTimestamp, onDisconnect, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 // Firebase Configuration
 const firebaseConfig = {
@@ -2052,6 +2052,54 @@ const db = getFirestore(app);
 const rtdb = getDatabase(app);
 
 // currentUser exposed for non-module scripts via window._currentUser (set in init())
+
+// ── Avatar helper: set any element (img or div) to photo or letter ──
+function setAv(el, name, photoURL) {
+    if (!el) return;
+    var n = (name || 'U').trim();
+    var letter = n[0].toUpperCase();
+    var hue = (letter.charCodeAt(0) * 37) % 360;
+    var hasPhoto = photoURL && !photoURL.includes('default_profile') && photoURL.trim() !== '';
+    if (el.tagName === 'IMG') {
+        // replace the img with a div — simpler to handle
+        var div = document.createElement('div');
+        div.className = el.className;
+        div.id = el.id;
+        div.style.cssText = el.style.cssText;
+        if (hasPhoto) {
+            var img = document.createElement('img');
+            img.src = photoURL;
+            img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;';
+            img.onerror = function(){ div.removeChild(img); div.textContent = letter; div.style.background = 'hsl('+hue+',50%,42%)'; div.style.color='#fff'; div.style.display='flex'; div.style.alignItems='center'; div.style.justifyContent='center'; };
+            div.appendChild(img);
+        } else {
+            div.textContent = letter;
+            div.style.background = 'hsl('+hue+',50%,42%)';
+            div.style.color = '#fff';
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            div.style.justifyContent = 'center';
+        }
+        if (el.parentNode) el.parentNode.replaceChild(div, el);
+    } else {
+        // div-based avatar
+        el.innerHTML = '';
+        if (hasPhoto) {
+            var img2 = document.createElement('img');
+            img2.src = photoURL;
+            img2.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;';
+            img2.onerror = function(){ el.removeChild(img2); el.textContent = letter; el.style.background = 'hsl('+hue+',50%,42%)'; };
+            el.appendChild(img2);
+        } else {
+            el.textContent = letter;
+            el.style.background = 'hsl('+hue+',50%,42%)';
+            el.style.color = '#fff';
+            el.style.display = 'flex';
+            el.style.alignItems = 'center';
+            el.style.justifyContent = 'center';
+        }
+    }
+}
 
 // ── Presence tracking: write user to RTDB on login, remove on disconnect ──
 function trackPresence(postId) {
@@ -2686,17 +2734,10 @@ function createPinElement(postData, postId) {
     const inlineCmtRow = document.createElement('div');
     inlineCmtRow.className = 'inline-cmt-row';
     // Avatar
-    var _avEl;
-    if (currentUser && currentUser.photoURL) {
-        _avEl = document.createElement('img');
-        _avEl.className = 'inline-cmt-av';
-        _avEl.src = currentUser.photoURL;
-        _avEl.onerror = function(){ this.outerHTML = '<div class="inline-cmt-av">'+(currentUser.displayName||'?')[0].toUpperCase()+'</div>'; };
-    } else {
-        _avEl = document.createElement('div');
-        _avEl.className = 'inline-cmt-av';
-        _avEl.textContent = currentUser ? (currentUser.displayName||'?')[0].toUpperCase() : '?';
-    }
+    var _avEl = document.createElement('div');
+    _avEl.className = 'inline-cmt-av';
+    _avEl.style.cssText = 'width:32px;height:32px;border-radius:50%;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;';
+    if (currentUser) setAv(_avEl, currentUser.displayName || currentUser.email || 'U', currentUser.photoURL);
     // Pill
     const _pill = document.createElement('div');
     _pill.className = 'inline-cmt-pill';
@@ -2998,10 +3039,8 @@ function openModal(postData, postId) {
     currentReplyTo = null;
     replyPreview.style.display = 'none'; replyPreview.classList.remove('show');
     
-    postUserAvatar.src = postData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    postUserAvatar.onerror = function() {
-        this.src = 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    };
+    // postUserAvatar is hidden (display:none) — kept for JS compatibility only
+    postUserAvatar.src = postData.photoURL || '';
     postUserAvatar.addEventListener('click', (e) => {
         e.stopPropagation();
         viewProfile(postData.userId);
@@ -3079,7 +3118,7 @@ function viewProfile(userId) {
         const fpAvatar   = document.getElementById('fpAvatar');
         const fpUserName = document.getElementById('fpUserName');
         const fpCounts   = document.getElementById('fpCounts');
-        if (fpAvatar) { fpAvatar.src = u.photoURL || defaultAvatar; fpAvatar.onerror = () => { fpAvatar.src = defaultAvatar; }; }
+        if (fpAvatar) setAv(fpAvatar, u.displayName || u.name || 'U', u.photoURL);
         if (fpUserName) fpUserName.textContent = u.displayName || u.name || 'User';
         if (fpCounts) fpCounts.innerHTML =
             `<div class="fp-count-item"><span class="fp-count-num">${followersSnap.size}</span><span class="fp-count-label">Followers</span></div>
@@ -3198,16 +3237,7 @@ function closeModal() {
 
 function loadComments(postId) {
     const cfAv = document.getElementById('cfAvatar');
-    if (cfAv && currentUser) {
-        var _uL = (currentUser.displayName || currentUser.email || 'U')[0].toUpperCase();
-        var _uH = (_uL.charCodeAt(0) * 37) % 360;
-        if (currentUser.photoURL && !currentUser.photoURL.includes('default_profile')) {
-            cfAv.innerHTML = '<img src="'+currentUser.photoURL+'" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" onerror="this.parentNode.innerHTML=\''+_uL+'\';this.parentNode.style.background=\'hsl('+_uH+',50%,42%)\';">';
-        } else {
-            cfAv.innerHTML = _uL;
-            cfAv.style.background = 'hsl('+_uH+',50%,42%)';
-        }
-    }
+    if (cfAv && currentUser) setAv(cfAv, currentUser.displayName || currentUser.email || 'U', currentUser.photoURL);
 
     function skelRows(n) {
         let s = '<div class="comments-loading">';
@@ -3679,16 +3709,16 @@ document.addEventListener('loadFollowingPanel', async () => {
         // My profile card
         const myCard = document.createElement('div');
         myCard.style.cssText = 'display:flex;align-items:center;gap:14px;padding:18px 16px 14px;border-bottom:2px solid var(--border-light);';
-        myCard.innerHTML = `
-            <img src="${currentUser.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="fp-avatar" style="width:56px;height:56px;" onerror="this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'">
-            <div>
-                <div style="font-size:16px;font-weight:700;color:var(--text-primary)">${currentUser.displayName || 'You'}</div>
-                <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">
-                    <span style="font-weight:600;color:var(--text-primary)">${followersSnap.size}</span> followers &nbsp;·&nbsp;
-                    <span style="font-weight:600;color:var(--text-primary)">${snap.size}</span> following
-                </div>
-            </div>
-        `;
+        var _myLetter = (currentUser.displayName || currentUser.email || 'U')[0].toUpperCase();
+        var _myHue = (_myLetter.charCodeAt(0)*37)%360;
+        var _myAvDiv = document.createElement('div');
+        _myAvDiv.className = 'fp-avatar';
+        _myAvDiv.style.cssText = 'width:56px;height:56px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff;overflow:hidden;';
+        setAv(_myAvDiv, currentUser.displayName || currentUser.email || 'U', currentUser.photoURL);
+        var _myInfo = document.createElement('div');
+        _myInfo.innerHTML = `<div style="font-size:16px;font-weight:700;color:var(--text-primary)">${currentUser.displayName || 'You'}</div><div style="font-size:13px;color:var(--text-secondary);margin-top:4px;"><span style="font-weight:600;color:var(--text-primary)">${followersSnap.size}</span> followers &nbsp;·&nbsp; <span style="font-weight:600;color:var(--text-primary)">${snap.size}</span> following</div>`;
+        myCard.appendChild(_myAvDiv);
+        myCard.appendChild(_myInfo);
         list.appendChild(myCard);
         
         if (snap.empty) {
@@ -3710,14 +3740,22 @@ document.addEventListener('loadFollowingPanel', async () => {
                 const u = uDoc.data() || {};
                 const item = document.createElement('div');
                 item.className = 'fp-item';
-                item.innerHTML = `
-                    <img class="fp-avatar" src="${u.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" onerror="this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'">
-                    <div class="fp-info">
-                        <div class="fp-name">${u.displayName || u.name || 'User'}</div>
-                        <div class="fp-sub">Following</div>
-                    </div>
-                    <button class="fp-unfollow" data-uid="${fData.followedUserId}" data-fid="${fDoc.id}">Unfollow</button>
-                `;
+                var _fName = u.displayName || u.name || 'User';
+                var _fLetter = _fName[0].toUpperCase();
+                var _fHue = (_fLetter.charCodeAt(0)*37)%360;
+                var _fAvDiv = document.createElement('div');
+                _fAvDiv.className = 'fp-avatar';
+                _fAvDiv.style.cssText = 'border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;overflow:hidden;';
+                setAv(_fAvDiv, _fName, u.photoURL);
+                var _fInfo = document.createElement('div');
+                _fInfo.className = 'fp-info';
+                _fInfo.innerHTML = '<div class="fp-name">'+_fName+'</div><div class="fp-sub">Following</div>';
+                var _fBtn = document.createElement('button');
+                _fBtn.className = 'fp-unfollow';
+                _fBtn.dataset.uid = fData.followedUserId;
+                _fBtn.dataset.fid = fDoc.id;
+                _fBtn.textContent = 'Unfollow';
+                item.appendChild(_fAvDiv); item.appendChild(_fInfo); item.appendChild(_fBtn);
                 const unfollowBtn = item.querySelector('.fp-unfollow');
                 unfollowBtn.addEventListener('click', async () => {
                     try {
@@ -4014,17 +4052,7 @@ init();
     var countEl = document.getElementById('dc-count');
     var dcList = document.getElementById('dc-list');
 
-    if (avatarEl) {
-      var creatorName = postData.name || 'C';
-      var cLetter = creatorName[0].toUpperCase();
-      var cHue = (cLetter.charCodeAt(0) * 37) % 360;
-      if (postData.photoURL && !postData.photoURL.includes('default_profile')) {
-        avatarEl.innerHTML = '<img src="'+postData.photoURL+'" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" onerror="this.parentNode.innerHTML=\''+cLetter+'\';this.parentNode.style.background=\'hsl('+cHue+',50%,42%)\';">';
-      } else {
-        avatarEl.innerHTML = cLetter;
-        avatarEl.style.background = 'hsl('+cHue+',50%,42%)';
-      }
-    }
+    if (avatarEl) setAv(avatarEl, postData.name || 'C', postData.photoURL);
     if (nameEl) nameEl.textContent = '@' + (postData.name || 'creator');
 
     // Upload date next to name
@@ -4091,16 +4119,7 @@ init();
 
     // Update current user avatar in comment form
     var dcAv = document.getElementById('dc-cf-avatar');
-    if (dcAv && currentUser) {
-      var uLetter = (currentUser.displayName || currentUser.email || 'U')[0].toUpperCase();
-      var uHue = (uLetter.charCodeAt(0) * 37) % 360;
-      if (currentUser.photoURL && !currentUser.photoURL.includes('default_profile')) {
-        dcAv.innerHTML = '<img src="'+currentUser.photoURL+'" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" onerror="this.parentNode.innerHTML=\''+uLetter+'\';this.parentNode.style.background=\'hsl('+uHue+',50%,42%)\';">';
-      } else {
-        dcAv.innerHTML = uLetter;
-        dcAv.style.background = 'hsl('+uHue+',50%,42%)';
-      }
-    }
+    if (dcAv && currentUser) setAv(dcAv, currentUser.displayName || currentUser.email || 'U', currentUser.photoURL);
 
     // Live activity strip — real-time viewer count from RTDB
     var liveStrip = document.getElementById('dc-live-strip');
@@ -5249,9 +5268,16 @@ init();
             // overlay: avatar + name
             var ov2 = document.createElement('div');
             ov2.className = 'fp-slide-overlay';
-            ov2.innerHTML = '<div class="fp-slide-name">'
-                + '<img src="'+(post.photoURL||'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png')+'" onerror="this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'">'
-                + '<span>'+(post.name||'User')+'</span></div>';
+            var _sName = post.name || post.displayName || 'U';
+            var _sLetter = _sName[0].toUpperCase();
+            var _sHue = (_sLetter.charCodeAt(0)*37)%360;
+            var _sAvEl;
+            if (post.photoURL && !post.photoURL.includes('default_profile')) {
+                _sAvEl = '<img src="'+post.photoURL+'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" onerror="this.outerHTML=\'<div style=&quot;width:28px;height:28px;border-radius:50%;background:hsl('+_sHue+',50%,44%);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;&quot;>'+_sLetter+'</div>\'">';
+            } else {
+                _sAvEl = '<div style="width:28px;height:28px;border-radius:50%;background:hsl('+_sHue+',50%,44%);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;">'+_sLetter+'</div>';
+            }
+            ov2.innerHTML = '<div class="fp-slide-name">'+_sAvEl+'<span>'+_sName+'</span></div>';
             slide.appendChild(ov2);
             return slide;
         }
