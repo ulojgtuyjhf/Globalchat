@@ -82,7 +82,40 @@ body {
     100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 
-/* ─── GALLERY / VIDEO FEED ─── */
+/* ─── FULLSCREEN SECTION OVERLAY (profile / upload pages) ─── */
+#section-overlay {
+    position: fixed; inset: 0; z-index: 8000;
+    background: #000;
+    display: flex; flex-direction: column;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+#section-overlay.open { opacity: 1; pointer-events: all; }
+#section-overlay-loader {
+    position: absolute; inset: 0;
+    background: #000;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2; transition: opacity 0.3s ease;
+}
+#section-overlay-loader.hidden { opacity: 0; pointer-events: none; }
+#section-overlay-frame {
+    flex: 1; border: none; width: 100%; height: 100%;
+    position: relative; z-index: 1;
+}
+#section-overlay-back {
+    position: absolute; top: env(safe-area-inset-top, 12px); left: 14px;
+    z-index: 10; background: rgba(0,0,0,0.55); border: none; cursor: pointer;
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    transition: transform 0.15s; -webkit-tap-highlight-color: transparent;
+}
+#section-overlay-back:active { transform: scale(0.88); }
+#section-overlay-back svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+/* On desktop: overlay covers only feed+comments area (not sidebar) */
+@media (min-width: 900px) {
+    #section-overlay { display: none !important; } /* desktop uses inline iframe */
+}
 .gallery {
     position: fixed; inset: 0; bottom: 0;
     overflow-y: scroll;
@@ -255,6 +288,51 @@ body {
     z-index: 6;
     pointer-events: none;
 }
+/* Inline comment row — TikTok style, below description */
+.inline-cmt-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 10px; pointer-events: auto;
+}
+.inline-cmt-av {
+    width: 26px; height: 26px; border-radius: 50%;
+    object-fit: cover; flex-shrink: 0;
+    border: 1.5px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.12);
+    font-size: 11px; font-weight: 800; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+}
+.inline-cmt-pill {
+    flex: 1; height: 32px;
+    background: rgba(255,255,255,0.13);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px; padding: 0 14px;
+    display: flex; align-items: center;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s;
+}
+.inline-cmt-pill:active { background: rgba(255,255,255,0.22); }
+.inline-cmt-pill span {
+    font-size: 12.5px; color: rgba(255,255,255,0.52);
+    font-family: var(--font, sans-serif); white-space: nowrap;
+}
+/* Emoji quick-row inside comment sheet */
+.cs-emoji-row {
+    display: flex; align-items: center;
+    padding: 5px 8px 3px; gap: 0;
+    overflow-x: auto; scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    border-bottom: 1px solid #f2f2f2; flex-shrink: 0;
+}
+.cs-emoji-row::-webkit-scrollbar { display: none; }
+.cs-emoji-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 22px; padding: 3px 5px; border-radius: 8px;
+    line-height: 1; flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.14s cubic-bezier(0.34,1.56,0.64,1);
+}
+.cs-emoji-btn:active { transform: scale(1.45); }
 /* Creator name row — name truncates, date stays visible */
 .video-creator-row {
     display: flex; align-items: baseline; gap: 7px;
@@ -1510,6 +1588,17 @@ body {
     <div class="loading-container start" id="loadingContainer">
         <div class="spinner"></div>
     </div>
+
+    <!-- Fullscreen section overlay (Profile / Upload pages — mobile + tablet) -->
+    <div id="section-overlay">
+        <button id="section-overlay-back" aria-label="Back">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div id="section-overlay-loader">
+            <div class="spinner"></div>
+        </div>
+        <iframe id="section-overlay-frame" src="about:blank" allow="autoplay; camera; microphone" allowfullscreen></iframe>
+    </div>
     <!-- Hidden SVG defs for brand gradients used in icons -->
     <svg width="0" height="0" style="position:absolute;overflow:hidden;">
         <defs>
@@ -1624,6 +1713,24 @@ body {
           <span id="dc-typing-text">Someone is typing...</span>
         </div>
         <div id="dc-list"></div>
+        <!-- Desktop emoji quick-row -->
+        <div class="cs-emoji-row" id="desktopEmojiRow" style="border-top:1px solid #f2f2f2; border-bottom:none; padding:6px 8px 4px;">
+          <button class="cs-emoji-btn">❤️</button>
+          <button class="cs-emoji-btn">🔥</button>
+          <button class="cs-emoji-btn">😂</button>
+          <button class="cs-emoji-btn">😍</button>
+          <button class="cs-emoji-btn">🙌</button>
+          <button class="cs-emoji-btn">💯</button>
+          <button class="cs-emoji-btn">😮</button>
+          <button class="cs-emoji-btn">👏</button>
+          <button class="cs-emoji-btn">🎉</button>
+          <button class="cs-emoji-btn">✨</button>
+          <button class="cs-emoji-btn">💪</button>
+          <button class="cs-emoji-btn">😢</button>
+          <button class="cs-emoji-btn">🤩</button>
+          <button class="cs-emoji-btn">🥺</button>
+          <button class="cs-emoji-btn">😎</button>
+        </div>
         <div class="dc-reply-preview" id="dc-reply-preview">
           <span class="dc-reply-icon">↩</span>
           <div class="dc-reply-text" id="dc-reply-text"></div>
@@ -1769,6 +1876,24 @@ body {
             <!-- loading state injected by JS -->
         </div>
         <div class="comment-form" id="commentForm">
+            <!-- Quick emoji strip -->
+            <div class="cs-emoji-row" id="mobileEmojiRow">
+                <button class="cs-emoji-btn">❤️</button>
+                <button class="cs-emoji-btn">🔥</button>
+                <button class="cs-emoji-btn">😂</button>
+                <button class="cs-emoji-btn">😍</button>
+                <button class="cs-emoji-btn">🙌</button>
+                <button class="cs-emoji-btn">💯</button>
+                <button class="cs-emoji-btn">😮</button>
+                <button class="cs-emoji-btn">👏</button>
+                <button class="cs-emoji-btn">🎉</button>
+                <button class="cs-emoji-btn">✨</button>
+                <button class="cs-emoji-btn">💪</button>
+                <button class="cs-emoji-btn">😢</button>
+                <button class="cs-emoji-btn">🤩</button>
+                <button class="cs-emoji-btn">🥺</button>
+                <button class="cs-emoji-btn">😎</button>
+            </div>
             <div class="reply-preview" id="replyPreview" style="display:none;">
                 <span class="reply-preview-icon">↩</span>
                 <div class="reply-preview-text" id="replyPreviewText"></div>
@@ -1791,12 +1916,6 @@ body {
             <div class="gif-selector" id="gifSelector">
                 <input type="text" class="gif-search" id="gifSearch" placeholder="Search GIFs...">
                 <div class="gif-results" id="gifResults"></div>
-            </div>
-            <div class="dc-share-row" style="padding:6px 14px 10px;">
-                <button class="dc-share-btn" id="mobile-share-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-                    Share this video
-                </button>
             </div>
         </div>
     </div>
@@ -1941,6 +2060,9 @@ function init() {
             await fetchFollowedUsers();
             fetchPosts();
             setupEventListeners();
+            // Load sidebar data now that auth + followedUsers are ready
+            if (typeof initSidebar === 'function') initSidebar();
+            else window._sidebarReady = true;
         } else {
             loadingContainer.classList.add('hidden');
             setTimeout(() => {
@@ -2021,6 +2143,20 @@ function setupEventListeners() {
     });
     
     submitComment.addEventListener('click', addComment);
+
+    // Emoji quick-row: tap inserts emoji into comment input
+    var emojiRow = document.getElementById('mobileEmojiRow');
+    if (emojiRow) {
+        emojiRow.addEventListener('click', function(e) {
+            var btn = e.target.closest('.cs-emoji-btn');
+            if (!btn) return;
+            var pos = commentInput.selectionStart || commentInput.value.length;
+            commentInput.value = commentInput.value.slice(0, pos) + btn.textContent + commentInput.value.slice(pos);
+            commentInput.selectionStart = commentInput.selectionEnd = pos + btn.textContent.length;
+            commentInput.focus();
+            submitComment.disabled = commentInput.value.trim() === '' && !selectedGif;
+        });
+    }
     
     gifButton.addEventListener('click', (e) => {
         e.preventDefault();
@@ -2419,6 +2555,31 @@ function createPinElement(postData, postId) {
     musicPill.className = 'video-music-pill';
     musicPill.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span class="music-ticker"><span class="music-ticker-inner">Original Sound &nbsp;•&nbsp; Original Sound &nbsp;•&nbsp; </span></span>';
     captionEl.appendChild(musicPill);
+
+    // Inline comment input row (TikTok-style tap to comment)
+    const inlineCmtRow = document.createElement('div');
+    inlineCmtRow.className = 'inline-cmt-row';
+    // Avatar
+    var _avEl;
+    if (currentUser && currentUser.photoURL) {
+        _avEl = document.createElement('img');
+        _avEl.className = 'inline-cmt-av';
+        _avEl.src = currentUser.photoURL;
+        _avEl.onerror = function(){ this.outerHTML = '<div class="inline-cmt-av">'+(currentUser.displayName||'?')[0].toUpperCase()+'</div>'; };
+    } else {
+        _avEl = document.createElement('div');
+        _avEl.className = 'inline-cmt-av';
+        _avEl.textContent = currentUser ? (currentUser.displayName||'?')[0].toUpperCase() : '?';
+    }
+    // Pill
+    const _pill = document.createElement('div');
+    _pill.className = 'inline-cmt-pill';
+    _pill.innerHTML = '<span>Add a comment...</span>';
+    _pill.addEventListener('click', function(e){ e.stopPropagation(); openModal(postData, postId); });
+    inlineCmtRow.appendChild(_avEl);
+    inlineCmtRow.appendChild(_pill);
+    captionEl.appendChild(inlineCmtRow);
+
     pinContainer.appendChild(captionEl);
 
     // Video-only platform — no image badge needed
@@ -2824,13 +2985,6 @@ function closeShareSheet() {
             }
             if (type !== 'native') closeShareSheet();
         });
-    });
-
-    // Mobile comment sheet share btn
-    var mobileShareBtn = document.getElementById('mobile-share-btn');
-    if (mobileShareBtn) mobileShareBtn.addEventListener('click', function() {
-        if (_sharePostId) { openShareSheet(_sharePostData, _sharePostId); return; }
-        if (currentPostId) openShareSheet(currentPostData, currentPostId);
     });
 
     // Desktop comment panel share btn
@@ -3833,6 +3987,19 @@ init();
   if (dcSubmit) {
     dcSubmit.addEventListener('click', function() { submitDcComment(); });
   }
+  // Desktop emoji row
+  var dcEmojiRow = document.getElementById('desktopEmojiRow');
+  if (dcEmojiRow && dcInput) {
+    dcEmojiRow.addEventListener('click', function(e) {
+      var btn = e.target.closest('.cs-emoji-btn');
+      if (!btn) return;
+      var pos = dcInput.selectionStart || dcInput.value.length;
+      dcInput.value = dcInput.value.slice(0, pos) + btn.textContent + dcInput.value.slice(pos);
+      dcInput.selectionStart = dcInput.selectionEnd = pos + btn.textContent.length;
+      dcInput.focus();
+      dcUpdateSubmit();
+    });
+  }
 
   // GIF button toggle
   if (dcGifBtn) {
@@ -3991,13 +4158,26 @@ init();
     panel.style.display = '';
     var frame = document.getElementById('ds-section-frame');
 
+    // Show spinner inside panel while loading
+    var panelLoader = panel.querySelector('.ds-panel-loader');
+    if (!panelLoader) {
+      panelLoader = document.createElement('div');
+      panelLoader.className = 'ds-panel-loader';
+      panelLoader.style.cssText = 'position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:2;transition:opacity 0.3s;border-radius:20px;';
+      panelLoader.innerHTML = '<div class="spinner"></div>';
+      panel.appendChild(panelLoader);
+    }
+    panelLoader.style.opacity = '1';
+    panelLoader.style.pointerEvents = 'all';
+    frame.onload = function() {
+      panelLoader.style.opacity = '0';
+      panelLoader.style.pointerEvents = 'none';
+    };
+
     if (section === 'Profile') {
       frame.src = 'profile.html';
     } else if (section === 'Upload') {
-      // Trigger existing upload modal, stay on home
-      var uploadTrigger = document.getElementById('uploadBtn') || document.getElementById('mobileUploadBtn') || document.querySelector('[data-action="upload"]');
-      if (uploadTrigger) uploadTrigger.click();
-      showDesktopSection('Home');
+      frame.src = 'upload.html';
     }
   }
 
@@ -4010,23 +4190,25 @@ init();
   function loadSuggestedUsers() {
     var container = document.getElementById('ds-suggested');
     if (!container) return;
-    // Get users with most posts, exclude self
-    getDocs(query(collection(db, 'users'), limit(20))).then(function(snap) {
+    // followedUsers Set is already populated from fetchFollowedUsers() before initSidebar() is called
+    getDocs(query(collection(db, 'users'), limit(40))).then(function(snap) {
       var users = [];
       snap.forEach(function(d) { var u = d.data(); u._id = d.id; users.push(u); });
-      // Exclude self
-      if (currentUser) users = users.filter(function(u){ return u._id !== currentUser.uid; });
-      // Shuffle and take 5
-      users = users.sort(function(){ return Math.random()-0.5; }).slice(0, 5);
+      // Exclude self AND anyone already followed — same source of truth as the rest of the app
+      users = users.filter(function(u) {
+        if (!u._id) return false;
+        if (currentUser && u._id === currentUser.uid) return false;
+        if (followedUsers.has(u._id)) return false;
+        return true;
+      });
+      users = users.sort(function(){ return Math.random() - 0.5; }).slice(0, 5);
       container.innerHTML = '';
       if (users.length === 0) {
-        container.innerHTML = '<div class="ds-section-empty">No suggestions yet</div>';
+        container.innerHTML = '<div class="ds-section-empty">You\'re following everyone 🎉</div>';
         return;
       }
-      users.forEach(function(u) {
-        container.appendChild(buildPersonRow(u, true));
-      });
-    }).catch(function(e){
+      users.forEach(function(u) { container.appendChild(buildPersonRow(u, true)); });
+    }).catch(function(){
       container.innerHTML = '<div class="ds-section-empty">Could not load</div>';
     });
   }
@@ -4148,15 +4330,14 @@ init();
     return row;
   }
 
-  // Load sidebar data when auth ready
+  // Load sidebar data — called after auth + followedUsers ready
   function initSidebar() {
     loadSuggestedUsers();
     loadFollowingList();
     loadTopCommenter();
   }
-
-  // Call after auth state resolves (hook into existing auth listener timing)
-  setTimeout(initSidebar, 1800);
+  // Fallback: if auth fires before this script block runs
+  if (window._sidebarReady) initSidebar();
 
   // Desktop scroll: IntersectionObserver auto-plays visible card & opens its comments
   function playDesktopVideo(v) {
@@ -4539,12 +4720,56 @@ init();
         var prof = document.getElementById('navProfile');
         var up   = document.getElementById('navUpload');
         var gal  = document.getElementById('gallery');
+
+        // ── Section overlay (mobile fullscreen iframe) ──
+        var overlay      = document.getElementById('section-overlay');
+        var overlayFrame = document.getElementById('section-overlay-frame');
+        var overlayLoader= document.getElementById('section-overlay-loader');
+        var overlayBack  = document.getElementById('section-overlay-back');
+
+        function openSection(page) {
+            if (!overlay) return;
+            // Show overlay + loader immediately
+            overlay.classList.add('open');
+            overlayLoader.classList.remove('hidden');
+            // Pause all feed videos
+            if (gal) gal.querySelectorAll('video').forEach(function(v){ v.pause(); });
+            // Load iframe
+            overlayFrame.src = page;
+            overlayFrame.onload = function() {
+                overlayLoader.classList.add('hidden');
+            };
+        }
+
+        function closeSection() {
+            if (!overlay) return;
+            overlay.classList.remove('open');
+            overlayFrame.src = 'about:blank';
+            // Resume active video
+            if (gal) {
+                var active = gal.querySelector('.pin-container.active video') || gal.querySelector('video');
+                if (active) active.play().catch(function(){});
+            }
+            // Reset nav
+            if (home) home.classList.add('active');
+            if (prof) prof.classList.remove('active');
+            if (up)   up.classList.remove('active');
+        }
+
+        if (overlayBack) overlayBack.addEventListener('click', closeSection);
+
         if (home) home.addEventListener('click', function() {
-            home.classList.add('active'); prof.classList.remove('active');
+            closeSection();
             if (gal) gal.scrollTo({ top: 0, behavior: 'smooth' });
         });
+
         if (prof) prof.addEventListener('click', function() {
             prof.classList.add('active'); home.classList.remove('active');
+            openSection('profile.html');
+        });
+
+        if (up) up.addEventListener('click', function() {
+            openSection('upload.html');
         });
     })();
 
