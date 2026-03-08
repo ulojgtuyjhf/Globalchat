@@ -377,11 +377,32 @@ body {
 .live-viewer-badge {
     position: absolute;
     top: 16px; left: 14px;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0,0,0,0.52);
     border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 24px; padding: 6px 12px 6px 10px;
-    display: flex; align-items: center; gap: 6px;
+    border-radius: 24px; padding: 4px 10px 4px 4px;
+    display: flex; align-items: center; gap: 5px;
     z-index: 8; pointer-events: none;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+/* stacked viewer mini-avatars */
+.live-vav-stack {
+    display: flex; align-items: center;
+    flex-direction: row-reverse; /* last on left */
+}
+.live-vav {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 1.5px solid rgba(0,0,0,0.7);
+    background: #333;
+    font-size: 9px; font-weight: 900; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; flex-shrink: 0;
+    margin-left: -6px; position: relative;
+}
+.live-vav:last-child { margin-left: 0; }
+.live-vav img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.live-vav-more {
+    background: rgba(255,255,255,0.18);
+    font-size: 8px; font-weight: 900; color: #fff;
 }
 .live-dot {
     width: 7px; height: 7px; border-radius: 50%;
@@ -395,6 +416,34 @@ body {
     50%       { opacity: 0.45; transform: scale(0.72); }
 }
 .live-viewer-text { font-size: 12px; font-weight: 800; color: #fff; letter-spacing: 0.02em; }
+
+/* ─── CREATOR PROFILE AVATAR (right side, above action buttons, TikTok-style) ─── */
+.creator-profile-av-wrap {
+    position: relative; width: 46px; height: 46px; flex-shrink: 0;
+}
+.creator-profile-av {
+    width: 46px; height: 46px; border-radius: 50%;
+    object-fit: cover; border: 2px solid #fff;
+    background: #333; display: block;
+    font-size: 18px; font-weight: 900; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; cursor: pointer;
+}
+.creator-profile-av img { width: 100%; height: 100%; object-fit: cover; }
+.creator-profile-plus {
+    position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #fe2c55; border: 1.5px solid #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; line-height: 1; color: #fff; font-weight: 900;
+    cursor: pointer; z-index: 2;
+    transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+}
+.creator-profile-plus:active { transform: translateX(-50%) scale(1.25); }
+.creator-profile-plus.following {
+    background: #111;
+    font-size: 9px; letter-spacing: 0; font-weight: 900;
+}
 
 /* ─── PAUSE INDICATOR ─── */
 .pause-indicator {
@@ -1228,14 +1277,13 @@ body {
     position: absolute;
     top: 14px; left: 14px;
     z-index: 8; pointer-events: none;
-    display: flex; align-items: center; gap: 7px;
-    background: rgba(0,0,0,0.55);
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(0,0,0,0.52);
     border: 1px solid rgba(255,255,255,0.15);
     border-radius: 24px;
-    padding: 6px 12px 6px 10px;
+    padding: 4px 10px 4px 4px;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    transition: opacity 0.3s;
   }
   .desktop-live-dot {
     width: 7px; height: 7px; border-radius: 50%;
@@ -1245,7 +1293,7 @@ body {
     flex-shrink: 0;
   }
   .desktop-live-count {
-    font-size: 12px; font-weight: 800; color: #fff;
+    font-size: 11px; font-weight: 800; color: #fff;
     letter-spacing: 0.02em; white-space: nowrap;
   }
 
@@ -1950,7 +1998,12 @@ const rtdb = getDatabase(app);
 function trackPresence(postId) {
     if (!currentUser || !postId) return;
     const presRef = ref(rtdb, 'viewers/' + postId + '/' + currentUser.uid);
-    set(presRef, { uid: currentUser.uid, t: Date.now() });
+    set(presRef, {
+        uid: currentUser.uid,
+        t: Date.now(),
+        name: currentUser.displayName || currentUser.email || 'User',
+        photo: currentUser.photoURL || ''
+    });
     onDisconnect(presRef).remove();
 }
 
@@ -2584,22 +2637,44 @@ function createPinElement(postData, postId) {
 
     // Video-only platform — no image badge needed
 
-    // Live viewer badge
+    // Live viewer badge — stacked avatars + count
     const viewerBadge = document.createElement('div');
     viewerBadge.className = 'live-viewer-badge';
-    viewerBadge.innerHTML = '<div class="live-dot"></div><span class="live-viewer-text live-viewer-num">0 watching</span>';
-    // Real-time viewer count from RTDB presence
+    function buildViewerBadge(viewers) {
+        // viewers = array of {uid, name, photo}
+        var stack = '<div class="live-vav-stack">';
+        var shown = viewers.slice(0, 3);
+        var extra = viewers.length - shown.length;
+        if (extra > 0) {
+            stack += '<div class="live-vav live-vav-more">+' + extra + '</div>';
+        }
+        shown.reverse().forEach(function(v) {
+            if (v.photo) {
+                stack += '<div class="live-vav"><img src="' + v.photo + '" onerror="this.parentNode.innerHTML=\'' + (v.name||'?')[0].toUpperCase() + '\'"></div>';
+            } else {
+                stack += '<div class="live-vav">' + (v.name||'?')[0].toUpperCase() + '</div>';
+            }
+        });
+        stack += '</div>';
+        var count = viewers.length;
+        var label = count === 0 ? '0 watching'
+            : count > 999 ? (count/1000).toFixed(1) + 'K watching'
+            : count + ' watching';
+        viewerBadge.innerHTML = '<div class="live-dot" style="flex-shrink:0;"></div>'
+            + (count > 0 ? stack : '')
+            + '<span class="live-viewer-text">' + label + '</span>';
+    }
+    buildViewerBadge([]);
     try {
         const viewersRef = ref(rtdb, 'viewers/' + postId);
         onValue(viewersRef, (snap) => {
-            const count = snap.exists() ? Object.keys(snap.val()).length : 0;
-            const numEl = viewerBadge.querySelector('.live-viewer-num');
-            if (numEl) numEl.textContent = count > 999 ? (count/1000).toFixed(1)+'K watching' : count + ' watching';
+            var viewers = [];
+            if (snap.exists()) {
+                snap.forEach(function(child) { viewers.push(child.val()); });
+            }
+            buildViewerBadge(viewers);
         });
-    } catch(e) {
-        const numEl = viewerBadge.querySelector('.live-viewer-num');
-        if (numEl) numEl.textContent = '0 watching';
-    }
+    } catch(e) { buildViewerBadge([]); }
     pinContainer.appendChild(viewerBadge);
 
     // Pause indicator (brand styled)
@@ -2702,11 +2777,28 @@ function createPinElement(postData, postId) {
     profileBtn.dataset.uid = postData.userId || '';
     const profileAvatarEl = document.createElement('div');
     profileAvatarEl.className = 'slide-action-icon profile-action-icon';
-    const profileAvatarImg = document.createElement('img');
-    profileAvatarImg.src = postData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    profileAvatarImg.onerror = function(){ this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'; };
-    profileAvatarImg.style.cssText = 'width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;';
-    profileAvatarEl.appendChild(profileAvatarImg);
+    // Smart avatar: photo → letter placeholder (never the generic Twitter default)
+    const _creatorName = postData.name || postData.displayName || 'U';
+    const _creatorLetter = _creatorName[0].toUpperCase();
+    const _creatorHue = (_creatorLetter.charCodeAt(0) * 37) % 360;
+    if (postData.photoURL && !postData.photoURL.includes('default_profile')) {
+        const profileAvatarImg = document.createElement('img');
+        profileAvatarImg.src = postData.photoURL;
+        profileAvatarImg.style.cssText = 'width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;';
+        profileAvatarImg.onerror = function(){
+            this.style.display='none';
+            var ph = document.createElement('div');
+            ph.style.cssText='width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;background:hsl('+_creatorHue+',55%,42%);font-size:18px;font-weight:900;color:#fff;letter-spacing:-0.02em;';
+            ph.textContent = _creatorLetter;
+            this.parentNode.appendChild(ph);
+        };
+        profileAvatarEl.appendChild(profileAvatarImg);
+    } else {
+        var _ph = document.createElement('div');
+        _ph.style.cssText='width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;background:hsl('+_creatorHue+',55%,42%);font-size:18px;font-weight:900;color:#fff;letter-spacing:-0.02em;';
+        _ph.textContent = _creatorLetter;
+        profileAvatarEl.appendChild(_ph);
+    }
     // Follow + badge overlaid at bottom of avatar
     const followBadge = document.createElement('div');
     followBadge.className = 'follow-badge';
@@ -3595,16 +3687,35 @@ init();
     wrap.appendChild(videoEl);
     card._video = videoEl;
 
-    // Live viewer badge — top-left inside video wrap
+    // Live viewer badge — stacked avatars + count
     var liveBadge = document.createElement('div');
     liveBadge.className = 'desktop-live-badge';
-    liveBadge.innerHTML = '<div class="desktop-live-dot"></div><span class="desktop-live-count">0 watching</span>';
+    function buildDesktopViewerBadge(viewers) {
+      var stack = '<div class="live-vav-stack">';
+      var shown = viewers.slice(0, 3);
+      var extra = viewers.length - shown.length;
+      if (extra > 0) stack += '<div class="live-vav live-vav-more">+' + extra + '</div>';
+      shown.reverse().forEach(function(v) {
+        if (v.photo) {
+          stack += '<div class="live-vav"><img src="' + v.photo + '" onerror="this.parentNode.innerHTML=\'' + (v.name||'?')[0].toUpperCase() + '\'"></div>';
+        } else {
+          stack += '<div class="live-vav">' + (v.name||'?')[0].toUpperCase() + '</div>';
+        }
+      });
+      stack += '</div>';
+      var count = viewers.length;
+      var label = count > 999 ? (count/1000).toFixed(1) + 'K watching' : count + ' watching';
+      liveBadge.innerHTML = '<div class="desktop-live-dot"></div>'
+        + (count > 0 ? stack : '')
+        + '<span class="desktop-live-count">' + label + '</span>';
+    }
+    buildDesktopViewerBadge([]);
     try {
       var viewersRef2 = ref(rtdb, 'viewers/' + postId);
       onValue(viewersRef2, function(snap) {
-        var count = snap.exists() ? Object.keys(snap.val()).length : 0;
-        var numEl = liveBadge.querySelector('.desktop-live-count');
-        if (numEl) numEl.textContent = count > 999 ? (count/1000).toFixed(1)+'K watching' : count + ' watching';
+        var viewers = [];
+        if (snap.exists()) snap.forEach(function(child){ viewers.push(child.val()); });
+        buildDesktopViewerBadge(viewers);
       });
     } catch(e) {}
     wrap.appendChild(liveBadge);
@@ -3633,11 +3744,28 @@ init();
     dProfileBtn.setAttribute('aria-label', 'View profile');
     var dAvatarWrap = document.createElement('div');
     dAvatarWrap.className = 'desktop-action-icon profile-desktop';
-    var dAvatarImg = document.createElement('img');
-    dAvatarImg.src = postData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    dAvatarImg.onerror = function(){ this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'; };
-    dAvatarImg.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
-    dAvatarWrap.appendChild(dAvatarImg);
+    // Smart avatar: photo → letter placeholder
+    var _dName = postData.name || postData.displayName || 'U';
+    var _dLetter = _dName[0].toUpperCase();
+    var _dHue = (_dLetter.charCodeAt(0) * 37) % 360;
+    if (postData.photoURL && !postData.photoURL.includes('default_profile')) {
+      var dAvatarImg = document.createElement('img');
+      dAvatarImg.src = postData.photoURL;
+      dAvatarImg.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
+      dAvatarImg.onerror = function(){
+        this.style.display='none';
+        var ph = document.createElement('div');
+        ph.style.cssText='width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;background:hsl('+_dHue+',55%,42%);font-size:15px;font-weight:900;color:#fff;';
+        ph.textContent = _dLetter;
+        this.parentNode.appendChild(ph);
+      };
+      dAvatarWrap.appendChild(dAvatarImg);
+    } else {
+      var _dPh = document.createElement('div');
+      _dPh.style.cssText='width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;background:hsl('+_dHue+',55%,42%);font-size:15px;font-weight:900;color:#fff;';
+      _dPh.textContent = _dLetter;
+      dAvatarWrap.appendChild(_dPh);
+    }
     // Follow badge below avatar
     var dFollowBadge = document.createElement('div');
     dFollowBadge.className = 'follow-badge';
