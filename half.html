@@ -931,11 +931,12 @@ body {
 .comments-empty span { font-size:14px; font-weight:600; }
 .comments-empty span:nth-child(3) { font-size:12px; font-weight:400; color:#ddd; }
 
-/* ── Comment form ── */
+/* ── Comment form — locked height to prevent layout shift ── */
 .comment-form {
     background: #fff; border-top: 1px solid #f0f0f0;
     padding: 8px 14px calc(8px + env(safe-area-inset-bottom, 0px)) 14px;
     flex-shrink: 0; display: flex; flex-direction: column; gap: 0;
+    min-height: 58px;
 }
 .cf-row { display: flex; align-items: flex-end; gap: 10px; }
 .cf-avatar { width:34px; height:34px; border-radius:50%; object-fit:cover; flex-shrink:0; border:1.5px solid #f0f0f0; margin-bottom:4px; }
@@ -1634,13 +1635,15 @@ body {
   .dc-gif-btn:hover { background: #e0e0e0; color: #444; }
   .dc-gif-btn.active { background: #222; color: #fff; }
 
-  /* Scroll nav arrows — sit in the feed gap area */
+  /* Scroll nav arrows — always visible on desktop, fixed to right edge of feed area */
   .desktop-nav-arrows {
     position: fixed;
-    right: calc(clamp(280px, 24vw, 360px) + 30px);
+    /* sits between feed and comment panel */
+    right: calc(clamp(280px, 24vw, 360px) + 14px);
     top: 50%; transform: translateY(-50%);
     display: flex; flex-direction: column; gap: 10px;
-    z-index: 50;
+    z-index: 100;
+    pointer-events: all;
   }
   .desktop-nav-arrow {
     width: 38px; height: 38px; border-radius: 50%;
@@ -1681,14 +1684,20 @@ body {
         <div id="section-overlay-title" style="position:absolute;top:calc(env(safe-area-inset-top,0px)+14px);left:60px;right:16px;font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.02em;z-index:10;"></div>
 
         <!-- Profile panel -->
-        <div id="mob-profile-panel" style="display:none;flex-direction:column;flex:1;overflow-y:auto;padding-top:calc(env(safe-area-inset-top,0px)+60px);background:#fff;">
-            <div style="display:flex;flex-direction:column;align-items:center;padding:24px 20px 16px;">
-                <div id="mob-prof-av" style="width:80px;height:80px;border-radius:50%;background:#111;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:900;color:#fff;flex-shrink:0;overflow:hidden;margin-bottom:12px;"></div>
-                <div id="mob-prof-name" style="font-size:20px;font-weight:900;color:#111;letter-spacing:-0.02em;margin-bottom:4px;"></div>
-                <div id="mob-prof-handle" style="font-size:13px;color:#888;font-weight:500;margin-bottom:16px;"></div>
-                <div id="mob-prof-stats" style="display:flex;gap:28px;margin-bottom:20px;"></div>
+        <div id="mob-profile-panel" style="display:none;flex-direction:column;flex:1;overflow-y:auto;padding-top:calc(env(safe-area-inset-top,0px)+60px);background:#f7f7f7;">
+            <!-- Header card -->
+            <div style="background:#fff;margin:12px;border-radius:20px;padding:24px 20px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);display:flex;flex-direction:column;align-items:center;">
+                <div id="mob-prof-av" style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#0f0f0f,#626262);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:900;color:#fff;flex-shrink:0;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 16px rgba(0,0,0,0.18);"></div>
+                <div id="mob-prof-name" style="font-size:20px;font-weight:900;color:#111;letter-spacing:-0.02em;margin-bottom:3px;text-align:center;"></div>
+                <div id="mob-prof-handle" style="font-size:13px;color:#999;font-weight:500;margin-bottom:18px;"></div>
+                <div id="mob-prof-stats" style="display:flex;gap:0;width:100%;border-top:1px solid #f0f0f0;padding-top:16px;justify-content:space-around;"></div>
             </div>
-            <div style="border-top:1px solid #f0f0f0;padding:16px 20px 8px;font-size:11px;font-weight:900;color:#bbb;letter-spacing:0.08em;text-transform:uppercase;">Your Videos</div>
+            <!-- Edit profile button -->
+            <div style="padding:0 12px 8px;">
+                <button onclick="window.location.href='profile.html'" style="width:100%;background:#111;color:#fff;border:none;padding:13px;border-radius:14px;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--font);letter-spacing:-0.01em;">Edit Profile</button>
+            </div>
+            <!-- Videos section -->
+            <div style="padding:14px 16px 8px;font-size:11px;font-weight:900;color:#bbb;letter-spacing:0.08em;text-transform:uppercase;">Your Videos</div>
             <div id="mob-prof-feed" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:0 2px 100px;"></div>
         </div>
 
@@ -1957,7 +1966,7 @@ body {
                     <div class="cs-live-red-dot"></div>
                     <span class="cs-live-label">Live</span>
                 </div>
-                <span class="cs-head-title"><span class="cs-count-num" id="commentsCount">0</span> comments</span>
+                <span class="cs-head-title">Quiver — Equipped for Life &nbsp;<span style="font-weight:500;font-size:12px;color:#bbb;">(<span class="cs-count-num" id="commentsCount">0</span>)</span></span>
             </div>
             <button class="cs-close" id="csClose">
                 <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -2863,6 +2872,18 @@ function createPinElement(postData, postId) {
     if (currentUser && initialLikes.includes(currentUser.uid)) {
         thumbBtn.classList.add('on');
     }
+    // ── Real-time like count listener ──
+    onSnapshot(doc(db, 'recence', postId), function(snap) {
+        if (!snap.exists()) return;
+        var d = snap.data();
+        var likes = d.likes || [];
+        thumbLbl.textContent = likes.length;
+        if (currentUser && likes.includes(currentUser.uid)) {
+            thumbBtn.classList.add('on');
+        } else {
+            thumbBtn.classList.remove('on');
+        }
+    });
     thumbBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
         if (!currentUser) return;
@@ -2887,13 +2908,10 @@ function createPinElement(postData, postId) {
             const isLiked = data.likes && data.likes.includes(currentUser.uid);
             if (isLiked) {
                 await updateDoc(postRef, { likes: arrayRemove(currentUser.uid) });
-                thumbBtn.classList.remove('on');
-                thumbLbl.textContent = Math.max(0, (data.likes ? data.likes.length : 1) - 1);
             } else {
                 await updateDoc(postRef, { likes: arrayUnion(currentUser.uid) });
-                thumbBtn.classList.add('on');
-                thumbLbl.textContent = (data.likes ? data.likes.length : 0) + 1;
             }
+            // Count & state updated by onSnapshot above
         } catch(err) { console.error('Like error:', err); }
     });
     // Profile avatar — with follow + badge
@@ -3356,7 +3374,17 @@ function loadComments(postId) {
         if (newEls.length > 0) {
             requestAnimationFrame(() => {
                 const frag = document.createDocumentFragment();
-                newEls.forEach(el => frag.appendChild(el));
+                newEls.forEach(el => {
+                    frag.appendChild(el);
+                    // Append replies flat immediately after parent
+                    if (el._replies && el._replies.length > 0) {
+                        el._replies.forEach(reply => {
+                            const rEl = createCommentElement(reply, []);
+                            rEl.classList.add('new-comment');
+                            frag.appendChild(rEl);
+                        });
+                    }
+                });
                 commentsList.appendChild(frag);
                 if (isAtBottom() || isFirstLoad) {
                     commentsList.scrollTop = commentsList.scrollHeight;
@@ -3386,6 +3414,7 @@ function createCommentElement(commentData, replies = []) {
     const comment = document.createElement('div');
     comment.className = 'comment';
     comment.dataset.commentId = commentData.id;
+    if (commentData.parentId) comment.dataset.parentId = commentData.parentId;
 
     // Determine if guest (name starts with "user" case-insensitive)
     var userName = commentData.userName || 'Anonymous';
@@ -3476,11 +3505,44 @@ function createCommentElement(commentData, replies = []) {
         bubble.appendChild(gif);
     }
 
-    // Actions row — like + reply only (date is in author row)
+    // If this is a reply, show "Replying to @name" tag
+    if (commentData.parentId && commentData.parentUserName) {
+        const replyTag = document.createElement('div');
+        replyTag.style.cssText = 'font-size:11.5px;color:#aaa;font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:4px;';
+        replyTag.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg><span>Replying to <strong style="color:#888;">@' + commentData.parentUserName + '</strong></span>';
+        bubble.insertBefore(replyTag, bubble.firstChild);
+    }
+
+    // Actions row — reply btn left, like button RIGHT
     const actions = document.createElement('div');
     actions.className = 'comment-actions';
+    actions.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-top:3px;';
 
-    // Like button
+    // Reply button (left)
+    const replyButton = document.createElement('button');
+    replyButton.className = 'reply-btn';
+    replyButton.textContent = 'Reply';
+    replyButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        var inDesktop = !!replyButton.closest('#dc-list');
+        if (inDesktop) {
+            document.getElementById('dc-list').dispatchEvent(Object.assign(new Event('_reply', {bubbles:true}), {
+                _commentId: commentData.id, _userName: commentData.userName
+            }));
+        } else {
+            currentReplyTo = { id: commentData.id, name: commentData.userName };
+            replyPreviewText.textContent = `Replying to ${commentData.userName}`;
+            replyPreview.classList.add('show');
+            replyPreview.style.display = 'flex';
+            commentInput.focus();
+        }
+    });
+    actions.appendChild(replyButton);
+
+    // Like button group (right)
+    const likeGroup = document.createElement('div');
+    likeGroup.style.cssText = 'display:flex;align-items:center;gap:3px;';
+
     const likeButton = document.createElement('button');
     likeButton.className = 'like-button' + (commentData.likes && commentData.likes.includes(currentUser?.uid) ? ' liked' : '');
     likeButton.innerHTML = `<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
@@ -3505,7 +3567,9 @@ function createCommentElement(commentData, replies = []) {
         }
         likeCount.textContent = _localLikes.length;
         try {
-            const commentRef = doc(db, 'recence', currentPostId, 'comments', commentData.id);
+            // Use the correct post context (mobile or desktop)
+            var _postId = currentPostId || window._dcCurrentPostId;
+            const commentRef = doc(db, 'recence', _postId, 'comments', commentData.id);
             await updateDoc(commentRef, { likes: isLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
         } catch (err) {
             if (isLiked) { likeButton.classList.add('liked'); _localLikes.push(currentUser.uid); }
@@ -3513,58 +3577,16 @@ function createCommentElement(commentData, replies = []) {
             likeCount.textContent = _localLikes.length;
         }
     });
-    actions.appendChild(likeButton);
-    actions.appendChild(likeCount);
-
-    // Reply button
-    const replyButton = document.createElement('button');
-    replyButton.className = 'reply-btn';
-    replyButton.textContent = 'Reply';
-    replyButton.addEventListener('click', (e) => {
-        e.stopPropagation();
-        // Check if we're in desktop panel or mobile sheet
-        var inDesktop = !!replyButton.closest('#dc-list');
-        if (inDesktop) {
-            // Dispatch event so desktop handler picks it up
-            document.getElementById('dc-list').dispatchEvent(Object.assign(new Event('_reply', {bubbles:true}), {
-                _commentId: commentData.id, _userName: commentData.userName
-            }));
-        } else {
-            currentReplyTo = { id: commentData.id, name: commentData.userName };
-            replyPreviewText.textContent = `Replying to ${commentData.userName}`;
-            replyPreview.classList.add('show');
-            replyPreview.style.display = 'flex';
-            commentInput.focus();
-        }
-    });
-    actions.appendChild(replyButton);
+    likeGroup.appendChild(likeButton);
+    likeGroup.appendChild(likeCount);
+    actions.appendChild(likeGroup);
 
     bubble.appendChild(actions);
 
-    // Replies
-    if (replies.length > 0) {
-        const repliesContainer = document.createElement('div');
-        repliesContainer.className = 'replies-container';
-        const viewRepliesBtn = document.createElement('button');
-        viewRepliesBtn.className = 'view-replies-btn';
-        viewRepliesBtn.textContent = `View ${replies.length} repl${replies.length === 1 ? 'y' : 'ies'}`;
-        const repliesList = document.createElement('div');
-        repliesList.style.display = 'block';
-        replies.forEach(reply => repliesList.appendChild(createCommentElement(reply)));
-        viewRepliesBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const open = repliesList.style.display === 'none';
-            repliesList.style.display = open ? 'block' : 'none';
-            viewRepliesBtn.textContent = open ? 'Hide replies' : `View ${replies.length} repl${replies.length === 1 ? 'y' : 'ies'}`;
-        });
-        viewRepliesBtn.textContent = `Hide replies`;
-        repliesContainer.appendChild(viewRepliesBtn);
-        repliesContainer.appendChild(repliesList);
-        bubble.appendChild(repliesContainer);
-    }
-
     comment.appendChild(avatarEl);
     comment.appendChild(bubble);
+    // Replies rendered as a DocumentFragment returned alongside — caller appends them flat
+    comment._replies = replies;
     return comment;
 }
 
@@ -3622,19 +3644,24 @@ async function addComment() {
     optimisticEl.classList.add('new-comment');
     optimisticEl.style.opacity = '0.7';
 
-    // If replying, place it inside the parent comment's replies container
+    // If replying, place it flat after the parent comment element
     var placed = false;
     if (currentReplyTo) {
         var parentEl = commentsList.querySelector('[data-comment-id="' + currentReplyTo.id + '"]');
         if (parentEl) {
-            var repliesContainer = parentEl.querySelector('.replies-container');
-            if (!repliesContainer) {
-                repliesContainer = document.createElement('div');
-                repliesContainer.className = 'replies-container';
-                parentEl.appendChild(repliesContainer);
+            // Insert right after the parent (or after any existing replies that follow it)
+            var insertAfter = parentEl;
+            var next = insertAfter.nextSibling;
+            while (next && next.dataset && next.dataset.parentId === currentReplyTo.id) {
+                insertAfter = next;
+                next = insertAfter.nextSibling;
             }
-            repliesContainer.appendChild(optimisticEl);
-            parentEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (insertAfter.nextSibling) {
+                commentsList.insertBefore(optimisticEl, insertAfter.nextSibling);
+            } else {
+                commentsList.appendChild(optimisticEl);
+            }
+            optimisticEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             placed = true;
         }
     }
@@ -3669,6 +3696,20 @@ async function addComment() {
         
         const commentsRef = collection(db, 'recence', currentPostId, 'comments');
         await addDoc(commentsRef, commentData);
+        
+        // ── Keep only 10 root comments max — delete oldest if exceeded ──
+        try {
+            const allRootQ = query(commentsRef, orderBy('timestamp', 'asc'));
+            const allRootSnap = await getDocs(allRootQ);
+            const rootDocs = [];
+            allRootSnap.forEach(d => { if (!d.data().parentId) rootDocs.push(d); });
+            if (rootDocs.length > 10) {
+                const toDelete = rootDocs.slice(0, rootDocs.length - 10);
+                for (const d of toDelete) {
+                    await deleteDoc(doc(db, 'recence', currentPostId, 'comments', d.id));
+                }
+            }
+        } catch(e) { /* non-critical */ }
         
         // Confirm optimistic element
         optimisticEl.style.opacity = '1';
@@ -4247,7 +4288,16 @@ init();
       });
       if (newDcEls.length > 0 && dcList) {
         var frag2 = document.createDocumentFragment();
-        newDcEls.forEach(function(el) { frag2.appendChild(el); });
+        newDcEls.forEach(function(el) {
+            frag2.appendChild(el);
+            if (el._replies && el._replies.length > 0) {
+                el._replies.forEach(function(reply) {
+                    var rEl = createCommentElement(reply, []);
+                    rEl.classList.add('new-comment');
+                    frag2.appendChild(rEl);
+                });
+            }
+        });
         dcList.appendChild(frag2);
         if (dcIsAtBottom() || dcIsFirstLoad) {
           setTimeout(function(){ if (dcList) dcList.scrollTop = dcList.scrollHeight; }, 40);
@@ -4398,6 +4448,17 @@ init();
         if (dcReplyPreview) { dcReplyPreview.classList.remove('show'); dcReplyPreview.style.display='none'; }
       }
       await addDoc(collection(db, 'recence', dcCurrentPostId, 'comments'), commentData2);
+      // ── Keep only 10 root comments max ──
+      try {
+        var cmRef = collection(db, 'recence', dcCurrentPostId, 'comments');
+        var allSnap = await getDocs(query(cmRef, orderBy('timestamp', 'asc')));
+        var rootDs = []; allSnap.forEach(function(d){ if (!d.data().parentId) rootDs.push(d); });
+        if (rootDs.length > 10) {
+          for (var _i = 0; _i < rootDs.length - 10; _i++) {
+            await deleteDoc(doc(db, 'recence', dcCurrentPostId, 'comments', rootDs[_i].id));
+          }
+        }
+      } catch(e) {}
       var postRef3 = doc(db, 'recence', dcCurrentPostId);
       var postDoc3 = await getDoc(postRef3);
       if (postDoc3.exists()) await updateDoc(postRef3, { commentCount: (postDoc3.data().commentCount || 0) + 1 });
@@ -4673,7 +4734,7 @@ init();
     loadFollowingList();
     loadSuggestedUsers();
   }
-  // Fallback: if auth fires before this script block runs
+  window.initSidebar = initSidebar;
   if (window._sidebarReady) initSidebar();
 
   // ── Mobile profile panel — populated from module scope (has direct Firebase access) ──
@@ -4710,24 +4771,35 @@ init();
       +'<div style="text-align:center"><div style="font-size:18px;font-weight:900;color:#111" id="mob-stat-following">—</div><div style="font-size:11px;color:#888;font-weight:600;margin-top:2px">Following</div></div>';
 
     // Posts count + video grid
-    getDocs(query(collection(db,'recence'), where('userId','==',currentUser.uid))).then(function(snap){
+    getDocs(query(collection(db,'recence'), where('userId','==',currentUser.uid), orderBy('timestamp','desc'))).then(function(snap){
       var el = document.getElementById('mob-stat-posts');
       if (el) el.textContent = snap.size;
       if (!feedEl) return;
       feedEl.innerHTML = '';
+      if (snap.empty) {
+        feedEl.innerHTML = '<div style="grid-column:1/-1;padding:32px 16px;text-align:center;color:#ccc;font-size:13px;font-weight:600;">No videos yet</div>';
+        return;
+      }
       snap.forEach(function(d){
         var p = d.data();
         var media = p.media && p.media[0];
         if (!media) return;
         var thumb = document.createElement('div');
-        thumb.style.cssText = 'aspect-ratio:9/16;background:#111;border-radius:6px;overflow:hidden;cursor:pointer;';
+        thumb.style.cssText = 'aspect-ratio:9/16;background:#111;border-radius:8px;overflow:hidden;cursor:pointer;position:relative;';
         var vid = document.createElement('video');
         vid.src = media.url; vid.muted = true; vid.preload = 'metadata';
         vid.style.cssText = 'width:100%;height:100%;object-fit:cover;pointer-events:none;';
         thumb.appendChild(vid);
+        // Like count overlay
+        var likeCount = (p.likes || []).length;
+        if (likeCount > 0) {
+          var overlay = document.createElement('div');
+          overlay.style.cssText = 'position:absolute;bottom:5px;left:6px;display:flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.8);';
+          overlay.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="#fff"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' + likeCount;
+          thumb.appendChild(overlay);
+        }
         feedEl.appendChild(thumb);
       });
-      if (snap.empty) feedEl.innerHTML = '<div style="grid-column:1/-1;padding:24px;text-align:center;color:#ccc;font-size:13px;">No videos yet</div>';
     }).catch(function(){});
 
     // Followers count
@@ -4802,12 +4874,10 @@ init();
 
     var feed = document.getElementById('desktop-feed');
     document.getElementById('dnUp').addEventListener('click', function() {
-      var h = window.innerHeight;
-      feed.scrollBy({ top: -h, behavior: 'smooth' });
+      if (feed) feed.scrollBy({ top: -window.innerHeight, behavior: 'smooth' });
     });
     document.getElementById('dnDown').addEventListener('click', function() {
-      var h = window.innerHeight;
-      feed.scrollBy({ top: h, behavior: 'smooth' });
+      if (feed) feed.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
     });
   }
 
