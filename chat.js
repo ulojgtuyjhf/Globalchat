@@ -1,1155 +1,780 @@
-// Import Firebase modules
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, getDocs, addDoc, serverTimestamp, onSnapshot, updateDoc, doc, arrayUnion, arrayRemove, getDoc, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+(function() {
+  // ═══════════════════════════════════════════════════════════════
+  //  Media App — Global Theme Manager  (save as: chat.js)
+  //
+  //  Reads + writes the SAME 'twitter-theme' localStorage key as
+  //  SocialConnectionsThemeManager — zero conflicts, perfect sync.
+  //  Same storage listener. Same 2-second periodic check.
+  //  Just drop:  <script src="chat.js"></script>  into your HTML.
+  // ═══════════════════════════════════════════════════════════════
 
-// Firebase Configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
-    authDomain: "globalchat-2d669.firebaseapp.com",
-    projectId: "globalchat-2d669",
-    messagingSenderId: "178714711978",
-    appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
-    databaseURL: "https://globalchat-2d669-default-rtdb.firebaseio.com/"
-};
+  const MediaAppThemeManager = {
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+    themeConfig: {
 
-// Appwrite Configuration
-const APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1";
-const APPWRITE_PROJECT_ID = "67d98c24003a405ab6a0"; 
-const APPWRITE_BUCKET_ID = "67dba33e000399dc8641"; 
-const APPWRITE_API_KEY = "standard_6f65a2d8e8c270ba9556f844789c1eae72c7fa71f64b95409ac20b6127c483454d1e4b9f8c13f82c09168ed1dfebd2d4e7e02494bee254252f9713675beea4d645a960879aaada1c6c98cb7651ec6c6bf4357e4c2c8b8d666c0166203ec43694b9a49ec8ee08161edf3fd5dea94e46c165316122f44f96c44933121be214b80c";
+      // ── LIGHT ─────────────────────────────────────────────────
+      light: {
+        pageBg:               '#f5f5f5',
+        desktopBg:            '#efefef',
+        surfacePrimary:       '#ffffff',
+        surfaceSecondary:     '#f8f8f8',
+        surfaceHover:         '#f0f0f0',
+        textPrimary:          '#0f0f0f',
+        textSecondary:        '#555555',
+        textTertiary:         '#aaaaaa',
+        border:               '#ebebeb',
+        borderMid:            '#f2f2f2',
+        borderFocus:          '#d0d0d0',
+        // bottom nav  ← ID is #bottom-nav
+        navBg:                'rgba(255,255,255,0.92)',
+        navBorder:            'rgba(0,0,0,0.08)',
+        navIcon:              'rgba(0,0,0,0.35)',
+        navIconActive:        '#111111',
+        navIndicator:         '#111111',
+        navUploadBg:          '#111111',
+        navUploadIcon:        '#ffffff',
+        // sheets
+        sheetBg:              '#ffffff',
+        sheetHandle:          '#e0e0e0',
+        sheetBorder:          '#f2f2f2',
+        inputBg:              '#f5f5f5',
+        inputBorder:          'transparent',
+        inputFocusBg:         '#ffffff',
+        inputFocusBorder:     '#e0e0e0',
+        inputText:            '#111111',
+        inputPh:              '#c0c0c0',
+        // comment items
+        commentText:          '#1c1c1c',
+        commentAuthor:        '#111111',
+        commentDate:          '#bbbbbb',
+        commentTime:          '#cccccc',
+        commentLike:          '#d0d0d0',
+        replyBtn:             '#bbbbbb',
+        replyBtnHover:        '#888888',
+        repliesBorder:        '#f0f0f0',
+        avatarBorder:         '#f0f0f0',
+        typingDot:            '#cccccc',
+        typingText:           '#aaaaaa',
+        newPillBg:            '#111111',
+        newPillText:          '#ffffff',
+        creatorBadgeBg:       '#111111',
+        creatorBadgeText:     '#ffffff',
+        guestBadgeBg:         '#f5f5f5',
+        guestBadgeText:       '#aaaaaa',
+        guestBadgeBorder:     '#eeeeee',
+        closeBtnBg:           '#f2f2f2',
+        closeBtnIcon:         '#555555',
+        emojiRowBorder:       '#f2f2f2',
+        shimmerBase:          '#f0f0f0',
+        shimmerShine:         '#f8f8f8',
+        // share sheet
+        shareTitle:           '#111111',
+        shareUrlBg:           '#f5f5f5',
+        shareUrlBorder:       '#eeeeee',
+        shareUrlText:         '#777777',
+        shareOptionLabel:     '#555555',
+        // overlay
+        overlayBg:            '#ffffff',
+        overlayTitle:         '#111111',
+        overlayBackBtn:       'rgba(0,0,0,0.08)',
+        overlayBackIcon:      '#111111',
+        // following panel
+        fpBg:                 '#ffffff',
+        fpBorder:             '#ebebeb',
+        fpTitle:              '#111111',
+        fpEmpty:              '#888888',
+        // social connections widget
+        statusOnline:         '#31a24c',
+        statusOffline:        '#e0e0e0',
+        followedGradient:     'linear-gradient(135deg,#0f0f0f 0%,#1c1c1c 15%,#3a3a3a 30%,#4d4d4d 45%,#626262 60%,#787878 75%,#8f8f8f 90%,#a6a6a6 100%)',
+        followedText:         '#ffffff',
+        // ── DESKTOP sidebar ──
+        sidebarBg:            '#ffffff',
+        dsNavIconBg:          '#f2f2f2',
+        dsNavIconStroke:      '#777777',
+        dsNavColor:           '#999999',
+        dsNavActiveColor:     '#111111',
+        dsNavActiveBg:        '#f2f2f2',
+        dsNavHoverBg:         '#f7f7f7',
+        dsNavHoverColor:      '#222222',
+        dsDivider:            '#f2f2f2',
+        dsSectionLabel:       '#bbbbbb',
+        dsPersonHoverBg:      '#f7f7f7',
+        dsPersonAvBorder:     '#f0f0f0',
+        dsPersonName:         '#111111',
+        dsPersonMeta:         '#aaaaaa',
+        dsFollowingBg:        '#f0f0f0',
+        dsFollowingText:      '#888888',
+        dsSectionEmpty:       '#cccccc',
+        dsCardBg:             '#f9f9f9',
+        dsCardBorder:         '#f0f0f0',
+        dsCardHoverBg:        '#f2f2f2',
+        dsCardCreator:        '#111111',
+        dsCardMeta:           '#888888',
+        dsCardBadgeBg:        '#111111',
+        dsCardBadgeText:      '#ffffff',
+        dsSkelBase:           '#f0f0f0',
+        dsSkelShine:          '#f8f8f8',
+        // ── DESKTOP right panel ──
+        dcBg:                 '#ffffff',
+        dcBorder:             '#ebebeb',
+        dcHeadBorder:         '#f2f2f2',
+        dcCreatorName:        '#111111',
+        dcCreatorDate:        '#c0c0c0',
+        dcProfText:           '#999999',
+        dcProfIcon:           '#bbbbbb',
+        dcCaption:            '#555555',
+        dcCaptionToggle:      '#aaaaaa',
+        dcMusicText:          '#bbbbbb',
+        dcCmtLabelColor:      '#111111',
+        dcCmtLabelBorder:     '#f5f5f5',
+        dcTypingText:         '#bbbbbb',
+        dcTypingDot:          '#cccccc',
+        dcListBg:             '#ffffff',
+        dcListScrollbar:      '#eeeeee',
+        dcListText:           '#333333',
+        dcListAuthor:         '#111111',
+        dcListTime:           '#cccccc',
+        dcListLike:           '#dddddd',
+        dcListReply:          '#cccccc',
+        dcListViewReplies:    '#aaaaaa',
+        dcListVRBefore:       '#eeeeee',
+        dcSkelBase:           '#f0f0f0',
+        dcSkelShine:          '#f8f8f8',
+        dcGifSelectorBg:      '#ffffff',
+        dcGifSelectorBorder:  '#f0f0f0',
+        dcGifSearchBg:        '#fafafa',
+        dcGifSearchBorder:    '#eeeeee',
+        dcGifSearchText:      '#111111',
+        dcGifPreviewBorder:   '#f5f5f5',
+        dcGifCloseBg:         '#eeeeee',
+        dcGifCloseText:       '#888888',
+        dcReplyBg:            '#fafafa',
+        dcReplyBorder:        '#f0f0f0',
+        dcReplyIcon:          '#bbbbbb',
+        dcReplyText:          '#777777',
+        dcReplyCloseBg:       '#efefef',
+        dcReplyCloseText:     '#aaaaaa',
+        dcInputRowBg:         '#ffffff',
+        dcInputRowBorder:     '#f2f2f2',
+        dcInputBg:            '#f5f5f5',
+        dcInputBorder:        'transparent',
+        dcInputFocusBg:       '#ffffff',
+        dcInputFocusBorder:   '#e0e0e0',
+        dcInputText:          '#111111',
+        dcInputPh:            '#bbbbbb',
+        dcGifBtnBg:           '#ebebeb',
+        dcGifBtnText:         '#888888',
+        dcGifBtnHoverBg:      '#e0e0e0',
+        dcGifBtnHoverText:    '#444444',
+        dcShareRowBg:         '#ffffff',
+        dcShareBg:            '#f5f5f5',
+        dcShareBorder:        '#ebebeb',
+        dcShareText:          '#555555',
+        dcShareHoverBg:       '#eeeeee',
+        dcShareHoverText:     '#222222',
+        dcArrowBg:            '#ffffff',
+        dcArrowStroke:        '#333333',
+      },
 
-// Initialize Appwrite SDK
-const appwrite = {
-    sdk: null,
-    init: function() {
-        this.sdk = new Appwrite();
-        this.sdk.setEndpoint(APPWRITE_ENDPOINT);
-        this.sdk.setProject(APPWRITE_PROJECT_ID);
-        return this.sdk;
+      // ── DIM ───────────────────────────────────────────────────
+      dim: {
+        pageBg:               '#0d1821',
+        desktopBg:            '#0d1821',
+        surfacePrimary:       '#15202b',
+        surfaceSecondary:     '#1e2732',
+        surfaceHover:         '#22303c',
+        textPrimary:          '#ffffff',
+        textSecondary:        '#8899a6',
+        textTertiary:         '#536471',
+        border:               '#38444d',
+        borderMid:            '#2e3a45',
+        borderFocus:          '#4a5a68',
+        navBg:                'rgba(21,32,43,0.95)',
+        navBorder:            '#38444d',
+        navIcon:              'rgba(255,255,255,0.3)',
+        navIconActive:        '#ffffff',
+        navIndicator:         '#ffffff',
+        navUploadBg:          '#ffffff',
+        navUploadIcon:        '#000000',
+        sheetBg:              '#1e2732',
+        sheetHandle:          '#38444d',
+        sheetBorder:          '#38444d',
+        inputBg:              '#15202b',
+        inputBorder:          'transparent',
+        inputFocusBg:         '#0d1821',
+        inputFocusBorder:     '#38444d',
+        inputText:            '#ffffff',
+        inputPh:              '#536471',
+        commentText:          '#e7e9ea',
+        commentAuthor:        '#ffffff',
+        commentDate:          '#536471',
+        commentTime:          '#536471',
+        commentLike:          '#536471',
+        replyBtn:             '#536471',
+        replyBtnHover:        '#8899a6',
+        repliesBorder:        '#38444d',
+        avatarBorder:         '#38444d',
+        typingDot:            '#38444d',
+        typingText:           '#536471',
+        newPillBg:            '#f7f9f9',
+        newPillText:          '#0f1419',
+        creatorBadgeBg:       '#f7f9f9',
+        creatorBadgeText:     '#0f1419',
+        guestBadgeBg:         '#1e2732',
+        guestBadgeText:       '#8899a6',
+        guestBadgeBorder:     '#38444d',
+        closeBtnBg:           '#38444d',
+        closeBtnIcon:         '#8899a6',
+        emojiRowBorder:       '#38444d',
+        shimmerBase:          '#1e2732',
+        shimmerShine:         '#253240',
+        shareTitle:           '#ffffff',
+        shareUrlBg:           '#15202b',
+        shareUrlBorder:       '#38444d',
+        shareUrlText:         '#8899a6',
+        shareOptionLabel:     '#8899a6',
+        overlayBg:            '#15202b',
+        overlayTitle:         '#ffffff',
+        overlayBackBtn:       'rgba(255,255,255,0.10)',
+        overlayBackIcon:      '#ffffff',
+        fpBg:                 '#15202b',
+        fpBorder:             '#38444d',
+        fpTitle:              '#ffffff',
+        fpEmpty:              '#8899a6',
+        statusOnline:         '#31a24c',
+        statusOffline:        '#536471',
+        followedGradient:     'linear-gradient(135deg,#f8f8f8 0%,#e8e8e8 15%,#d8d8d8 30%,#c8c8c8 45%,#b8b8b8 60%,#a8a8a8 75%,#989898 90%,#888888 100%)',
+        followedText:         '#000000',
+        sidebarBg:            '#15202b',
+        dsNavIconBg:          '#1e2732',
+        dsNavIconStroke:      '#8899a6',
+        dsNavColor:           '#8899a6',
+        dsNavActiveColor:     '#ffffff',
+        dsNavActiveBg:        '#1e2732',
+        dsNavHoverBg:         '#1e2732',
+        dsNavHoverColor:      '#ffffff',
+        dsDivider:            '#38444d',
+        dsSectionLabel:       '#536471',
+        dsPersonHoverBg:      '#22303c',
+        dsPersonAvBorder:     '#38444d',
+        dsPersonName:         '#ffffff',
+        dsPersonMeta:         '#8899a6',
+        dsFollowingBg:        '#1e2732',
+        dsFollowingText:      '#8899a6',
+        dsSectionEmpty:       '#536471',
+        dsCardBg:             '#1e2732',
+        dsCardBorder:         '#38444d',
+        dsCardHoverBg:        '#22303c',
+        dsCardCreator:        '#ffffff',
+        dsCardMeta:           '#8899a6',
+        dsCardBadgeBg:        '#f7f9f9',
+        dsCardBadgeText:      '#0f1419',
+        dsSkelBase:           '#1e2732',
+        dsSkelShine:          '#253240',
+        dcBg:                 '#1e2732',
+        dcBorder:             '#38444d',
+        dcHeadBorder:         '#38444d',
+        dcCreatorName:        '#ffffff',
+        dcCreatorDate:        '#536471',
+        dcProfText:           '#8899a6',
+        dcProfIcon:           '#536471',
+        dcCaption:            '#8899a6',
+        dcCaptionToggle:      '#536471',
+        dcMusicText:          '#536471',
+        dcCmtLabelColor:      '#ffffff',
+        dcCmtLabelBorder:     '#38444d',
+        dcTypingText:         '#536471',
+        dcTypingDot:          '#38444d',
+        dcListBg:             '#1e2732',
+        dcListScrollbar:      '#38444d',
+        dcListText:           '#e7e9ea',
+        dcListAuthor:         '#ffffff',
+        dcListTime:           '#536471',
+        dcListLike:           '#536471',
+        dcListReply:          '#536471',
+        dcListViewReplies:    '#8899a6',
+        dcListVRBefore:       '#38444d',
+        dcSkelBase:           '#1e2732',
+        dcSkelShine:          '#253240',
+        dcGifSelectorBg:      '#1e2732',
+        dcGifSelectorBorder:  '#38444d',
+        dcGifSearchBg:        '#15202b',
+        dcGifSearchBorder:    '#38444d',
+        dcGifSearchText:      '#ffffff',
+        dcGifPreviewBorder:   '#38444d',
+        dcGifCloseBg:         '#38444d',
+        dcGifCloseText:       '#8899a6',
+        dcReplyBg:            '#15202b',
+        dcReplyBorder:        '#38444d',
+        dcReplyIcon:          '#536471',
+        dcReplyText:          '#8899a6',
+        dcReplyCloseBg:       '#38444d',
+        dcReplyCloseText:     '#8899a6',
+        dcInputRowBg:         '#1e2732',
+        dcInputRowBorder:     '#38444d',
+        dcInputBg:            '#15202b',
+        dcInputBorder:        'transparent',
+        dcInputFocusBg:       '#0d1821',
+        dcInputFocusBorder:   '#38444d',
+        dcInputText:          '#ffffff',
+        dcInputPh:            '#536471',
+        dcGifBtnBg:           '#273340',
+        dcGifBtnText:         '#8899a6',
+        dcGifBtnHoverBg:      '#38444d',
+        dcGifBtnHoverText:    '#ffffff',
+        dcShareRowBg:         '#1e2732',
+        dcShareBg:            '#15202b',
+        dcShareBorder:        '#38444d',
+        dcShareText:          '#8899a6',
+        dcShareHoverBg:       '#0d1821',
+        dcShareHoverText:     '#ffffff',
+        dcArrowBg:            '#1e2732',
+        dcArrowStroke:        '#8899a6',
+      },
+
+      // ── DARK ──────────────────────────────────────────────────
+      dark: {
+        pageBg:               '#000000',
+        desktopBg:            '#000000',
+        surfacePrimary:       '#080808',
+        surfaceSecondary:     '#111111',
+        surfaceHover:         '#1a1a1a',
+        textPrimary:          '#ffffff',
+        textSecondary:        '#a6a6a6',
+        textTertiary:         '#555555',
+        border:               '#2f3336',
+        borderMid:            '#1e1e1e',
+        borderFocus:          '#3a3a3a',
+        navBg:                'rgba(8,8,8,0.97)',
+        navBorder:            '#2f3336',
+        navIcon:              'rgba(255,255,255,0.28)',
+        navIconActive:        '#ffffff',
+        navIndicator:         '#ffffff',
+        navUploadBg:          '#ffffff',
+        navUploadIcon:        '#000000',
+        sheetBg:              '#080808',
+        sheetHandle:          '#2f3336',
+        sheetBorder:          '#2f3336',
+        inputBg:              '#111111',
+        inputBorder:          'transparent',
+        inputFocusBg:         '#000000',
+        inputFocusBorder:     '#2f3336',
+        inputText:            '#ffffff',
+        inputPh:              '#555555',
+        commentText:          '#e7e9ea',
+        commentAuthor:        '#ffffff',
+        commentDate:          '#555555',
+        commentTime:          '#555555',
+        commentLike:          '#555555',
+        replyBtn:             '#555555',
+        replyBtnHover:        '#a6a6a6',
+        repliesBorder:        '#2f3336',
+        avatarBorder:         '#2f3336',
+        typingDot:            '#2f3336',
+        typingText:           '#555555',
+        newPillBg:            '#ffffff',
+        newPillText:          '#000000',
+        creatorBadgeBg:       '#ffffff',
+        creatorBadgeText:     '#000000',
+        guestBadgeBg:         '#111111',
+        guestBadgeText:       '#555555',
+        guestBadgeBorder:     '#2f3336',
+        closeBtnBg:           '#1a1a1a',
+        closeBtnIcon:         '#a6a6a6',
+        emojiRowBorder:       '#2f3336',
+        shimmerBase:          '#111111',
+        shimmerShine:         '#1a1a1a',
+        shareTitle:           '#ffffff',
+        shareUrlBg:           '#111111',
+        shareUrlBorder:       '#2f3336',
+        shareUrlText:         '#a6a6a6',
+        shareOptionLabel:     '#a6a6a6',
+        overlayBg:            '#000000',
+        overlayTitle:         '#ffffff',
+        overlayBackBtn:       'rgba(255,255,255,0.08)',
+        overlayBackIcon:      '#ffffff',
+        fpBg:                 '#080808',
+        fpBorder:             '#2f3336',
+        fpTitle:              '#ffffff',
+        fpEmpty:              '#555555',
+        statusOnline:         '#31a24c',
+        statusOffline:        '#4d4d4d',
+        followedGradient:     'linear-gradient(135deg,#0f0f0f 0%,#1c1c1c 15%,#3a3a3a 30%,#4d4d4d 45%,#626262 60%,#787878 75%,#8f8f8f 90%,#a6a6a6 100%)',
+        followedText:         '#ffffff',
+        sidebarBg:            '#080808',
+        dsNavIconBg:          '#111111',
+        dsNavIconStroke:      '#a6a6a6',
+        dsNavColor:           '#a6a6a6',
+        dsNavActiveColor:     '#ffffff',
+        dsNavActiveBg:        '#111111',
+        dsNavHoverBg:         '#111111',
+        dsNavHoverColor:      '#ffffff',
+        dsDivider:            '#2f3336',
+        dsSectionLabel:       '#555555',
+        dsPersonHoverBg:      '#1a1a1a',
+        dsPersonAvBorder:     '#2f3336',
+        dsPersonName:         '#ffffff',
+        dsPersonMeta:         '#a6a6a6',
+        dsFollowingBg:        '#111111',
+        dsFollowingText:      '#a6a6a6',
+        dsSectionEmpty:       '#555555',
+        dsCardBg:             '#111111',
+        dsCardBorder:         '#2f3336',
+        dsCardHoverBg:        '#1a1a1a',
+        dsCardCreator:        '#ffffff',
+        dsCardMeta:           '#555555',
+        dsCardBadgeBg:        '#ffffff',
+        dsCardBadgeText:      '#000000',
+        dsSkelBase:           '#111111',
+        dsSkelShine:          '#1a1a1a',
+        dcBg:                 '#080808',
+        dcBorder:             '#2f3336',
+        dcHeadBorder:         '#2f3336',
+        dcCreatorName:        '#ffffff',
+        dcCreatorDate:        '#555555',
+        dcProfText:           '#a6a6a6',
+        dcProfIcon:           '#555555',
+        dcCaption:            '#a6a6a6',
+        dcCaptionToggle:      '#555555',
+        dcMusicText:          '#555555',
+        dcCmtLabelColor:      '#ffffff',
+        dcCmtLabelBorder:     '#2f3336',
+        dcTypingText:         '#555555',
+        dcTypingDot:          '#2f3336',
+        dcListBg:             '#080808',
+        dcListScrollbar:      '#2f3336',
+        dcListText:           '#e7e9ea',
+        dcListAuthor:         '#ffffff',
+        dcListTime:           '#555555',
+        dcListLike:           '#555555',
+        dcListReply:          '#555555',
+        dcListViewReplies:    '#a6a6a6',
+        dcListVRBefore:       '#2f3336',
+        dcSkelBase:           '#111111',
+        dcSkelShine:          '#1a1a1a',
+        dcGifSelectorBg:      '#080808',
+        dcGifSelectorBorder:  '#2f3336',
+        dcGifSearchBg:        '#111111',
+        dcGifSearchBorder:    '#2f3336',
+        dcGifSearchText:      '#ffffff',
+        dcGifPreviewBorder:   '#2f3336',
+        dcGifCloseBg:         '#1a1a1a',
+        dcGifCloseText:       '#a6a6a6',
+        dcReplyBg:            '#111111',
+        dcReplyBorder:        '#2f3336',
+        dcReplyIcon:          '#555555',
+        dcReplyText:          '#a6a6a6',
+        dcReplyCloseBg:       '#1a1a1a',
+        dcReplyCloseText:     '#a6a6a6',
+        dcInputRowBg:         '#080808',
+        dcInputRowBorder:     '#2f3336',
+        dcInputBg:            '#111111',
+        dcInputBorder:        'transparent',
+        dcInputFocusBg:       '#000000',
+        dcInputFocusBorder:   '#2f3336',
+        dcInputText:          '#ffffff',
+        dcInputPh:            '#555555',
+        dcGifBtnBg:           '#1a1a1a',
+        dcGifBtnText:         '#a6a6a6',
+        dcGifBtnHoverBg:      '#222222',
+        dcGifBtnHoverText:    '#ffffff',
+        dcShareRowBg:         '#080808',
+        dcShareBg:            '#111111',
+        dcShareBorder:        '#2f3336',
+        dcShareText:          '#a6a6a6',
+        dcShareHoverBg:       '#000000',
+        dcShareHoverText:     '#ffffff',
+        dcArrowBg:            '#111111',
+        dcArrowStroke:        '#a6a6a6',
+      }
     },
-    storage: function() {
-        if (!this.sdk) this.init();
-        return this.sdk.storage;
-    }
-};
 
-// DOM Elements
-const gallery = document.getElementById('gallery');
-const loadingContainer = document.getElementById('loadingContainer');
-const fullscreenModal = document.getElementById('fullscreenModal');
-const modalMedia = document.getElementById('modalMedia');
-const postDescription = document.getElementById('postDescription');
-const commentsList = document.getElementById('commentsList');
-const commentsCount = document.getElementById('commentsCount');
-const commentInput = document.getElementById('commentInput');
-const submitComment = document.getElementById('submitComment');
-const backButton = document.getElementById('backButton');
-const gifButton = document.getElementById('gifButton');
-const gifSelector = document.getElementById('gifSelector');
-const gifSearch = document.getElementById('gifSearch');
-const gifResults = document.getElementById('gifResults');
-const postHeader = document.getElementById('postHeader');
-const postUserAvatar = document.getElementById('postUserAvatar');
-const postUserName = document.getElementById('postUserName');
-const postUserFlag = document.getElementById('postUserFlag');
-const likePostButton = document.getElementById('likePostButton');
-const likePostCount = document.getElementById('likePostCount');
-const followButton = document.getElementById('followButton');
-const replyPreview = document.getElementById('replyPreview');
-const replyPreviewText = document.getElementById('replyPreviewText');
-const replyPreviewClose = document.getElementById('replyPreviewClose');
-const profileModal = document.getElementById('profileModal');
-const profileBackButton = document.getElementById('profileBackButton');
-const profileIframe = document.getElementById('profileIframe');
-const profileName = document.getElementById('profileName');
-const profileAvatar = document.getElementById('profileAvatar');
-const postsCount = document.getElementById('postsCount');
-const mediaCount = document.getElementById('mediaCount');
-const mediaContainer = document.getElementById('mediaContainer');
+    styleElementId: 'media-app-theme-styles',
+    currentTheme:   'light',
 
-// Current user state
-let currentUser = null;
-let currentPostId = null;
-let currentPostData = null;
-let commentsUnsubscribe = null;
-let selectedGif = null;
-let currentVideo = null;
-let currentReplyTo = null;
-const followedUsers = new Set();
+    initialize: function() {
+      this.createStyleElement();
+      // ← exact same key as SocialConnectionsThemeManager
+      this.currentTheme = localStorage.getItem('twitter-theme') || 'light';
+      this.applyTheme(this.currentTheme);
+      this.setupEventListeners();
+    },
 
-// Initialize app
-function init() {
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            currentUser = user;
-            if (window.innerWidth <= 767) {
-                setTimeout(() => {
-                    loadingContainer.classList.remove('start');
-                    loadingContainer.classList.add('move-to-top');
-                }, 500);
-            }
-            
-            const userDoc = await getDoc(doc(db, 'users', user.uid));
-            const userData = userDoc.data() || {};
-            
-            let country = userData.country;
-            if (!country) {
-                try {
-                    const response = await fetch('https://ipapi.co/json/');
-                    const data = await response.json();
-                    country = data.country_code.toLowerCase();
-                    await updateDoc(doc(db, 'users', user.uid), {
-                        country: country
-                    });
-                } catch (error) {
-                    console.error('Error fetching country:', error);
-                    country = 'unknown';
-                }
-            }
-            
-            currentUser = {
-                ...user,
-                country: country,
-                photoURL: user.photoURL || userData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png',
-                displayName: user.displayName || userData.displayName || 'User'
-            };
-            
-            // Update profile UI
-            updateProfileUI(currentUser);
-            
-            await fetchFollowedUsers();
-            fetchPosts();
-            setupEventListeners();
-            
-            // Fetch user media
-            await fetchUserMedia(user.uid);
-        } else {
-            loadingContainer.classList.add('hidden');
-            setTimeout(() => {
-                loadingContainer.style.display = 'none';
-            }, 300);
-            gallery.innerHTML = '<div style="text-align: center; padding: 20px;">Please sign in to view content</div>';
+    createStyleElement: function() {
+      const existing = document.getElementById(this.styleElementId);
+      if (existing) existing.remove();
+      const el = document.createElement('style');
+      el.id = this.styleElementId;
+      document.head.appendChild(el);
+    },
+
+    applyTheme: function(themeName) {
+      const validThemes = ['light', 'dim', 'dark'];
+      const theme = validThemes.includes(themeName) ? themeName : 'light';
+      this.currentTheme = theme;
+      localStorage.setItem('twitter-theme', theme);   // ← same key, keeps sync
+
+      const t = this.themeConfig[theme];
+      const styleEl = document.getElementById(this.styleElementId);
+      if (!styleEl) { this.createStyleElement(); return this.applyTheme(theme); }
+
+      styleEl.textContent = `
+
+        /* ══════════════════════════════════════
+           MOBILE
+        ══════════════════════════════════════ */
+
+        body {
+          background: ${t.pageBg} !important;
+          color: ${t.textPrimary};
         }
-    });
-}
 
-// Update profile UI
-function updateProfileUI(user) {
-    if (profileName) profileName.textContent = user.displayName || 'Anonymous User';
-    if (profileAvatar) {
-        profileAvatar.src = user.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    }
-}
+        /* bottom nav — ID is #bottom-nav */
+        #bottom-nav {
+          background: ${t.navBg} !important;
+          border-top: 1px solid ${t.navBorder} !important;
+        }
+        .nav-btn { color: ${t.navIcon}; }
+        .nav-btn.active { color: ${t.navIconActive}; }
+        .nav-btn .nav-icon-wrap svg { stroke: ${t.navIcon}; }
+        .nav-btn.active .nav-icon-wrap svg { stroke: ${t.navIconActive}; }
+        .nav-btn.active .nav-icon-wrap svg.fill-icon { fill: ${t.navIconActive}; stroke: none; }
+        .nav-btn.active .nav-icon-wrap::after { background: ${t.navIndicator}; }
+        .nav-upload-pill { background: ${t.navUploadBg} !important; }
+        .nav-upload-pill svg { stroke: ${t.navUploadIcon}; }
 
-// Fetch user media
-async function fetchUserMedia(userId) {
-    if (!mediaContainer) return;
-    
-    try {
-        // Try different user ID field names
-        const userFields = ['userId', 'uid', 'user_id', 'authorId', 'author_id'];
-        let allPosts = [];
-        
-        // Try each possible field
-        for (const field of userFields) {
-            const postsQuery = query(
-                collection(db, 'recence'),
-                where(field, '==', userId)
-            );
-            
-            const querySnapshot = await getDocs(postsQuery);
-            if (!querySnapshot.empty) {
-                querySnapshot.forEach(doc => {
-                    allPosts.push({ id: doc.id, ...doc.data() });
-                });
-                break; // Found posts, no need to try other fields
-            }
-        }
-        
-        // If no posts found with specific queries, get recent posts
-        if (allPosts.length === 0) {
-            const recentQuery = query(
-                collection(db, 'recence'),
-                limit(20)
-            );
-            
-            const querySnapshot = await getDocs(recentQuery);
-            querySnapshot.forEach(doc => {
-                const data = doc.data();
-                // Include only posts that seem to be from this user
-                if (data.userId === userId || data.uid === userId) {
-                    allPosts.push({ id: doc.id, ...data });
-                }
-            });
-        }
-        
-        // Update stats
-        if (postsCount) postsCount.textContent = `Posts: ${allPosts.length}`;
-        
-        // Extract media from posts
-        const mediaItems = extractMediaFromPosts(allPosts);
-        if (mediaCount) mediaCount.textContent = `Media: ${mediaItems.length}`;
-        
-        // Display media
-        displayMedia(mediaItems);
-        
-    } catch (error) {
-        console.error("Error fetching media:", error);
-        if (mediaContainer) {
-            mediaContainer.innerHTML = `
-                <div class="empty-state">
-                    <p>Could not load your media. Please try again later.</p>
-                </div>
-            `;
-        }
-    }
-}
+        /* section overlay */
+        #section-overlay { background: ${t.overlayBg} !important; }
+        #section-overlay-loader { background: ${t.overlayBg}; }
+        #section-overlay-back { background: ${t.overlayBackBtn}; }
+        #section-overlay-back svg { stroke: ${t.overlayBackIcon}; }
+        #section-overlay-title { color: ${t.overlayTitle}; }
+        #mob-profile-panel { background: ${t.surfaceSecondary} !important; }
+        #mob-upload-panel { background: ${t.overlayBg} !important; }
 
-// Extract media from posts
-function extractMediaFromPosts(posts) {
-    const mediaItems = [];
-    
-    posts.forEach(post => {
-        if (post.media && Array.isArray(post.media)) {
-            post.media.forEach((media, index) => {
-                // Try to extract URL from different possible structures
-                let mediaUrl = null;
-                let mediaType = 'image'; // Default
-                
-                if (typeof media === 'string') {
-                    // Case: media is just a URL string
-                    mediaUrl = media;
-                } else if (media.url) {
-                    // Case: media has url property
-                    mediaUrl = media.url;
-                    mediaType = media.type || 'image';
-                } else if (media.previewUrl) {
-                    // Case: media has previewUrl property
-                    mediaUrl = media.previewUrl;
-                    mediaType = media.type || 'image';
-                } else if (media.src) {
-                    // Case: media has src property
-                    mediaUrl = media.src;
-                    mediaType = media.type || 'image';
-                } else if (media.link) {
-                    // Case: media has link property
-                    mediaUrl = media.link;
-                    mediaType = media.type || 'image';
-                }
-                
-                if (mediaUrl) {
-                    mediaItems.push({
-                        url: mediaUrl,
-                        type: mediaType,
-                        postId: post.id
-                    });
-                }
-            });
+        /* comment sheet */
+        .comment-sheet { background: ${t.sheetBg} !important; }
+        .cs-handle { background: ${t.sheetHandle}; }
+        .cs-head { background: ${t.sheetBg}; border-bottom: 1px solid ${t.sheetBorder}; }
+        .cs-head-title { color: ${t.textPrimary}; }
+        .cs-close { background: ${t.closeBtnBg}; }
+        .cs-close svg { stroke: ${t.closeBtnIcon}; }
+        .cs-emoji-row { background: ${t.sheetBg}; border-bottom: 1px solid ${t.emojiRowBorder}; }
+        .typing-indicator { background: ${t.sheetBg}; color: ${t.typingText}; }
+        .typing-dots span { background: ${t.typingDot}; }
+        #commentsList { background: ${t.sheetBg}; }
+        .comment-author-name { color: ${t.commentAuthor}; }
+        .comment-author-name:hover { color: ${t.textSecondary}; }
+        .comment-author-date { color: ${t.commentDate}; }
+        .comment-text { color: ${t.commentText}; }
+        .comment-avatar { border-color: ${t.avatarBorder}; }
+        .comment-time { color: ${t.commentTime}; }
+        .like-button svg { stroke: ${t.commentLike}; }
+        .like-count { color: ${t.commentLike}; }
+        .reply-btn { color: ${t.replyBtn}; }
+        .reply-btn:hover { color: ${t.replyBtnHover}; }
+        .reply-btn:active { background: ${t.surfaceHover}; }
+        .replies-container { border-left-color: ${t.repliesBorder}; }
+        .view-replies-btn { color: ${t.replyBtn}; }
+        .view-replies-btn::before { background: ${t.repliesBorder}; }
+        .new-cmt-pill { background: ${t.newPillBg}; color: ${t.newPillText}; }
+        .comment-creator-badge { background: ${t.creatorBadgeBg}; color: ${t.creatorBadgeText}; }
+        .comment-guest-badge { background: ${t.guestBadgeBg}; color: ${t.guestBadgeText}; border-color: ${t.guestBadgeBorder}; }
+        .comments-empty { color: ${t.textTertiary}; }
+        .comments-empty svg { stroke: ${t.border}; }
+        .cmt-skel-avatar, .cmt-skel-line {
+          background: linear-gradient(110deg, ${t.shimmerBase} 25%, ${t.shimmerShine} 50%, ${t.shimmerBase} 75%);
+          background-size: 200% 100%;
         }
-    });
-    
-    return mediaItems;
-}
+        .comment-form { background: ${t.sheetBg}; border-top: 1px solid ${t.sheetBorder}; }
+        .cf-input-pill { background: ${t.inputBg}; border-color: ${t.inputBorder}; }
+        .cf-input-pill:focus-within { background: ${t.inputFocusBg}; border-color: ${t.inputFocusBorder}; }
+        .comment-input { color: ${t.inputText}; }
+        .comment-input::placeholder { color: ${t.inputPh}; }
+        .reply-preview-text { color: ${t.textSecondary}; }
+        .reply-preview-close { background: ${t.surfaceHover}; color: ${t.textSecondary}; }
+        .gif-selector { background: ${t.sheetBg}; border-top: 1px solid ${t.sheetBorder}; }
+        .gif-search { background: ${t.surfaceSecondary}; border-color: ${t.border}; color: ${t.textPrimary}; }
+        .gif-search:focus { border-color: ${t.borderFocus}; background: ${t.surfacePrimary}; }
 
-// Display media items
-function displayMedia(mediaItems) {
-    if (!mediaContainer) return;
-    
-    if (mediaItems.length > 0) {
-        mediaContainer.innerHTML = '';
-        
-        mediaItems.forEach((item) => {
-            const mediaElement = document.createElement('div');
-            mediaElement.className = 'media-item';
-            
-            if (item.type.includes('video') || item.url.match(/\.(mp4|mov|webm|avi)/i)) {
-                mediaElement.innerHTML = `
-                    <video src="${item.url}" controls></video>
-                `;
-            } else {
-                mediaElement.innerHTML = `
-                    <img src="${item.url}" alt="Media">
-                `;
-            }
-            
-            mediaContainer.appendChild(mediaElement);
+        /* share sheet */
+        .share-sheet { background: ${t.sheetBg} !important; }
+        .share-sheet-handle { background: ${t.sheetHandle}; }
+        .share-sheet-title { color: ${t.shareTitle}; }
+        .share-sheet-close { background: ${t.closeBtnBg}; }
+        .share-sheet-close svg { stroke: ${t.closeBtnIcon}; }
+        .share-sheet-url { background: ${t.shareUrlBg}; border-color: ${t.shareUrlBorder}; }
+        .share-sheet-url-text { color: ${t.shareUrlText}; }
+        .share-option-label { color: ${t.shareOptionLabel}; }
+
+        /* following panel */
+        #followingPanel { background: ${t.fpBg} !important; }
+        .fp-head { background: ${t.fpBg}; border-bottom: 1px solid ${t.fpBorder}; }
+        .fp-title { color: ${t.fpTitle}; }
+        .fp-back { background: ${t.closeBtnBg}; }
+        .fp-back svg { stroke: ${t.closeBtnIcon}; }
+        .fp-empty-feed { color: ${t.fpEmpty}; }
+
+        /* social connections widget */
+        .container { background-color: ${t.surfacePrimary}; }
+        .header { border-bottom: 1px solid ${t.border}; }
+        .user-count { color: ${t.textSecondary}; }
+        .user-count strong { color: ${t.textPrimary}; }
+        .user-card { background-color: ${t.surfacePrimary}; border: 1px solid transparent; }
+        .user-card:hover { background-color: ${t.surfaceHover}; border-color: ${t.border}; }
+        .user-card:active { background-color: ${t.surfaceHover}; }
+        .user-pic { border: 1px solid ${t.border}; }
+        .user-name { color: ${t.textPrimary}; }
+        .user-info { color: ${t.textPrimary}; }
+        .status-dot { border: 2px solid ${t.surfacePrimary}; }
+        .status-online { background-color: ${t.statusOnline}; }
+        .status-offline { background-color: ${t.statusOffline}; }
+        .follow-btn { color: ${t.textSecondary}; border: 1px solid ${t.border}; }
+        .follow-btn:hover { background-color: ${t.surfaceHover}; }
+        .follow-btn.followed { background: ${t.followedGradient}; color: ${t.followedText}; border: 1px solid transparent; }
+        .show-more { background-color: ${t.surfacePrimary}; color: ${t.textSecondary}; border: 1px solid ${t.border}; }
+        .show-more:hover { background-color: ${t.surfaceHover}; color: ${t.textPrimary}; }
+        .loading-spinner { border: 3px solid ${t.border}; border-top-color: ${t.textSecondary}; }
+        .section-title { color: ${t.textPrimary}; border-bottom: 1px solid ${t.border}; }
+        .section-title::after { background-color: ${t.textSecondary}; }
+        .empty-state { color: ${t.textSecondary}; }
+
+        /* ══════════════════════════════════════
+           DESKTOP  (min-width: 900px)
+           Overrides the hardcoded #efefef on
+           html, body AND #desktop-wrapper
+        ══════════════════════════════════════ */
+        @media (min-width: 900px) {
+
+          html, body { background: ${t.desktopBg} !important; }
+          #desktop-wrapper { background: ${t.desktopBg} !important; }
+
+          /* sidebar */
+          #desktop-sidebar { background: ${t.sidebarBg} !important; }
+          .ds-nav-item { color: ${t.dsNavColor}; }
+          .ds-nav-item:hover { background: ${t.dsNavHoverBg} !important; color: ${t.dsNavHoverColor}; }
+          .ds-nav-item.active { color: ${t.dsNavActiveColor}; background: ${t.dsNavActiveBg} !important; }
+          .ds-nav-icon { background: ${t.dsNavIconBg} !important; }
+          .ds-nav-icon svg { stroke: ${t.dsNavIconStroke}; }
+          .ds-divider { background: ${t.dsDivider} !important; }
+          .ds-section-label { color: ${t.dsSectionLabel}; }
+          .ds-person-row:hover { background: ${t.dsPersonHoverBg}; }
+          .ds-person-av { border-color: ${t.dsPersonAvBorder}; }
+          .ds-person-name { color: ${t.dsPersonName}; }
+          .ds-person-meta { color: ${t.dsPersonMeta}; }
+          .ds-follow-btn-sm.following { background: ${t.dsFollowingBg}; color: ${t.dsFollowingText}; }
+          .ds-section-empty { color: ${t.dsSectionEmpty}; }
+          .ds-logo-name { color: ${t.textPrimary}; }
+          .ds-top-post-card { background: ${t.dsCardBg}; border-color: ${t.dsCardBorder}; }
+          .ds-top-post-card:hover { background: ${t.dsCardHoverBg}; }
+          .ds-top-post-creator { color: ${t.dsCardCreator}; }
+          .ds-top-post-meta { color: ${t.dsCardMeta}; }
+          .ds-top-post-badge { background: ${t.dsCardBadgeBg}; color: ${t.dsCardBadgeText}; }
+          .ds-skel-av, .ds-skel-line {
+            background: linear-gradient(110deg, ${t.dsSkelBase} 25%, ${t.dsSkelShine} 50%, ${t.dsSkelBase} 75%) !important;
+            background-size: 200% 100% !important;
+          }
+
+          /* right panel */
+          #desktop-comments { background: ${t.dcBg} !important; }
+          .dc-head { background: ${t.dcBg}; border-bottom: 1px solid ${t.dcHeadBorder}; }
+          .dc-creator-name { color: ${t.dcCreatorName}; }
+          .dc-creator-upload-date { color: ${t.dcCreatorDate}; }
+          .dc-creator-profession { color: ${t.dcProfText}; }
+          .dc-creator-profession svg { stroke: ${t.dcProfIcon}; }
+          .dc-caption { color: ${t.dcCaption}; }
+          .dc-caption-toggle { color: ${t.dcCaptionToggle}; }
+          .dc-caption-toggle svg { stroke: ${t.dcCaptionToggle}; }
+          .dc-music-row { color: ${t.dcMusicText}; }
+          .dc-music-row svg { stroke: ${t.dcMusicText}; }
+          .dc-comments-label { color: ${t.dcCmtLabelColor}; border-bottom: 1px solid ${t.dcCmtLabelBorder}; }
+          .dc-typing { color: ${t.dcTypingText}; }
+          .dc-typing .typing-dots span { background: ${t.dcTypingDot}; }
+          #dc-list { background: ${t.dcListBg} !important; scrollbar-color: ${t.dcListScrollbar} transparent; }
+          #dc-list::-webkit-scrollbar-thumb { background: ${t.dcListScrollbar}; }
+          #dc-list .comment-text { color: ${t.dcListText}; }
+          #dc-list .comment-author-name { color: ${t.dcListAuthor}; }
+          #dc-list .comment-time { color: ${t.dcListTime}; }
+          #dc-list .like-button svg { stroke: ${t.dcListLike}; }
+          #dc-list .like-count { color: ${t.dcListLike}; }
+          #dc-list .reply-btn { color: ${t.dcListReply}; }
+          #dc-list .view-replies-btn { color: ${t.dcListViewReplies}; }
+          #dc-list .view-replies-btn::before { background: ${t.dcListVRBefore}; }
+          .dc-comment-skeleton .dc-skel-line {
+            background: linear-gradient(110deg, ${t.dcSkelBase} 25%, ${t.dcSkelShine} 50%, ${t.dcSkelBase} 75%);
+            background-size: 200% 100%;
+          }
+          #dc-gif-selector { background: ${t.dcGifSelectorBg}; border-top: 1px solid ${t.dcGifSelectorBorder}; }
+          #dc-gif-search { background: ${t.dcGifSearchBg}; border-color: ${t.dcGifSearchBorder}; color: ${t.dcGifSearchText}; }
+          #dc-gif-search:focus { border-color: ${t.borderFocus}; background: ${t.surfacePrimary}; }
+          #dc-gif-preview { border-top: 1px solid ${t.dcGifPreviewBorder}; }
+          #dc-gif-preview-close { background: ${t.dcGifCloseBg}; color: ${t.dcGifCloseText}; }
+          .dc-reply-preview { background: ${t.dcReplyBg}; border-top: 1px solid ${t.dcReplyBorder}; }
+          .dc-reply-icon { color: ${t.dcReplyIcon}; }
+          .dc-reply-text { color: ${t.dcReplyText}; }
+          .dc-reply-close { background: ${t.dcReplyCloseBg}; color: ${t.dcReplyCloseText}; }
+          .dc-input-row { background: ${t.dcInputRowBg} !important; border-top: 1px solid ${t.dcInputRowBorder}; }
+          .dc-input-pill { background: ${t.dcInputBg}; border-color: ${t.dcInputBorder}; }
+          .dc-input-pill:focus-within { background: ${t.dcInputFocusBg}; border-color: ${t.dcInputFocusBorder}; }
+          .dc-input-pill textarea { color: ${t.dcInputText}; }
+          .dc-input-pill textarea::placeholder { color: ${t.dcInputPh}; }
+          .dc-gif-btn { background: ${t.dcGifBtnBg}; color: ${t.dcGifBtnText}; }
+          .dc-gif-btn:hover { background: ${t.dcGifBtnHoverBg}; color: ${t.dcGifBtnHoverText}; }
+          .dc-share-row { background: ${t.dcShareRowBg}; }
+          .dc-share-btn { background: ${t.dcShareBg}; border: 1.5px solid ${t.dcShareBorder}; color: ${t.dcShareText}; }
+          .dc-share-btn:hover { background: ${t.dcShareHoverBg}; color: ${t.dcShareHoverText}; }
+          .dc-share-btn svg { stroke: ${t.dcShareText}; }
+          .desktop-nav-arrow { background: ${t.dcArrowBg} !important; }
+          .desktop-nav-arrow svg { stroke: ${t.dcArrowStroke}; }
+          .desktop-card-video-wrap.loading::before {
+            background: linear-gradient(110deg, ${t.shimmerBase} 25%, ${t.shimmerShine} 50%, ${t.shimmerBase} 75%);
+            background-size: 200% 100%;
+          }
+        }
+      `;
+
+      document.body.classList.remove('theme-light', 'theme-dim', 'theme-dark');
+      document.body.classList.add(`theme-${theme}`);
+    },
+
+    setupEventListeners: function() {
+      // Same storage listener as SocialConnectionsThemeManager
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'twitter-theme') {
+          this.applyTheme(e.newValue || 'light');
+        }
+      });
+      // Same 2-second periodic check as SocialConnectionsThemeManager
+      this.setupPeriodicCheck();
+      this.setupThemeSwitchers();
+    },
+
+    setupThemeSwitchers: function() {
+      document.querySelectorAll('[data-theme-switch]').forEach(button => {
+        button.addEventListener('click', (e) => {
+          const theme = e.currentTarget.getAttribute('data-theme-switch');
+          if (theme) this.applyTheme(theme);
         });
-    } else {
-        mediaContainer.innerHTML = `
-            <div class="empty-state">
-                <p>No media found. Share something to see it here!</p>
-            </div>
-        `;
-    }
-}
+      });
+    },
 
-async function fetchFollowedUsers() {
-    if (!currentUser) return;
-    
-    try {
-        const followQuery = query(
-            collection(db, 'follows'),
-            where('followerUserId', '==', currentUser.uid)
-        );
-        
-        const followSnapshot = await getDocs(followQuery);
-        followedUsers.clear();
-        
-        followSnapshot.forEach(doc => {
-            followedUsers.add(doc.data().followedUserId);
-        });
-        
-        updateFollowButtons();
-    } catch (error) {
-        console.error('Error fetching followed users:', error);
-    }
-}
-
-async function toggleFollow(userId, userName) {
-    if (!currentUser) return;
-    
-    try {
-        const followQuery = query(
-            collection(db, 'follows'),
-            where('followerUserId', '==', currentUser.uid),
-            where('followedUserId', '==', userId)
-        );
-        
-        const followSnapshot = await getDocs(followQuery);
-        
-        if (followSnapshot.empty) {
-            await addDoc(collection(db, 'follows'), {
-                followerUserId: currentUser.uid,
-                followedUserId: userId,
-                followedUserName: userName,
-                timestamp: serverTimestamp()
-            });
-            followedUsers.add(userId);
-        } else {
-            followSnapshot.forEach(async doc => {
-                await deleteDoc(doc.ref);
-            });
-            followedUsers.delete(userId);
+    setupPeriodicCheck: function() {
+      setInterval(() => {
+        const stored = localStorage.getItem('twitter-theme') || 'light';
+        if (stored !== this.currentTheme) {
+          this.applyTheme(stored);
         }
-        
-        updateFollowButtons();
-    } catch (error) {
-        console.error('Error toggling follow:', error);
+      }, 2000);
     }
-}
+  };
 
-function updateFollowButtons() {
-    if (currentPostData && currentPostData.userId !== currentUser?.uid) {
-        followButton.textContent = followedUsers.has(currentPostData.userId) ? 'Following' : 'Follow';
-        followButton.classList.toggle('followed', followedUsers.has(currentPostData.userId));
-    }
-}
-
-function setupEventListeners() {
-    backButton.addEventListener('click', closeModal);
-    
-    commentInput.addEventListener('input', () => {
-        submitComment.disabled = commentInput.value.trim() === '' && !selectedGif;
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      MediaAppThemeManager.initialize();
     });
-    
-    submitComment.addEventListener('click', addComment);
-    
-    gifButton.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        gifSelector.classList.toggle('active');
-        if (gifSelector.classList.contains('active')) {
-            loadGifs();
-            gifSearch.focus();
-        }
-    });
-    
-    gifSearch.addEventListener('input', debounce(() => {
-        loadGifs(gifSearch.value);
-    }, 500));
-    
-    document.addEventListener('click', (e) => {
-        if (gifSelector.classList.contains('active') && 
-            !gifSelector.contains(e.target) && 
-            e.target !== gifButton) {
-            gifSelector.classList.remove('active');
-        }
-    });
-    
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && fullscreenModal.classList.contains('active')) {
-            closeModal();
-        } else if (e.key === 'Escape' && profileModal.classList.contains('active')) {
-            closeProfileModal();
-        }
-    });
+  } else {
+    MediaAppThemeManager.initialize();
+  }
 
-    likePostButton.addEventListener('click', async () => {
-        if (!currentUser || !currentPostId) return;
-        
-        try {
-            const postRef = doc(db, 'recence', currentPostId);
-            const postDoc = await getDoc(postRef);
-            
-            if (postDoc.exists()) {
-                const postData = postDoc.data();
-                const isLiked = postData.likes && postData.likes.includes(currentUser.uid);
-                
-                if (isLiked) {
-                    await updateDoc(postRef, {
-                        likes: arrayRemove(currentUser.uid)
-                    });
-                    likePostButton.classList.remove('liked');
-                    likePostCount.textContent = (postData.likes ? postData.likes.length - 1 : 0).toString();
-                } else {
-                    await updateDoc(postRef, {
-                        likes: arrayUnion(currentUser.uid)
-                    });
-                    likePostButton.classList.add('liked');
-                    likePostCount.textContent = (postData.likes ? postData.likes.length + 1 : 1).toString();
-                }
-            }
-        } catch (error) {
-            console.error('Error toggling post like:', error);
-        }
-    });
-
-    followButton.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (currentPostData) {
-            toggleFollow(currentPostData.userId, currentPostData.name);
-        }
-    });
-
-    replyPreviewClose.addEventListener('click', () => {
-        currentReplyTo = null;
-        replyPreview.style.display = 'none';
-    });
-
-    profileBackButton.addEventListener('click', closeProfileModal);
-
-    // Listen for messages from iframe
-    window.addEventListener('message', (event) => {
-        if (event.data === 'closeProfileModal') {
-            closeProfileModal();
-        } else if (event.data.type === 'openPost') {
-            closeProfileModal();
-        }
-    });
-}
-
-function debounce(func, wait) {
-    let timeout;
-    return function() {
-        const context = this;
-        const args = arguments;
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-            func.apply(context, args);
-        }, wait);
-    };
-}
-
-async function loadGifs(searchTerm = '') {
-    try {
-        gifResults.innerHTML = '<div style="text-align: center; padding: 10px;">Loading GIFs...</div>';
-        
-        const apiKey = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L65';
-        const endpoint = searchTerm 
-            ? `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${searchTerm}&limit=15`
-            : `https://api.giphy.com/v1/gifs/trending?api_key=${apiKey}&limit=15`;
-        
-        const response = await fetch(endpoint);
-        const data = await response.json();
-        
-        gifResults.innerHTML = '';
-        
-        if (data.data.length === 0) {
-            gifResults.innerHTML = '<div style="text-align: center; padding: 10px;">No GIFs found</div>';
-            return;
-        }
-        
-        data.data.forEach(gif => {
-            const gifItem = document.createElement('img');
-            gifItem.src = gif.images.fixed_height_small.url;
-            gifItem.className = 'gif-item';
-            gifItem.dataset.originalUrl = gif.images.fixed_height.url;
-            
-            gifItem.addEventListener('click', () => {
-                selectedGif = gif.images.fixed_height.url;
-                submitComment.disabled = false;
-                gifSelector.classList.remove('active');
-                
-                const existingPreview = document.querySelector('.gif-preview');
-                if (existingPreview) existingPreview.remove();
-                
-                const previewGif = document.createElement('div');
-                previewGif.className = 'gif-preview';
-                previewGif.innerHTML = `<img src="${selectedGif}" style="max-height: 60px; border-radius: 4px; margin-right: 10px;">`;
-                previewGif.style.display = 'inline-block';
-                commentInput.parentNode.insertBefore(previewGif, commentInput);
-            });
-            
-            gifResults.appendChild(gifItem);
-        });
-    } catch (error) {
-        console.error('Error loading GIFs:', error);
-        gifResults.innerHTML = '<div style="text-align: center; padding: 10px;">Error loading GIFs</div>';
-    }
-}
-
-function setupLazyLoading() {
-    const lazyElements = document.querySelectorAll('.lazy-load');
-    
-    if ('IntersectionObserver' in window) {
-        const lazyObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const lazyElement = entry.target;
-                    
-                    if (lazyElement.dataset.src) {
-                        lazyElement.src = lazyElement.dataset.src;
-                        lazyElement.removeAttribute('data-src');
-                        
-                        if (lazyElement.tagName === 'VIDEO') {
-                            lazyElement.muted = true;
-                            lazyElement.playsInline = true;
-                            lazyElement.loop = true;
-                            lazyElement.autoplay = true;
-                            
-                            lazyElement.addEventListener('loadeddata', () => {
-                                lazyElement.play().catch(e => console.log("Video play prevented:", e));
-                            });
-                        }
-                        
-                        setTimeout(() => {
-                            lazyElement.classList.add('loaded');
-                        }, 50);
-                        
-                        lazyObserver.unobserve(lazyElement);
-                    }
-                }
-            });
-        }, {
-            rootMargin: '200px 0px',
-            threshold: 0.01
-        });
-        
-        lazyElements.forEach(lazyElement => {
-            lazyObserver.observe(lazyElement);
-        });
-    } else {
-        lazyElements.forEach(lazyElement => {
-            if (lazyElement.dataset.src) {
-                lazyElement.src = lazyElement.dataset.src;
-                lazyElement.classList.add('loaded');
-            }
-        });
-    }
-}
-
-async function fetchPosts() {
-    try {
-        const recenceCollection = collection(db, 'recence');
-        const q = query(recenceCollection, orderBy('timestamp', 'desc'));
-        const querySnapshot = await getDocs(q);
-
-        loadingContainer.classList.add('hidden');
-        setTimeout(() => {
-            loadingContainer.style.display = 'none';
-        }, 300);
-
-        if (querySnapshot.empty) {
-            gallery.innerHTML = '<div style="text-align: center; padding: 20px;">No posts found</div>';
-            return;
-        }
-
-        querySnapshot.forEach((doc) => {
-            const postData = doc.data();
-            // Only create pin element if post has media
-            if (postData.media && postData.media.length > 0) {
-                const pinElement = createPinElement(postData, doc.id);
-                if (pinElement) {
-                    gallery.appendChild(pinElement);
-                }
-            }
-        });
-
-        setupLazyLoading();
-    } catch (error) {
-        console.error('Error fetching posts:', error);
-        loadingContainer.classList.add('hidden');
-        setTimeout(() => {
-            loadingContainer.style.display = 'none';
-        }, 300);
-        gallery.innerHTML = '<div style="text-align: center; padding: 20px;">Error loading content. Please try again later.</div>';
-    }
-}
-
-function createPinElement(postData, postId) {
-    // Only create pin if there's media
-    if (!postData.media || postData.media.length === 0) return null;
-
-    const pinContainer = document.createElement('div');
-    pinContainer.className = 'pin-container';
-    pinContainer.dataset.postId = postId;
-
-    const galleryItem = document.createElement('div');
-    galleryItem.className = 'gallery-item';
-
-    // Create media element from first media item
-    const mediaItem = postData.media[0];
-    const mediaElement = createMediaElement(mediaItem);
-    if (mediaElement) {
-        galleryItem.appendChild(mediaElement);
-    } else {
-        return null; // Skip if media element couldn't be created
-    }
-
-    const profileInfo = document.createElement('div');
-    profileInfo.className = 'profile-info';
-
-    const profileLeft = document.createElement('div');
-    profileLeft.className = 'profile-left';
-
-    const profileImage = document.createElement('img');
-    profileImage.className = 'lazy-load';
-    profileImage.dataset.src = postData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    profileImage.alt = 'Profile';
-    profileImage.onerror = function() {
-        this.src = 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    };
-    profileImage.addEventListener('click', (e) => {
-        e.stopPropagation();
-        viewProfile(postData.userId);
-    });
-
-    const nameSpan = document.createElement('span');
-    nameSpan.textContent = postData.name || 'User';
-    nameSpan.addEventListener('click', (e) => {
-        e.stopPropagation();
-        viewProfile(postData.userId);
-    });
-
-    profileLeft.appendChild(profileImage);
-    profileLeft.appendChild(nameSpan);
-
-    const options = document.createElement('div');
-    options.className = 'options';
-    for (let i = 0; i < 3; i++) {
-        const dot = document.createElement('span');
-        options.appendChild(dot);
-    }
-
-    profileInfo.appendChild(profileLeft);
-    profileInfo.appendChild(options);
-
-    pinContainer.appendChild(galleryItem);
-    pinContainer.appendChild(profileInfo);
-
-    pinContainer.addEventListener('click', () => {
-        openModal(postData, postId);
-    });
-
-    return pinContainer;
-}
-
-function createMediaElement(mediaItem) {
-    if (!mediaItem || !mediaItem.url) return null;
-
-    const isVideo = mediaItem.type === 'video' || mediaItem.contentType?.startsWith('video/');
-    
-    if (isVideo) {
-        const video = document.createElement('video');
-        video.className = 'lazy-load';
-        video.dataset.src = mediaItem.url;
-        video.alt = 'Video content';
-        video.muted = true;
-        video.controls = false;
-        video.playsInline = true;
-        video.loop = true;
-        video.autoplay = false;
-
-        video.onerror = function() {
-            if (this.parentNode && this.parentNode.parentNode) {
-                this.parentNode.parentNode.remove();
-            }
-            return null;
-        };
-
-        return video;
-    } else {
-        const img = document.createElement('img');
-        img.className = 'lazy-load';
-        img.dataset.src = mediaItem.url;
-        img.alt = 'Post image';
-
-        img.onerror = function() {
-            if (this.parentNode && this.parentNode.parentNode) {
-                this.parentNode.parentNode.remove();
-            }
-            return null;
-        };
-
-        return img;
-    }
-}
-
-function openModal(postData, postId) {
-    currentPostId = postId;
-    currentPostData = postData;
-    
-    modalMedia.innerHTML = '';
-    commentsList.innerHTML = '';
-    commentsCount.textContent = '0 comments';
-    commentInput.value = '';
-    submitComment.disabled = true;
-    selectedGif = null;
-    currentReplyTo = null;
-    replyPreview.style.display = 'none';
-    
-    postUserAvatar.src = postData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    postUserAvatar.onerror = function() {
-        this.src = 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    };
-    postUserAvatar.addEventListener('click', (e) => {
-        e.stopPropagation();
-        viewProfile(postData.userId);
-    });
-    
-    postUserName.textContent = postData.name || 'User';
-    postUserName.addEventListener('click', (e) => {
-        e.stopPropagation();
-        viewProfile(postData.userId);
-    });
-    
-    postUserFlag.src = `https://flagcdn.com/w20/${postData.country || 'unknown'}.png`;
-    postUserFlag.onerror = function() {
-        this.style.display = 'none';
-    };
-    
-    // Set post description if available
-    if (postData.text && postData.text.trim() !== '') {
-        postDescription.textContent = postData.text;
-        postDescription.style.display = 'block';
-    } else {
-        postDescription.style.display = 'none';
-    }
-    
-    if (postData.userId === currentUser?.uid) {
-        followButton.style.display = 'none';
-    } else {
-        followButton.style.display = 'inline-block';
-        followButton.textContent = followedUsers.has(postData.userId) ? 'Following' : 'Follow';
-        followButton.classList.toggle('followed', followedUsers.has(postData.userId));
-    }
-    
-    likePostButton.classList.toggle('liked', postData.likes && postData.likes.includes(currentUser?.uid));
-    likePostCount.textContent = postData.likes ? postData.likes.length : 0;
-    
-    // Create media element for modal
-    const mediaItem = postData.media[0];
-    const isVideo = mediaItem.type === 'video' || mediaItem.contentType?.startsWith('video/');
-    
-    if (isVideo) {
-        const video = document.createElement('video');
-        video.src = mediaItem.url;
-        video.controls = true;
-        video.autoplay = true;
-        video.loop = true;
-        video.muted = false;
-        currentVideo = video;
-        modalMedia.appendChild(video);
-    } else {
-        const img = document.createElement('img');
-        img.src = mediaItem.url;
-        img.alt = 'Post image';
-        modalMedia.appendChild(img);
-        currentVideo = null;
-    }
-    
-    fullscreenModal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-    
-    loadComments(postId);
-}
-
-function viewProfile(userId) {
-    loadingContainer.classList.remove('hidden');
-    loadingContainer.style.display = 'flex';
-    
-    profileIframe.src = `profile.html?userId=${userId}`;
-    
-    profileModal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-    
-    profileIframe.onload = () => {
-        loadingContainer.classList.add('hidden');
-        setTimeout(() => {
-            loadingContainer.style.display = 'none';
-        }, 300);
-    };
-}
-
-function closeProfileModal() {
-    profileModal.classList.remove('active');
-    document.body.style.overflow = '';
-    
-    setTimeout(() => {
-        profileIframe.src = 'about:blank';
-    }, 300);
-    
-    if (currentPostId) {
-        setTimeout(() => {
-            fullscreenModal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }, 50);
-    }
-}
-
-function closeModal() {
-    if (currentVideo) {
-        currentVideo.pause();
-        currentVideo.currentTime = 0;
-        currentVideo = null;
-    }
-    
-    fullscreenModal.classList.remove('active');
-    document.body.style.overflow = '';
-    
-    if (commentsUnsubscribe) {
-        commentsUnsubscribe();
-        commentsUnsubscribe = null;
-    }
-    
-    currentPostId = null;
-    currentPostData = null;
-    
-    gifSelector.classList.remove('active');
-    selectedGif = null;
-    
-    const previewGif = document.querySelector('.gif-preview');
-    if (previewGif) {
-        previewGif.remove();
-    }
-}
-
-function loadComments(postId) {
-    commentsList.innerHTML = `
-        <div class="comment-loading" style="display: flex; justify-content: center; padding: 20px;">
-            <div class="spinner" style="width: 20px; height: 20px;"></div>
-        </div>
-    `;
-    
-    const commentsRef = collection(db, 'recence', postId, 'comments');
-    const q = query(commentsRef, orderBy('timestamp', 'asc'));
-    
-    commentsUnsubscribe = onSnapshot(q, (snapshot) => {
-        commentsList.innerHTML = '';
-        
-        if (snapshot.empty) {
-            commentsCount.textContent = '0 comments';
-            return;
-        }
-        
-        commentsCount.textContent = `${snapshot.size} comment${snapshot.size !== 1 ? 's' : ''}`;
-        
-        const comments = {};
-        const rootComments = [];
-        
-        snapshot.forEach((doc) => {
-            const commentData = doc.data();
-            commentData.id = doc.id;
-            
-            if (commentData.parentId) {
-                if (!comments[commentData.parentId]) {
-                    comments[commentData.parentId] = [];
-                }
-                comments[commentData.parentId].push(commentData);
-            } else {
-                rootComments.push(commentData);
-            }
-        });
-        
-        rootComments.forEach(comment => {
-            const commentElement = createCommentElement(comment, comments[comment.id] || []);
-            commentsList.appendChild(commentElement);
-        });
-    }, (error) => {
-        console.error("Error loading comments:", error);
-        commentsList.innerHTML = '<div style="text-align: center; padding: 10px;">Error loading comments</div>';
-    });
-}
-
-function createCommentElement(commentData, replies = []) {
-    const comment = document.createElement('div');
-    comment.className = 'comment';
-    comment.dataset.commentId = commentData.id;
-    
-    const avatar = document.createElement('img');
-    avatar.className = 'comment-avatar';
-    avatar.src = commentData.userPhotoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    avatar.onerror = function() {
-        this.src = 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    };
-    avatar.addEventListener('click', (e) => {
-        e.stopPropagation();
-        viewProfile(commentData.userId);
-    });
-    
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'comment-content';
-    
-    const author = document.createElement('div');
-    author.className = 'comment-author';
-    author.textContent = commentData.userName || 'Anonymous';
-    author.style.cursor = 'pointer';
-    author.addEventListener('click', (e) => {
-        e.stopPropagation();
-        viewProfile(commentData.userId);
-    });
-    
-    if (commentData.country) {
-        const flag = document.createElement('img');
-        flag.className = 'comment-flag';
-        flag.src = `https://flagcdn.com/w20/${commentData.country}.png`;
-        flag.alt = commentData.country;
-        flag.onerror = function() {
-            this.style.display = 'none';
-        };
-        author.appendChild(flag);
-    }
-    
-    if (currentPostData && commentData.userId === currentPostData.userId) {
-        const creatorBadge = document.createElement('span');
-        creatorBadge.textContent = ' (Creator)';
-        creatorBadge.style.color = '#0095f6';
-        creatorBadge.style.fontSize = '12px';
-        creatorBadge.style.marginLeft = '4px';
-        author.appendChild(creatorBadge);
-    }
-    
-    contentDiv.appendChild(author);
-    
-    if (commentData.text && commentData.text.trim() !== '') {
-        const text = document.createElement('div');
-        text.className = 'comment-text';
-        text.textContent = commentData.text;
-        contentDiv.appendChild(text);
-    }
-    
-    if (commentData.gifUrl) {
-        const gif = document.createElement('img');
-        gif.className = 'comment-gif';
-        gif.src = commentData.gifUrl;
-        gif.loading = 'lazy';
-        contentDiv.appendChild(gif);
-    }
-    
-    const actions = document.createElement('div');
-    actions.className = 'comment-actions';
-    
-    const likeButton = document.createElement('button');
-    likeButton.className = 'like-button';
-    if (commentData.likes && commentData.likes.includes(currentUser?.uid)) {
-        likeButton.classList.add('liked');
-    }
-
-    likeButton.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-        </svg>
-        Like
-    `;
-
-    const likeCount = document.createElement('span');
-    likeCount.className = 'like-count';
-    likeCount.textContent = commentData.likes ? commentData.likes.length : 0;
-
-    likeButton.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        
-        const commentRef = doc(db, 'recence', currentPostId, 'comments', commentData.id);
-        
-        try {
-            const isLiked = likeButton.classList.contains('liked');
-            
-            if (isLiked) {
-                await updateDoc(commentRef, {
-                    likes: arrayRemove(currentUser.uid)
-                });
-                likeButton.classList.remove('liked');
-                likeCount.textContent = (commentData.likes ? commentData.likes.length - 1 : 0).toString();
-            } else {
-                await updateDoc(commentRef, {
-                    likes: arrayUnion(currentUser.uid)
-                });
-                likeButton.classList.add('liked');
-                likeCount.textContent = (commentData.likes ? commentData.likes.length + 1 : 1).toString();
-            }
-        } catch (error) {
-            console.error('Error updating like:', error);
-        }
-    });
-
-    const replyButton = document.createElement('button');
-    replyButton.className = 'reply-btn';
-    replyButton.textContent = 'Reply';
-
-    replyButton.addEventListener('click', (e) => {
-        e.stopPropagation();
-        currentReplyTo = {
-            id: commentData.id,
-            name: commentData.userName
-        };
-        replyPreviewText.textContent = `Replying to ${commentData.userName}`;
-        replyPreview.style.display = 'flex';
-        commentInput.focus();
-    });
-
-    const timestamp = document.createElement('span');
-    timestamp.className = 'comment-time';
-
-    if (commentData.timestamp && commentData.timestamp.toDate) {
-        const date = commentData.timestamp.toDate();
-        timestamp.textContent = formatTimestamp(date);
-    } else {
-        timestamp.textContent = 'Just now';
-    }
-
-    actions.appendChild(likeButton);
-    actions.appendChild(likeCount);
-    actions.appendChild(replyButton);
-    actions.appendChild(timestamp);
-
-    contentDiv.appendChild(actions);
-
-    if (replies.length > 0) {
-        const repliesContainer = document.createElement('div');
-        repliesContainer.className = 'replies-container';
-        
-        const viewRepliesBtn = document.createElement('button');
-        viewRepliesBtn.className = 'view-replies-btn';
-        viewRepliesBtn.textContent = `View ${replies.length} repl${replies.length === 1 ? 'y' : 'ies'}`;
-        
-        const repliesList = document.createElement('div');
-        repliesList.style.display = 'none';
-        
-        replies.forEach(reply => {
-            const replyElement = createCommentElement(reply);
-            repliesList.appendChild(replyElement);
-        });
-        
-        viewRepliesBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (repliesList.style.display === 'none') {
-                repliesList.style.display = 'block';
-                viewRepliesBtn.textContent = 'Hide replies';
-            } else {
-                repliesList.style.display = 'none';
-                viewRepliesBtn.textContent = `View ${replies.length} repl${replies.length === 1 ? 'y' : 'ies'}`;
-            }
-        });
-        
-        repliesContainer.appendChild(viewRepliesBtn);
-        repliesContainer.appendChild(repliesList);
-        contentDiv.appendChild(repliesContainer);
-    }
-
-    comment.appendChild(avatar);
-    comment.appendChild(contentDiv);
-
-    return comment;
-}
-
-function formatTimestamp(date) {
-    const now = new Date();
-    const diffMs = now - date;
-    const diffSec = Math.floor(diffMs / 1000);
-    const diffMin = Math.floor(diffSec / 60);
-    const diffHour = Math.floor(diffMin / 60);
-    const diffDay = Math.floor(diffHour / 24);
-    
-    if (diffSec < 60) {
-        return 'Just now';
-    } else if (diffMin < 60) {
-        return `${diffMin}m ago`;
-    } else if (diffHour < 24) {
-        return `${diffHour}h ago`;
-    } else if (diffDay < 7) {
-        return `${diffDay}d ago`;
-    } else {
-        return date.toLocaleDateString();
-    }
-}
-
-async function addComment() {
-    if (!currentUser || !currentPostId) return;
-    
-    const text = commentInput.value.trim();
-    if (text === '' && !selectedGif) return;
-    
-    submitComment.disabled = true;
-    
-    try {
-        const commentData = {
-            userId: currentUser.uid,
-            userName: currentUser.displayName || 'User',
-            userPhotoURL: currentUser.photoURL,
-            text: text,
-            timestamp: serverTimestamp(),
-            likes: [],
-            country: currentUser.country
-        };
-        
-        if (currentReplyTo) {
-            commentData.parentId = currentReplyTo.id;
-            commentData.parentUserName = currentReplyTo.name;
-        }
-        
-        if (selectedGif) {
-            commentData.gifUrl = selectedGif;
-        }
-        
-        const commentsRef = collection(db, 'recence', currentPostId, 'comments');
-        await addDoc(commentsRef, commentData);
-        
-        commentInput.value = '';
-        selectedGif = null;
-        currentReplyTo = null;
-        replyPreview.style.display = 'none';
-        
-        const previewGif = document.querySelector('.gif-preview');
-        if (previewGif) {
-            previewGif.remove();
-        }
-        
-        submitComment.disabled = true;
-        
-        const postRef = doc(db, 'recence', currentPostId);
-        const postDoc = await getDoc(postRef);
-        
-        if (postDoc.exists()) {
-            const postData = postDoc.data();
-            const currentCount = postData.commentCount || 0;
-            
-            await updateDoc(postRef, {
-                commentCount: currentCount + 1
-            });
-        }
-    } catch (error) {
-        console.error('Error adding comment:', error);
-        alert('Failed to add comment. Please try again.');
-    } finally {
-        submitComment.disabled = commentInput.value.trim() === '' && !selectedGif;
-    }
-}
-
-// Initialize the app
-init();
+})();
