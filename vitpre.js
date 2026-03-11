@@ -14,11 +14,8 @@ const firebaseConfig = {
   databaseURL: "https://globalchat-2d669-default-rtdb.firebaseio.com/"
 };
 
-// Appwrite Configuration
-const APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1";
-const APPWRITE_PROJECT_ID = "67d98c24003a405ab6a0"; 
-const APPWRITE_BUCKET_ID = "67dba33e000399dc8641"; 
-const APPWRITE_API_KEY = "standard_6f65a2d8e8c270ba9556f844789c1eae72c7fa71f64b95409ac20b6127c483454d1e4b9f8c13f82c09168ed1dfebd2d4e7e02494bee254252f9713675beea4d645a960879aaada1c6c98cb7651ec6c6bf4357e4c2c8b8d666c0166203ec43694b9a49ec8ee08161edf3fd5dea94e46c165316122f44f96c44933121be214b80c";
+// Cloudflare R2 Configuration (replaces Appwrite)
+const R2_WORKER_URL = "https://r2-upload.katlegomashilwane0691.workers.dev";
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -433,65 +430,34 @@ function handlePostButtonClick() {
   }
 }
 
-// Upload media to Appwrite with proper handling for all content types
+// Upload media to Cloudflare R2 via Worker
 async function uploadMedia(file) {
-  try {
-    // Generate unique filename with extension
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${currentUser.uid}_${Date.now()}.${fileExtension}`;
-    const fileType = file.type.split('/')[0]; // 'image' or 'video'
-    
-    // Create form data for upload
-    const formData = new FormData();
-    formData.append('fileId', 'unique_' + Date.now());
-    formData.append('file', file);
-    
-    // Upload to Appwrite using proper headers
-    const response = await fetch(`${APPWRITE_ENDPOINT}/storage/buckets/${APPWRITE_BUCKET_ID}/files`, {
-      method: 'POST',
-      headers: {
-        'X-Appwrite-Project': APPWRITE_PROJECT_ID,
-        'X-Appwrite-Key': APPWRITE_API_KEY,
-      },
-      body: formData
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Upload error details:', errorData);
-      throw new Error(`Upload failed with status: ${response.status}`);
-    }
-    
-    const result = await response.json();
-    
-    // Get the proper file URL with view parameter
-    const fileUrl = `${APPWRITE_ENDPOINT}/storage/buckets/${APPWRITE_BUCKET_ID}/files/${result.$id}/view?project=${APPWRITE_PROJECT_ID}`;
-    
-    return {
-      url: fileUrl,
-      type: fileType,
-      contentType: file.type,
-      fileId: result.$id // Store file ID for potential future management
-    };
-  } catch (error) {
-    console.error('Media upload error:', error);
-    
-    // Upload failed - create blob URL as fallback for storage in Firestore
-    // This is not ideal, but allows us to at least save the media in the draft
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const dataUrl = event.target.result;
-        resolve({
-          url: dataUrl,
-          type: file.type.split('/')[0],
-          contentType: file.type,
-          isDataUrl: true // Flag to indicate this is a data URL, not an Appwrite URL
-        });
-      };
-      reader.readAsDataURL(file);
-    });
+  const fileExtension = file.name.split('.').pop();
+  const fileName = `${currentUser.uid}_${Date.now()}.${fileExtension}`;
+  const fileType = file.type.split('/')[0];
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('fileName', fileName);
+
+  const response = await fetch(`${R2_WORKER_URL}/upload`, {
+    method: 'POST',
+    body: formData
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    console.error('Upload error:', err);
+    throw new Error(`Upload failed: ${response.status}`);
   }
+
+  const result = await response.json();
+  return {
+    url: result.url,
+    type: fileType,
+    contentType: file.type,
+    fileId: fileName
+  };
 }
 
 // Create post with proper media handling
@@ -1106,14 +1072,14 @@ function checkScheduledPosts() {
             let mediaType = media.type;
             let contentType = media.contentType || `${media.type}/*`;
             
-            // If the preview is a data URL, we should try to upload it to Appwrite
+            // If the preview is a data URL, upload it to R2
             if (mediaUrl && mediaUrl.startsWith('data:')) {
               try {
                 // Convert data URL to blob for upload
                 const blob = dataURLtoBlob(mediaUrl);
                 const file = new File([blob], `scheduled_${Date.now()}.${contentType.split('/')[1] || 'png'}`, { type: contentType });
                 
-                // Upload to Appwrite
+                // Upload to R2
                 const uploadResult = await uploadMedia(file);
                 
                 // Use the uploaded URL

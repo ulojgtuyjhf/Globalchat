@@ -2036,8 +2036,7 @@ body {
 
     <!-- Profile modal removed -->
 
-    <!-- Add Appwrite SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/appwrite@11.0.0"></script>
+    <!-- R2 Storage via Cloudflare Worker (replaces Appwrite) -->
     <script type="module">
         // Import Firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -2123,24 +2122,35 @@ function trackPresence(postId) {
     onDisconnect(presRef).remove();
 }
 
-// Appwrite Configuration
-const APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1";
-const APPWRITE_PROJECT_ID = "67d98c24003a405ab6a0"; 
-const APPWRITE_BUCKET_ID = "67dba33e000399dc8641"; 
-const APPWRITE_API_KEY = "standard_6f65a2d8e8c270ba9556f844789c1eae72c7fa71f64b95409ac20b6127c483454d1e4b9f8c13f82c09168ed1dfebd2d4e7e02494bee254252f9713675beea4d645a960879aaada1c6c98cb7651ec6c6bf4357e4c2c8b8d666c0166203ec43694b9a49ec8ee08161edf3fd5dea94e46c165316122f44f96c44933121be214b80c";
+// Cloudflare R2 Configuration (replaces Appwrite)
+const R2_PUBLIC_URL = "https://d12ce6c6e74de3e7c64467f70e565f7f.r2.cloudflarestorage.com/media-uploads";
+const R2_WORKER_URL = "https://r2-upload.katlegomashilwane0691.workers.dev"; // ← replace after creating Worker
 
-// Initialize Appwrite SDK
+// R2 storage helper (drop-in replacement for Appwrite storage)
 const appwrite = {
-    sdk: null,
-    init: function() {
-        this.sdk = new Appwrite();
-        this.sdk.setEndpoint(APPWRITE_ENDPOINT);
-        this.sdk.setProject(APPWRITE_PROJECT_ID);
-        return this.sdk;
+    // Get public URL for a stored file
+    getFileViewUrl: function(fileId) {
+        return `${R2_PUBLIC_URL}/${fileId}`;
     },
-    storage: function() {
-        if (!this.sdk) this.init();
-        return this.sdk.storage;
+    // Upload a file via Cloudflare Worker
+    uploadFile: async function(file, fileId) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('fileId', fileId || crypto.randomUUID());
+        const res = await fetch(`${R2_WORKER_URL}/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        if (!res.ok) throw new Error('Upload failed');
+        return await res.json(); // returns { fileId, url }
+    },
+    // Delete a file via Cloudflare Worker
+    deleteFile: async function(fileId) {
+        const res = await fetch(`${R2_WORKER_URL}/delete/${fileId}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error('Delete failed');
+        return await res.json();
     }
 };
 
@@ -2558,10 +2568,39 @@ async function setupVideoVisibility() {
     window._playVideo = playVideo;
 }
 
-async function fetchPosts() {
+// Auto-delete posts older than 24 hours
+async function deleteOldPosts() {
     try {
+        const cutoff = Date.now() - (24 * 60 * 60 * 1000); // 24 hours ago
+        const oldQuery = query(
+            collection(db, 'recence'),
+            where('timestamp', '<', cutoff)
+        );
+        const oldSnap = await getDocs(oldQuery);
+        const deletePromises = [];
+        oldSnap.forEach((d) => {
+            deletePromises.push(deleteDoc(doc(db, 'recence', d.id)));
+        });
+        if (deletePromises.length > 0) {
+            await Promise.all(deletePromises);
+            console.log(`Deleted ${deletePromises.length} old posts`);
+        }
+    } catch (err) {
+        console.error('Error deleting old posts:', err);
+    }
+}
+
+let _fetchPostsRunning = false;
+async function fetchPosts() {
+    if (_fetchPostsRunning) return; // prevent duplicate calls
+    _fetchPostsRunning = true;
+    try {
+        // First delete posts older than 24 hours
+        await deleteOldPosts();
+        // Clear gallery before loading to prevent duplicates
+        if (gallery) gallery.innerHTML = '';
         const recenceCollection = collection(db, 'recence');
-        const q = query(recenceCollection, orderBy('timestamp', 'desc'));
+        const q = query(recenceCollection, orderBy('timestamp', 'desc'), limit(50));
         const querySnapshot = await getDocs(q);
 
         loadingContainer.classList.add('hidden');
@@ -2612,6 +2651,8 @@ async function fetchPosts() {
             loadingContainer.style.display = 'none';
         }, 300);
         gallery.innerHTML = '<div style="text-align: center; padding: 20px;">Error loading content. Please try again later.</div>';
+    } finally {
+        _fetchPostsRunning = false;
     }
 }
 
