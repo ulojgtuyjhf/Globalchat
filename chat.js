@@ -789,6 +789,20 @@
           /* ── desktop iframe section panel ── */
           #ds-section-panel { background: ${t.panelBg} !important; }
           .ds-panel-loader  { background: ${t.panelBg} !important; }
+
+          /* ── desktop comment panel follow button ── */
+          .dc-follow-btn {
+            background: var(--brand-gradient) !important;
+            color: #fff !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.14) !important;
+          }
+          .dc-follow-btn.following {
+            background: ${t.dsFollowingBg} !important;
+            color: ${t.dsFollowingText} !important;
+            box-shadow: none !important;
+          }
+          .dc-creator-avatar { border-color: ${t.dsPersonAvBorder} !important; }
+          .dc-creator-name   { color: ${t.dcCreatorName} !important; }
         }
       `;
 
