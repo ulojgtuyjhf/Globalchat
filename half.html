@@ -645,8 +645,9 @@ body {
 #feed-tabs { display: none !important; }
 
 /* ─── PROFILE PANEL ─── */
-#fpOverlay { display: none !important; pointer-events: none !important; }
-#followingPanel { display: none !important; }
+/* fpOverlay & followingPanel shown/hidden by JS only */
+#fpOverlay { display: none; pointer-events: none; }
+#followingPanel { display: none; }
 
 /* ─── LAZY LOAD ─── */
 .lazy-load { opacity: 0; transition: opacity 0.3s ease-in; }
@@ -1466,7 +1467,8 @@ body {
      RIGHT COMMENT PANEL ISLAND
   ══════════════════════════════ */
   #desktop-comments {
-    width: clamp(280px, 24vw, 360px);
+    width: 0;
+    min-width: 0;
     flex-shrink: 0;
     height: calc(100vh - 24px);
     display: flex; flex-direction: column;
@@ -1475,18 +1477,21 @@ body {
     border-radius: 20px;
     box-shadow: 0 2px 20px rgba(0,0,0,0.07);
     z-index: 20;
-    position: fixed;
-    right: 12px;
-    top: 12px;
-    transform: translateX(calc(100% + 24px));
+    position: relative;
     opacity: 0;
     pointer-events: none;
-    transition: transform 0.42s cubic-bezier(0.22,1,0.36,1), opacity 0.28s ease;
+    transition: width 0.42s cubic-bezier(0.22,1,0.36,1),
+                min-width 0.42s cubic-bezier(0.22,1,0.36,1),
+                opacity 0.28s ease,
+                margin-left 0.42s cubic-bezier(0.22,1,0.36,1);
+    margin-left: 0;
   }
   #desktop-comments.open {
-    transform: translateX(0);
+    width: clamp(280px, 24vw, 360px);
+    min-width: clamp(280px, 24vw, 360px);
     opacity: 1;
     pointer-events: all;
+    margin-left: 0;
   }
   /* Comment toggle button on video card */
   .dc-toggle-btn {
@@ -1684,12 +1689,17 @@ body {
   /* Scroll nav arrows — always visible on desktop, fixed to right edge of feed area */
   .desktop-nav-arrows {
     position: fixed;
-    /* sits between feed and comment panel */
-    right: calc(clamp(280px, 24vw, 360px) + 14px);
+    /* centered vertically, right side of feed — always visible regardless of comments state */
+    right: 16px;
     top: 50%; transform: translateY(-50%);
     display: flex; flex-direction: column; gap: 10px;
-    z-index: 100;
+    z-index: 50;
     pointer-events: all;
+    transition: right 0.42s cubic-bezier(0.22,1,0.36,1);
+  }
+  /* When comments panel is open, shift arrows left of it */
+  body.comments-open .desktop-nav-arrows {
+    right: calc(clamp(280px, 24vw, 360px) + 20px);
   }
   .desktop-nav-arrow {
     width: 38px; height: 38px; border-radius: 50%;
@@ -1844,7 +1854,7 @@ body {
             <span class="dc-creator-name" id="dc-creator-name">Select a video</span>
             <button class="dc-follow-btn" id="dc-follow-btn" style="display:none">Follow</button>
             <span class="dc-creator-upload-date" id="dc-upload-date"></span>
-            <button id="dc-close-btn" onclick="document.getElementById('desktop-comments').classList.remove('open')" style="margin-left:auto;background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background 0.15s;" onmouseover="this.style.background='#f2f2f2'" onmouseout="this.style.background='none'" title="Close comments">
+            <button id="dc-close-btn" onclick="document.getElementById('desktop-comments').classList.remove('open');document.body.classList.remove('comments-open');" style="margin-left:auto;background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background 0.15s;" onmouseover="this.style.background='#f2f2f2'" onmouseout="this.style.background='none'" title="Close comments">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
@@ -2107,6 +2117,10 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const rtdb = getDatabase(app);
+
+// Expose Firebase for non-module scripts (liked feed, panels etc.)
+window._fbDb = db;
+window._fbFirestoreFns = { getDocs, query, collection, where, orderBy, limit, getDoc, addDoc, updateDoc, deleteDoc, doc, arrayUnion, arrayRemove };
 
 // currentUser exposed for non-module scripts via window._currentUser (set in init())
 
@@ -4200,9 +4214,12 @@ init();
     dcRenderedIds = new Set();
     window._dcCurrentPostId = postId;
     window._dcCurrentPostData = postData;
-    // Only open if already open or explicitly forced
+    // Only open panel if explicitly forced (user clicked comment btn)
     var panel = document.getElementById('desktop-comments');
-    if (forceOpen && panel) panel.classList.add('open');
+    if (forceOpen && panel) {
+        panel.classList.add('open');
+        document.body.classList.add('comments-open');
+    }
 
     // Header
     var avatarEl = document.getElementById('dc-avatar');
@@ -5056,13 +5073,14 @@ init();
 })();
     </script>
     
-    <!-- Bottom nav — 5 items: Home, Top, Upload(center), Activity, Favourites -->
+    <!-- Bottom nav — 5 items: Home, Top, Upload(center), Liked, Profile -->
     <nav id="bottom-nav">
-        <!-- Home: WhatsApp-style chat/view icon -->
+        <!-- Home: play-in-circle -->
         <button class="nav-btn active" id="navHome">
             <div class="nav-icon-wrap">
                 <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" fill="none">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="12" r="10"/>
+                    <polygon points="10 8 16 12 10 16 10 8" stroke="none" fill="currentColor"/>
                 </svg>
             </div>
             <span>Home</span>
@@ -5086,52 +5104,62 @@ init();
                 </svg>
             </button>
         </div>
-        <!-- Activity: likes/comments on your posts -->
-        <button class="nav-btn" id="navActivity">
-            <div class="nav-icon-wrap">
-                <span class="nav-badge" id="activityBadge"></span>
-                <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" fill="none">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-            </div>
-            <span>Activity</span>
-        </button>
-        <!-- Favourites: saved videos feed -->
-        <button class="nav-btn" id="navFavourites">
+        <!-- Liked Videos -->
+        <button class="nav-btn" id="navLiked">
             <div class="nav-icon-wrap">
                 <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" fill="none">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                 </svg>
             </div>
-            <span>Saved</span>
+            <span>Liked</span>
+        </button>
+        <!-- Profile: embeds profile.html iframe -->
+        <button class="nav-btn" id="navProfile">
+            <div class="nav-icon-wrap">
+                <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" fill="none">
+                    <circle cx="12" cy="8" r="4"/>
+                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                </svg>
+            </div>
+            <span>Profile</span>
         </button>
     </nav>
 
-    <!-- Activity Panel (slides up) -->
-    <div id="activity-panel" style="position:fixed;inset:0;background:#f7f7f7;z-index:7000;transform:translateY(100%);transition:transform 0.38s cubic-bezier(0.22,1,0.36,1);display:flex;flex-direction:column;">
-        <div style="padding:calc(env(safe-area-inset-top,0px)+16px) 16px 12px;background:#fff;border-bottom:1px solid #efefef;display:flex;align-items:center;gap:12px;">
-            <button onclick="closeActivityPanel()" style="background:none;border:none;cursor:pointer;padding:4px;">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    <!-- Liked Videos Panel (slides up, TikTok feed format) -->
+    <div id="liked-panel" style="position:fixed;inset:0;background:#000;z-index:7500;transform:translateY(100%);transition:transform 0.4s cubic-bezier(0.22,1,0.36,1);display:flex;flex-direction:column;">
+        <div style="position:absolute;top:calc(env(safe-area-inset-top,0px)+12px);left:14px;right:14px;z-index:10;display:flex;align-items:center;gap:10px;">
+            <button id="likedPanelBack" style="background:rgba(0,0,0,0.55);border:none;cursor:pointer;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);flex-shrink:0;">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
-            <span style="font-size:17px;font-weight:900;color:#111;font-family:var(--font);">Activity</span>
+            <span style="font-size:16px;font-weight:900;color:#fff;font-family:var(--font);text-shadow:0 1px 6px rgba(0,0,0,0.6);">Liked Videos</span>
         </div>
-        <div id="activity-list" style="flex:1;overflow-y:auto;padding:12px 16px;"></div>
+        <div id="liked-feed" style="flex:1;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;"></div>
+        <div id="liked-empty" style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;color:#fff;gap:12px;">
+            <svg viewBox="0 0 24 24" width="52" height="52" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <span style="font-size:15px;font-weight:700;opacity:0.45;font-family:var(--font);">No liked videos yet</span>
+        </div>
     </div>
 
-    <!-- Favourites Panel (slides up, TikTok feed format) -->
-    <div id="favourites-panel" style="position:fixed;inset:0;background:#000;z-index:7000;transform:translateY(100%);transition:transform 0.38s cubic-bezier(0.22,1,0.36,1);display:flex;flex-direction:column;">
-        <div style="position:absolute;top:calc(env(safe-area-inset-top,0px)+12px);left:14px;z-index:10;display:flex;align-items:center;gap:10px;">
-            <button onclick="closeFavouritesPanel()" style="background:rgba(0,0,0,0.5);border:none;cursor:pointer;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    <!-- Upload Panel (slides up like liked-videos panel, loads upload.html in iframe) -->
+    <div id="upload-panel" style="position:fixed;inset:0;background:#fff;z-index:7500;transform:translateY(100%);transition:transform 0.4s cubic-bezier(0.22,1,0.36,1);display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top,0px)+14px) 16px 12px;background:#fff;border-bottom:1px solid #efefef;flex-shrink:0;">
+            <button id="uploadPanelBack" style="background:none;border:none;cursor:pointer;padding:4px 10px 4px 0;display:flex;align-items:center;">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
-            <span style="font-size:15px;font-weight:900;color:#fff;font-family:var(--font);text-shadow:0 1px 6px rgba(0,0,0,0.6);">Saved Videos</span>
+            <span style="font-size:17px;font-weight:900;color:#111;font-family:var(--font);">Upload</span>
         </div>
-        <div id="favourites-feed" style="flex:1;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;"></div>
-        <div id="favourites-empty" style="display:none;position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;gap:12px;">
-            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            <span style="font-size:15px;font-weight:700;opacity:0.5;">No saved videos yet</span>
+        <iframe id="upload-panel-frame" src="" style="flex:1;border:none;width:100%;display:block;" allow="camera; microphone; autoplay"></iframe>
+    </div>
+
+    <!-- Profile Panel (slides up, loads profile.html in iframe) -->
+    <div id="profile-panel" style="position:fixed;inset:0;background:#fff;z-index:7500;transform:translateY(100%);transition:transform 0.4s cubic-bezier(0.22,1,0.36,1);display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top,0px)+14px) 16px 12px;background:#fff;border-bottom:1px solid #efefef;flex-shrink:0;">
+            <button id="profilePanelBack" style="background:none;border:none;cursor:pointer;padding:4px 10px 4px 0;display:flex;align-items:center;">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <span style="font-size:17px;font-weight:900;color:#111;font-family:var(--font);">Profile</span>
         </div>
+        <iframe id="profile-panel-frame" src="" style="flex:1;border:none;width:100%;display:block;" allow="camera; microphone"></iframe>
     </div>
 
 
@@ -5373,30 +5401,38 @@ init();
 
     // ── Nav — mobile 5-button nav ──
     (function() {
-        var home  = document.getElementById('navHome');
-        var top   = document.getElementById('navTop');
-        var up    = document.getElementById('navUpload');
-        var act   = document.getElementById('navActivity');
-        var fav   = document.getElementById('navFavourites');
-        var nav   = document.getElementById('bottom-nav');
-        var gal   = document.getElementById('gallery');
+        var home    = document.getElementById('navHome');
+        var top     = document.getElementById('navTop');
+        var up      = document.getElementById('navUpload');
+        var liked   = document.getElementById('navLiked');
+        var profile = document.getElementById('navProfile');
+        var gal     = document.getElementById('gallery');
 
         function setActive(btn) {
             document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
             if (btn) btn.classList.add('active');
         }
 
+        function pauseAllVideos() {
+            if (gal) gal.querySelectorAll('video').forEach(function(v){ v.pause(); });
+        }
+
+        function resumeHomeVideo() {
+            if (gal) {
+                var v = gal.querySelector('.pin-container.active video') || gal.querySelector('video');
+                if (v) v.play().catch(function(){});
+            }
+        }
+
         // ── Home ──
         if (home) home.addEventListener('click', function() {
             setActive(home);
-            closeActivityPanel();
-            closeFavouritesPanel();
-            if (gal) { gal.style.overflow = ''; gal.style.pointerEvents = ''; }
-            var v = gal && gal.querySelector('.pin-container.active video');
-            if (v) v.play().catch(function(){});
+            closeUploadPanel();
+            closeProfilePanel();
+            resumeHomeVideo();
         });
 
-        // ── Top: scroll to most commented video ──
+        // ── Top: snap to most commented video ──
         if (top) top.addEventListener('click', function() {
             setActive(top);
             var cards = document.querySelectorAll('.pin-container');
@@ -5409,49 +5445,63 @@ init();
             setTimeout(function() { setActive(home); }, 1400);
         });
 
-        // ── Upload → upload.html, hide nav ──
+        // ── Upload: slide up panel with upload.html iframe ──
         if (up) up.addEventListener('click', function() {
-            if (gal) gal.querySelectorAll('video').forEach(function(v){ v.pause(); });
-            if (nav) nav.classList.add('hidden-nav');
-            window.location.href = 'upload.html';
+            pauseAllVideos();
+            openUploadPanel();
         });
 
-        // ── Activity ──
-        if (act) act.addEventListener('click', function() {
-            setActive(act);
-            openActivityPanel();
+        // ── Liked Videos: slide up liked-panel (dedicated, not followingPanel) ──
+        if (liked) liked.addEventListener('click', function() {
+            setActive(liked);
+            pauseAllVideos();
+            openLikedPanel();
         });
 
-        // ── Favourites ──
-        if (fav) fav.addEventListener('click', function() {
-            setActive(fav);
-            openFavouritesPanel();
+        // ── Profile: slide up panel with profile.html iframe ──
+        if (profile) profile.addEventListener('click', function() {
+            setActive(profile);
+            pauseAllVideos();
+            openProfilePanel();
         });
 
-        function closeSection() {
-            setActive(home);
-            // Resume video
-            if (gal) {
-                var active = gal.querySelector('.pin-container.active video') || gal.querySelector('video');
-                if (active) active.play().catch(function(){});
-            }
-        }
-
-        if (overlayBack) overlayBack.addEventListener('click', closeSection);
-
-        if (home) home.addEventListener('click', function() {
-            closeSection();
-            if (gal) gal.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-        if (prof) prof.addEventListener('click', function() {
-            prof.classList.add('active');
-            if (home) home.classList.remove('active');
-            openSection('profile');
-        });
-        if (up) up.addEventListener('click', function() {
-            openSection('upload');
-        });
+        // Back button handlers
+        var uploadBack  = document.getElementById('uploadPanelBack');
+        var profileBack = document.getElementById('profilePanelBack');
+        if (uploadBack)  uploadBack.addEventListener('click',  function() { closeUploadPanel();  setActive(home); resumeHomeVideo(); });
+        if (profileBack) profileBack.addEventListener('click', function() { closeProfilePanel(); setActive(home); resumeHomeVideo(); });
+        // likedPanelBack handled in liked script block (DOMContentLoaded)
     })();
+
+    // Upload panel open/close
+    function openUploadPanel() {
+        var panel = document.getElementById('upload-panel');
+        var frame = document.getElementById('upload-panel-frame');
+        if (!panel) return;
+        if (frame && !frame.src) frame.src = 'upload.html';
+        panel.style.transform = 'translateY(0)';
+    }
+    function closeUploadPanel() {
+        var panel = document.getElementById('upload-panel');
+        if (panel) panel.style.transform = 'translateY(100%)';
+    }
+
+    // Profile panel open/close
+    function openProfilePanel() {
+        var panel = document.getElementById('profile-panel');
+        var frame = document.getElementById('profile-panel-frame');
+        if (!panel) return;
+        if (frame && !frame.src) frame.src = 'profile.html';
+        panel.style.transform = 'translateY(0)';
+    }
+    function closeProfilePanel() {
+        var panel = document.getElementById('profile-panel');
+        if (panel) panel.style.transform = 'translateY(100%)';
+    }
+    window.openUploadPanel = openUploadPanel;
+    window.closeUploadPanel = closeUploadPanel;
+    window.openProfilePanel = openProfilePanel;
+    window.closeProfilePanel = closeProfilePanel;
 
     // ── Following tab panel — slides up, TikTok feed of followed users ──
     (function() {
@@ -5584,181 +5634,109 @@ init();
 <script src="chat.js"></script>
 <script>
 // ══════════════════════════════════════
-// ACTIVITY PANEL
+// LIKED PANEL — open/close + load liked videos
 // ══════════════════════════════════════
-function openActivityPanel() {
-    var panel = document.getElementById('activity-panel');
-    var gal = document.getElementById('gallery');
+var _likedPanelLoaded = false;
+
+function openLikedPanel() {
+    var panel = document.getElementById('liked-panel');
     if (!panel) return;
     panel.style.transform = 'translateY(0)';
-    if (gal) gal.querySelectorAll('video').forEach(function(v){ v.pause(); });
-    loadActivityFeed();
+    if (!_likedPanelLoaded) { loadLikedFeed(); _likedPanelLoaded = true; }
 }
-function closeActivityPanel() {
-    var panel = document.getElementById('activity-panel');
+function closeLikedPanel() {
+    var panel = document.getElementById('liked-panel');
     if (panel) panel.style.transform = 'translateY(100%)';
+    // Pause all liked feed videos
+    var feed = document.getElementById('liked-feed');
+    if (feed) feed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime = 0; });
+    _likedPanelLoaded = false;
     var home = document.getElementById('navHome');
     document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
     if (home) home.classList.add('active');
 }
-async function loadActivityFeed() {
-    var list = document.getElementById('activity-list');
-    if (!list || !window._currentUser) return;
-    list.innerHTML = '<div style="text-align:center;padding:32px;color:#bbb;font-size:14px;">Loading...</div>';
+window.openLikedPanel = openLikedPanel;
+window.closeLikedPanel = closeLikedPanel;
+
+// Wire up back button
+document.addEventListener('DOMContentLoaded', function() {
+    var back = document.getElementById('likedPanelBack');
+    if (back) back.addEventListener('click', function() {
+        closeLikedPanel();
+        // Resume home video
+        var gal = document.getElementById('gallery');
+        if (gal) {
+            var v = gal.querySelector('.pin-container.active video') || gal.querySelector('video');
+            if (v) v.play().catch(function(){});
+        }
+    });
+});
+
+async function loadLikedFeed() {
+    var feed  = document.getElementById('liked-feed');
+    var empty = document.getElementById('liked-empty');
+    if (!feed) return;
+    feed.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;"><div style="width:36px;height:36px;border:3px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;"></div></div>';
+    if (!window._currentUser) {
+        feed.innerHTML = '<div style="color:#fff;text-align:center;padding:60px 24px;opacity:0.5;font-family:var(--font);">Sign in to see liked videos</div>';
+        return;
+    }
     try {
-        // Get posts by current user
-        var { getDocs, query, collection, where, orderBy, limit, getFirestore } = window._fbFirestore || {};
-        if (!getDocs) return;
-        var db2 = getFirestore(window._fbApp);
-        var myPostsSnap = await getDocs(query(collection(db2,'recence'), where('userId','==',window._currentUser.uid), orderBy('timestamp','desc'), limit(20)));
-        if (myPostsSnap.empty) {
-            list.innerHTML = '<div style="text-align:center;padding:40px;color:#bbb;font-size:14px;">No activity yet</div>';
+        var db3 = window._fbDb;
+        var fns = window._fbFirestoreFns;
+        if (!db3 || !fns) { feed.innerHTML = ''; return; }
+        var snap = await fns.getDocs(fns.query(fns.collection(db3,'recence'), fns.where('likes','array-contains',window._currentUser.uid), fns.orderBy('timestamp','desc'), fns.limit(50)));
+        feed.innerHTML = '';
+        if (snap.empty) {
+            feed.style.display = 'none';
+            if (empty) { empty.style.display = 'flex'; }
             return;
         }
-        var items = [];
-        myPostsSnap.forEach(function(d) {
-            var pd = d.data();
-            var likes = (pd.likes || []).length;
-            var comments = pd.commentCount || pd.replyCount || 0;
-            if (likes > 0 || comments > 0) {
-                items.push({ id: d.id, text: pd.text || '', likes: likes, comments: comments, media: pd.media, timestamp: pd.timestamp });
-            }
-        });
-        if (!items.length) {
-            list.innerHTML = '<div style="text-align:center;padding:40px;color:#bbb;font-size:14px;">No activity yet</div>';
-            return;
-        }
-        list.innerHTML = '';
-        items.forEach(function(item) {
-            var thumb = item.media && item.media[0] ? item.media[0].url : '';
-            var el = document.createElement('div');
-            el.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px;background:#fff;border-radius:14px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,0.05);';
-            el.innerHTML = (thumb ? '<video src="'+thumb+'" style="width:52px;height:52px;object-fit:cover;border-radius:10px;flex-shrink:0;" muted playsinline></video>' : '<div style="width:52px;height:52px;border-radius:10px;background:#f2f2f2;flex-shrink:0;"></div>')
-              + '<div style="flex:1;min-width:0;">'
-              + '<div style="font-size:13px;font-weight:700;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(item.text || 'Video post')+'</div>'
-              + '<div style="display:flex;gap:14px;margin-top:5px;">'
-              + '<span style="font-size:12px;color:#ff3b5c;font-weight:700;">❤️ '+item.likes+' likes</span>'
-              + '<span style="font-size:12px;color:#555;font-weight:700;">💬 '+item.comments+' comments</span>'
-              + '</div></div>';
-            list.appendChild(el);
+        if (empty) empty.style.display = 'none';
+        feed.style.display = 'block';
+        snap.forEach(function(d) {
+            var p = d.data();
+            var media = p.media && p.media[0];
+            if (!media || !media.url) return;
+            var slide = document.createElement('div');
+            slide.style.cssText = 'width:100%;height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;position:relative;background:#000;overflow:hidden;flex-shrink:0;';
+            var vid = document.createElement('video');
+            vid.src = media.url;
+            vid.loop = true; vid.muted = true; vid.playsInline = true;
+            vid.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;inset:0;';
+            slide.appendChild(vid);
+            // Gradient overlay
+            var grad = document.createElement('div');
+            grad.style.cssText = 'position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,0.7) 100%);pointer-events:none;z-index:1;';
+            slide.appendChild(grad);
+            // Info overlay
+            var info = document.createElement('div');
+            info.style.cssText = 'position:absolute;bottom:90px;left:14px;right:70px;z-index:2;pointer-events:none;';
+            info.innerHTML = '<div style="font-size:15px;font-weight:900;color:#fff;margin-bottom:5px;text-shadow:0 1px 6px rgba(0,0,0,0.7);">@'+(p.name||'creator')+'</div>'
+                + (p.text ? '<div style="font-size:13px;color:rgba(255,255,255,0.88);text-shadow:0 1px 4px rgba(0,0,0,0.6);line-height:1.4;">'+p.text+'</div>' : '');
+            slide.appendChild(info);
+            feed.appendChild(slide);
+            // Autoplay via IntersectionObserver
+            var obs = new IntersectionObserver(function(entries) {
+                entries.forEach(function(e) {
+                    if (e.isIntersecting && e.intersectionRatio > 0.6) {
+                        vid.muted = false;
+                        vid.play().catch(function(){ vid.muted=true; vid.play().catch(function(){}); });
+                    } else { vid.pause(); vid.currentTime = 0; }
+                });
+            }, { root: feed, threshold: 0.6 });
+            obs.observe(slide);
         });
     } catch(e) {
-        list.innerHTML = '<div style="text-align:center;padding:32px;color:#bbb;font-size:14px;">Could not load activity</div>';
-        console.error('Activity error:', e);
+        console.error('loadLikedFeed error:', e);
+        feed.innerHTML = '<div style="color:#fff;text-align:center;padding:60px 24px;opacity:0.5;font-family:var(--font);">Could not load liked videos</div>';
     }
 }
 
-// ══════════════════════════════════════
-// FAVOURITES PANEL
-// ══════════════════════════════════════
-var _favLoaded = false;
-function openFavouritesPanel() {
-    var panel = document.getElementById('favourites-panel');
-    var gal = document.getElementById('gallery');
-    if (!panel) return;
-    panel.style.transform = 'translateY(0)';
-    if (gal) gal.querySelectorAll('video').forEach(function(v){ v.pause(); });
-    if (!_favLoaded) { loadFavouritesFeed(); _favLoaded = true; }
-}
-function closeFavouritesPanel() {
-    var panel = document.getElementById('favourites-panel');
-    if (panel) panel.style.transform = 'translateY(100%)';
-    var home = document.getElementById('navHome');
-    document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
-    if (home) home.classList.add('active');
-    // Pause all fav videos
-    var feed = document.getElementById('favourites-feed');
-    if (feed) feed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime = 0; });
-    _favLoaded = false;
-}
-function loadFavouritesFeed() {
-    var feed = document.getElementById('favourites-feed');
-    var empty = document.getElementById('favourites-empty');
-    if (!feed) return;
-    var favs = JSON.parse(localStorage.getItem('favouritePostIds') || '[]');
-    if (!favs.length) {
-        feed.style.display = 'none';
-        if (empty) { empty.style.display = 'flex'; }
-        return;
-    }
-    if (empty) empty.style.display = 'none';
-    feed.style.display = 'block';
-    feed.innerHTML = '';
-    // Build TikTok-style slides from saved post data
-    var savedPosts = JSON.parse(localStorage.getItem('favouritePosts') || '[]');
-    if (!savedPosts.length) {
-        feed.innerHTML = '<div style="color:#fff;text-align:center;padding:40px;opacity:0.5;">Saved videos not available</div>';
-        return;
-    }
-    savedPosts.forEach(function(post, idx) {
-        var slide = document.createElement('div');
-        slide.style.cssText = 'width:100%;height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;position:relative;background:#000;overflow:hidden;flex-shrink:0;';
-        var media = post.media && post.media[0];
-        if (!media) return;
-        var vid = document.createElement('video');
-        vid.src = media.url;
-        vid.loop = true; vid.muted = true; vid.playsInline = true;
-        vid.style.cssText = 'width:100%;height:100%;object-fit:cover;';
-        slide.appendChild(vid);
-        // Overlay: name + caption
-        var info = document.createElement('div');
-        info.style.cssText = 'position:absolute;bottom:80px;left:14px;right:60px;z-index:2;';
-        info.innerHTML = '<div style="font-size:14px;font-weight:900;color:#fff;margin-bottom:4px;text-shadow:0 1px 6px rgba(0,0,0,0.7);">@'+(post.name||'creator')+'</div>'
-            + (post.text ? '<div style="font-size:13px;color:rgba(255,255,255,0.9);text-shadow:0 1px 4px rgba(0,0,0,0.6);">'+post.text+'</div>' : '');
-        slide.appendChild(info);
-        // Unsave button
-        var unsaveBtn = document.createElement('button');
-        unsaveBtn.style.cssText = 'position:absolute;top:16px;right:14px;background:rgba(0,0,0,0.5);border:none;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(8px);z-index:3;';
-        unsaveBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="#ff3b5c" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
-        unsaveBtn.title = 'Remove from saved';
-        unsaveBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            removeFromFavourites(post._id);
-            slide.style.opacity = '0';
-            slide.style.transform = 'scale(0.96)';
-            slide.style.transition = 'all 0.3s';
-            setTimeout(function(){ slide.remove(); }, 320);
-        });
-        slide.appendChild(unsaveBtn);
-        feed.appendChild(slide);
-        // IntersectionObserver for autoplay
-        var obs2 = new IntersectionObserver(function(entries) {
-            entries.forEach(function(e) {
-                if (e.isIntersecting && e.intersectionRatio > 0.6) { vid.muted = false; vid.play().catch(function(){ vid.muted=true; vid.play().catch(function(){}); }); }
-                else { vid.pause(); vid.currentTime = 0; }
-            });
-        }, { root: feed, threshold: 0.6 });
-        obs2.observe(slide);
-    });
-}
-
-// Save/unsave post to favourites
-function saveToFavourites(postData, postId) {
-    var favIds = JSON.parse(localStorage.getItem('favouritePostIds') || '[]');
-    var favPosts = JSON.parse(localStorage.getItem('favouritePosts') || '[]');
-    if (favIds.includes(postId)) return; // already saved
-    favIds.push(postId);
-    favPosts.push(Object.assign({}, postData, { _id: postId }));
-    localStorage.setItem('favouritePostIds', JSON.stringify(favIds));
-    localStorage.setItem('favouritePosts', JSON.stringify(favPosts));
-}
-function removeFromFavourites(postId) {
-    var favIds = JSON.parse(localStorage.getItem('favouritePostIds') || '[]');
-    var favPosts = JSON.parse(localStorage.getItem('favouritePosts') || '[]');
-    localStorage.setItem('favouritePostIds', JSON.stringify(favIds.filter(function(id){ return id !== postId; })));
-    localStorage.setItem('favouritePosts', JSON.stringify(favPosts.filter(function(p){ return p._id !== postId; })));
-}
-function isPostFavourited(postId) {
-    var favIds = JSON.parse(localStorage.getItem('favouritePostIds') || '[]');
-    return favIds.includes(postId);
-}
-window.saveToFavourites = saveToFavourites;
-window.removeFromFavourites = removeFromFavourites;
-window.isPostFavourited = isPostFavourited;
-window.openActivityPanel = openActivityPanel;
-window.closeActivityPanel = closeActivityPanel;
-window.openFavouritesPanel = openFavouritesPanel;
-window.closeFavouritesPanel = closeFavouritesPanel;
+// dummy to avoid leftover event listener error
+document.addEventListener('loadLikedFeed', async function() {
+    // no-op: feed loaded via openLikedPanel
+});
 </script>
 </body>
 </html>
