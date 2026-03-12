@@ -175,6 +175,12 @@
         dcShareHoverText:     '#222222',
         dcArrowBg:            '#ffffff',
         dcArrowStroke:        '#333333',
+        // ── slide-up panels (upload / profile / liked) ──
+        panelBg:              '#ffffff',
+        panelHeaderBg:        '#ffffff',
+        panelHeaderBorder:    '#efefef',
+        panelTitle:           '#111111',
+        panelBackIcon:        '#111111',
       },
 
       // ── DIM ───────────────────────────────────────────────────
@@ -331,6 +337,12 @@
         dcShareHoverText:     '#ffffff',
         dcArrowBg:            '#1e2732',
         dcArrowStroke:        '#8899a6',
+        // ── slide-up panels ──
+        panelBg:              '#15202b',
+        panelHeaderBg:        '#15202b',
+        panelHeaderBorder:    '#38444d',
+        panelTitle:           '#ffffff',
+        panelBackIcon:        '#ffffff',
       },
 
       // ── DARK ──────────────────────────────────────────────────
@@ -487,6 +499,12 @@
         dcShareHoverText:     '#ffffff',
         dcArrowBg:            '#111111',
         dcArrowStroke:        '#a6a6a6',
+        // ── slide-up panels ──
+        panelBg:              '#000000',
+        panelHeaderBg:        '#080808',
+        panelHeaderBorder:    '#2f3336',
+        panelTitle:           '#ffffff',
+        panelBackIcon:        '#ffffff',
       }
     },
 
@@ -616,6 +634,27 @@
         .fp-back svg { stroke: ${t.closeBtnIcon}; }
         .fp-empty-feed { color: ${t.fpEmpty}; }
 
+        /* ── slide-up panels: upload, profile, liked ── */
+        #upload-panel, #profile-panel, #liked-panel {
+          background: ${t.panelBg} !important;
+        }
+        #upload-panel > div:first-child,
+        #profile-panel > div:first-child {
+          background: ${t.panelHeaderBg} !important;
+          border-bottom: 1px solid ${t.panelHeaderBorder} !important;
+        }
+        #upload-panel > div:first-child span,
+        #profile-panel > div:first-child span {
+          color: ${t.panelTitle} !important;
+        }
+        #uploadPanelBack svg, #profilePanelBack svg {
+          stroke: ${t.panelBackIcon} !important;
+        }
+        /* liked panel header */
+        #liked-panel > div[style*="absolute"] span {
+          color: ${t.panelTitle} !important;
+        }
+
         /* social connections widget */
         .container { background-color: ${t.surfacePrimary}; }
         .header { border-bottom: 1px solid ${t.border}; }
@@ -731,6 +770,25 @@
             background: linear-gradient(110deg, ${t.shimmerBase} 25%, ${t.shimmerShine} 50%, ${t.shimmerBase} 75%);
             background-size: 200% 100%;
           }
+
+          /* ── desktop upload slide-up overlay ── */
+          #ds-upload-overlay {
+            background: ${t.panelBg} !important;
+          }
+          #ds-upload-overlay > div:first-child {
+            background: ${t.panelHeaderBg} !important;
+            border-bottom: 1px solid ${t.panelHeaderBorder} !important;
+          }
+          #ds-upload-overlay > div:first-child span {
+            color: ${t.panelTitle} !important;
+          }
+          #ds-upload-overlay button svg {
+            stroke: ${t.panelBackIcon} !important;
+          }
+
+          /* ── desktop iframe section panel ── */
+          #ds-section-panel { background: ${t.panelBg} !important; }
+          .ds-panel-loader  { background: ${t.panelBg} !important; }
         }
       `;
 
