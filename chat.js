@@ -175,6 +175,18 @@
         dcShareHoverText:     '#222222',
         dcArrowBg:            '#ffffff',
         dcArrowStroke:        '#333333',
+        // follow button & live strip
+        followBtnBg:          'linear-gradient(135deg,#0f0f0f,#626262)',
+        followBtnText:        '#ffffff',
+        followBtnFollowingBg: '#f2f2f2',
+        followBtnFollowingText:'#888888',
+        liveStripBg:          '#ffffff',
+        liveStripBorder:      '#f0f0f0',
+        livePillBg:           '#111111',
+        livePillText:         '#ffffff',
+        liveViewersText:      '#555555',
+        liveViewersNum:       '#111111',
+        liveAvatarBorder:     '#ffffff',
         // ── slide-up panels (upload / profile / liked) ──
         panelBg:              '#ffffff',
         panelHeaderBg:        '#ffffff',
@@ -337,6 +349,18 @@
         dcShareHoverText:     '#ffffff',
         dcArrowBg:            '#1e2732',
         dcArrowStroke:        '#8899a6',
+        // follow button & live strip
+        followBtnBg:          '#ffffff',
+        followBtnText:        '#000000',
+        followBtnFollowingBg: '#22303c',
+        followBtnFollowingText:'#8899a6',
+        liveStripBg:          '#15202b',
+        liveStripBorder:      '#38444d',
+        livePillBg:           '#ffffff',
+        livePillText:         '#000000',
+        liveViewersText:      '#8899a6',
+        liveViewersNum:       '#ffffff',
+        liveAvatarBorder:     '#15202b',
         // ── slide-up panels ──
         panelBg:              '#15202b',
         panelHeaderBg:        '#15202b',
@@ -499,6 +523,18 @@
         dcShareHoverText:     '#ffffff',
         dcArrowBg:            '#111111',
         dcArrowStroke:        '#a6a6a6',
+        // follow button & live strip
+        followBtnBg:          '#ffffff',
+        followBtnText:        '#000000',
+        followBtnFollowingBg: '#1a1a1a',
+        followBtnFollowingText:'#a6a6a6',
+        liveStripBg:          '#080808',
+        liveStripBorder:      '#2f3336',
+        livePillBg:           '#ffffff',
+        livePillText:         '#000000',
+        liveViewersText:      '#a6a6a6',
+        liveViewersNum:       '#ffffff',
+        liveAvatarBorder:     '#080808',
         // ── slide-up panels ──
         panelBg:              '#000000',
         panelHeaderBg:        '#080808',
@@ -792,17 +828,40 @@
 
           /* ── desktop comment panel follow button ── */
           .dc-follow-btn {
-            background: var(--brand-gradient) !important;
-            color: #fff !important;
+            background: ${t.followBtnBg} !important;
+            color: ${t.followBtnText} !important;
             box-shadow: 0 2px 8px rgba(0,0,0,0.14) !important;
           }
           .dc-follow-btn.following {
-            background: ${t.dsFollowingBg} !important;
-            color: ${t.dsFollowingText} !important;
+            background: ${t.followBtnFollowingBg} !important;
+            color: ${t.followBtnFollowingText} !important;
+            box-shadow: none !important;
+          }
+          /* sidebar follow button — same logic */
+          .ds-follow-btn-sm {
+            background: ${t.followBtnBg} !important;
+            color: ${t.followBtnText} !important;
+          }
+          .ds-follow-btn-sm.following {
+            background: ${t.followBtnFollowingBg} !important;
+            color: ${t.followBtnFollowingText} !important;
             box-shadow: none !important;
           }
           .dc-creator-avatar { border-color: ${t.dsPersonAvBorder} !important; }
           .dc-creator-name   { color: ${t.dcCreatorName} !important; }
+
+          /* ── live strip ── */
+          .dc-live-strip {
+            background: ${t.liveStripBg} !important;
+            border-bottom: 1px solid ${t.liveStripBorder} !important;
+          }
+          .dc-live-pill {
+            background: ${t.livePillBg} !important;
+            color: ${t.livePillText} !important;
+          }
+          .dc-live-viewers-text { color: ${t.liveViewersText} !important; }
+          .dc-live-viewers-text span { color: ${t.liveViewersNum} !important; }
+          .dc-live-avatar { border-color: ${t.liveAvatarBorder} !important; }
         }
       `;
 
