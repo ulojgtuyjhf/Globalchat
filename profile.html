@@ -1,3281 +1,954 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Profile</title>
+    <title>Theme Customizer</title>
     <style>
         :root {
-            --primary-color: #626262;
-            --primary-light: #f0f0f0;
-            --primary-dark: #3a3a3a;
-            --text-primary: #333;
-            --text-secondary: #666;
-            --background-light: #f9f9f9;
-            --background-white: #ffffff;
-            --border-light: #e0e0e0;
-            --border-radius-sm: 8px;
-            --border-radius-md: 16px;
-            --border-radius-lg: 9999px;
-            --transition-speed: 0.25s;
-            --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            --luxury-gradient: linear-gradient(
-                135deg,  
-                #0f0f0f 0%,  
-                #1c1c1c 15%,  
-                #3a3a3a 30%,  
-                #4d4d4d 45%,  
-                #626262 60%,  
-                #787878 75%,  
-                #8f8f8f 90%,  
-                #a6a6a6 100%
-            );
-            --border-color: #dadada;
+            --background: #ffffff;
+            --text: #0f1419;
+            --secondary-text: #536471;
+            --border: #eff3f4;
+            --primary: #1d9bf0;
+            --hover: rgba(29, 155, 240, 0.1);
+            --card-bg: #f7f9f9;
+            --font-size: 1rem; /* Default font size */
+        }
+
+        [data-theme="dim"] {
+            --background: #15202b;
+            --text: #ffffff;
+            --secondary-text: #8899a6;
+            --border: #38444d;
+            --primary: #1d9bf0;
+            --hover: rgba(29, 155, 240, 0.1);
+            --card-bg: #1e2732;
+        }
+
+        [data-theme="dark"] {
+            --background: #000000;
+            --text: #ffffff;
+            --secondary-text: #71767b;
+            --border: #2f3336;
+            --primary: #1d9bf0;
+            --hover: rgba(29, 155, 240, 0.1);
+            --card-bg: #16181c;
         }
 
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+            box-sizing: border-box;
+            transition: all 0.25s cubic-bezier(0.33, 1, 0.68, 1);
         }
 
         body {
-            background-color: var(--background-light);
-            padding: 4px;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            line-height: 1.5;
             overflow-x: hidden;
+            width: 100%;
+            min-height: 100vh;
+            font-size: var(--font-size);
         }
 
-        /* Loading animation container */
-        .loading-container {
-            position: fixed;
-            top: 0;
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 16px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 12px;
+            }
+        }
+
+        .theme-selector {
+            position: relative;
+            margin-bottom: 24px;
+            width: 100%;
+        }
+
+        .theme-btn {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            background-color: var(--background);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 9999px;
+            font-size: calc(var(--font-size) * 0.9375);
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .theme-btn:hover {
+            background-color: var(--hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .theme-btn:active {
+            transform: translateY(0);
+        }
+
+        .theme-btn-text {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .theme-btn svg {
+            fill: var(--text);
+        }
+
+        .theme-btn .chevron {
+            transition: transform 0.3s ease;
+        }
+
+        .theme-btn .chevron.rotate {
+            transform: rotate(180deg);
+        }
+
+        .theme-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
             left: 0;
             width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: rgba(255, 255, 255, 0.9);
-            z-index: 1000;
-            transition: opacity 0.3s ease-out;
-        }
-
-        /* Desktop: Start at top */
-        @media (min-width: 768px) {
-            .loading-container {
-                align-items: flex-start;
-                padding-top: 20px;
-            }
-        }
-
-        /* Mobile: Animate from center to top */
-        @media (max-width: 767px) {
-            .loading-container.start {
-                align-items: center;
-            }
-            .loading-container.move-to-top {
-                align-items: flex-start;
-                padding-top: 20px;
-                transition: padding-top 0.5s ease-out;
-            }
-        }
-
-        .loading-container.hidden {
+            background-color: var(--background);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            z-index: 100;
+            overflow: hidden;
             opacity: 0;
+            transform: translateY(-12px) scale(0.98);
+            visibility: hidden;
+            pointer-events: none;
+            transform-origin: top center;
+            transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.33, 1, 0.68, 1), visibility 0.2s;
+        }
+
+        .theme-dropdown.show {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            visibility: visible;
+            pointer-events: all;
+        }
+
+        .theme-options {
+            padding: 8px;
+        }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            cursor: pointer;
+            border-radius: 12px;
+            margin-bottom: 4px;
+            position: relative;
+            overflow: hidden;
+            transition: background-color 0.2s ease;
+        }
+
+        .theme-option:hover {
+            background-color: var(--hover);
+        }
+
+        .theme-option:active {
+            transform: scale(0.98);
+        }
+
+        .theme-option .color-preview {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 12px;
+            border: 1px solid var(--border);
+            transition: transform 0.3s ease;
+        }
+
+        .theme-option:hover .color-preview {
+            transform: scale(1.1);
+        }
+
+        .light-preview {
+            background-color: #ffffff;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+        }
+
+        .dim-preview {
+            background-color: #15202b;
+        }
+
+        .dark-preview {
+            background-color: #000000;
+        }
+
+        .theme-option .theme-details {
+            flex-grow: 1;
+        }
+
+        .theme-option .theme-name {
+            font-weight: 700;
+            font-size: calc(var(--font-size) * 0.9375);
+            margin-bottom: 4px;
+        }
+
+        .theme-option .theme-description {
+            color: var(--secondary-text);
+            font-size: calc(var(--font-size) * 0.8125);
+        }
+
+        .theme-indicator {
+            position: absolute;
+            right: 16px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: scale(0);
+            transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .theme-indicator svg {
+            width: 14px;
+            height: 14px;
+            fill: var(--primary);
+        }
+
+        .theme-option.active .theme-indicator {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .content-section {
+            margin-bottom: 24px;
+            padding: 20px;
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            width: 100%;
+        }
+
+        @media (max-width: 480px) {
+            .content-section {
+                padding: 16px;
+            }
+        }
+
+        .content-section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-palettes {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .color-palette {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-radius: 18px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background-color: var(--background);
+            position: relative;
+        }
+
+        .color-palette:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .color-palette:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .chat-bubble {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .palette-name {
+            font-weight: 600;
+            font-size: calc(var(--font-size) * 0.875);
+            flex-grow: 1;
+        }
+
+        .palette-selected {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .palette-selected svg {
+            width: 12px;
+            height: 12px;
+            fill: white;
+        }
+
+        .color-palette.active .palette-selected {
+            display: flex;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(29, 155, 240, 0.4);
+            }
+            100% {
+                box-shadow: 0 0 0 4px rgba(29, 155, 240, 0);
+            }
+        }
+
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: scale(0);
+            animation: ripple 0.6s linear;
             pointer-events: none;
         }
 
-        /* Vertical spinner */
-        .spinner {
-            width: 30px;
-            height: 30px;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .spinner::before,
-        .spinner::after {
-            content: '';
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: var(--luxury-gradient);
-            animation: spin-pulse 1s infinite ease-in-out;
-        }
-
-        .spinner::before {
-            animation-delay: 0s;
-        }
-
-        .spinner::after {
-            animation-delay: 0.5s;
-        }
-
-        @keyframes spin-pulse {
-            0% {
-                transform: scale(1) translateY(0);
-                opacity: 1;
-            }
-            50% {
-                transform: scale(1.5) translateY(-15px);
-                opacity: 0.5;
-            }
-            100% {
-                transform: scale(1) translateY(0);
-                opacity: 1;
-            }
-        }
-        
-        .profile-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            text-align: center;
-            display: none;
-        }
-        
-        .profile-header {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 25px;
-        }
-        
-        .profile-avatar {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            margin: 0 auto 15px;
-            object-fit: cover;
-            border: 3px solid white;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            background: var(--luxury-gradient);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 40px;
-            font-weight: bold;
-            color: white;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .profile-username {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: var(--text-primary);
-        }
-        
-        .profile-handle {
-            display: inline-flex;
-            align-items: center;
-            background: -webkit-linear-gradient(45deg, #3a3a3a, #787878);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-        
-        .profile-stats {
-            display: flex;
-            justify-content: center;
-            gap: 25px;
-            margin: 10px 0 20px;
-        }
-        
-        .stat-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .stat-value {
-            font-weight: 600;
-            font-size: 16px;
-            color: var(--text-primary);
-        }
-        
-        .stat-label {
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-        
-        .action-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 30px;
-        }
-        
-        .btn {
-            padding: 10px 20px;
-            border-radius: 24px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            border: none;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .follow-btn {
-            background: var(--luxury-gradient);
-            color: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        }
-        
-        .follow-btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
-        
-        .follow-btn.followed {
-            background: #f1f1f1;
-            color: var(--text-primary);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        .follow-btn.followed:hover {
-            background: #e5e5e5;
-        }
-        
-        .message-btn {
-            background-color: #f1f1f1;
-            color: var(--text-primary);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        .message-btn:hover {
-            background-color: #e5e5e5;
-        }
-        
-        .share-btn {
-            background-color: #f1f1f1;
-            color: var(--text-primary);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        .share-btn:hover {
-            background-color: #e5e5e5;
-        }
-        
-        .more-btn {
-            background-color: #f1f1f1;
-            color: var(--text-primary);
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        .more-btn:hover {
-            background-color: #e5e5e5;
-        }
-        
-        .profile-bio {
-            font-size: 14px;
-            max-width: 600px;
-            margin: 0 auto 20px;
-            text-align: center;
-            color: var(--text-secondary);
-        }
-        
-        .tabs {
-            display: flex;
-            justify-content: center;
-            border-bottom: 1px solid var(--border-light);
-            margin-bottom: 25px;
-            position: relative;
-        }
-        
-        .tab {
-            padding: 12px 0;
-            width: 33.33%;
-            text-align: center;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            cursor: pointer;
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        
-        .tab:hover {
-            color: var(--primary-dark);
-        }
-        
-        .tab.active {
-            color: var(--primary-dark);
-        }
-        
-        .tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 30%;
-            height: 3px;
-            background: var(--luxury-gradient);
-            border-radius: 3px 3px 0 0;
-        }
-        
-        .tab-content {
-            display: none;
-            text-align: center;
-            padding: 10px 0 30px;
-        }
-        
-        .tab-content.active {
-            display: block;
-            animation: fadeIn 0.5s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        .masonry-grid {
-            column-count: 2;
-            column-gap: 15px;
-            margin: 0 auto;
-        }
-
-        @media (min-width: 768px) {
-            .masonry-grid {
-                column-count: 3;
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
             }
         }
 
-        @media (min-width: 1024px) {
-            .masonry-grid {
-                column-count: 4;
-            }
+        .heading {
+            font-size: calc(var(--font-size) * 1);
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text);
         }
 
-        .gallery-item {
-            break-inside: avoid;
-            margin-bottom: 15px;
-            position: relative;
-            border-radius: 16px;
-            overflow: hidden;
-            background-color: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            cursor: pointer;
-        }
-
-        .gallery-item:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-        }
-
-        .gallery-item img, 
-        .gallery-item video {
-            width: 100%;
-            display: block;
-            object-fit: cover;
-        }
-        
-        .video-indicator {
-            position: absolute;
-            bottom: 12px;
-            right: 12px;
-            color: white;
-            background-color: rgba(0, 0, 0, 0.6);
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1;
-        }
-        
-        .not-found {
-            text-align: center;
-            padding: 80px 20px;
-            display: none;
-        }
-        
-        .not-found h2 {
-            font-size: 24px;
+        .subheading {
+            font-size: calc(var(--font-size) * 0.875);
+            color: var(--secondary-text);
             margin-bottom: 16px;
-            color: var(--text-primary);
-        }
-        
-        .not-found p {
-            font-size: 16px;
-            color: var(--text-secondary);
-        }
-        
-        .empty-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 50px 20px;
-            background-color: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
         }
 
-        .empty-icon {
-            margin-bottom: 20px;
-            width: 80px;
-            height: 80px;
-            fill: #888;
-        }
-
-        .empty-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: var(--text-primary);
-        }
-
-        .empty-text {
-            font-size: 14px;
-            color: var(--text-secondary);
-            max-width: 280px;
-            margin: 0 auto;
-            line-height: 1.5;
-        }
-
-        /* Fullscreen Modal Styles (same as feeds.html) */
-        .fullscreen-modal {
-            position: fixed;
-            top: 0;
-            right: -100%;
-            width: 100%;
-            height: 100%;
-            background-color: var(--background-white);
-            z-index: 2000;
-            display: flex;
-            flex-direction: column;
-            transition: right 0.3s ease-in-out;
-            overflow: hidden;
-            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
-        }
-
-        .fullscreen-modal.active {
-            right: 0;
-        }
-
-        .modal-header {
-            display: flex;
-            align-items: center;
-            padding: 6px 12px;
-            border-bottom: 1px solid var(--border-light);
-            background-color: var(--background-white);
-            z-index: 2001;
-            height: 40px;
-        }
-
-        .back-button {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 6px;
-            border-radius: 50%;
-            transition: background-color 0.2s;
-        }
-
-        .back-button:hover {
-            background-color: rgba(0, 0, 0, 0.05);
-        }
-
-        .back-button svg {
-            width: 18px;
-            height: 18px;
-        }
-
-        .modal-title {
-            font-size: 0; /* Hide text but keep for accessibility */
-            font-weight: 600;
-            color: var(--text-primary);
-            opacity: 0;
-        }
-
-        .modal-content {
-            display: flex;
-            flex-direction: column;
-            height: calc(100% - 40px);
-            overflow-y: auto;
-        }
-
-        /* Media Container - Enhanced */
-        .media-container {
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #000;
-            overflow: hidden;
-            position: relative;
-            border-bottom: 1px solid var(--border-light);
-        }
-
-        .media-container img,
-        .media-container video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            transition: transform 0.3s ease;
-        }
-
-        /* Post Description - Updated */
-        .post-description {
-            padding: 12px;
-            background-color: var(--background-white);
-            border-bottom: 1px solid var(--border-light);
-            font-size: 14px;
-            line-height: 1.5;
-            color: var(--text-primary);
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        /* Comments Section - Streamlined */
-        .comments-section {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background-color: var(--background-white);
-            overflow-y: auto;
-            position: relative;
-        }
-
-        /* Post Header - Minimized */
-        .post-header {
+        /* Font size slider */
+        .font-size-control {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 12px;
-            border-bottom: 1px solid var(--border-light);
-            background-color: var(--background-white);
+            gap: 12px;
+            margin-top: 16px;
         }
 
-        .post-user-info {
-            display: flex;
-            align-items: center;
-        }
-
-        .post-user-avatar {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            margin-right: 8px;
-            object-fit: cover;
-            cursor: pointer;
-            border: 2px solid transparent;
-            background-origin: border-box;
-            background-clip: content-box, border-box;
-            background-image: linear-gradient(var(--background-white), var(--background-white)), 
-                            var(--luxury-gradient);
-            transition: transform 0.3s ease;
-        }
-
-        .post-user-avatar:hover {
-            transform: scale(1.05);
-        }
-
-        .post-user-name {
-            font-weight: 600;
-            font-size: 13px;
-            margin-right: 6px;
-            cursor: pointer;
-            color: var(--text-primary);
-        }
-
-        .post-user-flag {
-            width: 14px;
-            height: 10px;
-            border-radius: 2px;
-            object-fit: cover;
-            border: 1px solid var(--border-light);
-        }
-
-        .post-actions {
-            display: flex;
-            align-items: center;
-        }
-
-        /* Like Post Button */
-        .like-post-button {
-            background: none;
-            border: none;
-            display: flex;
-            align-items: center;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 13px;
-            transition: color 0.2s ease;
-        }
-
-        .like-post-button:hover {
-            color: #ff3040;
-        }
-
-        .like-post-button.liked {
-            color: #ff3040;
-        }
-
-        .like-post-button svg {
-            width: 16px;
-            height: 16px;
-            margin-right: 3px;
-            transition: transform 0.2s ease;
-        }
-
-        .like-post-button:hover svg {
-            transform: scale(1.1);
-        }
-
-        .like-post-count {
-            font-size: 13px;
-            font-weight: 500;
-        }
-
-        /* Follow Button */
-        .follow-btn {
-            background: none;
-            border: 1px solid var(--primary-color);
-            border-radius: var(--border-radius-lg);
-            color: var(--primary-color);
-            cursor: pointer;
-            font-size: 11px;
-            font-weight: 600;
-            margin-left: 8px;
-            padding: 4px 10px;
-            transition: all 0.3s ease;
-        }
-
-        .follow-btn:hover {
-            background-color: rgba(98, 98, 98, 0.1);
-        }
-
-        .follow-btn.followed {
-            background: var(--luxury-gradient);
-            color: white;
-            border: none;
-        }
-
-        /* Reply Preview */
-        .reply-preview {
-            display: flex;
-            align-items: center;
-            padding: 6px 12px;
-            background-color: #f8f8f8;
-            border-bottom: 1px solid var(--border-light);
-        }
-
-        .reply-preview-text {
-            flex: 1;
-            font-size: 12px;
-            color: var(--text-secondary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .reply-preview-close {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 14px;
-            margin-left: 6px;
-            padding: 0;
-            transition: color 0.2s ease;
-        }
-
-        .reply-preview-close:hover {
-            color: var(--text-primary);
-        }
-
-        /* Comments Header - Hidden/Minimized */
-        .comments-header {
-            display: none;
-        }
-
-        /* Comments List */
-        .comments-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 8px 12px;
-        }
-
-        .comment {
-            display: flex;
-            margin-bottom: 12px;
-            animation: fadeIn 0.3s ease-in;
-        }
-
-        .comment-avatar {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            margin-right: 10px;
-            flex-shrink: 0;
-            cursor: pointer;
-            border: 2px solid transparent;
-            background-origin: border-box;
-            background-clip: content-box, border-box;
-            background-image: linear-gradient(var(--background-white), var(--background-white)), 
-                            var(--luxury-gradient);
-        }
-
-        .comment-content {
-            flex: 1;
-        }
-
-        .comment-author {
-            font-weight: 600;
-            font-size: 13px;
-            margin-bottom: 3px;
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            color: var(--text-primary);
-        }
-
-        .comment-flag {
-            width: 14px;
-            height: 10px;
-            margin-left: 5px;
-            border-radius: 2px;
-            object-fit: cover;
-            border: 1px solid var(--border-light);
-        }
-
-        .comment-text {
-            font-size: 13px;
-            margin-bottom: 6px;
-            word-wrap: break-word;
-            line-height: 1.4;
-            color: var(--text-primary);
-        }
-
-        .comment-gif {
-            max-width: 180px;
-            max-height: 135px;
-            border-radius: 8px;
-            margin-bottom: 6px;
-            border: 1px solid var(--border-light);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        }
-
-        .comment-actions {
-            display: flex;
-            align-items: center;
-        }
-
-        /* Like Button */
-        .like-button {
-            display: flex;
-            align-items: center;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 11px;
-            transition: color 0.2s ease;
-        }
-
-        .like-button:hover {
-            color: #ff3040;
-        }
-
-        .like-button.liked {
-            color: #ff3040;
-        }
-
-        .like-button svg {
-            width: 12px;
-            height: 12px;
-            margin-right: 3px;
-            transition: transform 0.2s ease;
-        }
-
-        .like-button:hover svg {
-            transform: scale(1.1);
-        }
-
-        .like-count {
-            font-size: 11px;
-            font-weight: 500;
-        }
-
-        .comment-time {
-            font-size: 11px;
-            color: var(--text-secondary);
-            margin-left: 10px;
-        }
-
-        .reply-btn {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 11px;
-            margin-left: 10px;
-            transition: color 0.2s ease;
-        }
-
-        .reply-btn:hover {
-            color: var(--primary-color);
-        }
-
-        /* Comment Form - Sleeker & Smaller */
-        .comment-form {
-            display: flex;
-            align-items: center;
-            padding: 8px 12px;
-            border-top: 1px solid var(--border-light);
-            background-color: var(--background-white);
+        .font-size-slider-container {
+            flex-grow: 1;
             position: relative;
         }
 
-        .comment-input-container {
-            flex: 1;
-            position: relative;
+        .font-size-control .size-label {
             display: flex;
             align-items: center;
-            border: 1px solid var(--border-light);
-            border-radius: var(--border-radius-lg);
-            background-color: var(--primary-light);
-            padding: 2px 10px;
-            transition: all 0.2s ease;
+            justify-content: center;
+            width: 32px;
             height: 32px;
+            color: var(--secondary-text);
+            font-size: calc(var(--font-size) * 0.75);
         }
 
-        .comment-input-container:focus-within {
-            border-color: var(--primary-color);
-            background-color: var(--background-white);
-            box-shadow: 0 0 0 2px rgba(98, 98, 98, 0.1);
+        .font-size-control .size-label.small {
+            font-size: calc(var(--font-size) * 0.625);
         }
 
-        .comment-input {
-            flex: 1;
-            border: none;
-            background: transparent;
-            padding: 4px 4px;
-            font-size: 13px;
-            resize: none;
-            outline: none;
-            max-height: 50px;
-            min-height: 18px;
-            overflow-y: auto;
-            line-height: 1.3;
+        .font-size-control .size-label.large {
+            font-size: calc(var(--font-size) * 0.875);
         }
 
-        .comment-input::placeholder {
-            color: var(--text-secondary);
-            opacity: 0.7;
-            font-size: 13px;
-        }
-
-        .action-buttons {
-            display: flex;
-            align-items: center;
-        }
-
-        .gif-button {
-            background: none;
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 4px;
-            color: var(--text-secondary);
-            cursor: pointer;
-            margin-left: 2px;
-            border-radius: 50%;
-            transition: all 0.2s ease;
-        }
-
-        .gif-button:hover {
-            background-color: rgba(0, 0, 0, 0.05);
-            color: var(--primary-color);
-        }
-
-        .gif-button svg {
-            width: 16px;
-            height: 16px;
-        }
-
-        .submit-button {
-            background: var(--luxury-gradient);
-            border: none;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 6px;
-            color: white;
-            cursor: pointer;
-            margin-left: 8px;
-            width: 28px;
-            height: 28px;
-            transition: opacity 0.2s ease;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .submit-button:hover {
-            opacity: 0.9;
-        }
-
-        .submit-button svg {
-            width: 16px;
-            height: 16px;
-            fill: currentColor;
-        }
-
-        .submit-button:disabled {
-            background: linear-gradient(135deg, #cccccc, #999999);
-            cursor: default;
-            box-shadow: none;
-        }
-
-        /* GIF Selector */
-        .gif-selector {
-            position: absolute;
-            bottom: 60px;
-            left: 12px;
-            right: 12px;
-            background-color: var(--background-white);
-            border-radius: var(--border-radius-md);
-            box-shadow: 0 2px 20px rgba(0,0,0,0.15);
-            padding: 12px;
-            display: none;
-            flex-direction: column;
-            z-index: 2002;
-            max-height: 280px;
-            border: 1px solid var(--border-light);
-        }
-
-        .gif-selector.active {
-            display: flex;
-        }
-
-        .gif-search {
-            margin-bottom: 10px;
-            padding: 8px 12px;
-            border: 1px solid var(--border-light);
-            border-radius: var(--border-radius-lg);
-            font-size: 13px;
-            outline: none;
-            transition: border-color 0.2s ease;
-            height: 34px;
-        }
-
-        .gif-search:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px rgba(98, 98, 98, 0.1);
-        }
-
-        .gif-results {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            overflow-y: auto;
-            max-height: 210px;
-            padding-right: 4px;
-        }
-
-        .gif-results::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .gif-results::-webkit-scrollbar-track {
-            background: var(--primary-light);
-            border-radius: 2px;
-        }
-
-        .gif-results::-webkit-scrollbar-thumb {
-            background: var(--primary-color);
-            border-radius: 2px;
-        }
-
-        .gif-item {
+        .font-size-slider {
+            -webkit-appearance: none;
             width: 100%;
-            border-radius: 6px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .font-size-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
             cursor: pointer;
-            aspect-ratio: 16/9;
-            object-fit: cover;
-            transition: transform 0.2s ease;
-            border: 1px solid var(--border-light);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .gif-item:hover {
-            transform: scale(1.05);
-        }
-
-        /* Replies */
-        .replies-container {
-            margin-left: 12px;
-            border-left: 2px solid var(--border-light);
-            padding-left: 10px;
-            margin-top: 6px;
-        }
-
-        .view-replies-btn {
-            background: none;
+        .font-size-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
             border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 11px;
-            margin-top: 4px;
-            padding: 0;
-            transition: color 0.2s ease;
+        }
+
+        .font-size-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .font-size-slider::-moz-range-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .font-size-value {
+            margin-left: 8px;
+            font-size: calc(var(--font-size) * 0.875);
+            color: var(--secondary-text);
+            min-width: 40px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 375px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .theme-btn, .color-palette {
+                padding: 10px;
+            }
+            
+            .chat-bubble {
+                width: 36px;
+                height: 36px;
+            }
+            
+            .heading {
+                font-size: calc(var(--font-size) * 0.9375);
+            }
+            
+            .subheading {
+                font-size: calc(var(--font-size) * 0.8125);
+            }
+        }
+
+        /* New notification styles */
+        #notification-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            width: calc(100% - 32px);
+            max-width: 320px;
+        }
+
+        .notification {
+            background-color: var(--card-bg);
+            color: var(--text);
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
-        }
-
-        .view-replies-btn:hover {
-            color: var(--primary-color);
-        }
-
-        .view-replies-btn::before {
-            content: '';
-            display: inline-block;
-            width: 5px;
-            height: 5px;
-            border-bottom: 2px solid currentColor;
-            border-right: 2px solid currentColor;
-            transform: rotate(45deg);
-            margin-right: 5px;
-        }
-
-        /* Desktop Responsive */
-        @media (min-width: 768px) {
-            .fullscreen-modal {
-                width: 100%;
-                max-width: 1200px;
-                left: 50%;
-                right: auto;
-                transform: translateX(100%);
-            }
-
-            .fullscreen-modal.active {
-                transform: translateX(-50%);
-            }
-
-            .modal-content {
-                flex-direction: row;
-                height: calc(100% - 40px);
-            }
-
-            .media-container {
-                width: 65%;
-                height: 100%;
-                position: relative;
-                border-bottom: none;
-            }
-            
-            .media-container::after {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: linear-gradient(to bottom, 
-                            rgba(0,0,0,0.02) 0%, 
-                            rgba(0,0,0,0) 20%, 
-                            rgba(0,0,0,0) 80%, 
-                            rgba(0,0,0,0.02) 100%);
-                pointer-events: none;
-            }
-
-            .comments-section {
-                width: 35%;
-                border-left: 1px solid var(--border-light);
-            }
-
-            .post-description {
-                position: absolute;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                background: rgba(0, 0, 0, 0.7);
-                color: white;
-                padding: 12px;
-                z-index: 2;
-                backdrop-filter: blur(5px);
-                font-size: 13px;
-            }
-        }
-
-        /* Mobile Optimization */
-        @media (max-width: 767px) {
-            .modal-header {
-                padding: 8px 12px;
-            }
-            
-            .media-container {
-                height: 35%;
-                min-height: 180px;
-                max-height: 40vh;
-            }
-            
-            .comments-section {
-                height: 65%;
-            }
-            
-            .post-description {
-                font-size: 12px;
-                padding: 10px 12px;
-            }
-            
-            .comment-form {
-                padding: 6px 12px;
-            }
+            justify-content: center;
+            font-size: calc(var(--font-size) * 0.875);
+            font-weight: 600;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            border: 1px solid var(--border);
         }
     </style>
 </head>
 <body>
-    <div id="loadingContainer" class="loading-container start">
-        <div class="spinner"></div>
-    </div>
-    
-    <div id="profileContainer" class="profile-container">
-        <div class="profile-header">
-            <div id="profileAvatar" class="profile-avatar">N</div>
-            
-            <h1 id="username" class="profile-username">Username</h1>
-            
-            <div class="profile-handle">
-                <span id="profileHandle">@username</span>
-                <div class="flag-container">
-                    <img id="countryFlag" src="" alt="" style="height: 20px; margin-left: 8px;">
+    <div class="container">
+        <div class="theme-selector">
+            <button class="theme-btn" id="theme-toggle">
+                <div class="theme-btn-text">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm0-2a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"></path>
+                    </svg>
+                    Display
                 </div>
-            </div>
-            
-            <div class="profile-stats">
-                <div class="stat-item">
-                    <span id="postsCount" class="stat-value">0</span>
-                    <span class="stat-label">Pins</span>
-                </div>
-                <div class="stat-item">
-                    <span id="followersCount" class="stat-value">0</span>
-                    <span class="stat-label">Followers</span>
-                </div>
-                <div class="stat-item">
-                    <span id="followingCount" class="stat-value">0</span>
-                    <span class="stat-label">Following</span>
-                </div>
-            </div>
-            
-            <div id="profileBio" class="profile-bio">
-                <!-- Bio goes here -->
-            </div>
-        </div>
-        
-        <div class="action-buttons">
-            <button id="followButton" class="btn follow-btn">Follow</button>
-            <button id="messageButton" class="btn message-btn">Message</button>
-            <button id="shareButton" class="btn share-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-                    <circle cx="18" cy="5" r="3"></circle>
-                    <circle cx="6" cy="12" r="3"></circle>
-                    <circle cx="18" cy="19" r="3"></circle>
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                <svg class="chevron" viewBox="0 0 24 24" width="20" height="20">
+                    <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"></path>
                 </svg>
             </button>
-            <button id="moreButton" class="more-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm0-4.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm0 12.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"></path>
-                </svg>
-            </button>
-        </div>
-        
-        <div class="tabs">
-            <div id="createdTab" class="tab active" data-tab="created">Created</div>
-            <div id="likedTab" class="tab" data-tab="liked">Liked</div>
-            <div id="mediaTab" class="tab" data-tab="media">Media</div>
-        </div>
-        
-        <div id="created-content" class="tab-content active">
-            <div class="masonry-grid" id="gallery">
-                <!-- Gallery items will be inserted here -->
-            </div>
-        </div>
-        
-        <div id="liked-content" class="tab-content">
-            <div class="empty-content">
-                <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                </svg>
-                <h3 class="empty-title">No liked pins yet</h3>
-                <p class="empty-text">Pins you like will appear here</p>
-            </div>
-        </div>
-        
-        <div id="media-content" class="tab-content">
-            <div class="empty-content">
-                <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                    <polyline points="21 15 16 10 5 21"></polyline>
-                </svg>
-                <h3 class="empty-title">No media pins yet</h3>
-                <p class="empty-text">Pins with media will appear here</p>
-            </div>
-        </div>
-    </div>
-    
-    <div id="notFound" class="not-found">
-        <h2>User not found</h2>
-        <p>The user you're looking for doesn't exist or is not available.</p>
-    </div>
 
-    <!-- Fullscreen modal (same as feeds.html) -->
-    <div class="fullscreen-modal" id="fullscreenModal">
-        <div class="modal-header">
-            <button class="back-button" id="backButton">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-            </button>
-            <div class="modal-title">View Post</div>
-        </div>
-        <div class="modal-content">
-            <div class="media-container" id="modalMedia">
-                <!-- Media will be loaded here -->
-            </div>
-            <div class="post-description" id="postDescription">
-                <!-- Post description will be loaded here -->
-            </div>
-            <div class="comments-section">
-                <!-- Post header with user info and follow button -->
-                <div class="post-header" id="postHeader">
-                    <div class="post-user-info">
-                        <img class="post-user-avatar" id="postUserAvatar" src="" alt="User">
-                        <span class="post-user-name" id="postUserName"></span>
-                        <img class="post-user-flag" id="postUserFlag" src="" alt="Flag">
-                    </div>
-                    <div class="post-actions">
-                        <button class="like-post-button" id="likePostButton">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            <div class="theme-dropdown" id="theme-dropdown">
+                <div class="theme-options">
+                    <div class="theme-option" data-theme="light">
+                        <div class="color-preview light-preview"></div>
+                        <div class="theme-details">
+                            <div class="theme-name">Default</div>
+                            <div class="theme-description">Light mode</div>
+                        </div>
+                        <div class="theme-indicator">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
                             </svg>
-                            <span class="like-post-count" id="likePostCount">0</span>
-                        </button>
-                        <button class="follow-btn" id="modalFollowButton" style="display: none;">Follow</button>
-                    </div>
-                </div>
-
-                <!-- Reply preview (shown when replying) -->
-                <div class="reply-preview" id="replyPreview" style="display: none;">
-                    <div class="reply-preview-text" id="replyPreviewText"></div>
-                    <button class="reply-preview-close" id="replyPreviewClose">×</button>
-                </div>
-
-                <div class="comments-header">
-                    <span>Comments</span>
-                    <span class="comments-count" id="commentsCount">0 comments</span>
-                </div>
-                <div class="comments-list" id="commentsList">
-                    <!-- Comments will be loaded here -->
-                </div>
-                <div class="comment-form">
-                    <div class="comment-input-container">
-                        <textarea class="comment-input" id="commentInput" placeholder="Add a comment..."></textarea>
-                        <div class="action-buttons">
-                            <button class="gif-button" id="gifButton">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="2" y="3" width="20" height="18" rx="2" ry="2"></rect>
-                                    <path d="M8 7v10M16 7v10M12 7v10"></path>
-                                    <path d="M5 7h14"></path>
-                                </svg>
-                            </button>
                         </div>
                     </div>
-                    <button class="submit-button" id="submitComment" disabled>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
-                        </svg>
-                    </button>
-                </div>
-                <div class="gif-selector" id="gifSelector">
-                    <input type="text" class="gif-search" id="gifSearch" placeholder="Search GIFs...">
-                    <div class="gif-results" id="gifResults">
-                        <!-- GIF results will be loaded here -->
+                    <div class="theme-option" data-theme="dim">
+                        <div class="color-preview dim-preview"></div>
+                        <div class="theme-details">
+                            <div class="theme-name">Dim</div>
+                            <div class="theme-description">Less bright, easier on the eyes</div>
+                        </div>
+                        <div class="theme-indicator">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="theme-option" data-theme="dark">
+                        <div class="color-preview dark-preview"></div>
+                        <div class="theme-details">
+                            <div class="theme-name">Lights out</div>
+                            <div class="theme-description">Dark mode for night use</div>
+                        </div>
+                        <div class="theme-indicator">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
+                            </svg>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <div class="content-section">
+            <div class="heading">Font Size</div>
+            <div class="subheading">Adjust the text size to your preference</div>
+            <div class="font-size-control">
+                <div class="size-label small">A</div>
+                <div class="font-size-slider-container">
+                    <input type="range" min="0.8" max="1.3" step="0.05" value="1" class="font-size-slider" id="font-size-slider">
+                </div>
+                <div class="size-label large">A</div>
+                <div class="font-size-value" id="font-size-value">100%</div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <div class="heading">Chat Color</div>
+            <div class="subheading">Choose the color for your chat bubbles</div>
+            <div class="color-palettes" id="color-palettes">
+                <!-- Color palettes will be added dynamically -->
+            </div>
+        </div>
     </div>
-    
-   <script type="module">
-  
-// Import Firebase modules
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, getDocs, addDoc, serverTimestamp, doc, getDoc, where, deleteDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Firebase Configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
-    authDomain: "globalchat-2d669.firebaseapp.com",
-    projectId: "globalchat-2d669",
-    messagingSenderId: "178714711978",
-    appId: "1:178714711978:web:fb831188be23e62a4bbdd3",
-    databaseURL: "https://globalchat-2d669-default-rtdb.firebaseio.com/"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Elements
-const loadingContainer = document.getElementById('loadingContainer');
-const profileContainer = document.getElementById('profileContainer');
-const notFound = document.getElementById('notFound');
-const profileAvatar = document.getElementById('profileAvatar');
-const username = document.getElementById('username');
-const profileHandle = document.getElementById('profileHandle');
-const countryFlag = document.getElementById('countryFlag');
-const postsCount = document.getElementById('postsCount');
-const followersCount = document.getElementById('followersCount');
-const followingCount = document.getElementById('followingCount');
-const followButton = document.getElementById('followButton');
-const messageButton = document.getElementById('messageButton');
-const shareButton = document.getElementById('shareButton');
-const moreButton = document.getElementById('moreButton');
-const profileBio = document.getElementById('profileBio');
-const gallery = document.getElementById('gallery');
-const createdTab = document.getElementById('createdTab');
-const likedTab = document.getElementById('likedTab');
-const mediaTab = document.getElementById('mediaTab');
-const createdContent = document.getElementById('created-content');
-const likedContent = document.getElementById('liked-content');
-const mediaContent = document.getElementById('media-content');
-
-// Fullscreen modal elements
-const fullscreenModal = document.getElementById('fullscreenModal');
-const modalMedia = document.getElementById('modalMedia');
-const postDescription = document.getElementById('postDescription');
-const commentsList = document.getElementById('commentsList');
-const commentsCount = document.getElementById('commentsCount');
-const commentInput = document.getElementById('commentInput');
-const submitComment = document.getElementById('submitComment');
-const backButton = document.getElementById('backButton');
-const gifButton = document.getElementById('gifButton');
-const gifSelector = document.getElementById('gifSelector');
-const gifSearch = document.getElementById('gifSearch');
-const gifResults = document.getElementById('gifResults');
-const postHeader = document.getElementById('postHeader');
-const postUserAvatar = document.getElementById('postUserAvatar');
-const postUserName = document.getElementById('postUserName');
-const postUserFlag = document.getElementById('postUserFlag');
-const likePostButton = document.getElementById('likePostButton');
-const likePostCount = document.getElementById('likePostCount');
-const modalFollowButton = document.getElementById('modalFollowButton');
-const replyPreview = document.getElementById('replyPreview');
-const replyPreviewText = document.getElementById('replyPreviewText');
-const replyPreviewClose = document.getElementById('replyPreviewClose');
-
-// Get user ID from URL
-const urlParams = new URLSearchParams(window.location.search);
-const userId = urlParams.get('userId');
-
-let currentTab = 'created';
-
-// Current user state
-let currentUser = null;
-let profileUser = null;
-let isFollowing = false;
-let userPosts = []; // Store posts for reuse across tabs
-let followedUsers = new Set();
-let currentPostId = null;
-let currentPostData = null;
-let commentsUnsubscribe = null;
-let selectedGif = null;
-let currentVideo = null;
-let currentReplyTo = null;
-
-// Initialize
-function init() {
-    // Move loading animation from center to top (on mobile)
-    setTimeout(() => {
-        loadingContainer.classList.add('move-to-top');
-    }, 300);
-    
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            currentUser = user;
-            
-            // Get user's country if available
-            const userDoc = await getDoc(doc(db, 'users', user.uid));
-            if (userDoc.exists()) {
-                const userData = userDoc.data();
-                if (userData.country) {
-                    currentUser.country = userData.country;
-                }
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Theme controls
+        const themeBtn = document.getElementById('theme-toggle');
+        const themeDropdown = document.getElementById('theme-dropdown');
+        const themeOptions = document.querySelectorAll('.theme-option');
+        const chevron = document.querySelector('.chevron');
+        const colorPalettes = document.getElementById('color-palettes');
+        const fontSizeSlider = document.getElementById('font-size-slider');
+        const fontSizeValue = document.getElementById('font-size-value');
+        
+        // Chat bubble colors (simplified, no brand names)
+        const chatColors = [
+            {
+                name: "Default Blue",
+                color: "#1d9bf0"
+            },
+            {
+                name: "Purple",
+                color: "#833AB4"
+            },
+            {
+                name: "Red",
+                color: "#E01E5A"
+            },
+            {
+                name: "Green",
+                color: "#1DB954"
+            },
+            {
+                name: "Orange",
+                color: "#F56040"
+            },
+            {
+                name: "Pink",
+                color: "#EB459E"
+            },
+            {
+                name: "Yellow",
+                color: "#FFFC00"
+            },
+            {
+                name: "Turquoise",
+                color: "#36C5F0"
+            },
+            {
+                name: "Dark Blue",
+                color: "#3b5998"
+            },
+            {
+                name: "Black",
+                color: "#000000"
+            },
+            {
+                name: "Gray",
+                color: "#71767b"
             }
+        ];
+        
+        // Load saved theme from localStorage - keep original keys to maintain compatibility
+        const savedTheme = localStorage.getItem('twitter-theme') || 'light';
+        setTheme(savedTheme);
+        
+        // Load saved color palette from localStorage
+        const savedPalette = localStorage.getItem('color-palette') || '0'; // Default to the first color
+        
+        // Load saved font size from localStorage
+        const savedFontSize = localStorage.getItem('font-size') || '1';
+        fontSizeSlider.value = savedFontSize;
+        updateFontSize(savedFontSize);
+        
+        // Font size slider event
+        fontSizeSlider.addEventListener('input', function() {
+            updateFontSize(this.value);
+        });
+        
+        fontSizeSlider.addEventListener('change', function() {
+            // Save font size when slider stops
+            localStorage.setItem('font-size', this.value);
             
-            // Check if viewing own profile
-            const isOwnProfile = userId === user.uid;
+            // Broadcast font size change event to other pages
+            const fontSizeChangeEvent = new CustomEvent('fontSizeChanged', {
+                detail: { fontSize: this.value }
+            });
+            window.dispatchEvent(fontSizeChangeEvent);
             
-            if (isOwnProfile) {
-                followButton.style.display = 'none';
-            } else {
-                followButton.style.display = 'flex';
-                checkFollowStatus();
+            // Show notification
+            const percentage = Math.round(this.value * 100);
+            showNotification(`Font size set to ${percentage}%`);
+        });
+        
+        // Update font size function
+        function updateFontSize(size) {
+            // Update CSS variable
+            document.documentElement.style.setProperty('--font-size', `${size}rem`);
+            
+            // Update percentage display
+            const percentage = Math.round(size * 100);
+            fontSizeValue.textContent = `${percentage}%`;
+        }
+        
+        // Toggle theme dropdown
+        themeBtn.addEventListener('click', function(event) {
+            themeDropdown.classList.toggle('show');
+            chevron.classList.toggle('rotate');
+            
+            // Add ripple effect
+            createRipple(event, this);
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!themeBtn.contains(event.target) && !themeDropdown.contains(event.target)) {
+                themeDropdown.classList.remove('show');
+                chevron.classList.remove('rotate');
             }
-            
-            // Fetch followed users
-            await fetchFollowedUsers();
-            
-            loadProfile();
-            setupEventListeners();
-        } else {
-            loadProfile();
-        }
-    });
-}
-
-async function fetchFollowedUsers() {
-    if (!currentUser) return;
-    
-    try {
-        const followQuery = query(
-            collection(db, 'follows'),
-            where('followerUserId', '==', currentUser.uid)
-        );
-        
-        const followSnapshot = await getDocs(followQuery);
-        followedUsers.clear();
-        
-        followSnapshot.forEach(doc => {
-            followedUsers.add(doc.data().followedUserId);
         });
         
-        updateFollowButtons();
-    } catch (error) {
-        console.error('Error fetching followed users:', error);
-    }
-}
-
-function updateFollowButtons() {
-    if (currentPostData && currentPostData.userId !== currentUser?.uid) {
-        modalFollowButton.textContent = followedUsers.has(currentPostData.userId) ? 'Following' : 'Follow';
-        modalFollowButton.classList.toggle('followed', followedUsers.has(currentPostData.userId));
-    }
-}
-
-async function toggleFollow(userId, userName) {
-    if (!currentUser) return;
-    
-    try {
-        const followQuery = query(
-            collection(db, 'follows'),
-            where('followerUserId', '==', currentUser.uid),
-            where('followedUserId', '==', userId)
-        );
-        
-        const followSnapshot = await getDocs(followQuery);
-        
-        if (followSnapshot.empty) {
-            await addDoc(collection(db, 'follows'), {
-                followerUserId: currentUser.uid,
-                followedUserId: userId,
-                followedUserName: userName,
-                timestamp: serverTimestamp()
-            });
-            followedUsers.add(userId);
-        } else {
-            followSnapshot.forEach(async doc => {
-                await deleteDoc(doc.ref);
-            });
-            followedUsers.delete(userId);
-        }
-        
-        updateFollowButtons();
-    } catch (error) {
-        console.error('Error toggling follow:', error);
-    }
-}
-
-async function loadProfile() {
-    try {
-        const userDoc = await getDoc(doc(db, 'users', userId));
-        
-        if (!userDoc.exists()) {
-            loadingContainer.classList.add('hidden');
-            setTimeout(() => {
-                loadingContainer.style.display = 'none';
-                notFound.style.display = 'block';
-            }, 300);
-            return;
-        }
-        
-        profileUser = {
-            id: userId,
-            ...userDoc.data()
-        };
-        
-        // Set profile info
-        if (profileUser.photoURL) {
-            profileAvatar.innerHTML = '';
-            const img = document.createElement('img');
-            img.src = profileUser.photoURL;
-            img.alt = profileUser.displayName || 'User';
-            img.style.width = '100%';
-            img.style.height = '100%';
-            img.style.objectFit = 'cover';
-            img.onerror = function() {
-                profileAvatar.innerHTML = profileUser.displayName ? profileUser.displayName.charAt(0).toUpperCase() : 'N';
-            };
-            profileAvatar.appendChild(img);
-        } else {
-            profileAvatar.textContent = profileUser.displayName ? profileUser.displayName.charAt(0).toUpperCase() : 'N';
-        }
-        
-        username.textContent = profileUser.displayName || 'User';
-        profileHandle.textContent = `@${profileUser.username || 'user'}`;
-        
-        if (profileUser.country) {
-            countryFlag.src = `https://flagcdn.com/w20/${profileUser.country.toLowerCase()}.png`;
-            countryFlag.alt = profileUser.country.toUpperCase();
-            countryFlag.style.display = 'inline';
-            countryFlag.onerror = function() {
-                this.style.display = 'none';
-            };
-        } else {
-            countryFlag.style.display = 'none';
-        }
-        
-        profileBio.textContent = profileUser.bio || '';
-        
-        // Load posts count
-        const postsQuery = query(
-            collection(db, 'recence'),
-            where('userId', '==', userId)
-        );
-        
-        const postsSnapshot = await getDocs(postsQuery);
-        postsCount.textContent = postsSnapshot.size;
-        
-        // Store posts for reuse
-        userPosts = [];
-        postsSnapshot.forEach(doc => {
-            userPosts.push({
-                id: doc.id,
-                ...doc.data()
+        // Handle theme selection
+        themeOptions.forEach(option => {
+            option.addEventListener('click', function(event) {
+                const theme = this.getAttribute('data-theme');
+                
+                // Add ripple effect
+                createRipple(event, this);
+                
+                // Set theme with animation
+                setThemeWithAnimation(theme);
+                
+                // Close dropdown with slight delay
+                setTimeout(() => {
+                    themeDropdown.classList.remove('show');
+                    chevron.classList.remove('rotate');
+                }, 300);
             });
         });
         
-        // Load followers count
-        const followersQuery = query(
-            collection(db, 'follows'),
-            where('followedUserId', '==', userId)
-        );
-        
-        const followersSnapshot = await getDocs(followersQuery);
-        followersCount.textContent = followersSnapshot.size;
-        
-        // Load following count
-        const followingQuery = query(
-            collection(db, 'follows'),
-            where('followerUserId', '==', userId)
-        );
-        
-        const followingSnapshot = await getDocs(followingQuery);
-        followingCount.textContent = followingSnapshot.size;
-        
-        // Load posts for initial tab
-        await loadTabContent();
-        
-        // Show profile with fade-in effect
-        loadingContainer.classList.add('hidden');
-        setTimeout(() => {
-            loadingContainer.style.display = 'none';
-            profileContainer.style.display = 'block';
-        }, 300);
-        
-    } catch (error) {
-        console.error('Error loading profile:', error);
-        loadingContainer.classList.add('hidden');
-        setTimeout(() => {
-            loadingContainer.style.display = 'none';
-            notFound.style.display = 'block';
-            notFound.innerHTML = '<h2>Error</h2><p>There was an error loading this profile.</p>';
-        }, 300);
-    }
-}
-
-async function loadTabContent() {
-    // Clear previous content
-    if (currentTab === 'created') {
-        gallery.innerHTML = '<div class="loading-posts">Loading...</div>';
-        await loadCreatedPosts();
-    } else if (currentTab === 'liked') {
-        likedContent.innerHTML = '<div class="loading-posts">Loading liked posts...</div>';
-        await loadLikedPosts();
-    } else if (currentTab === 'media') {
-        mediaContent.innerHTML = '<div class="loading-posts">Loading media...</div>';
-        await loadMediaContent();
-    }
-}
-
-async function loadCreatedPosts() {
-    try {
-        if (userPosts.length === 0) {
-            gallery.innerHTML = `
-                <div class="empty-content">
-                    <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                        <path d="M21 15l-5-5L5 21"></path>
-                    </svg>
-                    <h3 class="empty-title">No pins yet</h3>
-                    <p class="empty-text">Pins you create will appear here</p>
-                </div>
-            `;
-            return;
-        }
-        
-        gallery.innerHTML = '';
-        
-        // Sort posts by timestamp (newest first)
-        const sortedPosts = [...userPosts].sort((a, b) => {
-            if (!a.timestamp && !b.timestamp) return 0;
-            if (!a.timestamp) return 1;
-            if (!b.timestamp) return -1;
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            // Keep original localStorage key to maintain compatibility with other pages
+            localStorage.setItem('twitter-theme', theme);
             
-            const timestampA = a.timestamp.seconds || a.timestamp;
-            const timestampB = b.timestamp.seconds || b.timestamp;
-            return timestampB - timestampA;
-        });
-        
-        sortedPosts.forEach(postData => {
-            const postId = postData.id;
-            
-            if (postData.media && postData.media.length > 0) {
-                const galleryItem = document.createElement('div');
-                galleryItem.className = 'gallery-item';
-                galleryItem.dataset.postId = postId;
-                
-                const mediaItem = postData.media[0];
-                const isVideo = mediaItem.type === 'video' || 
-                               (mediaItem.contentType && mediaItem.contentType.startsWith('video/')) ||
-                               (mediaItem.url && mediaItem.url.match(/\.(mp4|mov|webm|avi)/i));
-                
-                const mediaContainer = document.createElement('div');
-                mediaContainer.style.position = 'relative';
-                
-                if (isVideo) {
-                    const video = document.createElement('video');
-                    video.src = mediaItem.url;
-                    video.muted = true;
-                    video.loop = true;
-                    video.playsInline = true;
-                    
-                    // For touch devices, use poster or first frame
-                    video.poster = mediaItem.thumbnail || '';
-                    
-                    // Only play on hover for desktop
-                    if (window.matchMedia('(min-width: 768px)').matches) {
-                        galleryItem.addEventListener('mouseenter', () => {
-                            video.play().catch(err => console.log('Video play prevented:', err));
-                        });
-                        
-                        galleryItem.addEventListener('mouseleave', () => {
-                            video.pause();
-                        });
-                    }
-                    
-                    const videoIndicator = document.createElement('div');
-                    videoIndicator.className = 'video-indicator';
-                    videoIndicator.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="white">
-                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                        </svg>
-                    `;
-                    
-                    mediaContainer.appendChild(video);
-                    mediaContainer.appendChild(videoIndicator);
+            // Update active class
+            themeOptions.forEach(option => {
+                if (option.getAttribute('data-theme') === theme) {
+                    option.classList.add('active');
                 } else {
-                    const img = document.createElement('img');
-                    img.src = mediaItem.url;
-                    img.alt = postData.text || 'Pin';
-                    img.loading = 'lazy';
-                    
-                    mediaContainer.appendChild(img);
+                    option.classList.remove('active');
                 }
+            });
+            
+            // Broadcast theme change event to other pages
+            const themeChangeEvent = new CustomEvent('themeChanged', {
+                detail: { theme: theme }
+            });
+            window.dispatchEvent(themeChangeEvent);
+        }
+        
+        function setThemeWithAnimation(theme) {
+            // First add a class to trigger animation
+            document.body.classList.add('theme-transition');
+            
+            // Set the theme
+            setTheme(theme);
+            
+            // Remove the animation class after transition completes
+            setTimeout(() => {
+                document.body.classList.remove('theme-transition');
+            }, 500);
+        }
+        
+        // Create ripple effect
+        function createRipple(event, element) {
+            const ripple = document.createElement('span');
+            ripple.classList.add('ripple');
+            
+            const rect = element.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            
+            const x = event.clientX - rect.left - size / 2;
+            const y = event.clientY - rect.top - size / 2;
+            
+            ripple.style.width = ripple.style.height = `${size}px`;
+            ripple.style.left = `${x}px`;
+            ripple.style.top = `${y}px`;
+            
+            element.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        }
+        
+        // Generate color palettes as chat bubbles
+        chatColors.forEach((colorObj, index) => {
+            const paletteElement = document.createElement('div');
+            paletteElement.className = 'color-palette';
+            paletteElement.dataset.color = colorObj.color;
+            paletteElement.dataset.index = index;
+            
+            // Check if this color is saved
+            if (savedPalette && savedPalette === index.toString()) {
+                paletteElement.classList.add('active');
+            }
+            
+            const chatBubble = document.createElement('div');
+            chatBubble.className = 'chat-bubble';
+            chatBubble.style.backgroundColor = colorObj.color;
+            
+            // For light colors, add a border
+            if (colorObj.color === '#FFFC00' || colorObj.color === '#FFFFFF') {
+                chatBubble.style.border = '1px solid #ddd';
+            }
+            
+            const paletteName = document.createElement('div');
+            paletteName.className = 'palette-name';
+            paletteName.textContent = colorObj.name;
+            
+            // Add check icon for selected palette
+            const selectedIcon = document.createElement('div');
+            selectedIcon.className = 'palette-selected';
+            selectedIcon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>';
+            
+            paletteElement.appendChild(chatBubble);
+            paletteElement.appendChild(paletteName);
+            paletteElement.appendChild(selectedIcon);
+            
+            // Add click event to select palette
+            paletteElement.addEventListener('click', function(event) {
+                // Add ripple effect
+                createRipple(event, this);
                 
-                galleryItem.appendChild(mediaContainer);
+                // Save color selection - keep original keys for compatibility
+                const colorIndex = this.dataset.index;
+                const colorValue = this.dataset.color;
+                localStorage.setItem('color-palette', colorIndex);
+                localStorage.setItem('color-value', colorValue);
                 
-                galleryItem.addEventListener('click', () => {
-                    openModal(postData, postId);
+                // Update active class
+                document.querySelectorAll('.color-palette').forEach(p => {
+                    p.classList.remove('active');
                 });
+                this.classList.add('active');
                 
-                gallery.appendChild(galleryItem);
+                // Set CSS variable for chat bubble color
+                document.documentElement.style.setProperty('--chat-bubble', colorValue);
                 
-                // Apply random heights for a more Pinterest-like look
-                const randomHeight = Math.floor(Math.random() * (400 - 200) + 200);
-                if (!isVideo) {
-                    const img = mediaContainer.querySelector('img');
-                    if (img) {
-                        img.style.minHeight = `${randomHeight}px`;
+                // Broadcast color change event to other pages
+                const colorChangeEvent = new CustomEvent('chatColorChanged', {
+                    detail: { color: colorValue }
+                });
+                window.dispatchEvent(colorChangeEvent);
+                
+                // Show notification
+                showNotification(`${colorObj.name} selected!`);
+            });
+            
+            colorPalettes.appendChild(paletteElement);
+        });
+        
+        // Apply saved color on page load
+        const savedColorValue = localStorage.getItem('color-value');
+        if (savedColorValue) {
+            document.documentElement.style.setProperty('--chat-bubble', savedColorValue);
+        }
+        
+        // Show notification
+        function showNotification(message) {
+            // Check if notification container exists
+            let notificationContainer = document.getElementById('notification-container');
+            
+            if (!notificationContainer) {
+                notificationContainer = document.createElement('div');
+                notificationContainer.id = 'notification-container';
+                document.body.appendChild(notificationContainer);
+            }
+            
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            
+            // Add success icon
+            const icon = document.createElement('div');
+            icon.style.marginRight = '8px';
+            icon.style.color = 'var(--primary)';
+            icon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path></svg>';
+            
+            notification.appendChild(icon);
+            notification.appendChild(document.createTextNode(message));
+            notificationContainer.appendChild(notification);
+            
+            // Trigger animation
+            setTimeout(() => {
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateY(0)';
+            }, 10);
+            
+            // Remove notification after delay
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(-20px)';
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+        
+        
+        // Initialize active theme indicator
+        themeOptions.forEach(option => {
+            if (option.getAttribute('data-theme') === savedTheme) {
+                option.classList.add('active');
+            }
+        });
+        
+        // Listen for theme changes from other pages
+        window.addEventListener('storage', function(event) {
+            if (event.key === 'twitter-theme') {
+                setTheme(event.newValue);
+            }
+            if (event.key === 'color-palette' || event.key === 'color-value') {
+                const colorPalettes = document.querySelectorAll('.color-palette');
+                colorPalettes.forEach(palette => {
+                    if (palette.dataset.index === event.newValue) {
+                        palette.classList.add('active');
+                    } else {
+                        palette.classList.remove('active');
                     }
-                }
-            }
-        });
-        
-        // If no media posts were added to the gallery
-        if (gallery.children.length === 0) {
-            gallery.innerHTML = `
-                <div class="empty-content">
-                    <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                        <path d="M21 15l-5-5L5 21"></path>
-                    </svg>
-                    <h3 class="empty-title">No media pins</h3>
-                    <p class="empty-text">Pins with images or videos will appear here</p>
-                </div>
-            `;
-        }
-    } catch (error) {
-        console.error('Error loading created posts:', error);
-        gallery.innerHTML = '<div style="text-align: center; padding: 20px;">Error loading pins</div>';
-    }
-}
-
-async function loadLikedPosts() {
-    // Implement liked posts functionality if needed
-    likedContent.innerHTML = `
-        <div class="empty-content">
-            <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-            </svg>
-            <h3 class="empty-title">No liked pins</h3>
-            <p class="empty-text">Pins you like will appear here</p>
-        </div>
-    `;
-}
-
-async function loadMediaContent() {
-    try {
-        // We'll use the cached userPosts if available
-        if (userPosts.length === 0) {
-            mediaContent.innerHTML = `
-                <div class="empty-content">
-                    <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                        <path d="M21 15l-5-5L5 21"></path>
-                    </svg>
-                    <h3 class="empty-title">No media yet</h3>
-                    <p class="empty-text">Media will appear here</p>
-                </div>
-            `;
-            return;
-        }
-        
-        mediaContent.innerHTML = '';
-        
-        // Create a media grid container
-        const mediaGrid = document.createElement('div');
-        mediaGrid.className = 'media-grid';
-        mediaContent.appendChild(mediaGrid);
-        
-        // Extract all media items from posts
-        const mediaItems = [];
-        
-        userPosts.forEach(postData => {
-            const postId = postData.id;
-            
-            if (postData.media && postData.media.length > 0) {
-                postData.media.forEach(media => {
-                    let mediaUrl = null;
-                    let mediaType = 'image';
-                    let thumbnail = null;
-                    
-                    if (typeof media === 'string') {
-                        mediaUrl = media;
-                    } else if (media.url) {
-                        mediaUrl = media.url;
-                        mediaType = (media.type === 'video' || 
-                                    (media.contentType && media.contentType.startsWith('video/')) ||
-                                    mediaUrl.match(/\.(mp4|mov|webm|avi)/i)) ? 'video' : 'image';
-                        thumbnail = media.thumbnail || null;
-                    } else if (media.previewUrl) {
-                        mediaUrl = media.previewUrl;
-                        mediaType = media.type || 'image';
-                    } else if (media.src) {
-                        mediaUrl = media.src;
-                        mediaType = media.type || 'image';
-                    } else if (media.link) {
-                        mediaUrl = media.link;
-                        mediaType = media.type || 'image';
-                    }
-                    
-                    if (mediaUrl) {
-                        mediaItems.push({
-                            url: mediaUrl,
-                            type: mediaType,
-                            thumbnail: thumbnail,
-                            postId: postId
-                        });
-                    }
                 });
+                
+                if (event.key === 'color-value') {
+                    document.documentElement.style.setProperty('--chat-bubble', event.newValue);
+                }
+            }
+            if (event.key === 'font-size') {
+                // Update font size slider and value when changed from another page
+                fontSizeSlider.value = event.newValue;
+                updateFontSize(event.newValue);
             }
         });
         
-        if (mediaItems.length === 0) {
-            mediaContent.innerHTML = `
-                <div class="empty-content">
-                    <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                        <path d="M21 15l-5-5L5 21"></path>
-                    </svg>
-                    <h3 class="empty-title">No media found</h3>
-                    <p class="empty-text">This user hasn't shared any media yet</p>
-                </div>
-            `;
-            return;
-        }
-        
-        // Display media items in a grid
-        mediaItems.forEach(item => {
-            const mediaElement = document.createElement('div');
-            mediaElement.className = 'media-item';
-            
-            if (item.type === 'video') {
-                const container = document.createElement('div');
-                container.className = 'video-container';
-                
-                const video = document.createElement('video');
-                video.src = item.url;
-                video.muted = true;
-                video.playsInline = true;
-                
-                if (item.thumbnail) {
-                    video.poster = item.thumbnail;
-                }
-                
-                // Only play on hover for desktop
-                if (window.matchMedia('(min-width: 768px)').matches) {
-                    mediaElement.addEventListener('mouseenter', () => {
-                        video.play().catch(err => console.log('Video play prevented:', err));
-                    });
-                    
-                    mediaElement.addEventListener('mouseleave', () => {
-                        video.pause();
-                    });
-                }
-                
-                const videoIndicator = document.createElement('div');
-                videoIndicator.className = 'video-indicator';
-                videoIndicator.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="white">
-                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                    </svg>
-                `;
-                
-                container.appendChild(video);
-                container.appendChild(videoIndicator);
-                mediaElement.appendChild(container);
+        // Handle window resize for responsive behavior
+        function handleResize() {
+            // Adjust container padding based on screen width
+            const container = document.querySelector('.container');
+            if (window.innerWidth < 480) {
+                container.style.padding = '10px';
             } else {
-                const img = document.createElement('img');
-                img.src = item.url;
-                img.alt = 'Media';
-                img.loading = 'lazy';
-                mediaElement.appendChild(img);
+                container.style.padding = '16px';
             }
             
-            mediaElement.addEventListener('click', () => {
-                const postData = userPosts.find(post => post.id === item.postId);
-                if (postData) {
-                    openModal(postData, item.postId);
-                }
-            });
-            
-            mediaGrid.appendChild(mediaElement);
-        });
-        
-        // Add CSS to the page for media grid layout if not already present
-        if (!document.getElementById('media-grid-style')) {
-            const styleElement = document.createElement('style');
-            styleElement.id = 'media-grid-style';
-            styleElement.textContent = `
-                .media-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-                    gap: 8px;
-                    padding: 8px;
-                }
-                
-                .media-item {
-                    position: relative;
-                    overflow: hidden;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    aspect-ratio: 1/1;
-                    background-color: #f0f0f0;
-                }
-                
-                .media-item img, .media-item video {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                }
-                
-                .video-container {
-                    position: relative;
-                    width: 100%;
-                    height: 100%;
-                }
-                
-                .video-indicator {
-                    position: absolute;
-                    bottom: 8px;
-                    right: 8px;
-                    background-color: rgba(0, 0, 0, 0.5);
-                    border-radius: 50%;
-                    width: 24px;
-                    height: 24px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-                
-                .media-item:hover {
-                    transform: scale(1.02);
-                    transition: transform 0.2s ease;
-                }
-            `;
-            document.head.appendChild(styleElement);
+            // Close dropdown when resizing
+            themeDropdown.classList.remove('show');
+            chevron.classList.remove('rotate');
         }
         
-    } catch (error) {
-        console.error('Error loading media content:', error);
-        mediaContent.innerHTML = '<div style="text-align: center; padding: 20px;">Error loading media</div>';
-    }
-}
-
-async function checkFollowStatus() {
-    if (!currentUser) return;
-    
-    try {
-        const followQuery = query(
-            collection(db, 'follows'),
-            where('followerUserId', '==', currentUser.uid),
-            where('followedUserId', '==', userId)
-        );
+        // Initial call and event listener for resize
+        handleResize();
+        window.addEventListener('resize', handleResize);
         
-        const followSnapshot = await getDocs(followQuery);
-        isFollowing = !followSnapshot.empty;
-        
-        updateFollowButton();
-    } catch (error) {
-        console.error('Error checking follow status:', error);
-    }
-}
-
-function updateFollowButton() {
-    if (isFollowing) {
-        followButton.textContent = 'Following';
-        followButton.classList.add('followed');
-    } else {
-        followButton.textContent = 'Follow';
-        followButton.classList.remove('followed');
-    }
-}
-
-async function toggleProfileFollow() {
-    if (!currentUser || !profileUser) return;
-    
-    try {
-        const followQuery = query(
-            collection(db, 'follows'),
-            where('followerUserId', '==', currentUser.uid),
-            where('followedUserId', '==', userId)
-        );
-        
-        const followSnapshot = await getDocs(followQuery);
-        
-        if (followSnapshot.empty) {
-            // Follow
-            await addDoc(collection(db, 'follows'), {
-                followerUserId: currentUser.uid,
-                followedUserId: userId,
-                followedUserName: profileUser.displayName || 'User',
-                timestamp: serverTimestamp()
-            });
-            
-            isFollowing = true;
-            
-            // Update followers count
-            const count = parseInt(followersCount.textContent) + 1;
-            followersCount.textContent = count;
-        } else {
-            // Unfollow
-            followSnapshot.forEach(async doc => {
-                await deleteDoc(doc.ref);
-            });
-            
-            isFollowing = false;
-            
-            // Update followers count
-            const count = Math.max(0, parseInt(followersCount.textContent) - 1);
-            followersCount.textContent = count;
-        }
-        
-        updateFollowButton();
-    } catch (error) {
-        console.error('Error toggling follow:', error);
-    }
-}
-
-function switchTab(tab) {
-    if (tab === currentTab) return;
-    
-    currentTab = tab;
-    
-    // Update tab classes
-    createdTab.classList.toggle('active', tab === 'created');
-    likedTab.classList.toggle('active', tab === 'liked');
-    mediaTab.classList.toggle('active', tab === 'media');
-    
-    // Update content visibility
-    createdContent.classList.toggle('active', tab === 'created');
-    likedContent.classList.toggle('active', tab === 'liked');
-    mediaContent.classList.toggle('active', tab === 'media');
-    
-    // Load content for the selected tab
-    loadTabContent();
-}
-
-// Modal functions
-function openModal(postData, postId) {
-    currentPostId = postId;
-    currentPostData = postData;
-    
-    modalMedia.innerHTML = '';
-    commentsList.innerHTML = '';
-    commentsCount.textContent = '0 comments';
-    commentInput.value = '';
-    submitComment.disabled = true;
-    selectedGif = null;
-    currentReplyTo = null;
-    replyPreview.style.display = 'none';
-    
-    postUserAvatar.src = postData.photoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    postUserAvatar.onerror = function() {
-        this.src = 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    };
-    postUserAvatar.addEventListener('click', (e) => {
-        e.stopPropagation();
-        window.parent.postMessage({
-            type: 'openProfile',
-            userId: postData.userId
-        }, '*');
-    });
-    
-    postUserName.textContent = postData.name || 'User';
-    postUserName.addEventListener('click', (e) => {
-        e.stopPropagation();
-        window.parent.postMessage({
-            type: 'openProfile',
-            userId: postData.userId
-        }, '*');
-    });
-    
-    postUserFlag.src = `https://flagcdn.com/w20/${postData.country || 'unknown'}.png`;
-    postUserFlag.onerror = function() {
-        this.style.display = 'none';
-    };
-    
-    // Set post description if available
-    if (postData.text && postData.text.trim() !== '') {
-        postDescription.textContent = postData.text;
-        postDescription.style.display = 'block';
-    } else {
-        postDescription.style.display = 'none';
-    }
-    
-    if (postData.userId === currentUser?.uid) {
-        modalFollowButton.style.display = 'none';
-    } else {
-        modalFollowButton.style.display = 'inline-block';
-        modalFollowButton.textContent = followedUsers.has(postData.userId) ? 'Following' : 'Follow';
-        modalFollowButton.classList.toggle('followed', followedUsers.has(postData.userId));
-    }
-    
-    likePostButton.classList.toggle('liked', postData.likes && postData.likes.includes(currentUser?.uid));
-    likePostCount.textContent = postData.likes ? postData.likes.length : 0;
-    
-    // Create media element for modal
-    const mediaItem = postData.media[0];
-    const isVideo = mediaItem.type === 'video' || mediaItem.contentType?.startsWith('video/');
-    
-    if (isVideo) {
-        const video = document.createElement('video');
-        video.src = mediaItem.url;
-        video.controls = true;
-        video.autoplay = true;
-        video.loop = true;
-        video.muted = false;
-        currentVideo = video;
-        modalMedia.appendChild(video);
-    } else {
-        const img = document.createElement('img');
-        img.src = mediaItem.url;
-        img.alt = 'Post image';
-        modalMedia.appendChild(img);
-        currentVideo = null;
-    }
-    
-    fullscreenModal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-    
-    loadComments(postId);
-}
-
-function closeModal() {
-    if (currentVideo) {
-        currentVideo.pause();
-        currentVideo.currentTime = 0;
-        currentVideo = null;
-    }
-    
-    fullscreenModal.classList.remove('active');
-    document.body.style.overflow = '';
-    
-    if (commentsUnsubscribe) {
-        commentsUnsubscribe();
-        commentsUnsubscribe = null;
-    }
-    
-    currentPostId = null;
-    currentPostData = null;
-    
-    gifSelector.classList.remove('active');
-    selectedGif = null;
-    
-    const previewGif = document.querySelector('.gif-preview');
-    if (previewGif) {
-        previewGif.remove();
-    }
-}
-
-async function loadComments(postId) {
-    commentsList.innerHTML = `
-        <div class="comment-loading" style="display: flex; justify-content: center; padding: 20px;">
-            <div class="spinner" style="width: 20px; height: 20px;"></div>
-        </div>
-    `;
-    
-    const commentsRef = collection(db, 'recence', postId, 'comments');
-    const q = query(commentsRef, orderBy('timestamp', 'asc'));
-    
-    commentsUnsubscribe = onSnapshot(q, (snapshot) => {
-        commentsList.innerHTML = '';
-        
-        if (snapshot.empty) {
-            commentsCount.textContent = '0 comments';
-            return;
-        }
-        
-        commentsCount.textContent = `${snapshot.size} comment${snapshot.size !== 1 ? 's' : ''}`;
-        
-        const comments = {};
-        const rootComments = [];
-        
-        snapshot.forEach((doc) => {
-            const commentData = doc.data();
-            commentData.id = doc.id;
-            
-            if (commentData.parentId) {
-                if (!comments[commentData.parentId]) {
-                    comments[commentData.parentId] = [];
-                }
-                comments[commentData.parentId].push(commentData);
-            } else {
-                rootComments.push(commentData);
+        // Ensure the theme dropdown position is adjusted if window size changes
+        window.addEventListener('resize', function() {
+            if (themeDropdown.classList.contains('show')) {
+                // Reposition dropdown if open during resize
+                const themeBtn = document.getElementById('theme-toggle');
+                const rect = themeBtn.getBoundingClientRect();
+                themeDropdown.style.width = rect.width + 'px';
             }
         });
-        
-        rootComments.forEach(comment => {
-            const commentElement = createCommentElement(comment, comments[comment.id] || []);
-            commentsList.appendChild(commentElement);
-        });
-    }, (error) => {
-        console.error("Error loading comments:", error);
-        commentsList.innerHTML = '<div style="text-align: center; padding: 10px;">Error loading comments</div>';
     });
-}
-
-function createCommentElement(commentData, replies = []) {
-    const comment = document.createElement('div');
-    comment.className = 'comment';
-    comment.dataset.commentId = commentData.id;
-    
-    const avatar = document.createElement('img');
-    avatar.className = 'comment-avatar';
-    avatar.src = commentData.userPhotoURL || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    avatar.onerror = function() {
-        this.src = 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
-    };
-    avatar.addEventListener('click', (e) => {
-        e.stopPropagation();
-        window.parent.postMessage({
-            type: 'openProfile',
-            userId: commentData.userId
-        }, '*');
-    });
-    
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'comment-content';
-    
-    const author = document.createElement('div');
-    author.className = 'comment-author';
-    author.textContent = commentData.userName || 'Anonymous';
-    author.style.cursor = 'pointer';
-    author.addEventListener('click', (e) => {
-        e.stopPropagation();
-        window.parent.postMessage({
-            type: 'openProfile',
-            userId: commentData.userId
-        }, '*');
-    });
-    
-    if (commentData.country) {
-        const flag = document.createElement('img');
-        flag.className = 'comment-flag';
-        flag.src = `https://flagcdn.com/w20/${commentData.country}.png`;
-        flag.alt = commentData.country;
-        flag.onerror = function() {
-            this.style.display = 'none';
-        };
-        author.appendChild(flag);
-    }
-    
-    if (currentPostData && commentData.userId === currentPostData.userId) {
-        const creatorBadge = document.createElement('span');
-        creatorBadge.textContent = ' (Creator)';
-        creatorBadge.style.color = '#0095f6';
-        creatorBadge.style.fontSize = '12px';
-        creatorBadge.style.marginLeft = '4px';
-        author.appendChild(creatorBadge);
-    }
-    
-    contentDiv.appendChild(author);
-    
-    if (commentData.text && commentData.text.trim() !== '') {
-        const text = document.createElement('div');
-        text.className = 'comment-text';
-        text.textContent = commentData.text;
-        contentDiv.appendChild(text);
-    }
-    
-    if (commentData.gifUrl) {
-        const gif = document.createElement('img');
-        gif.className = 'comment-gif';
-        gif.src = commentData.gifUrl;
-        gif.loading = 'lazy';
-        contentDiv.appendChild(gif);
-    }
-    
-    const actions = document.createElement('div');
-    actions.className = 'comment-actions';
-    
-    const likeButton = document.createElement('button');
-    likeButton.className = 'like-button';
-    if (commentData.likes && commentData.likes.includes(currentUser?.uid)) {
-        likeButton.classList.add('liked');
-    }
-
-    likeButton.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-        </svg>
-        Like
-    `;
-
-    const likeCount = document.createElement('span');
-    likeCount.className = 'like-count';
-    likeCount.textContent = commentData.likes ? commentData.likes.length : 0;
-
-    likeButton.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        
-        const commentRef = doc(db, 'recence', currentPostId, 'comments', commentData.id);
-        
-        try {
-            const isLiked = likeButton.classList.contains('liked');
-            
-            if (isLiked) {
-                await updateDoc(commentRef, {
-                    likes: arrayRemove(currentUser.uid)
-                });
-                likeButton.classList.remove('liked');
-                likeCount.textContent = (commentData.likes ? commentData.likes.length - 1 : 0).toString();
-            } else {
-                await updateDoc(commentRef, {
-                    likes: arrayUnion(currentUser.uid)
-                });
-                likeButton.classList.add('liked');
-                likeCount.textContent = (commentData.likes ? commentData.likes.length + 1 : 1).toString();
-            }
-        } catch (error) {
-            console.error('Error updating like:', error);
-        }
-    });
-
-    const replyButton = document.createElement('button');
-    replyButton.className = 'reply-btn';
-    replyButton.textContent = 'Reply';
-
-    replyButton.addEventListener('click', (e) => {
-        e.stopPropagation();
-        currentReplyTo = {
-            id: commentData.id,
-            name: commentData.userName
-        };
-        replyPreviewText.textContent = `Replying to ${commentData.userName}`;
-        replyPreview.style.display = 'flex';
-        commentInput.focus();
-    });
-
-    const timestamp = document.createElement('span');
-    timestamp.className = 'comment-time';
-
-    if (commentData.timestamp && commentData.timestamp.toDate) {
-        const date = commentData.timestamp.toDate();
-        timestamp.textContent = formatTimestamp(date);
-    } else {
-        timestamp.textContent = 'Just now';
-    }
-
-    actions.appendChild(likeButton);
-    actions.appendChild(likeCount);
-    actions.appendChild(replyButton);
-    actions.appendChild(timestamp);
-
-    contentDiv.appendChild(actions);
-
-    if (replies.length > 0) {
-        const repliesContainer = document.createElement('div');
-        repliesContainer.className = 'replies-container';
-        
-        const viewRepliesBtn = document.createElement('button');
-        viewRepliesBtn.className = 'view-replies-btn';
-        viewRepliesBtn.textContent = `View ${replies.length} repl${replies.length === 1 ? 'y' : 'ies'}`;
-        
-        const repliesList = document.createElement('div');
-        repliesList.style.display = 'none';
-        
-        replies.forEach(reply => {
-            const replyElement = createCommentElement(reply);
-            repliesList.appendChild(replyElement);
-        });
-        
-        viewRepliesBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (repliesList.style.display === 'none') {
-                repliesList.style.display = 'block';
-                viewRepliesBtn.textContent = 'Hide replies';
-            } else {
-                repliesList.style.display = 'none';
-                viewRepliesBtn.textContent = `View ${replies.length} repl${replies.length === 1 ? 'y' : 'ies'}`;
-            }
-        });
-        
-        repliesContainer.appendChild(viewRepliesBtn);
-        repliesContainer.appendChild(repliesList);
-        contentDiv.appendChild(repliesContainer);
-    }
-
-    comment.appendChild(avatar);
-    comment.appendChild(contentDiv);
-
-    return comment;
-}
-
-function formatTimestamp(date) {
-    const now = new Date();
-    const diffMs = now - date;
-    const diffSec = Math.floor(diffMs / 1000);
-    const diffMin = Math.floor(diffSec / 60);
-    const diffHour = Math.floor(diffMin / 60);
-    const diffDay = Math.floor(diffHour / 24);
-    
-    if (diffSec < 60) {
-        return 'Just now';
-    } else if (diffMin < 60) {
-        return `${diffMin}m ago`;
-    } else if (diffHour < 24) {
-        return `${diffHour}h ago`;
-    } else if (diffDay < 7) {
-        return `${diffDay}d ago`;
-    } else {
-        return date.toLocaleDateString();
-    }
-}
-
-async function addComment() {
-    if (!currentUser || !currentPostId) return;
-    
-    const text = commentInput.value.trim();
-    if (text === '' && !selectedGif) return;
-    
-    submitComment.disabled = true;
-    
-    try {
-        const commentData = {
-            userId: currentUser.uid,
-            userName: currentUser.displayName || 'User',
-            userPhotoURL: currentUser.photoURL,
-            text: text,
-            timestamp: serverTimestamp(),
-            likes: [],
-            country: currentUser.country
-        };
-        
-        if (currentReplyTo) {
-            commentData.parentId = currentReplyTo.id;
-            commentData.parentUserName = currentReplyTo.name;
-        }
-        
-        if (selectedGif) {
-            commentData.gifUrl = selectedGif;
-        }
-        
-        const commentsRef = collection(db, 'recence', currentPostId, 'comments');
-        await addDoc(commentsRef, commentData);
-        
-        commentInput.value = '';
-        selectedGif = null;
-        currentReplyTo = null;
-        replyPreview.style.display = 'none';
-        
-        const previewGif = document.querySelector('.gif-preview');
-        if (previewGif) {
-            previewGif.remove();
-        }
-        
-        submitComment.disabled = true;
-        
-        const postRef = doc(db, 'recence', currentPostId);
-        const postDoc = await getDoc(postRef);
-        
-        if (postDoc.exists()) {
-            const postData = postDoc.data();
-            const currentCount = postData.commentCount || 0;
-            
-            await updateDoc(postRef, {
-                commentCount: currentCount + 1
-            });
-        }
-    } catch (error) {
-        console.error('Error adding comment:', error);
-        alert('Failed to add comment. Please try again.');
-    } finally {
-        submitComment.disabled = commentInput.value.trim() === '' && !selectedGif;
-    }
-}
-
-async function togglePostLike() {
-    if (!currentUser || !currentPostId) return;
-    
-    try {
-        const postRef = doc(db, 'recence', currentPostId);
-        const postDoc = await getDoc(postRef);
-        
-        if (postDoc.exists()) {
-            const postData = postDoc.data();
-            const isLiked = postData.likes && postData.likes.includes(currentUser.uid);
-            
-            if (isLiked) {
-                await updateDoc(postRef, {
-                    likes: arrayRemove(currentUser.uid)
-                });
-                likePostButton.classList.remove('liked');
-                likePostCount.textContent = (postData.likes ? postData.likes.length - 1 : 0).toString();
-            } else {
-                await updateDoc(postRef, {
-                    likes: arrayUnion(currentUser.uid)
-                });
-                likePostButton.classList.add('liked');
-                likePostCount.textContent = (postData.likes ? postData.likes.length + 1 : 1).toString();
-            }
-        }
-    } catch (error) {
-        console.error('Error toggling post like:', error);
-    }
-}
-
-async function loadGifs(searchTerm = '') {
-    try {
-        gifResults.innerHTML = '<div style="text-align: center; padding: 10px;">Loading GIFs...</div>';
-        
-        const apiKey = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L65';
-        const endpoint = searchTerm 
-            ? `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${searchTerm}&limit=15`
-            : `https://api.giphy.com/v1/gifs/trending?api_key=${apiKey}&limit=15`;
-        
-        const response = await fetch(endpoint);
-        const data = await response.json();
-        
-        gifResults.innerHTML = '';
-        
-        if (data.data.length === 0) {
-            gifResults.innerHTML = '<div style="text-align: center; padding: 10px;">No GIFs found</div>';
-            return;
-        }
-        
-        data.data.forEach(gif => {
-            const gifItem = document.createElement('img');
-            gifItem.src = gif.images.fixed_height_small.url;
-            gifItem.className = 'gif-item';
-            gifItem.dataset.originalUrl = gif.images.fixed_height.url;
-            
-            gifItem.addEventListener('click', () => {
-                selectedGif = gif.images.fixed_height.url;
-                submitComment.disabled = false;
-                gifSelector.classList.remove('active');
-                
-                const existingPreview = document.querySelector('.gif-preview');
-                if (existingPreview) existingPreview.remove();
-                
-                const previewGif = document.createElement('div');
-                previewGif.className = 'gif-preview';
-                previewGif.innerHTML = `<img src="${selectedGif}" style="max-height: 60px; border-radius: 4px; margin-right: 10px;">`;
-                previewGif.style.display = 'inline-block';
-                commentInput.parentNode.insertBefore(previewGif, commentInput);
-            });
-            
-            gifResults.appendChild(gifItem);
-        });
-    } catch (error) {
-        console.error('Error loading GIFs:', error);
-        gifResults.innerHTML = '<div style="text-align: center; padding: 10px;">Error loading GIFs</div>';
-    }
-}
-
-function setupEventListeners() {
-    // Profile tab switching
-    createdTab.addEventListener('click', () => switchTab('created'));
-    likedTab.addEventListener('click', () => switchTab('liked'));
-    mediaTab.addEventListener('click', () => switchTab('media'));
-    
-    // Profile buttons
-    followButton.addEventListener('click', toggleProfileFollow);
-    messageButton.addEventListener('click', () => {
-        window.parent.postMessage({
-            type: 'openMessage',
-            userId: userId,
-            username: profileUser?.displayName || 'User'
-        }, '*');
-    });
-    
-    shareButton.addEventListener('click', () => {
-        if (navigator.share) {
-            navigator.share({
-                title: `${profileUser?.displayName || 'User'}'s Profile`,
-                text: `Check out ${profileUser?.displayName || 'User'}'s profile on GlobalChat`,
-                url: window.location.href
-            }).catch(err => {
-                console.log('Error sharing:', err);
-                alert('Profile link copied to clipboard');
-                navigator.clipboard.writeText(window.location.href);
-            });
-        } else {
-            alert('Profile link copied to clipboard');
-            navigator.clipboard.writeText(window.location.href);
-        }
-    });
-    
-    moreButton.addEventListener('click', () => {
-        alert('More options coming soon!');
-    });
-    
-    // Modal event listeners
-    backButton.addEventListener('click', closeModal);
-    
-    commentInput.addEventListener('input', () => {
-        submitComment.disabled = commentInput.value.trim() === '' && !selectedGif;
-    });
-    
-    submitComment.addEventListener('click', addComment);
-    
-    gifButton.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        gifSelector.classList.toggle('active');
-        if (gifSelector.classList.contains('active')) {
-            loadGifs();
-            gifSearch.focus();
-        }
-    });
-    
-    gifSearch.addEventListener('input', debounce(() => {
-        loadGifs(gifSearch.value);
-    }, 500));
-    
-    document.addEventListener('click', (e) => {
-        if (gifSelector.classList.contains('active') && 
-            !gifSelector.contains(e.target) && 
-            e.target !== gifButton) {
-            gifSelector.classList.remove('active');
-        }
-    });
-    
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && fullscreenModal.classList.contains('active')) {
-            closeModal();
-        }
-    });
-
-    likePostButton.addEventListener('click', togglePostLike);
-
-    modalFollowButton.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (currentPostData) {
-            toggleFollow(currentPostData.userId, currentPostData.name);
-        }
-    });
-
-    replyPreviewClose.addEventListener('click', () => {
-        currentReplyTo = null;
-        replyPreview.style.display = 'none';
-    });
-}
-
-function debounce(func, wait) {
-    let timeout;
-    return function() {
-        const context = this;
-        const args = arguments;
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-            func.apply(context, args);
-        }, wait);
-    };
-}
-
-// Initialize
-init();
-
 </script>
-    <script>
-       
-(function() {
-  // Global Chat Theme Manager for User Profile Page
-  const GlobalChatProfileThemeManager = {
-    themeConfig: {
-      light: {
-        // Core Colors
-        '--primary-color': '#626262',
-        '--primary-light': '#f0f0f0',
-        '--primary-dark': '#3a3a3a',
-        '--text-primary': '#333',
-        '--text-secondary': '#666',
-        '--background-light': '#f9f9f9',
-        '--background-white': '#ffffff',
-        '--border-light': '#e0e0e0',
-        '--border-color': '#dadada',
-        '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.05)',
-        
-        // Preserve the luxury gradient
-        '--luxury-gradient': 'linear-gradient(135deg, #0f0f0f 0%, #1c1c1c 15%, #3a3a3a 30%, #4d4d4d 45%, #626262 60%, #787878 75%, #8f8f8f 90%, #a6a6a6 100%)',
-        
-        // Profile specific
-        '--profile-avatar-border': 'white',
-        '--profile-stats-border': '#e0e0e0',
-        '--tab-active': '#3a3a3a',
-        '--tab-indicator': 'var(--luxury-gradient)',
-        
-        // Interactive elements
-        '--btn-background': '#f1f1f1',
-        '--btn-hover': '#e5e5e5',
-        '--btn-shadow': '0 2px 8px rgba(0,0,0,0.08)',
-        '--btn-hover-shadow': '0 4px 10px rgba(0,0,0,0.12)',
-        '--btn-text': 'var(--text-primary)',
-        
-        // Loading animation
-        '--loading-bg': 'rgba(255, 255, 255, 0.9)',
-        '--spinner-color': 'var(--luxury-gradient)'
-      },
-      
-      dim: {
-        // Core Colors
-        '--primary-color': '#8899a6',
-        '--primary-light': '#1e2732',
-        '--primary-dark': '#667787',
-        '--text-primary': '#ffffff',
-        '--text-secondary': '#8899a6',
-        '--background-light': '#15202b',
-        '--background-white': '#1e2732',
-        '--border-light': '#38444d',
-        '--border-color': '#38444d',
-        '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.2)',
-        
-        // Preserve the luxury gradient but invert for dim mode
-        '--luxury-gradient': 'linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 15%, #d8d8d8 30%, #c8c8c8 45%, #b8b8b8 60%, #a8a8a8 75%, #989898 90%, #888888 100%)',
-        
-        // Profile specific
-        '--profile-avatar-border': '#1e2732',
-        '--profile-stats-border': '#38444d',
-        '--tab-active': '#ffffff',
-        '--tab-indicator': 'var(--luxury-gradient)',
-        
-        // Interactive elements
-        '--btn-background': '#2c3640',
-        '--btn-hover': '#374650',
-        '--btn-shadow': '0 2px 8px rgba(0,0,0,0.2)',
-        '--btn-hover-shadow': '0 4px 10px rgba(0,0,0,0.3)',
-        '--btn-text': '#ffffff',
-        
-        // Loading animation
-        '--loading-bg': 'rgba(21, 32, 43, 0.9)',
-        '--spinner-color': 'var(--luxury-gradient)'
-      },
-      
-      dark: {
-        // Core Colors
-        '--primary-color': '#a6a6a6',
-        '--primary-light': '#000000',
-        '--primary-dark': '#4d4d4d',
-        '--text-primary': '#ffffff',
-        '--text-secondary': '#8f8f8f',
-        '--background-light': '#000000',
-        '--background-white': '#080808',
-        '--border-light': '#1a1a1a',
-        '--border-color': '#121212',
-        '--box-shadow': '0 2px 10px rgba(0, 0, 0, 0.4)',
-        
-        // Preserve the luxury gradient but invert for dark mode
-        '--luxury-gradient': 'linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 15%, #d8d8d8 30%, #c8c8c8 45%, #b8b8b8 60%, #a8a8a8 75%, #989898 90%, #888888 100%)',
-        
-        // Profile specific
-        '--profile-avatar-border': '#080808',
-        '--profile-stats-border': '#1a1a1a',
-        '--tab-active': '#ffffff',
-        '--tab-indicator': 'var(--luxury-gradient)',
-        
-        // Interactive elements
-        '--btn-background': '#101010',
-        '--btn-hover': '#1a1a1a',
-        '--btn-shadow': '0 2px 8px rgba(0,0,0,0.3)',
-        '--btn-hover-shadow': '0 4px 10px rgba(0,0,0,0.4)',
-        '--btn-text': '#ffffff',
-        
-        // Loading animation
-        '--loading-bg': 'rgba(0, 0, 0, 0.9)',
-        '--spinner-color': 'var(--luxury-gradient)'
-      }
-    },
-    
-    styleElementId: 'global-chat-profile-theme-styles',
-    
-    initialize: function() {
-      this.createStyleElement();
-      this.applyCurrentTheme();
-      this.setupEventListeners();
-    },
-    
-    createStyleElement: function() {
-      const existingStyle = document.getElementById(this.styleElementId);
-      if (existingStyle) existingStyle.remove();
-      
-      const styleElement = document.createElement('style');
-      styleElement.id = this.styleElementId;
-      styleElement.setAttribute('data-origin', 'global-chat-profile-theme-manager');
-      document.head.appendChild(styleElement);
-    },
-    
-    applyCurrentTheme: function() {
-      const themeName = localStorage.getItem('twitter-theme') || 'light';
-      this.applyTheme(themeName);
-    },
-    
-    applyTheme: function(themeName) {
-      const validThemes = ['light', 'dim', 'dark'];
-      const theme = validThemes.includes(themeName) ? themeName : 'light';
-      const themeVars = this.themeConfig[theme] || this.themeConfig.light;
-      const styleElement = document.getElementById(this.styleElementId);
-      
-      if (!styleElement) {
-        this.createStyleElement();
-        return this.applyTheme(theme);
-      }
-      
-      let css = ':root {\n';
-      Object.entries(themeVars).forEach(([key, value]) => {
-        css += `  ${key}: ${value};\n`;
-      });
-      css += '}\n\n';
-      
-      // Enhanced styles for mobile profile page
-      css += `
-      /* Base */
-      body {
-        background-color: var(--background-light);
-        color: var(--text-primary);
-      }
-      
-      /* Loading animation */
-      .loading-container {
-        background-color: var(--loading-bg);
-      }
-      
-      .spinner::before,
-      .spinner::after {
-        background: var(--spinner-color);
-      }
-      
-      /* Profile container */
-      .profile-container {
-        background-color: var(--background-light);
-      }
-      
-      /* Profile header */
-      .profile-avatar {
-        border-color: var(--profile-avatar-border);
-        box-shadow: var(--box-shadow);
-        background: var(--luxury-gradient);
-      }
-      
-      .profile-username {
-        color: var(--text-primary);
-      }
-      
-      .profile-handle {
-        background: var(--luxury-gradient);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
-      
-      /* Stats */
-      .profile-stats {
-        border-color: var(--profile-stats-border);
-      }
-      
-      .stat-value {
-        color: var(--text-primary);
-      }
-      
-      .stat-label {
-        color: var(--text-secondary);
-      }
-      
-      /* Button styles */
-      .btn {
-        box-shadow: var(--btn-shadow);
-      }
-      
-      .btn:hover {
-        box-shadow: var(--btn-hover-shadow);
-      }
-      
-      .follow-btn {
-        background: var(--luxury-gradient);
-        color: white;
-      }
-      
-      .follow-btn:hover {
-        opacity: 0.9;
-      }
-      
-      .follow-btn.followed {
-        background: var(--btn-background);
-        color: var(--btn-text);
-      }
-      
-      .follow-btn.followed:hover {
-        background: var(--btn-hover);
-      }
-      
-      .message-btn {
-        background-color: var(--btn-background);
-        color: var(--btn-text);
-      }
-      
-      .message-btn:hover {
-        background-color: var(--btn-hover);
-      }
-      
-      .share-btn {
-        background-color: var(--btn-background);
-        color: var(--btn-text);
-      }
-      
-      .share-btn:hover {
-        background-color: var(--btn-hover);
-      }
-      
-      .more-btn {
-        background-color: var(--btn-background);
-        color: var(--btn-text);
-      }
-      
-      .more-btn:hover {
-        background-color: var(--btn-hover);
-      }
-      
-      /* Bio */
-      .profile-bio {
-        color: var(--text-secondary);
-      }
-      
-      /* Tabs */
-      .tabs {
-        border-bottom-color: var(--border-light);
-      }
-      
-      .tab {
-        color: var(--text-secondary);
-      }
-      
-      .tab:hover {
-        color: var(--tab-active);
-      }
-      
-      .tab.active {
-        color: var(--tab-active);
-      }
-      
-      .tab.active::after {
-        background: var(--tab-indicator);
-      }
-      
-      /* Gallery */
-      .gallery-item {
-        background-color: var(--background-white);
-        box-shadow: var(--box-shadow);
-      }
-      
-      .gallery-item:hover {
-        box-shadow: var(--btn-hover-shadow);
-      }
-      
-      .video-indicator {
-        background-color: rgba(0, 0, 0, 0.6);
-      }
-      
-      /* Not found and empty states */
-      .not-found h2 {
-        color: var(--text-primary);
-      }
-      
-      .not-found p {
-        color: var(--text-secondary);
-      }
-      
-      .empty-gallery {
-        color: var(--text-secondary);
-      }
-      
-      .empty-gallery svg {
-        color: var(--text-secondary);
-      }
-      
-      /* Modal styles */
-      .fullscreen-modal {
-        background-color: var(--background-white);
-      }
-      
-      .modal-header {
-        background-color: var(--background-white);
-        border-bottom-color: var(--border-light);
-      }
-      
-      .back-button {
-        color: var(--text-primary);
-      }
-      
-      .back-button:hover {
-        background-color: rgba(0, 0, 0, 0.05);
-      }
-      
-      .media-container {
-        background-color: #000;
-      }
-      
-      .post-description {
-        background-color: var(--background-white);
-        color: var(--text-primary);
-        border-bottom-color: var(--border-light);
-      }
-      
-      .comments-section {
-        background-color: var(--background-white);
-      }
-      
-      .post-header {
-        background-color: var(--background-white);
-        border-bottom-color: var(--border-light);
-      }
-      
-      .post-user-name {
-        color: var(--text-primary);
-      }
-      
-      .like-post-button {
-        color: var(--text-secondary);
-      }
-      
-      .like-post-button:hover {
-        color: #ff3040;
-      }
-      
-      .like-post-button.liked {
-        color: #ff3040;
-      }
-      
-      .follow-btn {
-        border-color: var(--primary-color);
-        color: var(--primary-color);
-      }
-      
-      .follow-btn:hover {
-        background-color: rgba(98, 98, 98, 0.1);
-      }
-      
-      .follow-btn.followed {
-        background: var(--luxury-gradient);
-        color: white;
-        border: none;
-      }
-      
-      .reply-preview {
-        background-color: var(--primary-light);
-        border-bottom-color: var(--border-light);
-      }
-      
-      .reply-preview-text {
-        color: var(--text-secondary);
-      }
-      
-      .reply-preview-close {
-        color: var(--text-secondary);
-      }
-      
-      .reply-preview-close:hover {
-        color: var(--text-primary);
-      }
-      
-      .comment {
-        color: var(--text-primary);
-      }
-      
-      .comment-avatar {
-        background-image: linear-gradient(var(--background-white), var(--background-white)), 
-                        var(--luxury-gradient);
-      }
-      
-      .comment-author {
-        color: var(--text-primary);
-      }
-      
-      .comment-text {
-        color: var(--text-primary);
-      }
-      
-      .comment-gif {
-        border-color: var(--border-light);
-      }
-      
-      .like-button {
-        color: var(--text-secondary);
-      }
-      
-      .like-button:hover {
-        color: #ff3040;
-      }
-      
-      .like-button.liked {
-        color: #ff3040;
-      }
-      
-      .comment-time {
-        color: var(--text-secondary);
-      }
-      
-      .reply-btn {
-        color: var(--text-secondary);
-      }
-      
-      .reply-btn:hover {
-        color: var(--primary-color);
-      }
-      
-      .comment-form {
-        background-color: var(--background-white);
-        border-top-color: var(--border-light);
-      }
-      
-      .comment-input-container {
-        background-color: var(--primary-light);
-        border-color: var(--border-light);
-      }
-      
-      .comment-input-container:focus-within {
-        border-color: var(--primary-color);
-        background-color: var(--background-white);
-        box-shadow: 0 0 0 2px rgba(98, 98, 98, 0.1);
-      }
-      
-      .comment-input {
-        color: var(--text-primary);
-        background: transparent;
-      }
-      
-      .comment-input::placeholder {
-        color: var(--text-secondary);
-      }
-      
-      .gif-button {
-        color: var(--text-secondary);
-      }
-      
-      .gif-button:hover {
-        color: var(--primary-color);
-        background-color: rgba(0, 0, 0, 0.05);
-      }
-      
-      .submit-button {
-        background: var(--luxury-gradient);
-        color: white;
-      }
-      
-      .submit-button:disabled {
-        background: linear-gradient(135deg, #cccccc, #999999);
-      }
-      
-      .gif-selector {
-        background-color: var(--background-white);
-        border-color: var(--border-light);
-      }
-      
-      .gif-search {
-        border-color: var(--border-light);
-      }
-      
-      .gif-search:focus {
-        border-color: var(--primary-color);
-      }
-      
-      .gif-item {
-        border-color: var(--border-light);
-      }
-      
-      .replies-container {
-        border-left-color: var(--border-light);
-      }
-      
-      .view-replies-btn {
-        color: var(--text-secondary);
-      }
-      
-      .view-replies-btn:hover {
-        color: var(--primary-color);
-      }
-      
-      /* Mobile optimizations */
-      @media (max-width: 767px) {
-        .profile-container {
-          padding: 15px 10px;
-        }
-        
-        .action-buttons {
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-        
-        .btn {
-          padding: 8px 16px;
-          font-size: 13px;
-        }
-        
-        .gallery {
-          column-gap: 10px;
-        }
-        
-        .gallery-item {
-          margin-bottom: 10px;
-        }
-        
-        .loading-container.move-to-top {
-          padding-top: 15px;
-        }
-      }
-      `;
-      
-      styleElement.textContent = css;
-    },
-    
-    setupEventListeners: function() {
-      // Listen for theme changes from localStorage
-      window.addEventListener('storage', (e) => {
-        if (e.key === 'twitter-theme') {
-          this.applyTheme(e.newValue || 'light');
-        }
-      });
-      
-      // Check for theme changes manually for iOS/Safari
-      let lastKnownTheme = localStorage.getItem('twitter-theme') || 'light';
-      setInterval(() => {
-        const currentTheme = localStorage.getItem('twitter-theme') || 'light';
-        if (currentTheme !== lastKnownTheme) {
-          lastKnownTheme = currentTheme;
-          this.applyTheme(currentTheme);
-        }
-      }, 1000);
-      
-      // Apply theme on page load
-      window.addEventListener('load', () => {
-        this.applyCurrentTheme();
-      });
-      
-      // Apply theme when document becomes visible (tab switching)
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-          this.applyCurrentTheme();
-        }
-      });
-    }
-  };
-  
-  // Initialize theme manager
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      GlobalChatProfileThemeManager.initialize();
-    });
-  } else {
-    GlobalChatProfileThemeManager.initialize();
-  }
-})();
-
-    </script>
 </body>
 </html>
