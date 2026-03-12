@@ -555,6 +555,17 @@ body {
 .slide-action-btn.on .slide-action-icon .heart-icon {
     fill: url(#brandHeartGrad) !important; stroke: #626262 !important;
 }
+.slide-action-btn.saved-on .slide-action-icon {
+    background: rgba(74,222,128,0.18);
+    border-color: rgba(74,222,128,0.4);
+}
+.slide-action-btn.saved-on .slide-action-icon svg {
+    stroke: #4ade80 !important;
+    fill: #4ade80 !important;
+}
+.slide-action-btn.saved-on .slide-action-label {
+    color: #4ade80 !important;
+}
 
 /* Like pop + float heart */
 @keyframes likePop {
@@ -3163,7 +3174,8 @@ function createPinElement(postData, postId) {
 
     // Save/Favourite button
     const saveBtn = document.createElement('button');
-    saveBtn.className = 'slide-action-btn' + (window.isPostFavourited && window.isPostFavourited(postId) ? ' on' : '');
+    var _isSaved = window.isPostFavourited && window.isPostFavourited(postId);
+    saveBtn.className = 'slide-action-btn' + (_isSaved ? ' saved-on' : '');
     saveBtn.setAttribute('aria-label', 'Save');
     saveBtn.innerHTML =
         '<div class="slide-action-icon">' +
@@ -3177,15 +3189,14 @@ function createPinElement(postData, postId) {
         var saved = window.isPostFavourited && window.isPostFavourited(postId);
         if (saved) {
             window.removeFromFavourites && window.removeFromFavourites(postId);
-            saveBtn.classList.remove('on');
-            var svg = saveBtn.querySelector('svg');
-            if (svg) svg.style.stroke = 'rgba(255,255,255,0.95)';
+            saveBtn.classList.remove('saved-on');
+            var lbl = saveBtn.querySelector('.slide-action-label');
+            if (lbl) lbl.textContent = 'Save';
         } else {
             window.saveToFavourites && window.saveToFavourites(postData, postId);
-            saveBtn.classList.add('on');
-            var svg = saveBtn.querySelector('svg');
-            if (svg) svg.style.stroke = '#4ade80'; // green = trending/saved
-            // Quick pulse feedback
+            saveBtn.classList.add('saved-on');
+            var lbl = saveBtn.querySelector('.slide-action-label');
+            if (lbl) lbl.textContent = 'Saved';
             var icon = saveBtn.querySelector('.slide-action-icon');
             if (icon) { icon.style.transform = 'scale(1.35)'; setTimeout(function(){ icon.style.transform = ''; }, 300); }
         }
@@ -4225,6 +4236,34 @@ init();
       openShareSheet(postData, postId);
     });
     actions.appendChild(dShareBtn);
+
+    // Save/Bookmark btn (desktop)
+    var dSaveBtn = document.createElement('button');
+    var _dIsSaved = window.isPostFavourited && window.isPostFavourited(postId);
+    dSaveBtn.className = 'desktop-action-btn' + (_dIsSaved ? ' saved-on' : '');
+    dSaveBtn.setAttribute('aria-label', 'Save');
+    dSaveBtn.innerHTML = '<div class="desktop-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>'
+      + '<span class="desktop-action-label">' + (_dIsSaved ? 'Saved' : 'Save') + '</span>';
+    dSaveBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var isSaved = window.isPostFavourited && window.isPostFavourited(postId);
+      if (isSaved) {
+        window.removeFromFavourites && window.removeFromFavourites(postId);
+        dSaveBtn.classList.remove('saved-on');
+        var lbl = dSaveBtn.querySelector('.desktop-action-label');
+        if (lbl) lbl.textContent = 'Save';
+        var ic = dSaveBtn.querySelector('.desktop-action-icon');
+        if (ic) ic.style.background = '';
+      } else {
+        window.saveToFavourites && window.saveToFavourites(postData, postId);
+        dSaveBtn.classList.add('saved-on');
+        var lbl = dSaveBtn.querySelector('.desktop-action-label');
+        if (lbl) lbl.textContent = 'Saved';
+        var ic = dSaveBtn.querySelector('.desktop-action-icon');
+        if (ic) { ic.style.transform = 'scale(1.35)'; setTimeout(function(){ ic.style.transform=''; }, 300); }
+      }
+    });
+    actions.appendChild(dSaveBtn);
     var cardInner = document.createElement('div');
     cardInner.style.cssText = 'position:relative;height:100%;display:flex;align-items:center;justify-content:center;';
     cardInner.appendChild(wrap);
@@ -5245,33 +5284,132 @@ init();
     </nav>
 
     <!-- Liked Videos Panel (slides up, TikTok feed format) -->
-    <!-- LIKED SECTION — persistent tab (not a slide-up), nav stays visible -->
-    <div id="liked-section" style="position:fixed;inset:0;bottom:0;background:var(--bg,#f5f5f5);z-index:200;display:none;flex-direction:column;overflow:hidden;">
-        <!-- Transition overlay (spinner) shown when switching into section -->
-        <div id="liked-trans" style="position:absolute;inset:0;background:#000;z-index:99;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.22s;">
-            <div class="spinner"></div>
-        </div>
+    <!-- LIKED SECTION — Pinterest-style masonry grid -->
+    <style>
+    /* ── Pinterest-style Saved section ── */
+    #liked-section {
+        position: fixed; inset: 0; bottom: 0;
+        background: #fafafa;
+        z-index: 200; display: none; flex-direction: column; overflow: hidden;
+    }
+    #liked-header {
+        padding: calc(env(safe-area-inset-top,0px) + 18px) 16px 14px;
+        display: flex; align-items: center; gap: 10px;
+        flex-shrink: 0;
+        background: #fff;
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+        box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+    }
+    #liked-header-title {
+        font-size: 22px; font-weight: 900; color: #111;
+        font-family: var(--font); letter-spacing: -0.03em; flex: 1;
+    }
+    #liked-count-badge {
+        background: #111; color: #fff; font-size: 10px; font-weight: 800;
+        padding: 3px 9px; border-radius: 99px; font-family: var(--font);
+    }
+    /* Masonry grid — 2 col Pinterest */
+    #liked-grid {
+        flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+        padding: 10px 8px calc(env(safe-area-inset-bottom,0px) + 80px) 8px;
+        column-count: 2; column-gap: 8px;
+        scrollbar-width: none;
+    }
+    #liked-grid::-webkit-scrollbar { display: none; }
+    .liked-cell {
+        break-inside: avoid;
+        margin-bottom: 8px;
+        border-radius: 16px;
+        overflow: hidden;
+        cursor: pointer;
+        position: relative;
+        background: #e8e8e8;
+        display: block;
+        -webkit-tap-highlight-color: transparent;
+        transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.18s;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+    }
+    .liked-cell:active { transform: scale(0.96); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .liked-cell video {
+        width: 100%; display: block;
+        object-fit: cover; pointer-events: none;
+    }
+    .liked-cell-overlay {
+        position: absolute; bottom: 0; left: 0; right: 0;
+        background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 100%);
+        padding: 18px 10px 10px;
+        pointer-events: none;
+    }
+    .liked-cell-name {
+        font-size: 11px; font-weight: 800; color: #fff;
+        font-family: var(--font); letter-spacing: -0.01em;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .liked-cell-dur {
+        position: absolute; top: 8px; right: 8px;
+        background: rgba(0,0,0,0.55); color: #fff;
+        font-size: 9.5px; font-weight: 800; font-family: var(--font);
+        padding: 2px 6px; border-radius: 6px;
+        backdrop-filter: blur(4px);
+    }
+    /* Empty state */
+    #liked-empty {
+        display: none; position: absolute;
+        inset: 0; flex-direction: column; align-items: center; justify-content: center;
+        gap: 14px; pointer-events: none;
+    }
+    #liked-empty-icon {
+        width: 64px; height: 64px; border-radius: 20px;
+        background: #f0f0f0;
+        display: flex; align-items: center; justify-content: center;
+    }
+    /* Liked trans spinner overlay */
+    #liked-trans {
+        position: absolute; inset: 0; background: #fafafa;
+        z-index: 99; display: flex; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    /* Fullscreen viewer */
+    #liked-viewer {
+        position: absolute; inset: 0; background: #000; z-index: 150;
+        transform: translateY(100%);
+        transition: transform 0.36s cubic-bezier(0.22,1,0.36,1);
+        display: flex; flex-direction: column;
+    }
+    #liked-viewer-feed {
+        flex: 1; overflow-y: scroll; scroll-snap-type: y mandatory;
+        scrollbar-width: none; -webkit-overflow-scrolling: touch;
+        position: relative;
+    }
+    #liked-viewer-feed::-webkit-scrollbar { display: none; }
+    </style>
+
+    <div id="liked-section">
+        <!-- Transition overlay -->
+        <div id="liked-trans"><div class="spinner"></div></div>
         <!-- Header -->
-        <div id="liked-header" style="padding:calc(env(safe-area-inset-top,0px)+14px) 16px 10px;display:flex;align-items:center;gap:10px;flex-shrink:0;border-bottom:1px solid rgba(0,0,0,0.07);">
-            <span style="font-size:18px;font-weight:900;color:#111;font-family:var(--font);letter-spacing:-0.02em;">Saved</span>
-            <span id="liked-count-badge" style="background:#111;color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;font-family:var(--font);">0</span>
+        <div id="liked-header">
+            <span id="liked-header-title">Saved</span>
+            <span id="liked-count-badge">0</span>
         </div>
-        <!-- Gallery grid -->
-        <div id="liked-grid" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px 2px calc(env(safe-area-inset-bottom,0px)+72px);align-content:start;"></div>
+        <!-- Pinterest masonry grid -->
+        <div id="liked-grid"></div>
         <!-- Empty state -->
-        <div id="liked-empty" style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;gap:14px;pointer-events:none;">
-            <svg viewBox="0 0 24 24" width="52" height="52" fill="none" stroke="rgba(0,0,0,0.18)" stroke-width="1.5" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            <span style="font-size:15px;font-weight:700;color:#bbb;font-family:var(--font);">Nothing saved yet</span>
-            <span style="font-size:13px;color:#ccc;font-family:var(--font);">Tap the bookmark on any video</span>
+        <div id="liked-empty">
+            <div id="liked-empty-icon">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <span style="font-size:16px;font-weight:800;color:#888;font-family:var(--font);">Nothing saved yet</span>
+            <span style="font-size:13px;color:#bbb;font-family:var(--font);">Tap the bookmark icon on any video</span>
         </div>
-        <!-- Fullscreen viewer (opens when grid item tapped) -->
-        <div id="liked-viewer" style="position:absolute;inset:0;background:#000;z-index:150;transform:translateY(100%);transition:transform 0.36s cubic-bezier(0.22,1,0.36,1);display:flex;flex-direction:column;">
+        <!-- Fullscreen viewer -->
+        <div id="liked-viewer">
             <div style="position:absolute;top:calc(env(safe-area-inset-top,0px)+12px);left:14px;z-index:10;">
                 <button id="liked-viewer-back" style="background:rgba(0,0,0,0.55);border:none;cursor:pointer;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
             </div>
-            <div id="liked-viewer-feed" style="flex:1;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;position:relative;"></div>
+            <div id="liked-viewer-feed"></div>
         </div>
     </div>
 
@@ -5572,14 +5710,13 @@ init();
         function showTransition(transEl, cb) {
             if (!transEl) { cb(); return; }
             transEl.style.opacity = '1';
-            transEl.style.pointerEvents = 'all';
+            // Never block pointer events — just visual
             setTimeout(function() {
                 cb();
                 setTimeout(function() {
                     transEl.style.opacity = '0';
-                    transEl.style.pointerEvents = 'none';
                 }, 480);
-            }, 420);
+            }, 320);
         }
 
         // ── Section switcher ──
@@ -5610,7 +5747,7 @@ init();
                 showTransition(trans, function() { loadLikedGrid(); window._likedSectionLoaded = true; });
             } else {
                 // brief flash transition to feel like app switching
-                if (trans) { trans.style.opacity='1'; trans.style.pointerEvents='all'; setTimeout(function(){ trans.style.opacity='0'; trans.style.pointerEvents='none'; }, 220); }
+                if (trans) { trans.style.opacity='1'; setTimeout(function(){ trans.style.opacity='0'; }, 220); }
             }
             window._mobSection = 'liked';
         }
@@ -5851,27 +5988,24 @@ init();
 // LIKED PANEL — open/close + load liked videos
 // ══════════════════════════════════════
 // ═══════════════════════════════════════════════
-// LIKED / SAVED  — gallery grid + fullscreen viewer
+// LIKED / SAVED  — Pinterest masonry grid + fullscreen viewer
 // ═══════════════════════════════════════════════
 window._likedSectionLoaded = false;
-window._savedPosts = [];   // in-memory cache — persists across tab switches
+window._savedPosts = [];   // in-memory cache
 
-// Build grid from localStorage favourites + Firestore likes
 async function loadLikedGrid() {
     var grid  = document.getElementById('liked-grid');
     var empty = document.getElementById('liked-empty');
     var badge = document.getElementById('liked-count-badge');
     if (!grid) return;
 
-    // Show spinner in grid area while loading
     grid.innerHTML = '';
     if (empty) empty.style.display = 'none';
 
-    // ── Merge localStorage saves + Firestore likes ──
     var saved = [];
     try {
         var favPosts = JSON.parse(localStorage.getItem('favouritePosts') || '[]');
-        saved = favPosts.slice(); // start with locally bookmarked
+        saved = favPosts.slice();
     } catch(e) {}
 
     // Also pull Firestore liked videos if signed in
@@ -5887,7 +6021,6 @@ async function loadLikedGrid() {
             ));
             snap.forEach(function(d) {
                 var p = d.data(); p._id = d.id;
-                // Deduplicate by _id
                 if (!saved.find(function(s){ return s._id === d.id; })) saved.push(p);
             });
         }
@@ -5897,74 +6030,76 @@ async function loadLikedGrid() {
     if (badge) badge.textContent = saved.length;
 
     if (!saved.length) {
-        if (empty) empty.style.display = 'flex';
+        if (empty) { empty.style.display = 'flex'; }
         return;
     }
 
-    // ── Build gallery grid — Pinterest masonry style ──
-    // Varying aspect ratios like Pinterest
-    var ratios = ['9/14','9/16','9/12','9/18','9/13','9/15'];
+    // ── Build Pinterest masonry grid ──
+    // Alternate aspect ratios for visual variety
+    var ratios = [1.6, 1.2, 1.8, 1.4, 2.0, 1.3, 1.7, 1.5];
 
     saved.forEach(function(p, idx) {
         var media = p.media && p.media[0];
         if (!media || !media.url) return;
 
-        // IIFE to capture idx correctly — fixes click closure bug
-        (function(capturedIdx, capturedP, capturedMedia) {
-            var ratio = ratios[capturedIdx % ratios.length];
+        (function(i, post, m) {
+            var ratio = ratios[i % ratios.length];
             var cell = document.createElement('div');
-            cell.style.cssText = 'position:relative;aspect-ratio:'+ratio+';background:#111;overflow:hidden;cursor:pointer;opacity:0;transform:scale(0.94) translateY(10px);transition:opacity 0.35s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);border-radius:10px;';
-            setTimeout(function() {
-                cell.style.opacity = '1';
-                cell.style.transform = 'scale(1) translateY(0)';
-            }, 60 + capturedIdx * 65);
+            cell.className = 'liked-cell';
 
-            // Spinner — pointer-events:none so it never blocks clicks
-            var tl = document.createElement('div');
-            tl.style.cssText = 'position:absolute;inset:0;background:#111;display:flex;align-items:center;justify-content:center;z-index:3;transition:opacity 0.3s;pointer-events:none;';
-            tl.innerHTML = '<div class="spinner" style="transform:scale(0.5);"></div>';
-            cell.appendChild(tl);
-
-            // Canvas thumbnail from first frame
-            var tmpVid = document.createElement('video');
-            tmpVid.src = capturedMedia.url;
-            tmpVid.muted = true; tmpVid.playsInline = true; tmpVid.preload = 'metadata';
-            tmpVid.style.cssText = 'display:none;pointer-events:none;position:absolute;width:1px;height:1px;';
-            tmpVid.addEventListener('loadeddata', function() { tmpVid.currentTime = 0.01; }, {once:true});
-            tmpVid.addEventListener('seeked', function() {
-                var canvas = document.createElement('canvas');
-                canvas.width = 180; canvas.height = 320;
-                canvas.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0;pointer-events:none;';
-                try {
-                    var ctx = canvas.getContext('2d');
-                    ctx.drawImage(tmpVid, 0, 0, 180, 320);
-                    cell.insertBefore(canvas, tl);
-                } catch(e) {}
-                tl.style.opacity = '0';
-                setTimeout(function(){ if(tl.parentNode) tl.remove(); if(tmpVid.parentNode) tmpVid.remove(); }, 320);
-            }, {once:true});
-            document.body.appendChild(tmpVid);
+            var vid = document.createElement('video');
+            vid.src = m.url;
+            vid.muted = true;
+            vid.playsInline = true;
+            vid.preload = 'metadata';
+            // Set height via aspect ratio on the video
+            vid.style.cssText = 'width:100%;aspect-ratio:9/'+(16*ratio/ratios[0]).toFixed(1)+';object-fit:cover;display:block;pointer-events:none;';
+            vid.addEventListener('loadedmetadata', function() { vid.currentTime = 0.01; }, {once:true});
+            cell.appendChild(vid);
 
             // Duration badge
-            tmpVid.addEventListener('loadedmetadata', function() {
-                var dur = Math.round(tmpVid.duration || 0);
+            vid.addEventListener('loadedmetadata', function() {
+                var dur = Math.round(vid.duration || 0);
                 if (dur > 0) {
-                    var dBadge = document.createElement('div');
-                    dBadge.style.cssText = 'position:absolute;bottom:5px;right:6px;font-size:10px;font-weight:800;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.9);z-index:4;font-family:var(--font);background:rgba(0,0,0,0.4);padding:1px 5px;border-radius:4px;pointer-events:none;';
-                    dBadge.textContent = Math.floor(dur/60)+':'+(dur%60<10?'0':'')+(dur%60);
-                    cell.appendChild(dBadge);
+                    var db2 = document.createElement('div');
+                    db2.className = 'liked-cell-dur';
+                    db2.textContent = Math.floor(dur/60)+':'+(dur%60<10?'0':'')+(dur%60);
+                    cell.appendChild(db2);
                 }
             });
 
-            // Click — opens viewer at correct index
-            cell.addEventListener('click', function() { openLikedViewer(capturedIdx); });
+            // Overlay with creator name
+            var overlay = document.createElement('div');
+            overlay.className = 'liked-cell-overlay';
+            var nameEl = document.createElement('div');
+            nameEl.className = 'liked-cell-name';
+            nameEl.textContent = '@' + (post.name || post.userName || 'creator');
+            overlay.appendChild(nameEl);
+            cell.appendChild(overlay);
+
+            // ── CLICK = open fullscreen viewer at this index ──
+            cell.addEventListener('click', function() {
+                openLikedViewer(i);
+            });
+
+            // Staggered entrance animation
+            cell.style.opacity = '0';
+            cell.style.transform = 'translateY(16px) scale(0.96)';
+            cell.style.transition = 'none';
             grid.appendChild(cell);
+            requestAnimationFrame(function() {
+                setTimeout(function() {
+                    cell.style.transition = 'opacity 0.32s ease, transform 0.32s cubic-bezier(0.34,1.56,0.64,1)';
+                    cell.style.opacity = '1';
+                    cell.style.transform = 'translateY(0) scale(1)';
+                }, 40 + i * 60);
+            });
 
         })(idx, p, media);
     });
 }
 
-// ── Fullscreen viewer (TikTok scroll) ──
+// ── Fullscreen viewer (full home-feed experience) ──
 var _viewerObs = null;
 function openLikedViewer(startIdx) {
     var viewer = document.getElementById('liked-viewer');
@@ -5972,11 +6107,12 @@ function openLikedViewer(startIdx) {
     var back   = document.getElementById('liked-viewer-back');
     if (!viewer || !vfeed) return;
 
-    // Build slides
-    vfeed.innerHTML = '';
+    // Tear down previous observer
     if (_viewerObs) { _viewerObs.disconnect(); _viewerObs = null; }
+    vfeed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime = 0; });
+    vfeed.innerHTML = '';
 
-    // Use createPinElement — exactly the same UI as the home feed
+    // Build pin elements — identical to home feed (createPinElement includes all icons, comments, presence)
     window._savedPosts.forEach(function(p, idx) {
         if (!p.media || !p.media[0] || !p.media[0].url) return;
         var pinEl = createPinElement(p, p._id);
@@ -5985,38 +6121,68 @@ function openLikedViewer(startIdx) {
         vfeed.appendChild(pinEl);
     });
 
-    // Open viewer with slide animation
+    // Open viewer
     viewer.style.transform = 'translateY(0)';
 
-    // Scroll to startIdx using pin-container
+    // Scroll to the tapped card immediately (no animation — instant snap)
     var pins = vfeed.querySelectorAll('.pin-container');
     if (pins[startIdx]) {
         vfeed.scrollTop = pins[startIdx].offsetTop;
     }
 
-    // Autoplay observer on pin-containers
+    // Lazy-load videos (same logic as home feed)
+    var allVids = Array.from(vfeed.querySelectorAll('video[data-src]'));
+    allVids.slice(0, 3).forEach(function(v) {
+        if (!v.src && v.dataset.src) { v.src = v.dataset.src; v.removeAttribute('data-src'); v.load(); }
+    });
+
+    // Autoplay + full home-feed experience via IntersectionObserver on pin-containers
+    var currentViewerIdx = startIdx;
+
     _viewerObs = new IntersectionObserver(function(entries) {
-        entries.forEach(function(e) {
-            var vid = e.target.querySelector('video');
-            if (!vid) return;
-            if (e.isIntersecting && e.intersectionRatio > 0.55) {
-                vid.muted = false;  // unmute — user wants to hear this
-                vid.play().catch(function(){ vid.muted=true; vid.play().catch(function(){}); });
+        entries.forEach(function(entry) {
+            var pin = entry.target;
+            var vid = pin.querySelector('video');
+            if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+                // Lazy-load src if needed
+                if (vid && !vid.src && vid.dataset && vid.dataset.src) {
+                    vid.src = vid.dataset.src; vid.removeAttribute('data-src'); vid.load();
+                }
+                if (vid) {
+                    vid.muted = false;
+                    vid.currentTime = 0;
+                    vid.play().catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
+                }
+                // Track presence (live viewer count)
+                var pid = pin.dataset.postId;
+                if (pid && typeof trackPresence === 'function') trackPresence(pid);
             } else {
-                vid.muted = true;
-                vid.pause();
+                if (vid) { vid.pause(); }
             }
         });
     }, { root: vfeed, threshold: 0.55 });
-    vfeed.querySelectorAll('.pin-container').forEach(function(s){ _viewerObs.observe(s); });
 
-    // Back button
+    pins.forEach(function(pin) { _viewerObs.observe(pin); });
+
+    // Also pre-load neighbors as user scrolls
+    vfeed.addEventListener('scroll', function() {
+        var h = vfeed.clientHeight;
+        var idx = Math.round(vfeed.scrollTop / h);
+        // Preload next 2
+        [idx + 1, idx + 2].forEach(function(i) {
+            if (pins[i]) {
+                var v = pins[i].querySelector('video[data-src]');
+                if (v) { v.src = v.dataset.src; v.removeAttribute('data-src'); v.load(); }
+            }
+        });
+    }, { passive: true });
+
+    // Back button — pause everything, close viewer, refresh grid
     if (back) {
         back.onclick = function() {
-            if (_viewerObs) { _viewerObs.disconnect(); _viewerObs=null; }
-            vfeed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
+            if (_viewerObs) { _viewerObs.disconnect(); _viewerObs = null; }
+            vfeed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime = 0; });
             viewer.style.transform = 'translateY(100%)';
-            // Refresh grid in case items were removed
             loadLikedGrid();
         };
     }
