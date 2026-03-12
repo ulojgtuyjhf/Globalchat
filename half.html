@@ -2669,7 +2669,8 @@ async function setupVideoVisibility() {
         threshold: [0, 0.55, 1.0]
     });
 
-    document.querySelectorAll('#gallery video').forEach(v => visObs.observe(v));
+    // NOTE: gallery videos are managed exclusively by the scroll-settle function below.
+    // _videoVisObs only tracks videos added to non-gallery contexts (desktop cards, etc.)
     window._videoVisObs = visObs;
     window._playVideo = playVideo;
 }
@@ -3000,9 +3001,11 @@ function createPinElement(postData, postId) {
         });
     }
 
-    // Register video with visibility observer so it pauses when off-screen
+    // Register video with visibility observer — only for desktop cards, NOT gallery or liked-viewer (those have their own observers)
     if (mediaElement && mediaElement.tagName === 'VIDEO' && window._videoVisObs) {
-        window._videoVisObs.observe(mediaElement);
+        var inGallery = mediaElement.closest('#gallery');
+        var inLikedViewer = mediaElement.closest('#liked-viewer-feed');
+        if (!inGallery && !inLikedViewer) window._videoVisObs.observe(mediaElement);
     }
 
     // openComments custom event fired by the comment button in injected slide-actions
@@ -3183,7 +3186,7 @@ function createPinElement(postData, postId) {
               '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>' +
             '</svg>' +
         '</div>' +
-        '<span class="slide-action-label">Save</span>';
+        '<span class="slide-action-label">' + (_isSaved ? 'Saved' : 'Save') + '</span>';
     saveBtn.addEventListener('click', function(e) {
         e.stopPropagation();
         var saved = window.isPostFavourited && window.isPostFavourited(postId);
@@ -4056,6 +4059,7 @@ init();
 
   // Expose so fetchPosts can call buildDesktopCard
   window._buildDesktopCard = buildDesktopCard;
+  window._createPinElement = createPinElement;
 
   function buildDesktopCard(postData, postId) {
     var card = document.createElement('div');
@@ -4830,7 +4834,26 @@ init();
       return;
     }
     if (section === 'Liked') {
-      showDsIframePanel('liked.html');
+      // Pause desktop feed videos while liked section is open
+      document.querySelectorAll('#desktop-feed video, #gallery video').forEach(function(v){ v.pause(); });
+      // Reuse the same #liked-section panel (identical to mobile)
+      var likedSec = document.getElementById('liked-section');
+      if (likedSec) {
+        likedSec.style.display = 'flex';
+        likedSec.style.zIndex = '9999';
+        if (!window._likedSectionLoaded) { loadLikedGrid(); window._likedSectionLoaded = true; }
+        // Back button wires to desktop nav
+        var backBtn = document.getElementById('liked-back-btn');
+        if (backBtn) {
+          backBtn._dsHandler = function() {
+            likedSec.style.display = 'none';
+            var lBtn = document.getElementById('dsNavLiked');
+            if (lBtn) lBtn.classList.remove('active');
+            showDesktopSection('Home');
+          };
+          backBtn.onclick = backBtn._dsHandler;
+        }
+      }
       return;
     }
     if (section === 'Profile') {
@@ -5311,15 +5334,15 @@ init();
     /* Masonry grid — 2 col Pinterest */
     #liked-grid {
         flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
-        padding: 10px 8px calc(env(safe-area-inset-bottom,0px) + 80px) 8px;
-        column-count: 2; column-gap: 8px;
+        padding: 8px 6px calc(env(safe-area-inset-bottom,0px) + 80px) 6px;
+        column-count: 3; column-gap: 5px;
         scrollbar-width: none;
     }
     #liked-grid::-webkit-scrollbar { display: none; }
     .liked-cell {
         break-inside: avoid;
-        margin-bottom: 8px;
-        border-radius: 16px;
+        margin-bottom: 5px;
+        border-radius: 10px;
         overflow: hidden;
         cursor: pointer;
         position: relative;
@@ -5327,7 +5350,7 @@ init();
         display: block;
         -webkit-tap-highlight-color: transparent;
         transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.18s;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+        box-shadow: 0 1px 6px rgba(0,0,0,0.10);
     }
     .liked-cell:active { transform: scale(0.96); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
     .liked-cell video {
@@ -5336,20 +5359,20 @@ init();
     }
     .liked-cell-overlay {
         position: absolute; bottom: 0; left: 0; right: 0;
-        background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 100%);
-        padding: 18px 10px 10px;
+        background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%);
+        padding: 14px 6px 6px;
         pointer-events: none;
     }
     .liked-cell-name {
-        font-size: 11px; font-weight: 800; color: #fff;
-        font-family: var(--font); letter-spacing: -0.01em;
+        font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.92);
+        font-family: var(--font); letter-spacing: 0em;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .liked-cell-dur {
-        position: absolute; top: 8px; right: 8px;
-        background: rgba(0,0,0,0.55); color: #fff;
-        font-size: 9.5px; font-weight: 800; font-family: var(--font);
-        padding: 2px 6px; border-radius: 6px;
+        position: absolute; top: 5px; right: 5px;
+        background: rgba(0,0,0,0.50); color: #fff;
+        font-size: 8px; font-weight: 700; font-family: var(--font);
+        padding: 1px 4px; border-radius: 4px;
         backdrop-filter: blur(4px);
     }
     /* Empty state */
@@ -5379,7 +5402,7 @@ init();
     #liked-viewer-feed {
         flex: 1; overflow-y: scroll; scroll-snap-type: y mandatory;
         scrollbar-width: none; -webkit-overflow-scrolling: touch;
-        position: relative;
+        position: relative; height: 100%;
     }
     #liked-viewer-feed::-webkit-scrollbar { display: none; }
     </style>
@@ -5404,9 +5427,9 @@ init();
         </div>
         <!-- Fullscreen viewer -->
         <div id="liked-viewer">
-            <div style="position:absolute;top:calc(env(safe-area-inset-top,0px)+12px);left:14px;z-index:10;">
-                <button id="liked-viewer-back" style="background:rgba(0,0,0,0.55);border:none;cursor:pointer;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            <div id="liked-viewer-topbar" style="position:absolute;top:0;left:0;right:0;z-index:20;padding:calc(env(safe-area-inset-top,0px)+10px) 14px 0;display:flex;align-items:center;pointer-events:none;">
+                <button id="liked-viewer-back" style="pointer-events:all;background:rgba(0,0,0,0.45);border:none;cursor:pointer;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
             </div>
             <div id="liked-viewer-feed"></div>
@@ -6107,45 +6130,75 @@ function openLikedViewer(startIdx) {
     var back   = document.getElementById('liked-viewer-back');
     if (!viewer || !vfeed) return;
 
+    // createPinElement lives in the ES module — access via window._createPinElement
+    var buildPin = window._createPinElement || window.createPinElement;
+    if (!buildPin) {
+        console.warn('_createPinElement not ready yet');
+        return;
+    }
+
     // Tear down previous observer
     if (_viewerObs) { _viewerObs.disconnect(); _viewerObs = null; }
     vfeed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime = 0; });
     vfeed.innerHTML = '';
 
-    // Build pin elements — identical to home feed (createPinElement includes all icons, comments, presence)
+    // Build pin elements — identical to home feed
+    var built = 0;
     window._savedPosts.forEach(function(p, idx) {
         if (!p.media || !p.media[0] || !p.media[0].url) return;
-        var pinEl = createPinElement(p, p._id);
+        var pinEl = buildPin(p, p._id);
         if (!pinEl) return;
         pinEl.dataset.idx = idx;
+        // Make sure each pin fills the viewer height for snap-scroll
+        pinEl.style.height = '100dvh';
         vfeed.appendChild(pinEl);
+        built++;
     });
 
-    // Open viewer
-    viewer.style.transform = 'translateY(0)';
+    if (built === 0) return;
 
-    // Scroll to the tapped card immediately (no animation — instant snap)
+    // Open viewer — pause everything else first
+    viewer.style.transform = 'translateY(0)';
+    document.querySelectorAll('#gallery video, #desktop-feed video').forEach(function(v){ v.pause(); });
+
+    // Scroll to the tapped card immediately
     var pins = vfeed.querySelectorAll('.pin-container');
     if (pins[startIdx]) {
         vfeed.scrollTop = pins[startIdx].offsetTop;
     }
 
-    // Lazy-load videos (same logic as home feed)
-    var allVids = Array.from(vfeed.querySelectorAll('video[data-src]'));
-    allVids.slice(0, 3).forEach(function(v) {
-        if (!v.src && v.dataset.src) { v.src = v.dataset.src; v.removeAttribute('data-src'); v.load(); }
+    // Force-load ALL videos' src now (they're lazy with data-src) — without this the video stays black
+    vfeed.querySelectorAll('video[data-src]').forEach(function(v) {
+        v.src = v.dataset.src; v.removeAttribute('data-src'); v.load();
+    });
+    // Also for already-lazy-loaded elements that may have src set but loader still visible
+    vfeed.querySelectorAll('video').forEach(function(v) {
+        if (v.src && !v.dataset.src) { v.load(); }
     });
 
-    // Autoplay + full home-feed experience via IntersectionObserver on pin-containers
-    var currentViewerIdx = startIdx;
+    // Immediately remove any black loader overlays so video shows through
+    // (vidLoader hides on canplay but may race — force clear after brief delay)
+    function clearViewerLoaders() {
+        vfeed.querySelectorAll('.pin-container > div').forEach(function(el) {
+            var s = el.style;
+            if (s.background === 'rgb(0, 0, 0)' || s.background === '#000') {
+                el.style.opacity = '0';
+                el.style.pointerEvents = 'none';
+                setTimeout(function(){ if (el.parentNode) el.remove(); }, 400);
+            }
+        });
+    }
+    setTimeout(clearViewerLoaders, 100);
+    setTimeout(clearViewerLoaders, 600); // second pass for slower loaders
 
+    // Autoplay + presence tracking via IntersectionObserver on pin-containers
     _viewerObs = new IntersectionObserver(function(entries) {
         entries.forEach(function(entry) {
             var pin = entry.target;
             var vid = pin.querySelector('video');
             if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
                 // Lazy-load src if needed
-                if (vid && !vid.src && vid.dataset && vid.dataset.src) {
+                if (vid && vid.dataset && vid.dataset.src) {
                     vid.src = vid.dataset.src; vid.removeAttribute('data-src'); vid.load();
                 }
                 if (vid) {
@@ -6153,7 +6206,7 @@ function openLikedViewer(startIdx) {
                     vid.currentTime = 0;
                     vid.play().catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
                 }
-                // Track presence (live viewer count)
+                // Track presence (live viewer count updates)
                 var pid = pin.dataset.postId;
                 if (pid && typeof trackPresence === 'function') trackPresence(pid);
             } else {
@@ -6164,11 +6217,10 @@ function openLikedViewer(startIdx) {
 
     pins.forEach(function(pin) { _viewerObs.observe(pin); });
 
-    // Also pre-load neighbors as user scrolls
-    vfeed.addEventListener('scroll', function() {
-        var h = vfeed.clientHeight;
+    // Pre-load neighbors on scroll
+    vfeed.addEventListener('scroll', function onScroll() {
+        var h = vfeed.clientHeight || window.innerHeight;
         var idx = Math.round(vfeed.scrollTop / h);
-        // Preload next 2
         [idx + 1, idx + 2].forEach(function(i) {
             if (pins[i]) {
                 var v = pins[i].querySelector('video[data-src]');
@@ -6177,13 +6229,12 @@ function openLikedViewer(startIdx) {
         });
     }, { passive: true });
 
-    // Back button — pause everything, close viewer, refresh grid
+    // Back button
     if (back) {
         back.onclick = function() {
             if (_viewerObs) { _viewerObs.disconnect(); _viewerObs = null; }
             vfeed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime = 0; });
             viewer.style.transform = 'translateY(100%)';
-            loadLikedGrid();
         };
     }
 }
