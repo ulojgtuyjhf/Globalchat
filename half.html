@@ -1792,18 +1792,38 @@ body {
           <span class="ds-logo-name">Choose Life</span>
         </div>
 
-        <!-- Nav items -->
+        <!-- Nav items — mirrors mobile 5-section layout -->
         <button class="ds-nav-item active" id="dsNavHome">
           <div class="ds-nav-icon">
-            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/>
+            </svg>
           </div>
           Home
+        </button>
+        <button class="ds-nav-item" id="dsNavTop">
+          <div class="ds-nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </div>
+          Top
         </button>
         <button class="ds-nav-item ds-upload-btn" id="dsNavUpload">
           <div class="ds-nav-icon" style="background:var(--brand-gradient);">
             <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </div>
           Upload
+        </button>
+        <button class="ds-nav-item" id="dsNavLiked">
+          <div class="ds-nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+              <polyline points="16 7 22 7 22 13"/>
+            </svg>
+          </div>
+          Liked
         </button>
         <button class="ds-nav-item" id="dsNavProfile">
           <div class="ds-nav-icon">
@@ -3118,7 +3138,9 @@ function createPinElement(postData, postId) {
     saveBtn.setAttribute('aria-label', 'Save');
     saveBtn.innerHTML =
         '<div class="slide-action-icon">' +
-            '<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
+              '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>' +
+            '</svg>' +
         '</div>' +
         '<span class="slide-action-label">Save</span>';
     saveBtn.addEventListener('click', function(e) {
@@ -3127,12 +3149,16 @@ function createPinElement(postData, postId) {
         if (saved) {
             window.removeFromFavourites && window.removeFromFavourites(postId);
             saveBtn.classList.remove('on');
+            var svg = saveBtn.querySelector('svg');
+            if (svg) svg.style.stroke = 'rgba(255,255,255,0.95)';
         } else {
             window.saveToFavourites && window.saveToFavourites(postData, postId);
             saveBtn.classList.add('on');
+            var svg = saveBtn.querySelector('svg');
+            if (svg) svg.style.stroke = '#4ade80'; // green = trending/saved
             // Quick pulse feedback
-            saveBtn.querySelector('.slide-action-icon').style.transform = 'scale(1.3)';
-            setTimeout(function(){ saveBtn.querySelector('.slide-action-icon').style.transform = ''; }, 300);
+            var icon = saveBtn.querySelector('.slide-action-icon');
+            if (icon) { icon.style.transform = 'scale(1.35)'; setTimeout(function(){ icon.style.transform = ''; }, 300); }
         }
     });
     slideActions.appendChild(saveBtn);
@@ -4615,78 +4641,142 @@ init();
   var dsComments = document.getElementById('desktop-comments');
 
   // Section panels injected into desktop-feed area
-  function showDesktopSection(section) {
-    document.querySelectorAll('.ds-nav-item').forEach(function(b){ b.classList.remove('active'); });
-    var btn = document.getElementById('dsNav' + section);
-    if (btn) btn.classList.add('active');
-
+  // ── Helper: create/show iframe panel in the main area ──
+  function showDsIframePanel(src) {
     var panel = document.getElementById('ds-section-panel');
     var arrows = document.getElementById('desktopNavArrows');
-
-    if (section === 'Home') {
-      dsFeed.style.display = '';
-      dsComments.style.display = '';
-      if (panel) panel.style.display = 'none';
-      if (arrows) arrows.style.display = '';
-      // Re-trigger observer on visible cards
-      if (window._desktopFeedObs) {
-        document.querySelectorAll('.desktop-card').forEach(function(card){ window._desktopFeedObs.observe(card); });
-      }
-      return;
-    }
-
-    // All non-Home sections: hide feed + comments panel + arrows, show iframe panel
     dsFeed.style.display = 'none';
     dsComments.style.display = 'none';
     if (arrows) arrows.style.display = 'none';
-
-    // Create iframe panel once, reuse it
     if (!panel) {
       panel = document.createElement('div');
       panel.id = 'ds-section-panel';
-      panel.style.cssText = [
-        'flex:1', 'height:calc(100vh - 24px)', 'border-radius:20px',
-        'overflow:hidden', 'box-shadow:0 2px 20px rgba(0,0,0,0.07)',
-        'background:#fff', 'position:relative'
-      ].join(';');
+      panel.style.cssText = 'flex:1;height:calc(100vh - 24px);border-radius:20px;overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,0.07);background:#fff;position:relative;';
       var frame = document.createElement('iframe');
       frame.id = 'ds-section-frame';
       frame.style.cssText = 'width:100%;height:100%;border:none;display:block;';
       frame.setAttribute('allow', 'autoplay; camera; microphone');
       panel.appendChild(frame);
+      // Spinner overlay
+      var loader = document.createElement('div');
+      loader.className = 'ds-panel-loader';
+      loader.style.cssText = 'position:absolute;inset:0;background:#f7f7f7;display:flex;align-items:center;justify-content:center;z-index:2;transition:opacity 0.3s;border-radius:20px;';
+      loader.innerHTML = '<div class="spinner"></div>';
+      panel.appendChild(loader);
       document.getElementById('desktop-wrapper').appendChild(panel);
     }
-
     panel.style.display = '';
     var frame = document.getElementById('ds-section-frame');
+    var loader = panel.querySelector('.ds-panel-loader');
+    if (loader) { loader.style.opacity = '1'; loader.style.pointerEvents = 'all'; }
+    frame.onload = function() { if (loader) { loader.style.opacity = '0'; loader.style.pointerEvents = 'none'; } };
+    if (frame.src !== (window.location.origin + '/' + src) && frame.src !== src) frame.src = src;
+  }
 
-    // Show spinner inside panel while loading
-    var panelLoader = panel.querySelector('.ds-panel-loader');
-    if (!panelLoader) {
-      panelLoader = document.createElement('div');
-      panelLoader.className = 'ds-panel-loader';
-      panelLoader.style.cssText = 'position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:2;transition:opacity 0.3s;border-radius:20px;';
-      panelLoader.innerHTML = '<div class="spinner"></div>';
-      panel.appendChild(panelLoader);
+  function hideDsIframePanel() {
+    var panel = document.getElementById('ds-section-panel');
+    var arrows = document.getElementById('desktopNavArrows');
+    if (panel) panel.style.display = 'none';
+    dsFeed.style.display = '';
+    dsComments.style.display = '';
+    if (arrows) arrows.style.display = '';
+    if (window._desktopFeedObs) {
+      document.querySelectorAll('.desktop-card').forEach(function(card){ window._desktopFeedObs.observe(card); });
     }
-    panelLoader.style.opacity = '1';
-    panelLoader.style.pointerEvents = 'all';
-    frame.onload = function() {
-      panelLoader.style.opacity = '0';
-      panelLoader.style.pointerEvents = 'none';
-    };
+  }
 
+  // ── Desktop upload overlay (slides up over everything, sidebar stays) ──
+  var dsUploadOverlay = null;
+  function openDsUploadOverlay() {
+    if (!dsUploadOverlay) {
+      dsUploadOverlay = document.createElement('div');
+      dsUploadOverlay.id = 'ds-upload-overlay';
+      dsUploadOverlay.style.cssText = [
+        'position:fixed','inset:0','z-index:8000',
+        'background:#fff',
+        'transform:translateY(100%)',
+        'transition:transform 0.42s cubic-bezier(0.22,1,0.36,1)',
+        'display:flex','flex-direction:column'
+      ].join(';');
+      // Header bar
+      var hdr = document.createElement('div');
+      hdr.style.cssText = 'display:flex;align-items:center;gap:12px;padding:20px 24px 14px;border-bottom:1px solid #efefef;flex-shrink:0;';
+      var backBtn = document.createElement('button');
+      backBtn.style.cssText = 'background:none;border:none;cursor:pointer;display:flex;align-items:center;padding:4px 10px 4px 0;';
+      backBtn.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+      backBtn.addEventListener('click', closeDsUploadOverlay);
+      var title = document.createElement('span');
+      title.textContent = 'Upload';
+      title.style.cssText = 'font-size:18px;font-weight:900;color:#111;font-family:var(--font);';
+      hdr.appendChild(backBtn);
+      hdr.appendChild(title);
+      var iframe = document.createElement('iframe');
+      iframe.id = 'ds-upload-frame';
+      iframe.src = 'upload.html';
+      iframe.style.cssText = 'flex:1;border:none;width:100%;display:block;';
+      iframe.setAttribute('allow', 'camera; microphone; autoplay');
+      dsUploadOverlay.appendChild(hdr);
+      dsUploadOverlay.appendChild(iframe);
+      document.body.appendChild(dsUploadOverlay);
+    }
+    requestAnimationFrame(function() { dsUploadOverlay.style.transform = 'translateY(0)'; });
+  }
+  function closeDsUploadOverlay() {
+    if (dsUploadOverlay) dsUploadOverlay.style.transform = 'translateY(100%)';
+    // Return Home active state in sidebar
+    document.querySelectorAll('.ds-nav-item').forEach(function(b){ b.classList.remove('active'); });
+    var homeBtn = document.getElementById('dsNavHome');
+    if (homeBtn) homeBtn.classList.add('active');
+  }
+
+  function showDesktopSection(section) {
+    document.querySelectorAll('.ds-nav-item').forEach(function(b){ b.classList.remove('active'); });
+    var btn = document.getElementById('dsNav' + section);
+    if (btn) btn.classList.add('active');
+
+    if (section === 'Home') {
+      hideDsIframePanel();
+      return;
+    }
+    if (section === 'Upload') {
+      // Slide up full-screen overlay (sidebar stays visible behind it)
+      openDsUploadOverlay();
+      return;
+    }
+    if (section === 'Top') {
+      // Snap feed to most commented card without leaving home
+      hideDsIframePanel();
+      if (btn) btn.classList.remove('active');
+      var homeBtn = document.getElementById('dsNavHome');
+      if (homeBtn) homeBtn.classList.add('active');
+      var cards = document.querySelectorAll('.desktop-card');
+      var bestCard = null, bestCount = -1;
+      cards.forEach(function(card) {
+        var count = parseInt(card.dataset.commentCount || '0');
+        if (count > bestCount) { bestCount = count; bestCard = card; }
+      });
+      if (bestCard) {
+        var feed = document.getElementById('desktop-feed');
+        if (feed) feed.scrollTo({ top: bestCard.offsetTop, behavior: 'smooth' });
+      }
+      return;
+    }
+    if (section === 'Liked') {
+      showDsIframePanel('liked.html');
+      return;
+    }
     if (section === 'Profile') {
-      frame.src = 'profile.html';
-    } else if (section === 'Upload') {
-      frame.src = 'upload.html';
+      showDsIframePanel('profile.html');
+      return;
     }
   }
 
   // Nav listeners
-  document.getElementById('dsNavHome').addEventListener('click', function(){ showDesktopSection('Home'); });
+  document.getElementById('dsNavHome').addEventListener('click',    function(){ showDesktopSection('Home'); });
+  document.getElementById('dsNavTop').addEventListener('click',     function(){ showDesktopSection('Top'); });
+  document.getElementById('dsNavUpload').addEventListener('click',  function(){ showDesktopSection('Upload'); });
+  document.getElementById('dsNavLiked').addEventListener('click',   function(){ showDesktopSection('Liked'); });
   document.getElementById('dsNavProfile').addEventListener('click', function(){ showDesktopSection('Profile'); });
-  document.getElementById('dsNavUpload').addEventListener('click', function(){ showDesktopSection('Upload'); });
 
   // ── Sidebar: load suggested users ──
   function loadSuggestedUsers() {
@@ -5085,12 +5175,11 @@ init();
             </div>
             <span>Home</span>
         </button>
-        <!-- Top: most commented -->
+        <!-- Top: heart icon -->
         <button class="nav-btn" id="navTop">
             <div class="nav-icon-wrap">
                 <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" fill="none">
-                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-                    <polyline points="17 6 23 6 23 12"/>
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                 </svg>
             </div>
             <span>Top</span>
@@ -5104,11 +5193,12 @@ init();
                 </svg>
             </button>
         </div>
-        <!-- Liked Videos -->
+        <!-- Liked: trending chart icon -->
         <button class="nav-btn" id="navLiked">
             <div class="nav-icon-wrap">
                 <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" fill="none">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+                    <polyline points="16 7 22 7 22 13"/>
                 </svg>
             </div>
             <span>Liked</span>
