@@ -691,6 +691,61 @@
           color: ${t.panelTitle} !important;
         }
 
+        /* ── saved section (mobile + desktop) ── */
+        #liked-section {
+          background: ${t.surfaceSecondary} !important;
+        }
+        #liked-header {
+          background: ${t.surfacePrimary} !important;
+          border-bottom: 1px solid ${t.border} !important;
+        }
+        #liked-header-title {
+          color: ${t.textPrimary} !important;
+        }
+        #liked-count-badge {
+          background: ${t.textPrimary} !important;
+          color: ${t.surfacePrimary} !important;
+        }
+        #liked-back-btn svg {
+          stroke: ${t.textPrimary} !important;
+        }
+        #liked-back-btn {
+          background: ${t.surfaceHover} !important;
+        }
+        .liked-cell {
+          background: ${t.surfaceHover} !important;
+          box-shadow: 0 1px 6px rgba(0,0,0,0.12) !important;
+        }
+        #liked-empty-icon {
+          background: ${t.surfaceHover} !important;
+        }
+        /* desktop saved panel */
+        #ds-saved-panel > div:first-child,
+        #ds-saved-panel > div:last-child > div:first-child {
+          background: ${t.surfacePrimary} !important;
+        }
+        #ds-saved-panel {
+          background: transparent !important;
+        }
+        #ds-saved-grid {
+          background: ${t.surfacePrimary} !important;
+        }
+        #ds-saved-info-col {
+          background: ${t.surfacePrimary} !important;
+        }
+        #ds-saved-info-col > div {
+          border-color: ${t.border} !important;
+        }
+        #ds-saved-creator-name {
+          color: ${t.textPrimary} !important;
+        }
+        #ds-saved-caption {
+          color: ${t.textSecondary} !important;
+        }
+        #ds-saved-comments {
+          background: ${t.surfacePrimary} !important;
+        }
+
         /* social connections widget */
         .container { background-color: ${t.surfacePrimary}; }
         .header { border-bottom: 1px solid ${t.border}; }
@@ -862,6 +917,37 @@
           .dc-live-viewers-text { color: ${t.liveViewersText} !important; }
           .dc-live-viewers-text span { color: ${t.liveViewersNum} !important; }
           .dc-live-avatar { border-color: ${t.liveAvatarBorder} !important; }
+          /* ── desktop saved panel ── */
+          #liked-section {
+            background: ${t.desktopBg} !important;
+          }
+          #liked-header {
+            background: ${t.sidebarBg} !important;
+            border-bottom: 1px solid ${t.dsDivider} !important;
+          }
+          #liked-header-title { color: ${t.textPrimary} !important; }
+          #liked-count-badge {
+            background: ${t.textPrimary} !important;
+            color: ${t.surfacePrimary} !important;
+          }
+          #ds-saved-panel { background: transparent !important; }
+          #ds-saved-grid {
+            background: ${t.sidebarBg} !important;
+          }
+          #ds-saved-grid > div:first-child {
+            background: ${t.sidebarBg} !important;
+            border-bottom: 1px solid ${t.dsDivider} !important;
+          }
+          #ds-saved-info-col {
+            background: ${t.sidebarBg} !important;
+          }
+          #ds-saved-info-col > div {
+            border-color: ${t.dsDivider} !important;
+          }
+          #ds-saved-creator-name { color: ${t.dcCreatorName} !important; }
+          #ds-saved-caption { color: ${t.dcCaption} !important; }
+          #ds-saved-comments { background: ${t.sidebarBg} !important; }
+          #ds-saved-video-card { background: #000 !important; }
         }
       `;
 
