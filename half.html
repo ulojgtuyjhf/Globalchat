@@ -377,7 +377,7 @@ body {
     gap: 8px; margin-bottom: 6px;
     flex-wrap: nowrap; overflow: hidden;
 }
-.video-creator-meta { display: flex; align-items: baseline; gap: 7px; min-width: 0; flex-shrink: 1; overflow: hidden; }
+.video-creator-meta { display: flex; align-items: baseline; gap: 6px; min-width: 0; flex-shrink: 1; overflow: hidden; }
 .video-creator-name {
     font-size: 15px; font-weight: 900;
     letter-spacing: -0.01em;
@@ -395,7 +395,7 @@ body {
 }
 .video-creator-date {
     font-size: 10px; font-weight: 700;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255,255,255,0.6);
     letter-spacing: 0.03em;
     white-space: nowrap; flex-shrink: 0;
     text-shadow: 0 1px 6px rgba(0,0,0,0.9);
@@ -2979,14 +2979,21 @@ function createPinElement(postData, postId) {
     creatorNameEl.textContent = '@' + (postData.name || 'creator');
     const creatorDateEl = document.createElement('span');
     creatorDateEl.className = 'video-creator-date';
+    creatorDateEl.style.cssText = 'white-space:nowrap;flex-shrink:0;';
     var _ts = postData.timestamp;
-    var _uploadMs = _ts ? (_ts.seconds ? _ts.seconds*1000 : (_ts.toDate ? _ts.toDate().getTime() : null)) : null;
+    var _uploadMs = null;
+    if (_ts) {
+        if (typeof _ts.seconds === 'number') _uploadMs = _ts.seconds * 1000;
+        else if (typeof _ts.toDate === 'function') { try { _uploadMs = _ts.toDate().getTime(); } catch(e){} }
+        else if (_ts instanceof Date) _uploadMs = _ts.getTime();
+        else if (typeof _ts === 'number') _uploadMs = _ts;
+    }
     function _fmtLeft(ms) {
         if (ms <= 0) return 'Expiring…';
         var h = Math.floor(ms / 3600000);
         var m = Math.floor((ms % 3600000) / 60000);
-        if (h > 0) return h + 'h ' + m + 'm left';
-        return m + 'm left';
+        if (h >= 1) return h + 'h';
+        return m + 'm';
     }
     if (_uploadMs) {
         var _expireMs = _uploadMs + 24*60*60*1000;
@@ -2996,6 +3003,8 @@ function createPinElement(postData, postId) {
             creatorDateEl.textContent = _fmtLeft(left);
             if (left <= 0) clearInterval(_cdTimer);
         }, 60000);
+    } else {
+        creatorDateEl.textContent = '24h left';
     }
     _meta.appendChild(creatorNameEl);
     _meta.appendChild(creatorDateEl);
@@ -5205,10 +5214,12 @@ init();
 
             // Compute time-ago
             var ts = post.timestamp;
-            var uploadMs = ts ? (ts.seconds ? ts.seconds*1000 : (ts.toDate ? ts.toDate().getTime() : null)) : null;
+            var uploadMs = ts ? (typeof ts.seconds==='number' ? ts.seconds*1000 : (ts.toDate ? ts.toDate().getTime() : null)) : null;
             var now = Date.now();
             var ageMs = uploadMs ? now - uploadMs : null;
-            var expired = ageMs !== null && ageMs > 24*60*60*1000;
+            // Hard skip expired — never show
+            if (ageMs !== null && ageMs > 24*60*60*1000) return;
+            var expired = false;
             var timeLabel = '';
             if (ageMs !== null) {
               var s=Math.floor(ageMs/1000), m2=Math.floor(s/60), h=Math.floor(m2/60), d=Math.floor(h/24);
@@ -6463,6 +6474,10 @@ async function loadLikedGrid() {
     saved.forEach(function(p, idx) {
         var media = p.media && p.media[0];
         if (!media || !media.url) return;
+        // Hard skip expired posts — never show them
+        var _ets = p.timestamp;
+        var _eupMs = _ets ? (typeof _ets.seconds==='number' ? _ets.seconds*1000 : (_ets.toDate ? _ets.toDate().getTime() : null)) : null;
+        if (_eupMs && (Date.now() - _eupMs) > 24*60*60*1000) return;
 
         (function(i, post, m) {
             var ratio = ratios[i % ratios.length];
