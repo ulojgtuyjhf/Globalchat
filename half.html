@@ -556,15 +556,15 @@ body {
     fill: url(#brandHeartGrad) !important; stroke: #626262 !important;
 }
 .slide-action-btn.saved-on .slide-action-icon {
-    background: rgba(74,222,128,0.18);
-    border-color: rgba(74,222,128,0.4);
+    background: rgba(255,255,255,0.18);
+    border-color: rgba(255,255,255,0.5);
 }
 .slide-action-btn.saved-on .slide-action-icon svg {
-    stroke: #4ade80 !important;
-    fill: #4ade80 !important;
+    stroke: #ffffff !important;
+    fill: #ffffff !important;
 }
 .slide-action-btn.saved-on .slide-action-label {
-    color: #4ade80 !important;
+    color: #ffffff !important;
 }
 
 /* Like pop + float heart */
@@ -1462,6 +1462,9 @@ body {
   /* Liked state */
   .desktop-action-btn.on .desktop-action-icon { background: rgba(80,80,80,0.35); border-color: rgba(255,255,255,0.35); }
   .desktop-action-btn.on .desktop-action-icon svg.heart-icon { fill: rgba(255,255,255,0.95) !important; stroke: rgba(255,255,255,0.95); }
+  .desktop-action-btn.saved-on .desktop-action-icon { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.6); }
+  .desktop-action-btn.saved-on .desktop-action-icon svg { stroke: #fff !important; fill: #fff !important; }
+  .desktop-action-btn.saved-on .desktop-action-label { color: #fff !important; }
   .desktop-action-btn:hover .desktop-action-icon { transform: scale(1.07); background: rgba(0,0,0,0.58); }
   /* Profile btn inside desktop actions */
   .desktop-action-btn .desktop-action-icon.profile-desktop {
@@ -2784,21 +2787,24 @@ function createPinElement(postData, postId) {
         return null; // Skip if media element couldn't be created
     }
 
-    // ── Video loading spinner — shows until canplay, then fades out ──
-    const vidLoader = document.createElement('div');
-    vidLoader.style.cssText = 'position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:8;transition:opacity 0.35s;pointer-events:none;';
-    vidLoader.innerHTML = '<div class="spinner"></div>';
-    pinContainer.appendChild(vidLoader);
-    if (mediaElement && mediaElement.tagName === 'VIDEO') {
-        const hideLoader = function() {
-            vidLoader.style.opacity = '0';
-            setTimeout(function() { if (vidLoader.parentNode) vidLoader.remove(); }, 380);
-        };
-        mediaElement.addEventListener('canplay', hideLoader, { once: true });
-        // Fallback: remove after 4s even if canplay never fires
-        setTimeout(hideLoader, 4000);
-    } else {
-        vidLoader.remove();
+    // ── Video loading spinner — skip in liked viewer (video src already loaded) ──
+    if (!window._buildingForViewer) {
+        const vidLoader = document.createElement('div');
+        vidLoader.className = 'vid-loader-overlay';
+        vidLoader.style.cssText = 'position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:8;transition:opacity 0.35s;pointer-events:none;';
+        vidLoader.innerHTML = '<div class="spinner"></div>';
+        pinContainer.appendChild(vidLoader);
+        if (mediaElement && mediaElement.tagName === 'VIDEO') {
+            const hideLoader = function() {
+                vidLoader.style.opacity = '0';
+                setTimeout(function() { if (vidLoader.parentNode) vidLoader.remove(); }, 380);
+            };
+            mediaElement.addEventListener('canplay', hideLoader, { once: true });
+            // Fallback: remove after 1.2s
+            setTimeout(hideLoader, 1200);
+        } else {
+            vidLoader.remove();
+        }
     }
 
     const profileInfo = document.createElement('div');
@@ -4808,6 +4814,13 @@ init();
 
     if (section === 'Home') {
       hideDsIframePanel();
+      var sp = document.getElementById('ds-saved-panel');
+      if (sp) sp.style.display = 'none';
+      var feed2 = document.getElementById('desktop-feed');
+      var cmt2  = document.getElementById('desktop-comments');
+      if (feed2) feed2.style.display = '';
+      if (cmt2)  cmt2.style.display  = '';
+      if (window._closeDsSavedViewer) window._closeDsSavedViewer();
       return;
     }
     if (section === 'Upload') {
@@ -4834,29 +4847,268 @@ init();
       return;
     }
     if (section === 'Liked') {
-      // Pause desktop feed videos while liked section is open
+      // Pause desktop feed videos
       document.querySelectorAll('#desktop-feed video, #gallery video').forEach(function(v){ v.pause(); });
-      // Reuse the same #liked-section panel (identical to mobile)
-      var likedSec = document.getElementById('liked-section');
-      if (likedSec) {
-        likedSec.style.display = 'flex';
-        likedSec.style.zIndex = '9999';
-        if (!window._likedSectionLoaded) { loadLikedGrid(); window._likedSectionLoaded = true; }
-        // Back button wires to desktop nav
-        var backBtn = document.getElementById('liked-back-btn');
-        if (backBtn) {
-          backBtn._dsHandler = function() {
-            likedSec.style.display = 'none';
-            var lBtn = document.getElementById('dsNavLiked');
-            if (lBtn) lBtn.classList.remove('active');
-            showDesktopSection('Home');
-          };
-          backBtn.onclick = backBtn._dsHandler;
+      // Hide feed + comments, show saved panel
+      var feed = document.getElementById('desktop-feed');
+      var cmt  = document.getElementById('desktop-comments');
+      if (feed) feed.style.display = 'none';
+      if (cmt)  { cmt.classList.remove('open'); cmt.style.display = 'none'; }
+
+      var panel = document.getElementById('ds-saved-panel');
+      if (!panel) {
+        // Build the panel once
+        panel = document.createElement('div');
+        panel.id = 'ds-saved-panel';
+        panel.style.cssText = 'flex:1;height:calc(100vh - 24px);display:flex;gap:12px;overflow:hidden;';
+
+        // Left: grid column
+        var gridCol = document.createElement('div');
+        gridCol.style.cssText = 'flex:1;background:#fff;border-radius:20px;box-shadow:0 2px 20px rgba(0,0,0,0.07);display:flex;flex-direction:column;overflow:hidden;';
+
+        var gridHead = document.createElement('div');
+        gridHead.style.cssText = 'padding:20px 20px 14px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px;flex-shrink:0;';
+        var backBtnSaved = document.createElement('button');
+        backBtnSaved.style.cssText = 'background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;transition:background 0.15s;flex-shrink:0;';
+        backBtnSaved.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+        backBtnSaved.addEventListener('mouseenter', function(){ backBtnSaved.style.background='#f0f0f0'; });
+        backBtnSaved.addEventListener('mouseleave', function(){ backBtnSaved.style.background='none'; });
+        backBtnSaved.addEventListener('click', function(){ showDesktopSection('Home'); });
+        gridHead.innerHTML = '';
+        gridHead.appendChild(backBtnSaved);
+        var savedTitle = document.createElement('span');
+        savedTitle.style.cssText = 'font-size:20px;font-weight:900;color:#111;font-family:var(--font);letter-spacing:-0.03em;flex:1;';
+        savedTitle.textContent = 'Saved';
+        gridHead.appendChild(savedTitle);
+        var savedBadgeEl = document.createElement('span');
+        savedBadgeEl.id = 'ds-saved-badge';
+        savedBadgeEl.style.cssText = 'background:#111;color:#fff;font-size:10px;font-weight:800;padding:3px 10px;border-radius:99px;font-family:var(--font);';
+        savedBadgeEl.textContent = '0';
+        gridHead.appendChild(savedBadgeEl);
+
+        var gridScroll = document.createElement('div');
+        gridScroll.id = 'ds-saved-grid';
+        gridScroll.style.cssText = 'flex:1;overflow-y:auto;padding:10px 8px;column-count:3;column-gap:6px;scrollbar-width:none;';
+
+        gridCol.appendChild(gridHead);
+        gridCol.appendChild(gridScroll);
+
+        // Right: video viewer column (hidden until cell clicked)
+        var viewerCol = document.createElement('div');
+        viewerCol.id = 'ds-saved-viewer-col';
+        viewerCol.style.cssText = 'width:0;min-width:0;flex-shrink:0;height:calc(100vh - 24px);display:flex;gap:12px;overflow:hidden;transition:width 0.38s cubic-bezier(0.22,1,0.36,1),min-width 0.38s cubic-bezier(0.22,1,0.36,1);';
+
+        // Video card (same floating style as desktop feed)
+        var vidWrapOuter = document.createElement('div');
+        vidWrapOuter.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;flex-shrink:0;width:0;min-width:0;transition:width 0.38s cubic-bezier(0.22,1,0.36,1),min-width 0.38s cubic-bezier(0.22,1,0.36,1);overflow:hidden;';
+
+        var vidCard = document.createElement('div');
+        vidCard.id = 'ds-saved-video-card';
+        vidCard.style.cssText = 'height:calc(100vh - 24px - 32px);max-height:calc(100vh - 56px);aspect-ratio:9/16;border-radius:22px;overflow:hidden;background:#000;position:relative;box-shadow:0 16px 56px rgba(0,0,0,0.24),0 4px 14px rgba(0,0,0,0.10);flex-shrink:0;';
+
+        var vidEl = document.createElement('video');
+        vidEl.id = 'ds-saved-video';
+        vidEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+        vidEl.muted = false; vidEl.playsInline = true; vidEl.loop = true; vidEl.controls = false;
+
+        // Gradient overlay
+        var gradOverlay = document.createElement('div');
+        gradOverlay.style.cssText = 'position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,0.5) 80%,rgba(0,0,0,0.82) 100%);pointer-events:none;border-radius:22px;';
+
+        // Creator info bottom of video
+        var vidInfo = document.createElement('div');
+        vidInfo.id = 'ds-saved-vid-info';
+        vidInfo.style.cssText = 'position:absolute;bottom:18px;left:16px;right:16px;z-index:5;pointer-events:none;';
+
+        // Back-to-grid button inside the video card
+        var backToGrid = document.createElement('button');
+        backToGrid.style.cssText = 'position:absolute;top:14px;left:12px;z-index:10;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,0.5);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:transform 0.15s;';
+        backToGrid.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+        backToGrid.addEventListener('click', function(e){ e.stopPropagation(); closeDsSavedViewer(); });
+        vidCard.appendChild(backToGrid);
+
+        vidCard.appendChild(vidEl);
+        vidCard.appendChild(gradOverlay);
+        vidCard.appendChild(vidInfo);
+        vidWrapOuter.appendChild(vidCard);
+
+        // Right info/comments panel
+        var infoCol = document.createElement('div');
+        infoCol.id = 'ds-saved-info-col';
+        infoCol.style.cssText = 'width:0;min-width:0;flex-shrink:0;background:#fff;border-radius:20px;box-shadow:0 2px 20px rgba(0,0,0,0.07);display:flex;flex-direction:column;overflow:hidden;transition:width 0.38s cubic-bezier(0.22,1,0.36,1),min-width 0.38s cubic-bezier(0.22,1,0.36,1);';
+
+        infoCol.innerHTML =
+          '<div style="padding:18px 16px 12px;border-bottom:1px solid #f0f0f0;flex-shrink:0;">'
+          + '<div id="ds-saved-creator-row" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+          + '<div id="ds-saved-avatar" style="width:36px;height:36px;border-radius:50%;background:#555;border:2px solid #f0f0f0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;overflow:hidden;flex-shrink:0;"></div>'
+          + '<span id="ds-saved-creator-name" style="font-size:13px;font-weight:800;color:#111;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>'
+          + '</div>'
+          + '<div id="ds-saved-caption" style="font-size:12.5px;color:#555;line-height:1.55;margin-bottom:6px;"></div>'
+          + '</div>'
+          + '<div style="padding:10px 16px 6px;font-size:13px;font-weight:900;color:#111;border-bottom:1px solid #f0f0f0;flex-shrink:0;">Comments</div>'
+          + '<div id="ds-saved-comments" style="flex:1;overflow-y:auto;padding:10px 16px;scrollbar-width:none;"></div>';
+
+        viewerCol.appendChild(vidWrapOuter);
+        viewerCol.appendChild(infoCol);
+
+        panel.appendChild(gridCol);
+        panel.appendChild(viewerCol);
+        document.getElementById('desktop-wrapper').appendChild(panel);
+
+        // Close viewer when clicking grid background
+        gridScroll.addEventListener('click', function(e) {
+          if (e.target === gridScroll) closeDsSavedViewer();
+        });
+
+        function closeDsSavedViewer() {
+          var vc = document.getElementById('ds-saved-viewer-col');
+          var vw = vidWrapOuter;
+          var ic = document.getElementById('ds-saved-info-col');
+          if (vc) vc.style.cssText = 'width:0;min-width:0;flex-shrink:0;height:calc(100vh - 24px);display:flex;gap:12px;overflow:hidden;transition:width 0.38s cubic-bezier(0.22,1,0.36,1),min-width 0.38s cubic-bezier(0.22,1,0.36,1);';
+          if (vw) { vw.style.width='0'; vw.style.minWidth='0'; }
+          if (ic) { ic.style.width='0'; ic.style.minWidth='0'; }
+          var v = document.getElementById('ds-saved-video');
+          if (v) { v.pause(); v.src=''; }
         }
+        window._closeDsSavedViewer = closeDsSavedViewer;
+
+        // Cell click — open viewer
+        window._openDsSavedVideo = function(post) {
+          var vc  = document.getElementById('ds-saved-viewer-col');
+          var ic  = document.getElementById('ds-saved-info-col');
+          var v   = document.getElementById('ds-saved-video');
+          var inf = document.getElementById('ds-saved-vid-info');
+          var av  = document.getElementById('ds-saved-avatar');
+          var cn  = document.getElementById('ds-saved-creator-name');
+          var cap = document.getElementById('ds-saved-caption');
+          var cmt = document.getElementById('ds-saved-comments');
+
+          if (!vc || !v) return;
+
+          // Open columns
+          vc.style.cssText = 'width:auto;min-width:0;flex-shrink:0;height:calc(100vh - 24px);display:flex;gap:12px;overflow:hidden;transition:width 0.38s cubic-bezier(0.22,1,0.36,1),min-width 0.38s cubic-bezier(0.22,1,0.36,1);';
+          vidWrapOuter.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;flex-shrink:0;width:auto;min-width:calc((100vh - 56px) * 9/16);overflow:hidden;transition:width 0.38s cubic-bezier(0.22,1,0.36,1),min-width 0.38s cubic-bezier(0.22,1,0.36,1);';
+          if (ic) { ic.style.width = 'clamp(260px,22vw,320px)'; ic.style.minWidth = 'clamp(260px,22vw,320px)'; }
+
+          // Load video
+          v.src = (post.media && post.media[0] && post.media[0].url) || '';
+          v.load(); v.play().catch(function(){ v.muted=true; v.play().catch(function(){}); });
+
+          // Creator info
+          var letter = ((post.name || post.userName || 'U')[0]).toUpperCase();
+          var hue = (letter.charCodeAt(0) * 37) % 360;
+          if (av) {
+            if (post.photoURL && !post.photoURL.includes('default_profile')) {
+              av.innerHTML = '<img src="'+post.photoURL+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.parentNode.textContent=\''+letter+'\'">';
+            } else {
+              av.style.background = 'hsl('+hue+',50%,42%)';
+              av.textContent = letter;
+            }
+          }
+          if (cn)  cn.textContent  = '@' + (post.name || post.userName || 'creator');
+          if (cap) cap.textContent = post.text || '';
+          if (inf) inf.innerHTML   = '<div style="font-size:13px;font-weight:800;color:rgba(255,255,255,0.92);text-shadow:0 1px 6px rgba(0,0,0,0.8);">@'+(post.name||'creator')+'</div>'+(post.text?'<div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:3px;text-shadow:0 1px 4px rgba(0,0,0,0.8);">'+post.text+'</div>':'');
+
+          // Load comments from Firestore
+          if (cmt) {
+            cmt.innerHTML = '<div style="text-align:center;padding:24px 0;color:#ccc;font-size:12px;font-family:var(--font);">Loading…</div>';
+            try {
+              var db4 = window._fbDb; var fns4 = window._fbFirestoreFns;
+              if (db4 && fns4 && post._id) {
+                fns4.getDocs(fns4.query(fns4.collection(db4,'recence',post._id,'replies'),fns4.orderBy('timestamp','asc'),fns4.limit(50))).then(function(snap){
+                  if (snap.empty) { cmt.innerHTML='<div style="text-align:center;padding:24px 0;color:#ccc;font-size:12px;font-family:var(--font);">No comments yet</div>'; return; }
+                  cmt.innerHTML='';
+                  snap.forEach(function(d){
+                    var r=d.data();
+                    var row=document.createElement('div');
+                    row.style.cssText='display:flex;gap:8px;margin-bottom:14px;align-items:flex-start;';
+                    var l=((r.name||'U')[0]).toUpperCase();
+                    var h2=(l.charCodeAt(0)*37)%360;
+                    row.innerHTML='<div style="width:30px;height:30px;border-radius:50%;background:hsl('+h2+',50%,42%);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;flex-shrink:0;">'+(r.photoURL?'<img src="'+r.photoURL+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentNode.textContent=\''+l+'\'">':l)+'</div>'
+                      +'<div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:800;color:#111;">'+( r.name||'User')+'</div><div style="font-size:12px;color:#444;margin-top:2px;line-height:1.45;">'+((r.text||'').replace(/</g,'&lt;'))+'</div></div>';
+                    cmt.appendChild(row);
+                  });
+                }).catch(function(){ cmt.innerHTML='<div style="text-align:center;padding:24px 0;color:#ccc;font-size:12px;">Could not load comments</div>'; });
+              } else { cmt.innerHTML='<div style="text-align:center;padding:24px 0;color:#ccc;font-size:12px;font-family:var(--font);">Sign in to see comments</div>'; }
+            } catch(e) { cmt.innerHTML=''; }
+          }
+        };
+      }
+
+      // Show panel, hide feed
+      panel.style.display = 'flex';
+
+      // Load grid if not yet
+      if (!window._dsSavedLoaded) {
+        window._dsSavedLoaded = true;
+        var grid2 = document.getElementById('ds-saved-grid');
+        var badge2 = document.getElementById('ds-saved-badge');
+        (async function() {
+          var saved = [];
+          try { saved = JSON.parse(localStorage.getItem('favouritePosts') || '[]'); } catch(e) {}
+          try {
+            var db5=window._fbDb; var fns5=window._fbFirestoreFns;
+            if (db5 && fns5 && window._currentUser) {
+              var snap5 = await fns5.getDocs(fns5.query(fns5.collection(db5,'recence'),fns5.where('likes','array-contains',window._currentUser.uid),fns5.orderBy('timestamp','desc'),fns5.limit(60)));
+              snap5.forEach(function(d){ var p=d.data(); p._id=d.id; if (!saved.find(function(s){return s._id===d.id;})) saved.push(p); });
+            }
+          } catch(e) {}
+          window._savedPosts = saved;
+          if (badge2) badge2.textContent = saved.length;
+          if (!saved.length) { if (grid2) grid2.innerHTML='<div style="padding:40px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Nothing saved yet</div>'; return; }
+          if (!grid2) return;
+          grid2.innerHTML = '';
+          saved.forEach(function(post, idx) {
+            var m = post.media && post.media[0];
+            if (!m || !m.url) return;
+
+            // Compute time-ago
+            var ts = post.timestamp;
+            var uploadMs = ts ? (ts.seconds ? ts.seconds*1000 : (ts.toDate ? ts.toDate().getTime() : null)) : null;
+            var now = Date.now();
+            var ageMs = uploadMs ? now - uploadMs : null;
+            var expired = ageMs !== null && ageMs > 24*60*60*1000;
+            var timeLabel = '';
+            if (ageMs !== null) {
+              var s=Math.floor(ageMs/1000), m2=Math.floor(s/60), h=Math.floor(m2/60), d=Math.floor(h/24);
+              if (d>=1) timeLabel = d+'d ago';
+              else if (h>=1) timeLabel = h+'h ago';
+              else if (m2>=1) timeLabel = m2+'m ago';
+              else timeLabel = 'just now';
+            }
+
+            var cell = document.createElement('div');
+            cell.style.cssText = 'break-inside:avoid;margin-bottom:6px;border-radius:10px;overflow:hidden;cursor:pointer;position:relative;background:#e8e8e8;display:block;box-shadow:0 1px 6px rgba(0,0,0,0.10);transition:transform 0.18s cubic-bezier(0.34,1.56,0.64,1);';
+            var vid2 = document.createElement('video');
+            vid2.src = m.url; vid2.muted = true; vid2.playsInline = true; vid2.preload = 'metadata';
+            vid2.style.cssText = 'width:100%;aspect-ratio:9/16;object-fit:cover;display:block;pointer-events:none;' + (expired ? 'opacity:0.45;filter:grayscale(0.4);' : '');
+            vid2.addEventListener('loadedmetadata', function(){ vid2.currentTime=0.01; }, {once:true});
+            var ov = document.createElement('div');
+            ov.style.cssText = 'position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 100%);padding:18px 6px 6px;pointer-events:none;';
+            ov.innerHTML = '<div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.92);font-family:var(--font);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@'+(post.name||post.userName||'creator')+'</div>'
+              + (timeLabel ? '<div style="font-size:8px;font-weight:600;color:rgba(255,255,255,0.55);font-family:var(--font);margin-top:1px;">'+timeLabel+'</div>' : '');
+            cell.appendChild(vid2); cell.appendChild(ov);
+            // Expired badge
+            if (expired) {
+              var expBadge = document.createElement('div');
+              expBadge.style.cssText = 'position:absolute;top:5px;left:5px;background:rgba(0,0,0,0.6);color:rgba(255,255,255,0.75);font-size:7.5px;font-weight:800;font-family:var(--font);padding:2px 5px;border-radius:4px;backdrop-filter:blur(4px);letter-spacing:0.04em;';
+              expBadge.textContent = 'EXPIRED';
+              cell.appendChild(expBadge);
+            }
+            cell.addEventListener('mouseenter', function(){ cell.style.transform='scale(1.03)'; });
+            cell.addEventListener('mouseleave', function(){ cell.style.transform='scale(1)'; });
+            cell.addEventListener('click', function(){ window._openDsSavedVideo(post); });
+            cell.style.opacity='0'; cell.style.transform='translateY(12px) scale(0.97)';
+            grid2.appendChild(cell);
+            setTimeout(function(){ cell.style.transition='opacity 0.3s ease,transform 0.3s cubic-bezier(0.34,1.56,0.64,1)'; cell.style.opacity='1'; cell.style.transform='translateY(0) scale(1)'; }, 40 + idx*50);
+          });
+        })();
       }
       return;
     }
     if (section === 'Profile') {
+      var sp2 = document.getElementById('ds-saved-panel');
+      if (sp2) sp2.style.display = 'none';
       showDsIframePanel('profile.html');
       return;
     }
@@ -5394,16 +5646,23 @@ init();
     }
     /* Fullscreen viewer */
     #liked-viewer {
-        position: absolute; inset: 0; background: #000; z-index: 150;
+        position: fixed; inset: 0; background: #000; z-index: 1000;
         transform: translateY(100%);
         transition: transform 0.36s cubic-bezier(0.22,1,0.36,1);
-        display: flex; flex-direction: column;
     }
     #liked-viewer-feed {
-        flex: 1; overflow-y: scroll; scroll-snap-type: y mandatory;
+        position: absolute; inset: 0;
+        overflow-y: scroll; scroll-snap-type: y mandatory;
         scrollbar-width: none; -webkit-overflow-scrolling: touch;
-        position: relative; height: 100%;
     }
+    #liked-viewer-back {
+        position: fixed; bottom: calc(env(safe-area-inset-bottom,0px) + 28px); left: 16px;
+        z-index: 1010; background: rgba(0,0,0,0.50); border: none; cursor: pointer;
+        width: 36px; height: 36px; border-radius: 50%;
+        display: none; align-items: center; justify-content: center;
+        backdrop-filter: blur(12px); -webkit-tap-highlight-color: transparent;
+    }
+    #liked-viewer.open #liked-viewer-back { display: flex; }
     #liked-viewer-feed::-webkit-scrollbar { display: none; }
     </style>
 
@@ -5425,14 +5684,12 @@ init();
             <span style="font-size:16px;font-weight:800;color:#888;font-family:var(--font);">Nothing saved yet</span>
             <span style="font-size:13px;color:#bbb;font-family:var(--font);">Tap the bookmark icon on any video</span>
         </div>
-        <!-- Fullscreen viewer -->
+        <!-- Fullscreen viewer — same structure as #gallery -->
         <div id="liked-viewer">
-            <div id="liked-viewer-topbar" style="position:absolute;top:0;left:0;right:0;z-index:20;padding:calc(env(safe-area-inset-top,0px)+10px) 14px 0;display:flex;align-items:center;pointer-events:none;">
-                <button id="liked-viewer-back" style="pointer-events:all;background:rgba(0,0,0,0.45);border:none;cursor:pointer;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);flex-shrink:0;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                </button>
-            </div>
             <div id="liked-viewer-feed"></div>
+            <button id="liked-viewer-back">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
         </div>
     </div>
 
@@ -6091,13 +6348,37 @@ async function loadLikedGrid() {
                 }
             });
 
-            // Overlay with creator name
+            // Overlay with creator name + time-ago
             var overlay = document.createElement('div');
             overlay.className = 'liked-cell-overlay';
             var nameEl = document.createElement('div');
             nameEl.className = 'liked-cell-name';
             nameEl.textContent = '@' + (post.name || post.userName || 'creator');
             overlay.appendChild(nameEl);
+
+            // Time-ago label
+            var ts = post.timestamp;
+            var uploadMs = ts ? (ts.seconds ? ts.seconds*1000 : (ts.toDate ? ts.toDate().getTime() : null)) : null;
+            var nowMs = Date.now();
+            var ageMs2 = uploadMs ? nowMs - uploadMs : null;
+            var expired2 = ageMs2 !== null && ageMs2 > 24*60*60*1000;
+            if (ageMs2 !== null) {
+                var _s=Math.floor(ageMs2/1000),_m=Math.floor(_s/60),_h=Math.floor(_m/60),_d=Math.floor(_h/24);
+                var tl2 = _d>=1 ? _d+'d ago' : _h>=1 ? _h+'h ago' : _m>=1 ? _m+'m ago' : 'just now';
+                var timeEl = document.createElement('div');
+                timeEl.style.cssText = 'font-size:8px;font-weight:600;color:rgba(255,255,255,0.55);font-family:var(--font);margin-top:1px;';
+                timeEl.textContent = tl2;
+                overlay.appendChild(timeEl);
+            }
+            // Dim + expired badge if >24h
+            if (expired2) {
+                vid.style.opacity = '0.45';
+                vid.style.filter = 'grayscale(0.4)';
+                var expEl = document.createElement('div');
+                expEl.style.cssText = 'position:absolute;top:5px;left:5px;background:rgba(0,0,0,0.6);color:rgba(255,255,255,0.75);font-size:7px;font-weight:800;font-family:var(--font);padding:2px 5px;border-radius:4px;letter-spacing:0.04em;';
+                expEl.textContent = 'EXPIRED';
+                cell.appendChild(expEl);
+            }
             cell.appendChild(overlay);
 
             // ── CLICK = open fullscreen viewer at this index ──
@@ -6130,114 +6411,84 @@ function openLikedViewer(startIdx) {
     var back   = document.getElementById('liked-viewer-back');
     if (!viewer || !vfeed) return;
 
-    // createPinElement lives in the ES module — access via window._createPinElement
     var buildPin = window._createPinElement || window.createPinElement;
-    if (!buildPin) {
-        console.warn('_createPinElement not ready yet');
-        return;
-    }
+    if (!buildPin) { console.warn('_createPinElement not ready'); return; }
 
-    // Tear down previous observer
+    // Tear down previous
     if (_viewerObs) { _viewerObs.disconnect(); _viewerObs = null; }
     vfeed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime = 0; });
     vfeed.innerHTML = '';
 
-    // Build pin elements — identical to home feed
+    // Build pins — flag disables the black loading overlay inside createPinElement
+    window._buildingForViewer = true;
     var built = 0;
-    window._savedPosts.forEach(function(p, idx) {
+    window._savedPosts.forEach(function(p) {
         if (!p.media || !p.media[0] || !p.media[0].url) return;
         var pinEl = buildPin(p, p._id);
         if (!pinEl) return;
-        pinEl.dataset.idx = idx;
-        // Make sure each pin fills the viewer height for snap-scroll
-        pinEl.style.height = '100dvh';
+        // Set src now so browser starts fetching before user sees viewer
+        var vid = pinEl.querySelector('video');
+        if (vid) {
+            var src = vid.dataset.src || vid.src;
+            if (src) {
+                vid.src = src;
+                vid.removeAttribute('data-src');
+                vid.preload = 'auto';
+                // Remove lazy-load class so opacity:0 doesn't hide the video
+                vid.classList.remove('lazy-load');
+                vid.classList.add('loaded');
+                vid.load();
+            }
+        }
         vfeed.appendChild(pinEl);
         built++;
     });
-
+    window._buildingForViewer = false;
     if (built === 0) return;
 
-    // Open viewer — pause everything else first
-    viewer.style.transform = 'translateY(0)';
+    // Pause home feed behind viewer
     document.querySelectorAll('#gallery video, #desktop-feed video').forEach(function(v){ v.pause(); });
 
-    // Scroll to the tapped card immediately
+    // Open viewer (same as gallery — fixed fullscreen black)
+    viewer.style.transform = 'translateY(0)';
+    viewer.classList.add('open');
+
+    // Scroll to tapped index
     var pins = vfeed.querySelectorAll('.pin-container');
     if (pins[startIdx]) {
         vfeed.scrollTop = pins[startIdx].offsetTop;
     }
 
-    // Force-load ALL videos' src now (they're lazy with data-src) — without this the video stays black
-    vfeed.querySelectorAll('video[data-src]').forEach(function(v) {
-        v.src = v.dataset.src; v.removeAttribute('data-src'); v.load();
-    });
-    // Also for already-lazy-loaded elements that may have src set but loader still visible
-    vfeed.querySelectorAll('video').forEach(function(v) {
-        if (v.src && !v.dataset.src) { v.load(); }
-    });
-
-    // Immediately remove any black loader overlays so video shows through
-    // (vidLoader hides on canplay but may race — force clear after brief delay)
-    function clearViewerLoaders() {
-        vfeed.querySelectorAll('.pin-container > div').forEach(function(el) {
-            var s = el.style;
-            if (s.background === 'rgb(0, 0, 0)' || s.background === '#000') {
-                el.style.opacity = '0';
-                el.style.pointerEvents = 'none';
-                setTimeout(function(){ if (el.parentNode) el.remove(); }, 400);
-            }
-        });
-    }
-    setTimeout(clearViewerLoaders, 100);
-    setTimeout(clearViewerLoaders, 600); // second pass for slower loaders
-
-    // Autoplay + presence tracking via IntersectionObserver on pin-containers
+    // IntersectionObserver on vfeed — exactly like home feed scroll settle
     _viewerObs = new IntersectionObserver(function(entries) {
         entries.forEach(function(entry) {
             var pin = entry.target;
             var vid = pin.querySelector('video');
+            if (!vid) return;
             if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
-                // Lazy-load src if needed
-                if (vid && vid.dataset && vid.dataset.src) {
-                    vid.src = vid.dataset.src; vid.removeAttribute('data-src'); vid.load();
-                }
-                if (vid) {
-                    vid.muted = false;
-                    vid.currentTime = 0;
-                    vid.play().catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
-                }
-                // Track presence (live viewer count updates)
+                vid.muted = false;
+                vid.currentTime = 0;
+                vid.play().catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
                 var pid = pin.dataset.postId;
                 if (pid && typeof trackPresence === 'function') trackPresence(pid);
             } else {
-                if (vid) { vid.pause(); }
+                vid.pause();
             }
         });
     }, { root: vfeed, threshold: 0.55 });
-
     pins.forEach(function(pin) { _viewerObs.observe(pin); });
 
-    // Pre-load neighbors on scroll
-    vfeed.addEventListener('scroll', function onScroll() {
-        var h = vfeed.clientHeight || window.innerHeight;
-        var idx = Math.round(vfeed.scrollTop / h);
-        [idx + 1, idx + 2].forEach(function(i) {
-            if (pins[i]) {
-                var v = pins[i].querySelector('video[data-src]');
-                if (v) { v.src = v.dataset.src; v.removeAttribute('data-src'); v.load(); }
-            }
-        });
-    }, { passive: true });
-
-    // Back button
+    // Back button — close viewer, return to grid
     if (back) {
         back.onclick = function() {
             if (_viewerObs) { _viewerObs.disconnect(); _viewerObs = null; }
             vfeed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime = 0; });
             viewer.style.transform = 'translateY(100%)';
+            viewer.classList.remove('open');
         };
     }
 }
+
 
 // Expose globally
 window.openLikedPanel = function() {
