@@ -400,6 +400,23 @@ body {
     white-space: nowrap; flex-shrink: 0;
     text-shadow: 0 1px 6px rgba(0,0,0,0.9);
 }
+
+/* ── Comment live red dot ── */
+.cmt-live-dot {
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: #ff3b5c;
+    box-shadow: 0 0 7px rgba(255,59,92,0.95);
+    border: 1.5px solid rgba(0,0,0,0.4);
+    animation: cmtDotPulse 1.6s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes cmtDotPulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50%      { opacity:0.55; transform:scale(0.72); }
+}
 .video-caption-text {
     font-size: 13px; font-weight: 500;
     color: rgba(255,255,255,0.88);
@@ -855,8 +872,8 @@ body {
     to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 }
 .new-cmt-pill-dot {
-    width: 6px; height: 6px; border-radius: 50%; background: #fe2c55; flex-shrink: 0;
-    box-shadow: 0 0 6px rgba(254,44,85,0.9);
+    width: 6px; height: 6px; border-radius: 50%; background: #ff3b5c; flex-shrink: 0;
+    box-shadow: 0 0 6px rgba(255,59,92,0.9);
     animation: liveRedPulse 1.4s ease-in-out infinite;
 }
 
@@ -3266,10 +3283,11 @@ function createPinElement(postData, postId) {
     cmtBtn.className = 'slide-action-btn';
     cmtBtn.setAttribute('aria-label', 'Comments');
     cmtBtn.innerHTML =
-        '<div class="slide-action-icon">' +
+        '<div class="slide-action-icon" style="position:relative;">' +
             '<svg viewBox="0 0 122.97 122.88" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M61.44,0a61.46,61.46,0,0,1,54.91,89l6.44,25.74a5.83,5.83,0,0,1-7.25,7L91.62,115A61.43,61.43,0,1,1,61.44,0ZM96.63,26.25a49.78,49.78,0,1,0-9,77.52A5.83,5.83,0,0,1,92.4,103L109,107.77l-4.5-18a5.86,5.86,0,0,1,.51-4.34,49.06,49.06,0,0,0,4.62-11.58,50,50,0,0,0-13-47.62Z" fill="#ffffff" stroke="rgba(255,255,255,0.3)" stroke-width="1"/></svg>' +
+            ((postData.commentCount && postData.commentCount > 0) ? '<span class="cmt-live-dot"></span>' : '') +
         '</div>' +
-        '<span class="slide-action-label cmt-count">' + (postData.commentCount || 0) + '</span>';
+        '<span class="slide-action-label cmt-count" style="display:none;"></span>';
     cmtBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         openModal(postData, postId);
@@ -3606,12 +3624,17 @@ function loadComments(postId) {
                 setTimeout(() => countEl.classList.remove('bump'), 400);
             }
         }
-        // Sync the slide action button count
+        // Sync the red dot on the slide action comment button
         if (currentPostId) {
             const slideEl = document.querySelector(`.pin-container[data-post-id="${currentPostId}"]`);
             if (slideEl) {
-                const cmtCountEl = slideEl.querySelector('.cmt-count');
-                if (cmtCountEl) cmtCountEl.textContent = rootCount;
+                const cmtIcon = slideEl.querySelector('.slide-action-icon');
+                if (cmtIcon) {
+                    var existingDot = cmtIcon.querySelector('.cmt-live-dot');
+                    if (rootCount > 0 && !existingDot) {
+                        var dot = document.createElement('span'); dot.className = 'cmt-live-dot'; cmtIcon.appendChild(dot);
+                    } else if (rootCount === 0 && existingDot) { existingDot.remove(); }
+                }
             }
         }
         return rootCount;
@@ -4361,8 +4384,9 @@ init();
     var cmtBtn = document.createElement('button');
     cmtBtn.className = 'desktop-action-btn';
     cmtBtn.setAttribute('aria-label', 'Comments');
-    cmtBtn.innerHTML = '<div class="desktop-action-icon"><svg viewBox="0 0 122.97 122.88" xmlns="http://www.w3.org/2000/svg"><path d="M61.44,0a61.46,61.46,0,0,1,54.91,89l6.44,25.74a5.83,5.83,0,0,1-7.25,7L91.62,115A61.43,61.43,0,1,1,61.44,0ZM96.63,26.25a49.78,49.78,0,1,0-9,77.52A5.83,5.83,0,0,1,92.4,103L109,107.77l-4.5-18a5.86,5.86,0,0,1,.51-4.34,49.06,49.06,0,0,0,4.62-11.58,50,50,0,0,0-13-47.62Z" fill="rgba(255,255,255,0.9)"/></svg></div>'
-      + '<span class="desktop-action-label">' + (postData.commentCount || 0) + '</span>';
+    var _dCmtHasComments = (postData.commentCount && postData.commentCount > 0);
+    cmtBtn.innerHTML = '<div class="desktop-action-icon" style="position:relative;"><svg viewBox="0 0 122.97 122.88" xmlns="http://www.w3.org/2000/svg"><path d="M61.44,0a61.46,61.46,0,0,1,54.91,89l6.44,25.74a5.83,5.83,0,0,1-7.25,7L91.62,115A61.43,61.43,0,1,1,61.44,0ZM96.63,26.25a49.78,49.78,0,1,0-9,77.52A5.83,5.83,0,0,1,92.4,103L109,107.77l-4.5-18a5.86,5.86,0,0,1,.51-4.34,49.06,49.06,0,0,0,4.62-11.58,50,50,0,0,0-13-47.62Z" fill="rgba(255,255,255,0.9)"/></svg>' + (_dCmtHasComments ? '<span class="cmt-live-dot"></span>' : '') + '</div>'
+      + '<span class="desktop-action-label" style="display:none;"></span>';
     cmtBtn.addEventListener('click', function(e) {
       e.stopPropagation();
       openDesktopComments(postData, postId, true);
@@ -5132,55 +5156,133 @@ init();
           var cn  = document.getElementById('ds-saved-creator-name');
           var cap = document.getElementById('ds-saved-caption');
           var cmt = document.getElementById('ds-saved-comments');
-
           if (!vc || !v) return;
 
-          // Open columns instantly — no transition
-          vc.style.cssText = 'width:auto;min-width:0;flex-shrink:0;height:calc(100vh - 24px);display:flex;gap:12px;overflow:hidden;';
-          vidWrapOuter.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;flex-shrink:0;width:auto;min-width:calc((100vh - 56px) * 9/16);overflow:hidden;';
-          if (ic) { ic.style.width = 'clamp(260px,22vw,320px)'; ic.style.minWidth = 'clamp(260px,22vw,320px)'; ic.style.transition = 'none'; }
+          // Open columns
+          vc.style.cssText = 'width:auto;min-width:0;flex-shrink:0;height:calc(100vh - 24px);display:flex;gap:12px;overflow:visible;';
+          vidWrapOuter.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;flex-shrink:0;width:auto;min-width:calc((100vh - 56px) * 9/16);overflow:visible;position:relative;';
+          if (ic) { ic.style.width='clamp(260px,22vw,320px)'; ic.style.minWidth='clamp(260px,22vw,320px)'; ic.style.transition='none'; }
 
           // Load video
+          var _svPostId = post._id || '';
           v.src = (post.media && post.media[0] && post.media[0].url) || '';
           v.load(); v.play().catch(function(){ v.muted=true; v.play().catch(function(){}); });
 
           // Creator info
-          var letter = ((post.name || post.userName || 'U')[0]).toUpperCase();
-          var hue = (letter.charCodeAt(0) * 37) % 360;
+          var letter = ((post.name||post.userName||'U')[0]).toUpperCase();
+          var hue = (letter.charCodeAt(0)*37)%360;
           if (av) {
             if (post.photoURL && !post.photoURL.includes('default_profile')) {
               av.innerHTML = '<img src="'+post.photoURL+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.parentNode.textContent=\''+letter+'\'">';
-            } else {
-              av.style.background = 'hsl('+hue+',50%,42%)';
-              av.textContent = letter;
-            }
+            } else { av.style.background='hsl('+hue+',50%,42%)'; av.textContent=letter; }
           }
-          if (cn)  cn.textContent  = '@' + (post.name || post.userName || 'creator');
-          if (cap) cap.textContent = post.text || '';
-          if (inf) inf.innerHTML   = '<div style="font-size:13px;font-weight:800;color:rgba(255,255,255,0.92);text-shadow:0 1px 6px rgba(0,0,0,0.8);">@'+(post.name||'creator')+'</div>'+(post.text?'<div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:3px;text-shadow:0 1px 4px rgba(0,0,0,0.8);">'+post.text+'</div>':'');
+          if (cn)  cn.textContent = '@'+(post.name||post.userName||'creator');
+          if (cap) cap.textContent = post.text||'';
 
-          // Load comments from Firestore
+          // Timestamp on video overlay
+          var _svTs=post.timestamp;
+          var _svUpMs=_svTs?(typeof _svTs.seconds==='number'?_svTs.seconds*1000:(_svTs.toDate?_svTs.toDate().getTime():null)):null;
+          function _svFmt(ms){ if(ms<=0)return'Expiring…'; var h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000); return h>=1?h+'h':m+'m'; }
+          var _svTimeStr = _svUpMs ? _svFmt((_svUpMs+24*60*60*1000)-Date.now()) : '';
+          if (inf) inf.innerHTML =
+            '<div style="display:flex;align-items:baseline;gap:6px;">'
+            +'<div style="font-size:13px;font-weight:800;color:rgba(255,255,255,0.92);text-shadow:0 1px 6px rgba(0,0,0,0.8);">@'+(post.name||post.userName||'creator')+'</div>'
+            +(_svTimeStr?'<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.6);text-shadow:0 1px 6px rgba(0,0,0,0.9);white-space:nowrap;">'+_svTimeStr+'</span>':'')
+            +'</div>'
+            +(post.text?'<div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:3px;text-shadow:0 1px 4px rgba(0,0,0,0.8);">'+post.text+'</div>':'');
+
+          // Action buttons (like, comment, share, save) — right of video
+          var existingActs = vidWrapOuter.querySelector('.sv-acts');
+          if (existingActs) existingActs.remove();
+          var svActs = document.createElement('div');
+          svActs.className = 'sv-acts';
+          svActs.style.cssText = 'position:absolute;right:-72px;bottom:80px;display:flex;flex-direction:column;align-items:center;gap:20px;z-index:30;';
+
+          // Like
+          var svLikeBtn = document.createElement('button');
+          var _svLiked = window._currentUser && post.likes && post.likes.includes(window._currentUser.uid);
+          svLikeBtn.className = _svLiked ? 'sv-btn on' : 'sv-btn';
+          svLikeBtn.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform 0.18s;';
+          svLikeBtn.innerHTML='<div style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;">'
+            +'<svg class="sv-heart" viewBox="0 0 24 24" width="26" height="26" fill="'+(_svLiked?'rgba(255,255,255,0.95)':'none')+'" stroke="rgba(255,255,255,0.95)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+            +'</div><span style="font-size:11px;font-weight:800;color:rgba(255,255,255,0.88);text-shadow:0 1px 4px rgba(0,0,0,0.7);" class="sv-like-lbl">'+((post.likes&&post.likes.length)||0)+'</span>';
+          svLikeBtn.addEventListener('click',function(e){
+            e.stopPropagation();
+            if(!window._currentUser||!_svPostId)return;
+            var db6=window._fbDb,fns6=window._fbFirestoreFns;
+            if(!db6||!fns6)return;
+            var isOn=svLikeBtn.classList.contains('on');
+            svLikeBtn.classList.toggle('on');
+            var heart=svLikeBtn.querySelector('.sv-heart'),lbl=svLikeBtn.querySelector('.sv-like-lbl'),n=parseInt(lbl.textContent)||0;
+            lbl.textContent=isOn?Math.max(0,n-1):n+1;
+            if(heart)heart.setAttribute('fill',isOn?'none':'rgba(255,255,255,0.95)');
+            fns6.updateDoc(fns6.doc(db6,'recence',_svPostId),{likes:isOn?fns6.arrayRemove(window._currentUser.uid):fns6.arrayUnion(window._currentUser.uid)}).catch(function(){});
+          });
+          svActs.appendChild(svLikeBtn);
+
+          // Comment
+          var svCmtBtn=document.createElement('button');
+          var _svHasCmts=(post.commentCount&&post.commentCount>0);
+          svCmtBtn.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;';
+          svCmtBtn.innerHTML='<div style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;">'
+            +'<svg viewBox="0 0 122.97 122.88" width="26" height="26" xmlns="http://www.w3.org/2000/svg"><path d="M61.44,0a61.46,61.46,0,0,1,54.91,89l6.44,25.74a5.83,5.83,0,0,1-7.25,7L91.62,115A61.43,61.43,0,1,1,61.44,0ZM96.63,26.25a49.78,49.78,0,1,0-9,77.52A5.83,5.83,0,0,1,92.4,103L109,107.77l-4.5-18a5.86,5.86,0,0,1,.51-4.34,49.06,49.06,0,0,0,4.62-11.58,50,50,0,0,0-13-47.62Z" fill="rgba(255,255,255,0.9)"/></svg>'
+            +(_svHasCmts?'<span class="cmt-live-dot"></span>':'')
+            +'</div>';
+          svCmtBtn.addEventListener('click',function(e){
+            e.stopPropagation();
+            if(typeof openDesktopComments==='function'&&_svPostId)openDesktopComments(post,_svPostId,true);
+          });
+          svActs.appendChild(svCmtBtn);
+
+          // Share
+          var svShareBtn=document.createElement('button');
+          svShareBtn.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;';
+          svShareBtn.innerHTML='<div style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;">'
+            +'<svg viewBox="0 0 122.88 103.44" width="24" height="24" fill="rgba(255,255,255,0.9)"><path d="M69.49,102.77L49.8,84.04l-20.23,18.27c-0.45,0.49-1.09,0.79-1.8,0.79c-1.35,0-2.44-1.09-2.44-2.44V60.77L0.76,37.41c-0.98-0.93-1.01-2.47-0.09-3.45c0.31-0.33,0.7-0.55,1.11-0.67l0,0l118-33.2c1.3-0.36,2.64,0.39,3.01,1.69c0.19,0.66,0.08,1.34-0.24,1.89l-49.2,98.42c-0.6,1.2-2.06,1.69-3.26,1.09C69.86,103.07,69.66,102.93,69.49,102.77z"/></svg>'
+            +'</div><span style="font-size:11px;font-weight:800;color:rgba(255,255,255,0.88);text-shadow:0 1px 4px rgba(0,0,0,0.7);">Share</span>';
+          svShareBtn.addEventListener('click',function(e){
+            e.stopPropagation();
+            if(typeof openShareSheet==='function')openShareSheet(post,_svPostId);
+          });
+          svActs.appendChild(svShareBtn);
+
+          // Save
+          var svSaveBtn=document.createElement('button');
+          var _svIsSaved=window.isPostFavourited&&window.isPostFavourited(_svPostId);
+          svSaveBtn.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;';
+          svSaveBtn.innerHTML='<div style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;">'
+            +'<svg viewBox="0 0 24 24" width="24" height="24" fill="'+(_svIsSaved?'rgba(255,255,255,0.95)':'none')+'" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>'
+            +'</div><span style="font-size:11px;font-weight:800;color:rgba(255,255,255,0.88);text-shadow:0 1px 4px rgba(0,0,0,0.7);" class="sv-save-lbl">'+(_svIsSaved?'Saved':'Save')+'</span>';
+          svSaveBtn.addEventListener('click',function(e){
+            e.stopPropagation();
+            var s2=window.isPostFavourited&&window.isPostFavourited(_svPostId);
+            var icon=svSaveBtn.querySelector('svg'),lbl2=svSaveBtn.querySelector('.sv-save-lbl');
+            if(s2){window.removeFromFavourites&&window.removeFromFavourites(_svPostId);if(icon)icon.setAttribute('fill','none');if(lbl2)lbl2.textContent='Save';}
+            else{window.saveToFavourites&&window.saveToFavourites(post,_svPostId);if(icon)icon.setAttribute('fill','rgba(255,255,255,0.95)');if(lbl2)lbl2.textContent='Saved';}
+          });
+          svActs.appendChild(svSaveBtn);
+          vidWrapOuter.appendChild(svActs);
+
+          // Load comments
           if (cmt) {
-            cmt.innerHTML = '<div style="text-align:center;padding:24px 0;color:#ccc;font-size:12px;font-family:var(--font);">Loading…</div>';
+            cmt.innerHTML='<div style="text-align:center;padding:24px 0;color:#ccc;font-size:12px;font-family:var(--font);">Loading…</div>';
             try {
-              var db4 = window._fbDb; var fns4 = window._fbFirestoreFns;
-              if (db4 && fns4 && post._id) {
-                fns4.getDocs(fns4.query(fns4.collection(db4,'recence',post._id,'replies'),fns4.orderBy('timestamp','asc'),fns4.limit(50))).then(function(snap){
-                  if (snap.empty) { cmt.innerHTML='<div style="text-align:center;padding:24px 0;color:#ccc;font-size:12px;font-family:var(--font);">No comments yet</div>'; return; }
+              var db4=window._fbDb,fns4=window._fbFirestoreFns;
+              if(db4&&fns4&&_svPostId){
+                fns4.getDocs(fns4.query(fns4.collection(db4,'recence',_svPostId,'comments'),fns4.orderBy('timestamp','asc'),fns4.limit(50))).then(function(snap){
+                  if(snap.empty){cmt.innerHTML='<div style="text-align:center;padding:24px 0;color:#ccc;font-size:12px;font-family:var(--font);">No comments yet</div>';return;}
                   cmt.innerHTML='';
                   snap.forEach(function(d){
-                    var r=d.data();
+                    var r=d.data(); if(r.parentId)return;
                     var row=document.createElement('div');
                     row.style.cssText='display:flex;gap:8px;margin-bottom:14px;align-items:flex-start;';
-                    var l=((r.name||'U')[0]).toUpperCase();
-                    var h2=(l.charCodeAt(0)*37)%360;
-                    row.innerHTML='<div style="width:30px;height:30px;border-radius:50%;background:hsl('+h2+',50%,42%);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;flex-shrink:0;">'+(r.photoURL?'<img src="'+r.photoURL+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentNode.textContent=\''+l+'\'">':l)+'</div>'
-                      +'<div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:800;color:#111;">'+( r.name||'User')+'</div><div style="font-size:12px;color:#444;margin-top:2px;line-height:1.45;">'+((r.text||'').replace(/</g,'&lt;'))+'</div></div>';
+                    var l=((r.userName||r.name||'U')[0]).toUpperCase(),h2=(l.charCodeAt(0)*37)%360;
+                    row.innerHTML='<div style="width:30px;height:30px;border-radius:50%;background:hsl('+h2+',50%,42%);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;flex-shrink:0;">'+(r.userPhotoURL||r.photoURL?'<img src="'+(r.userPhotoURL||r.photoURL)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentNode.textContent=\''+l+'\'">'  :l)+'</div><div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:800;color:#111;">'+(r.userName||r.name||'User')+'</div><div style="font-size:12px;color:#444;margin-top:2px;line-height:1.45;">'+((r.text||'').replace(/</g,'&lt;'))+'</div></div>';
                     cmt.appendChild(row);
                   });
-                }).catch(function(){ cmt.innerHTML='<div style="text-align:center;padding:24px 0;color:#ccc;font-size:12px;">Could not load comments</div>'; });
-              } else { cmt.innerHTML='<div style="text-align:center;padding:24px 0;color:#ccc;font-size:12px;font-family:var(--font);">Sign in to see comments</div>'; }
-            } catch(e) { cmt.innerHTML=''; }
+                }).catch(function(){cmt.innerHTML='<div style="text-align:center;padding:24px 0;color:#ccc;font-size:12px;">Could not load comments</div>';});
+              } else {cmt.innerHTML='<div style="text-align:center;padding:24px 0;color:#ccc;font-size:12px;font-family:var(--font);">Sign in to see comments</div>';}
+            } catch(e){cmt.innerHTML='';}
           }
         };
       }
