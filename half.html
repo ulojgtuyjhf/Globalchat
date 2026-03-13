@@ -1309,7 +1309,7 @@ body {
   #desktop-feed {
     flex: 1;
     height: calc(100vh - 24px);
-    overflow-y: scroll; overflow-x: hidden;
+    overflow-y: scroll; overflow-x: visible;
     scroll-snap-type: y mandatory;
     scrollbar-width: none;
     background: transparent;
@@ -2803,8 +2803,13 @@ async function fetchPosts() {
         const desktopPosts = [];
         const isDesktop = window.innerWidth >= 900;
 
+        const _nowMs = Date.now();
         querySnapshot.forEach((doc) => {
             const postData = doc.data();
+            // Hard client-side expiry guard — skip posts older than 24h
+            const _pts = postData.timestamp;
+            const _pUpMs = _pts ? (_pts.seconds ? _pts.seconds*1000 : (_pts.toDate ? _pts.toDate().getTime() : null)) : null;
+            if (_pUpMs && (_nowMs - _pUpMs) > 24*60*60*1000) return;
             if (postData.media && postData.media.length > 0) {
                 // Video-only platform — skip image posts
                 const _m = postData.media[0];
@@ -4240,15 +4245,39 @@ init();
     var info = document.createElement('div');
     info.className = 'desktop-card-info';
     var tsD = postData.timestamp;
-    var dateStrD = '';
-    if (tsD && tsD.toDate) dateStrD = tsD.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    else if (tsD && tsD.seconds) dateStrD = new Date(tsD.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    info.innerHTML =
-      '<div style="display:flex;align-items:baseline;gap:7px;overflow:hidden;">'
-      + '<div class="desktop-card-creator" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex-shrink:1;">@' + (postData.name || 'creator') + '</div>'
-      + (dateStrD ? '<span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);white-space:nowrap;flex-shrink:0;">' + dateStrD + '</span>' : '')
-      + '</div>'
-      + (postData.text ? '<div class="desktop-card-caption">' + postData.text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' : '');
+    var _dcUpMs = tsD ? (tsD.seconds ? tsD.seconds*1000 : (tsD.toDate ? tsD.toDate().getTime() : null)) : null;
+    var _dcTimeLeftEl = document.createElement('span');
+    _dcTimeLeftEl.style.cssText = 'font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);white-space:nowrap;flex-shrink:0;';
+    if (_dcUpMs) {
+      var _dcExp = _dcUpMs + 24*60*60*1000;
+      function _dcCardFmt(ms) {
+        if (ms <= 0) return 'Expiring…';
+        var h = Math.floor(ms / 3600000);
+        var m = Math.floor((ms % 3600000) / 60000);
+        return h >= 1 ? h + 'h ' + m + 'm left' : m + 'm left';
+      }
+      _dcTimeLeftEl.textContent = _dcCardFmt(_dcExp - Date.now());
+      var _dcCardTimer = setInterval(function() {
+        var left = _dcExp - Date.now();
+        _dcTimeLeftEl.textContent = _dcCardFmt(left);
+        if (left <= 0) clearInterval(_dcCardTimer);
+      }, 60000);
+    }
+    var _dcCreatorRow = document.createElement('div');
+    _dcCreatorRow.style.cssText = 'display:flex;align-items:baseline;gap:7px;overflow:hidden;';
+    var _dcCreatorName = document.createElement('div');
+    _dcCreatorName.className = 'desktop-card-creator';
+    _dcCreatorName.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex-shrink:1;';
+    _dcCreatorName.textContent = '@' + (postData.name || 'creator');
+    _dcCreatorRow.appendChild(_dcCreatorName);
+    if (_dcUpMs) _dcCreatorRow.appendChild(_dcTimeLeftEl);
+    info.appendChild(_dcCreatorRow);
+    if (postData.text) {
+      var _dcCaption = document.createElement('div');
+      _dcCaption.className = 'desktop-card-caption';
+      _dcCaption.textContent = postData.text;
+      info.appendChild(_dcCaption);
+    }
     wrap.appendChild(info);
 
     // Side action buttons
@@ -4432,14 +4461,30 @@ init();
     if (avatarEl) setAv(avatarEl, postData.name || 'C', postData.photoURL);
     if (nameEl) nameEl.textContent = '@' + (postData.name || 'creator');
 
-    // Upload date next to name
+    // Upload date next to name — show time-left until 24h expiry
     var uploadDateEl = document.getElementById('dc-upload-date');
     if (uploadDateEl) {
       var ts = postData.timestamp;
-      var dStr = '';
-      if (ts && ts.toDate) dStr = ts.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      else if (ts && ts.seconds) dStr = new Date(ts.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      uploadDateEl.textContent = dStr;
+      var _upMs = ts ? (ts.seconds ? ts.seconds*1000 : (ts.toDate ? ts.toDate().getTime() : null)) : null;
+      function _dcFmtLeft(ms) {
+        if (ms <= 0) return 'Expiring…';
+        var h = Math.floor(ms / 3600000);
+        var m = Math.floor((ms % 3600000) / 60000);
+        if (h >= 1) return h + 'h ' + m + 'm left';
+        return m + 'm left';
+      }
+      if (_upMs) {
+        var _dcExpireMs = _upMs + 24*60*60*1000;
+        uploadDateEl.textContent = _dcFmtLeft(_dcExpireMs - Date.now());
+        // Update every minute
+        var _dcTimer = setInterval(function() {
+          var left = _dcExpireMs - Date.now();
+          uploadDateEl.textContent = _dcFmtLeft(left);
+          if (left <= 0) clearInterval(_dcTimer);
+        }, 60000);
+      } else {
+        uploadDateEl.textContent = '';
+      }
     }
     if (captionEl) {
       captionEl.textContent = postData.text || '';
