@@ -5141,7 +5141,7 @@ init();
         // Back button — brand gradient circle, top-left fixed
         var dsvBack = document.createElement('button');
         dsvBack.id = 'dsv-back';
-        dsvBack.style.cssText = 'position:fixed;top:14px;left:14px;z-index:10010;width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#fe2c55,#ff6b6b);border:none;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 16px rgba(254,44,85,0.45);transition:transform 0.15s;';
+        dsvBack.style.cssText = 'position:fixed;top:14px;left:14px;z-index:10010;width:36px;height:36px;border-radius:50%;background:var(--brand-gradient);border:none;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.3);transition:transform 0.15s;-webkit-tap-highlight-color:transparent;';
         dsvBack.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
         dsvBack.onmouseenter = function(){ dsvBack.style.transform='scale(1.1)'; };
         dsvBack.onmouseleave = function(){ dsvBack.style.transform='scale(1)'; };
@@ -5151,15 +5151,15 @@ init();
         var dsvNavUp = document.createElement('button');
         dsvNavUp.style.cssText = 'position:fixed;right:22px;top:50%;transform:translateY(-calc(50% + 28px));z-index:10010;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.14);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1.5px solid rgba(255,255,255,0.18);cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:background 0.15s,transform 0.15s;margin-bottom:8px;';
         dsvNavUp.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>';
-        dsvNavUp.onmouseenter = function(){ dsvNavUp.style.background='rgba(255,255,255,0.24)'; dsvNavUp.style.transform='translateY(calc(-50% - 28px)) scale(1.08)'; };
-        dsvNavUp.onmouseleave = function(){ dsvNavUp.style.background='rgba(255,255,255,0.14)'; dsvNavUp.style.transform='translateY(calc(-50% - 28px)) scale(1)'; };
+        dsvNavUp.onmouseenter = function(){ dsvNavUp.style.transform='translateY(calc(-50% - 28px)) scale(1.1)'; };
+        dsvNavUp.onmouseleave = function(){ dsvNavUp.style.transform='translateY(calc(-50% - 28px)) scale(1)'; };
         document.body.appendChild(dsvNavUp);
 
         var dsvNavDown = document.createElement('button');
         dsvNavDown.style.cssText = 'position:fixed;right:22px;top:50%;transform:translateY(calc(-50% + 28px));z-index:10010;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.14);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1.5px solid rgba(255,255,255,0.18);cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:background 0.15s,transform 0.15s;margin-top:8px;';
         dsvNavDown.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
-        dsvNavDown.onmouseenter = function(){ dsvNavDown.style.background='rgba(255,255,255,0.24)'; dsvNavDown.style.transform='translateY(calc(-50% + 28px)) scale(1.08)'; };
-        dsvNavDown.onmouseleave = function(){ dsvNavDown.style.background='rgba(255,255,255,0.14)'; dsvNavDown.style.transform='translateY(calc(-50% + 28px)) scale(1)'; };
+        dsvNavDown.onmouseenter = function(){ dsvNavDown.style.transform='translateY(calc(-50% + 28px)) scale(1.1)'; };
+        dsvNavDown.onmouseleave = function(){ dsvNavDown.style.transform='translateY(calc(-50% + 28px)) scale(1)'; };
         document.body.appendChild(dsvNavDown);
 
         var _dsvObs = null;
@@ -5189,11 +5189,16 @@ init();
           if (_dsvObs) { _dsvObs.disconnect(); _dsvObs = null; }
           _dsvSlots = [];
           dsvFeed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
+          // Reset desktop-comments panel back to normal positioning
+          var _dc = document.getElementById('desktop-comments');
+          if (_dc) { _dc.style.position=''; _dc.style.right=''; _dc.style.top=''; _dc.style.height=''; _dc.style.borderRadius=''; _dc.style.zIndex=''; _dc.style.display=''; _dc.classList.remove('open'); }
+          document.body.classList.remove('comments-open');
           dsvOverlay.style.display = 'none';
           dsvBack.style.display = 'none';
           dsvNavUp.style.display = 'none';
           dsvNavDown.style.display = 'none';
           dsvFeed.innerHTML = '';
+          dsvOverlay.dispatchEvent(new Event('dsvClose'));
         }
         window._closeDsSavedViewer = closeDsvOverlay;
         dsvBack.addEventListener('click', closeDsvOverlay);
@@ -5221,17 +5226,28 @@ init();
             var wrap = card.querySelector('.desktop-card-video-wrap');
             if (wrap) { wrap.style.height='calc(100vh - 32px)'; wrap.style.maxHeight='calc(100vh - 32px)'; }
             card.style.height = '100vh';
-            // Wire comment button to open desktop comments panel (above overlay via z-index)
+            // Wire comment button — open desktop-comments panel as fixed overlay on top
             var cmtBtns = card.querySelectorAll('.desktop-action-btn[aria-label="Comments"]');
             cmtBtns.forEach(function(b){
               b.onclick = function(e){
                 e.stopPropagation();
-                if (typeof openDesktopComments === 'function') {
-                  openDesktopComments(p, p._id||'', true);
-                  // Bring comments panel above overlay
-                  var dc = document.getElementById('desktop-comments');
-                  if (dc) { dc.style.zIndex='10020'; dc.style.display=''; }
+                var dc = document.getElementById('desktop-comments');
+                if (dc) {
+                  // Temporarily make it fixed so it floats above the dsv overlay
+                  dc.style.position = 'fixed';
+                  dc.style.right = '0';
+                  dc.style.top = '0';
+                  dc.style.height = '100vh';
+                  dc.style.borderRadius = '20px 0 0 20px';
+                  dc.style.zIndex = '10020';
+                  dc.style.display = 'flex';
                 }
+                if (typeof openDesktopComments === 'function') openDesktopComments(p, p._id||'', true);
+                // When dsv overlay closes, reset desktop-comments positioning
+                dsvOverlay.addEventListener('dsvClose', function resetDc(){
+                  if (dc) { dc.style.position=''; dc.style.right=''; dc.style.top=''; dc.style.height=''; dc.style.borderRadius=''; dc.style.zIndex=''; dc.style.display=''; }
+                  dsvOverlay.removeEventListener('dsvClose', resetDc);
+                });
               };
             });
             slot.appendChild(card);
