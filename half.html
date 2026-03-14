@@ -5173,7 +5173,7 @@ init();
 
         var gridScroll = document.createElement('div');
         gridScroll.id = 'ds-saved-grid';
-        gridScroll.style.cssText = 'flex:1;overflow-y:auto;padding:10px 8px;column-count:3;column-gap:6px;scrollbar-width:none;';
+        gridScroll.style.cssText = 'flex:1;overflow-y:auto;padding:8px 6px 20px 6px;column-count:3;column-gap:5px;scrollbar-width:none;';
 
         gridCol.appendChild(gridHead);
         gridCol.appendChild(gridScroll);
@@ -5349,6 +5349,8 @@ init();
           if (!saved.length) { if (grid2) grid2.innerHTML='<div style="padding:40px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Nothing saved yet</div>'; return; }
           if (!grid2) return;
           grid2.innerHTML = '';
+          // Masonry variable ratios — same as mobile liked grid
+          var dsRatios = [1, 1, 1.35, 0.75, 1.2, 0.85, 1, 1.1, 0.9, 1.25];
           saved.forEach(function(post, idx) {
             var m = post.media && post.media[0];
             if (!m || !m.url) return;
@@ -5358,9 +5360,7 @@ init();
             var uploadMs = ts ? (typeof ts.seconds==='number' ? ts.seconds*1000 : (ts.toDate ? ts.toDate().getTime() : null)) : null;
             var now = Date.now();
             var ageMs = uploadMs ? now - uploadMs : null;
-            // Hard skip expired — never show
-            if (ageMs !== null && ageMs > 24*60*60*1000) return;
-            var expired = false;
+            var expired = ageMs !== null && ageMs > 24*60*60*1000;
             var timeLabel = '';
             if (ageMs !== null) {
               var s=Math.floor(ageMs/1000), m2=Math.floor(s/60), h=Math.floor(m2/60), d=Math.floor(h/24);
@@ -5370,16 +5370,40 @@ init();
               else timeLabel = 'just now';
             }
 
+            // Variable height ratio for organic masonry look
+            var ratio = dsRatios[idx % dsRatios.length];
+            var arH = (16 * ratio / dsRatios[0]).toFixed(1);
+
             var cell = document.createElement('div');
-            cell.style.cssText = 'break-inside:avoid;margin-bottom:6px;border-radius:10px;overflow:hidden;cursor:pointer;position:relative;background:#e8e8e8;display:block;box-shadow:0 1px 6px rgba(0,0,0,0.10);transition:transform 0.18s cubic-bezier(0.34,1.56,0.64,1);';
+            cell.className = 'liked-cell';
             var vid2 = document.createElement('video');
             vid2.src = m.url; vid2.muted = true; vid2.playsInline = true; vid2.preload = 'metadata';
-            vid2.style.cssText = 'width:100%;aspect-ratio:9/16;object-fit:cover;display:block;pointer-events:none;' + (expired ? 'opacity:0.45;filter:grayscale(0.4);' : '');
+            vid2.style.cssText = 'width:100%;aspect-ratio:9/'+arH+';object-fit:cover;display:block;pointer-events:none;' + (expired ? 'opacity:0.45;filter:grayscale(0.4);' : '');
             vid2.addEventListener('loadedmetadata', function(){ vid2.currentTime=0.01; }, {once:true});
+
+            // Duration badge
+            vid2.addEventListener('loadedmetadata', function(){
+              var dur = Math.round(vid2.duration || 0);
+              if (dur > 0) {
+                var durBadge = document.createElement('div');
+                durBadge.className = 'liked-cell-dur';
+                durBadge.textContent = Math.floor(dur/60)+':'+(dur%60<10?'0':'')+(dur%60);
+                cell.appendChild(durBadge);
+              }
+            });
+
             var ov = document.createElement('div');
-            ov.style.cssText = 'position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 100%);padding:18px 6px 6px;pointer-events:none;';
-            ov.innerHTML = '<div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.92);font-family:var(--font);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@'+(post.name||post.userName||'creator')+'</div>'
-              + (timeLabel ? '<div style="font-size:8px;font-weight:600;color:rgba(255,255,255,0.55);font-family:var(--font);margin-top:1px;">'+timeLabel+'</div>' : '');
+            ov.className = 'liked-cell-overlay';
+            var nameEl = document.createElement('div');
+            nameEl.className = 'liked-cell-name';
+            nameEl.textContent = '@'+(post.name||post.userName||'creator');
+            ov.appendChild(nameEl);
+            if (timeLabel) {
+              var timeEl = document.createElement('div');
+              timeEl.style.cssText = 'font-size:8px;font-weight:600;color:rgba(255,255,255,0.55);font-family:var(--font);margin-top:1px;';
+              timeEl.textContent = timeLabel;
+              ov.appendChild(timeEl);
+            }
             cell.appendChild(vid2); cell.appendChild(ov);
             // Expired badge
             if (expired) {
