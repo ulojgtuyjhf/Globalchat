@@ -175,6 +175,10 @@
         dcShareHoverText:     '#222222',
         dcArrowBg:            '#ffffff',
         dcArrowStroke:        '#333333',
+        // ── desktop video action buttons (sit beside the video card) ──
+        dsActionIcon:         '#1a1a1a',
+        dsActionLabel:        '#111111',
+        dsActionShadow:       'none',
         // follow button & live strip
         followBtnBg:          'linear-gradient(135deg,#0f0f0f,#626262)',
         followBtnText:        '#ffffff',
@@ -349,10 +353,11 @@
         dcShareHoverText:     '#ffffff',
         dcArrowBg:            '#1e2732',
         dcArrowStroke:        '#8899a6',
+        // ── desktop video action buttons ──
+        dsActionIcon:         'rgba(255,255,255,0.92)',
+        dsActionLabel:        'rgba(255,255,255,0.85)',
+        dsActionShadow:       '0 1px 4px rgba(0,0,0,0.7)',
         // follow button & live strip
-        followBtnBg:          '#ffffff',
-        followBtnText:        '#000000',
-        followBtnFollowingBg: '#22303c',
         followBtnFollowingText:'#8899a6',
         liveStripBg:          '#15202b',
         liveStripBorder:      '#38444d',
@@ -523,6 +528,10 @@
         dcShareHoverText:     '#ffffff',
         dcArrowBg:            '#111111',
         dcArrowStroke:        '#a6a6a6',
+        // ── desktop video action buttons ──
+        dsActionIcon:         'rgba(255,255,255,0.92)',
+        dsActionLabel:        'rgba(255,255,255,0.85)',
+        dsActionShadow:       '0 1px 4px rgba(0,0,0,0.7)',
         // follow button & live strip
         followBtnBg:          '#ffffff',
         followBtnText:        '#000000',
@@ -869,6 +878,39 @@
           .dc-share-btn svg { stroke: ${t.dcShareText}; }
           .desktop-nav-arrow { background: ${t.dcArrowBg} !important; }
           .desktop-nav-arrow svg { stroke: ${t.dcArrowStroke}; }
+
+          /* ── desktop video action buttons (float beside video card) ── */
+          .desktop-action-icon svg {
+            stroke: ${t.dsActionIcon} !important;
+            filter: drop-shadow(${t.dsActionShadow}) !important;
+          }
+          .desktop-action-icon svg[viewBox="0 0 122.97 122.88"] {
+            fill: ${t.dsActionIcon} !important;
+            stroke: none !important;
+            filter: drop-shadow(${t.dsActionShadow}) !important;
+          }
+          .desktop-action-icon svg.send-icon,
+          .desktop-action-icon svg[viewBox="0 0 122.88 103.44"] {
+            fill: ${t.dsActionIcon} !important;
+            stroke: none !important;
+            filter: drop-shadow(${t.dsActionShadow}) !important;
+          }
+          .desktop-action-label {
+            color: ${t.dsActionLabel} !important;
+            text-shadow: ${t.dsActionShadow} !important;
+          }
+          /* keep liked/saved active states visible on all themes */
+          .desktop-action-btn.on .desktop-action-icon svg.heart-icon {
+            fill: ${t.dsActionIcon} !important;
+            stroke: ${t.dsActionIcon} !important;
+          }
+          .desktop-action-btn.saved-on .desktop-action-icon svg {
+            stroke: ${t.dsActionIcon} !important;
+            fill: ${t.dsActionIcon} !important;
+          }
+          .desktop-action-btn.saved-on .desktop-action-label {
+            color: ${t.dsActionLabel} !important;
+          }
           .desktop-card-video-wrap.loading::before {
             background: linear-gradient(110deg, ${t.shimmerBase} 25%, ${t.shimmerShine} 50%, ${t.shimmerBase} 75%);
             background-size: 200% 100%;
