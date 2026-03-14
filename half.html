@@ -4258,7 +4258,7 @@ init();
   // Expose so fetchPosts can call buildDesktopCard
   window._buildDesktopCard = buildDesktopCard;
   window._createPinElement = createPinElement;
-  window._openDesktopComments = function(postData, postId) { openDesktopComments(postData, postId, true); };
+  window._openDesktopComments = function(pd, pid) { openDesktopComments(pd, pid, true); };
 
   function buildDesktopCard(postData, postId) {
     var card = document.createElement('div');
@@ -5174,7 +5174,7 @@ init();
 
         var gridScroll = document.createElement('div');
         gridScroll.id = 'ds-saved-grid';
-        gridScroll.style.cssText = 'flex:1;overflow-y:auto;padding:8px 6px 20px 6px;column-count:3;column-gap:5px;scrollbar-width:none;';
+        gridScroll.style.cssText = 'flex:1;overflow-y:auto;padding:8px 6px 20px;column-count:3;column-gap:5px;scrollbar-width:none;';
 
         gridCol.appendChild(gridHead);
         gridCol.appendChild(gridScroll);
@@ -5275,11 +5275,13 @@ init();
             slot.style.cssText = 'width:100%;height:100vh;flex-shrink:0;scroll-snap-align:start;scroll-snap-stop:always;display:flex;align-items:center;justify-content:center;background:#000;position:relative;';
             var card = buildCard(p, p._id || '');
             if (!card) return;
+            // Store post data so buttons can reference it
+            card._postData = p;
             // Override card dimensions to fill viewer properly
             var wrap = card.querySelector('.desktop-card-video-wrap');
             if (wrap) { wrap.style.height='calc(100vh - 32px)'; wrap.style.maxHeight='calc(100vh - 32px)'; }
             card.style.height = '100vh';
-            // Wire comment button — use desktop comment panel, not mobile openModal
+            // Re-wire comment button to use desktop comment panel
             var cmtBtns = card.querySelectorAll('.desktop-action-btn[aria-label="Comments"]');
             cmtBtns.forEach(function(b){
               var fresh = b.cloneNode(true);
@@ -5309,16 +5311,21 @@ init();
             if (_dsvSlots[startIdx]) {
               dsvFeed.scrollTop = _dsvSlots[startIdx].offsetTop;
             }
-            // IntersectionObserver for autoplay
+            // IntersectionObserver — add .active so video is full brightness, play/pause
             _dsvObs = new IntersectionObserver(function(entries){
               entries.forEach(function(entry){
+                var card = entry.target.querySelector('.desktop-card');
                 var vid = entry.target.querySelector('video');
-                if (!vid) return;
                 if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
-                  vid.muted = false; vid.currentTime = 0;
-                  vid.play().catch(function(){ vid.muted=true; vid.play().catch(function(){}); });
+                  // Remove active from all, add to this one (fixes dark video)
+                  _dsvSlots.forEach(function(s){ var c=s.querySelector('.desktop-card'); if(c) c.classList.remove('active'); });
+                  if (card) card.classList.add('active');
+                  if (vid) { vid.muted = false; vid.currentTime = 0; vid.play().catch(function(){ vid.muted=true; vid.play().catch(function(){}); }); }
+                  var pid = card && card.dataset.postId;
+                  if (pid && typeof trackPresence === 'function') trackPresence(pid);
                 } else {
-                  vid.pause();
+                  if (card) card.classList.remove('active');
+                  if (vid) vid.pause();
                 }
               });
             }, { root: dsvFeed, threshold: 0.55 });
@@ -5350,65 +5357,53 @@ init();
           if (!saved.length) { if (grid2) grid2.innerHTML='<div style="padding:40px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Nothing saved yet</div>'; return; }
           if (!grid2) return;
           grid2.innerHTML = '';
-          // Variable height ratios — same masonry feel as mobile
           var dsRatios = [1, 1, 1.35, 0.75, 1.2, 0.85, 1, 1.1, 0.9, 1.25];
           saved.forEach(function(post, idx) {
             var m = post.media && post.media[0];
             if (!m || !m.url) return;
 
-            // Compute time-ago
             var ts = post.timestamp;
             var uploadMs = ts ? (typeof ts.seconds==='number' ? ts.seconds*1000 : (ts.toDate ? ts.toDate().getTime() : null)) : null;
-            var now = Date.now();
-            var ageMs = uploadMs ? now - uploadMs : null;
+            var nowMs = Date.now();
+            var ageMs = uploadMs ? nowMs - uploadMs : null;
             var expired = ageMs !== null && ageMs > 24*60*60*1000;
             var timeLabel = '';
             if (ageMs !== null) {
-              var s=Math.floor(ageMs/1000), m2=Math.floor(s/60), h=Math.floor(m2/60), d=Math.floor(h/24);
-              if (d>=1) timeLabel = d+'d ago';
-              else if (h>=1) timeLabel = h+'h ago';
-              else if (m2>=1) timeLabel = m2+'m ago';
-              else timeLabel = 'just now';
+              var _s=Math.floor(ageMs/1000),_m2=Math.floor(_s/60),_h=Math.floor(_m2/60),_d=Math.floor(_h/24);
+              timeLabel = _d>=1 ? _d+'d ago' : _h>=1 ? _h+'h ago' : _m2>=1 ? _m2+'m ago' : 'just now';
             }
 
-            // Variable height for organic masonry look
             var ratio = dsRatios[idx % dsRatios.length];
-            var arH = (16 * ratio / dsRatios[0]).toFixed(1);
+            var arH = (16 * ratio).toFixed(1);
 
             var cell = document.createElement('div');
             cell.className = 'liked-cell';
             var vid2 = document.createElement('video');
             vid2.src = m.url; vid2.muted = true; vid2.playsInline = true; vid2.preload = 'metadata';
-            vid2.style.cssText = 'width:100%;aspect-ratio:9/'+arH+';object-fit:cover;display:block;pointer-events:none;' + (expired ? 'opacity:0.45;filter:grayscale(0.4);' : '');
+            vid2.style.cssText = 'width:100%;aspect-ratio:9/'+arH+';object-fit:cover;display:block;pointer-events:none;'+(expired?'opacity:0.45;filter:grayscale(0.4);':'');
             vid2.addEventListener('loadedmetadata', function(){ vid2.currentTime=0.01; }, {once:true});
-
-            // Duration badge
             vid2.addEventListener('loadedmetadata', function(){
-              var dur = Math.round(vid2.duration || 0);
-              if (dur > 0) {
-                var durBadge = document.createElement('div');
-                durBadge.className = 'liked-cell-dur';
-                durBadge.textContent = Math.floor(dur/60)+':'+(dur%60<10?'0':'')+(dur%60);
-                cell.appendChild(durBadge);
-              }
+              var dur=Math.round(vid2.duration||0);
+              if(dur>0){ var db=document.createElement('div'); db.className='liked-cell-dur'; db.textContent=Math.floor(dur/60)+':'+(dur%60<10?'0':'')+(dur%60); cell.appendChild(db); }
             });
 
             var ov = document.createElement('div');
             ov.className = 'liked-cell-overlay';
-            var nameEl = document.createElement('div');
-            nameEl.className = 'liked-cell-name';
-            nameEl.textContent = '@'+(post.name||post.userName||'creator');
-            ov.appendChild(nameEl);
+            var nameDiv = document.createElement('div');
+            nameDiv.className = 'liked-cell-name';
+            nameDiv.textContent = '@'+(post.name||post.userName||'creator');
+            ov.appendChild(nameDiv);
             if (timeLabel) {
-              var timeEl = document.createElement('div');
-              timeEl.style.cssText = 'font-size:8px;font-weight:600;color:rgba(255,255,255,0.55);font-family:var(--font);margin-top:1px;';
-              timeEl.textContent = timeLabel;
-              ov.appendChild(timeEl);
+              var tEl = document.createElement('div');
+              tEl.style.cssText = 'font-size:8px;font-weight:600;color:rgba(255,255,255,0.55);font-family:var(--font);margin-top:1px;';
+              tEl.textContent = timeLabel;
+              ov.appendChild(tEl);
             }
-            cell.appendChild(vid2); cell.appendChild(ov);
+            cell.appendChild(vid2);
+            cell.appendChild(ov);
             if (expired) {
               var expBadge = document.createElement('div');
-              expBadge.style.cssText = 'position:absolute;top:5px;left:5px;background:rgba(0,0,0,0.6);color:rgba(255,255,255,0.75);font-size:7.5px;font-weight:800;font-family:var(--font);padding:2px 5px;border-radius:4px;backdrop-filter:blur(4px);letter-spacing:0.04em;';
+              expBadge.style.cssText = 'position:absolute;top:5px;left:5px;background:rgba(0,0,0,0.6);color:rgba(255,255,255,0.75);font-size:7.5px;font-weight:800;font-family:var(--font);padding:2px 5px;border-radius:4px;letter-spacing:0.04em;';
               expBadge.textContent = 'EXPIRED';
               cell.appendChild(expBadge);
             }
@@ -5417,7 +5412,7 @@ init();
             cell.addEventListener('click', function(){ window._openDsSavedVideo(post); });
             cell.style.opacity='0'; cell.style.transform='translateY(12px) scale(0.97)';
             grid2.appendChild(cell);
-            setTimeout(function(){ cell.style.transition='opacity 0.3s ease,transform 0.3s cubic-bezier(0.34,1.56,0.64,1)'; cell.style.opacity='1'; cell.style.transform='translateY(0) scale(1)'; }, 40 + idx*50);
+            setTimeout(function(){ cell.style.transition='opacity 0.3s ease,transform 0.3s cubic-bezier(0.34,1.56,0.64,1)'; cell.style.opacity='1'; cell.style.transform='translateY(0) scale(1)'; }, 40+idx*50);
           });
         })();
       }
