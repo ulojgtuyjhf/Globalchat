@@ -2744,47 +2744,55 @@ async function setupVideoVisibility() {
 // Auto-delete posts older than 24 hours — full cascade: comments + replies + R2 files + Firestore doc
 async function deleteOldPosts() {
     try {
-        const cutoff = Date.now() - (24 * 60 * 60 * 1000);
-        const firestoreTs = new Date(cutoff);
-        const oldSnap = await getDocs(query(collection(db, 'recence'), where('timestamp', '<', firestoreTs)));
-        if (oldSnap.empty) return;
+        const cutoffMs = Date.now() - (24 * 60 * 60 * 1000);
+        // Fetch recent posts ordered by timestamp — filter client-side (avoids index requirement)
+        const allSnap = await getDocs(query(collection(db, 'recence'), orderBy('timestamp', 'desc'), limit(200)));
+        if (allSnap.empty) return;
 
-        for (const d of oldSnap.docs) {
+        const expired = allSnap.docs.filter(d => {
+            const ts = d.data().timestamp;
+            if (!ts) return false;
+            const ms = ts.seconds ? ts.seconds * 1000 : (ts.toDate ? ts.toDate().getTime() : 0);
+            return ms > 0 && ms < cutoffMs;
+        });
+
+        if (!expired.length) return;
+
+        for (const d of expired) {
             const postId = d.id;
             const postData = d.data();
 
-            // 1. Delete all comments (root + replies in same subcollection)
+            // 1. Delete all comments subcollection
             try {
                 const cmtSnap = await getDocs(collection(db, 'recence', postId, 'comments'));
                 await Promise.all(cmtSnap.docs.map(c => deleteDoc(doc(db, 'recence', postId, 'comments', c.id))));
             } catch(e) { console.warn('comments delete failed', postId, e); }
 
-            // 2. Delete all replies subcollection docs
+            // 2. Delete all replies subcollection
             try {
                 const repliesSnap = await getDocs(collection(db, 'recence', postId, 'replies'));
                 await Promise.all(repliesSnap.docs.map(r => deleteDoc(doc(db, 'recence', postId, 'replies', r.id))));
             } catch(e) { console.warn('replies delete failed', postId, e); }
 
-            // 3. Delete R2 storage file(s) — use fileId or extract from URL
+            // 3. Delete R2/Cloudflare file — use fileId or extract from URL
             try {
                 const media = postData.media || [];
                 for (const m of media) {
-                    let fileId = m.fileId;
-                    if (!fileId && m.url) {
-                        // Extract filename from R2 URL: .../media-uploads/filename
+                    let fid = m.fileId;
+                    if (!fid && m.url) {
                         const parts = m.url.split('/');
-                        fileId = parts[parts.length - 1];
+                        fid = decodeURIComponent(parts[parts.length - 1]);
                     }
-                    if (fileId) await appwrite.deleteFile(fileId);
+                    if (fid) await appwrite.deleteFile(fid);
                 }
             } catch(e) { console.warn('R2 delete failed', postId, e); }
 
-            // 4. Delete Firestore post document
+            // 4. Delete Firestore post doc
             try {
                 await deleteDoc(doc(db, 'recence', postId));
             } catch(e) { console.warn('post delete failed', postId, e); }
         }
-        console.log(`Purged ${oldSnap.size} expired posts`);
+        console.log('Purged', expired.length, 'expired posts');
     } catch (err) {
         console.error('deleteOldPosts error:', err);
     }
@@ -5156,17 +5164,17 @@ init();
 
         // Scroll nav arrows — prev/next, right side fixed
         var dsvNavUp = document.createElement('button');
-        dsvNavUp.style.cssText = 'position:fixed;right:22px;top:50%;transform:translateY(-calc(50% + 28px));z-index:10010;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.14);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1.5px solid rgba(255,255,255,0.18);cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:background 0.15s,transform 0.15s;margin-bottom:8px;';
+        dsvNavUp.style.cssText = 'position:fixed;right:22px;top:80px;z-index:10010;width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.13);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,0.18);cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.35);transition:transform 0.15s,background 0.15s;';
         dsvNavUp.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>';
-        dsvNavUp.onmouseenter = function(){ dsvNavUp.style.transform='translateY(calc(-50% - 28px)) scale(1.1)'; };
-        dsvNavUp.onmouseleave = function(){ dsvNavUp.style.transform='translateY(calc(-50% - 28px)) scale(1)'; };
+        dsvNavUp.onmouseenter = function(){ dsvNavUp.style.transform='scale(1.12)'; dsvNavUp.style.background='rgba(255,255,255,0.22)'; };
+        dsvNavUp.onmouseleave = function(){ dsvNavUp.style.transform='scale(1)'; dsvNavUp.style.background='rgba(255,255,255,0.13)'; };
         document.body.appendChild(dsvNavUp);
 
         var dsvNavDown = document.createElement('button');
-        dsvNavDown.style.cssText = 'position:fixed;right:22px;top:50%;transform:translateY(calc(-50% + 28px));z-index:10010;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.14);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1.5px solid rgba(255,255,255,0.18);cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:background 0.15s,transform 0.15s;margin-top:8px;';
+        dsvNavDown.style.cssText = 'position:fixed;right:22px;bottom:80px;z-index:10010;width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.13);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,0.18);cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.35);transition:transform 0.15s,background 0.15s;';
         dsvNavDown.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
-        dsvNavDown.onmouseenter = function(){ dsvNavDown.style.transform='translateY(calc(-50% + 28px)) scale(1.1)'; };
-        dsvNavDown.onmouseleave = function(){ dsvNavDown.style.transform='translateY(calc(-50% + 28px)) scale(1)'; };
+        dsvNavDown.onmouseenter = function(){ dsvNavDown.style.transform='scale(1.12)'; dsvNavDown.style.background='rgba(255,255,255,0.22)'; };
+        dsvNavDown.onmouseleave = function(){ dsvNavDown.style.transform='scale(1)'; dsvNavDown.style.background='rgba(255,255,255,0.13)'; };
         document.body.appendChild(dsvNavDown);
 
         var _dsvObs = null;
@@ -5230,13 +5238,15 @@ init();
             var wrap = card.querySelector('.desktop-card-video-wrap');
             if (wrap) { wrap.style.height='calc(100vh - 32px)'; wrap.style.maxHeight='calc(100vh - 32px)'; }
             card.style.height = '100vh';
-            // Wire comment button — use the same mobile comment sheet (openModal)
+            // Wire comment button — clone to strip old listeners, wire openModal
             var cmtBtns = card.querySelectorAll('.desktop-action-btn[aria-label="Comments"]');
             cmtBtns.forEach(function(b){
-              b.onclick = function(e){
+              var fresh = b.cloneNode(true);
+              b.parentNode.replaceChild(fresh, b);
+              fresh.addEventListener('click', function(e){
                 e.stopPropagation();
                 if (typeof openModal === 'function') openModal(p, p._id||'');
-              };
+              });
             });
             slot.appendChild(card);
             dsvFeed.appendChild(slot);
