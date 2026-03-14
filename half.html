@@ -401,7 +401,32 @@ body {
     text-shadow: 0 1px 6px rgba(0,0,0,0.9);
 }
 
-/* ── Desktop saved viewer overlay ── */
+/* Scroll nav arrows — home feed + saved viewer, centered right side */
+  .desktop-nav-arrows {
+    position: fixed;
+    right: 16px;
+    top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 10px;
+    z-index: 50;
+    pointer-events: all;
+    transition: right 0.42s cubic-bezier(0.22,1,0.36,1);
+  }
+  body.comments-open .desktop-nav-arrows {
+    right: calc(clamp(280px, 24vw, 360px) + 20px);
+  }
+  .desktop-nav-arrow {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: #fff;
+    border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.15s;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+  }
+  .desktop-nav-arrow:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.16); transform: scale(1.08); }
+  .desktop-nav-arrow:active { transform: scale(0.92); }
+  .desktop-nav-arrow svg { width: 15px; height: 15px; fill: none; stroke: #333; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ── Desktop saved viewer overlay ── */
 #dsv-feed::-webkit-scrollbar { display: none; }
 .dsv-slot { scroll-snap-align: start; scroll-snap-stop: always; }
 #dsv-overlay .desktop-card {
@@ -4973,6 +4998,7 @@ init();
     var panel = document.getElementById('ds-section-panel');
     dsFeed.style.display = 'none';
     dsComments.style.display = 'none';
+    var _na = document.getElementById('desktopNavArrows'); if (_na) _na.style.display = 'none';
     if (!panel) {
       panel = document.createElement('div');
       panel.id = 'ds-section-panel';
@@ -5003,6 +5029,7 @@ init();
     if (panel) panel.style.display = 'none';
     dsFeed.style.display = '';
     dsComments.style.display = '';
+    var _na2 = document.getElementById('desktopNavArrows'); if (_na2) _na2.style.display = '';
     if (window._desktopFeedObs) {
       document.querySelectorAll('.desktop-card').forEach(function(card){ window._desktopFeedObs.observe(card); });
     }
@@ -5059,6 +5086,7 @@ init();
 
     if (section === 'Home') {
       hideDsIframePanel();
+      var _rna = document.getElementById('desktopNavArrows'); if (_rna) _rna.style.display = '';
       var sp = document.getElementById('ds-saved-panel');
       if (sp) sp.style.display = 'none';
       var feed2 = document.getElementById('desktop-feed');
@@ -5092,6 +5120,8 @@ init();
       return;
     }
     if (section === 'Liked') {
+      // Hide home nav arrows while in saved section
+      var _hna = document.getElementById('desktopNavArrows'); if (_hna) _hna.style.display = 'none';
       // Pause desktop feed videos
       document.querySelectorAll('#desktop-feed video, #gallery video').forEach(function(v){ v.pause(); });
       // Hide feed + comments, show saved panel
@@ -5164,17 +5194,17 @@ init();
 
         // Scroll nav arrows — prev/next, right side fixed
         var dsvNavUp = document.createElement('button');
-        dsvNavUp.style.cssText = 'position:fixed;right:22px;top:80px;z-index:10010;width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.13);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,0.18);cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.35);transition:transform 0.15s,background 0.15s;';
+        dsvNavUp.className = 'desktop-nav-arrow';
+        dsvNavUp.style.cssText = 'position:fixed;right:16px;top:calc(50% - 29px);z-index:10010;display:none;';
         dsvNavUp.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>';
-        dsvNavUp.onmouseenter = function(){ dsvNavUp.style.transform='scale(1.12)'; dsvNavUp.style.background='rgba(255,255,255,0.22)'; };
-        dsvNavUp.onmouseleave = function(){ dsvNavUp.style.transform='scale(1)'; dsvNavUp.style.background='rgba(255,255,255,0.13)'; };
+
         document.body.appendChild(dsvNavUp);
 
         var dsvNavDown = document.createElement('button');
-        dsvNavDown.style.cssText = 'position:fixed;right:22px;bottom:80px;z-index:10010;width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.13);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,0.18);cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.35);transition:transform 0.15s,background 0.15s;';
+        dsvNavDown.className = 'desktop-nav-arrow';
+        dsvNavDown.style.cssText = 'position:fixed;right:16px;top:calc(50% + 9px);z-index:10010;display:none;';
         dsvNavDown.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
-        dsvNavDown.onmouseenter = function(){ dsvNavDown.style.transform='scale(1.12)'; dsvNavDown.style.background='rgba(255,255,255,0.22)'; };
-        dsvNavDown.onmouseleave = function(){ dsvNavDown.style.transform='scale(1)'; dsvNavDown.style.background='rgba(255,255,255,0.13)'; };
+
         document.body.appendChild(dsvNavDown);
 
         var _dsvObs = null;
@@ -5686,7 +5716,24 @@ init();
     window._desktopFeedObs = obs;
   }
 
-  // Nav arrows removed
+  // Nav arrows — home feed (original)
+  function injectDesktopNavArrows() {
+    if (document.getElementById('desktopNavArrows')) return;
+    var arrows = document.createElement('div');
+    arrows.className = 'desktop-nav-arrows';
+    arrows.id = 'desktopNavArrows';
+    arrows.innerHTML =
+      '<button class="desktop-nav-arrow" id="dnUp" title="Previous"><svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg></button>' +
+      '<button class="desktop-nav-arrow" id="dnDown" title="Next"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>';
+    document.body.appendChild(arrows);
+    var feed = document.getElementById('desktop-feed');
+    document.getElementById('dnUp').addEventListener('click', function() {
+      if (feed) feed.scrollBy({ top: -window.innerHeight, behavior: 'smooth' });
+    });
+    document.getElementById('dnDown').addEventListener('click', function() {
+      if (feed) feed.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
+    });
+  }
 
   // Open first post in desktop panel on load
   document.addEventListener('desktopPostsReady', function(e) {
@@ -5708,7 +5755,7 @@ init();
     }
     setTimeout(function() {
       setupDesktopFeedObserver();
-
+      injectDesktopNavArrows();
     }, 200);
   });
 
