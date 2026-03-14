@@ -438,8 +438,18 @@ body {
   max-height: calc(100vh - 32px) !important;
 }
 #dsv-overlay .desktop-card-actions {
-  /* Keep actions right of the 9:16 card */
   left: calc(50% + (calc((100vh - 32px) * 9 / 16) / 2) + 14px);
+}
+/* When saved viewer is open: lift share sheet + comments panel ABOVE the overlay */
+body.dsv-open .share-sheet-overlay { z-index: 10020 !important; }
+body.dsv-open .share-sheet         { z-index: 10021 !important; }
+body.dsv-open #desktop-comments {
+  position: fixed !important;
+  top: 12px !important;
+  right: 12px !important;
+  height: calc(100vh - 24px) !important;
+  z-index: 10015 !important;
+  display: flex !important;
 }
 
 /* ── Comment live red dot ── */
@@ -4259,9 +4269,8 @@ init();
   window._buildDesktopCard = buildDesktopCard;
   window._createPinElement = createPinElement;
   window._openDesktopComments = function(pd, pid) {
-    // Restore comments panel display if it was hidden (e.g. when in saved section)
     var cmt = document.getElementById('desktop-comments');
-    if (cmt && cmt.style.display === 'none') cmt.style.display = '';
+    if (cmt) { cmt.style.display = ''; }
     openDesktopComments(pd, pid, true);
   };
 
@@ -5250,12 +5259,16 @@ init();
           if (_dsvObs) { _dsvObs.disconnect(); _dsvObs = null; }
           _dsvSlots = [];
           dsvFeed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
-
           dsvOverlay.style.display = 'none';
           dsvBack.style.display = 'none';
           dsvNavUp.style.display = 'none';
           dsvNavDown.style.display = 'none';
           dsvFeed.innerHTML = '';
+          // Remove dsv-open so share sheet + comments panel z-index revert
+          document.body.classList.remove('dsv-open');
+          // Close comments panel cleanly
+          var cmt = document.getElementById('desktop-comments');
+          if (cmt) { cmt.classList.remove('open'); document.body.classList.remove('comments-open'); }
           dsvOverlay.dispatchEvent(new Event('dsvClose'));
         }
         window._closeDsSavedViewer = closeDsvOverlay;
@@ -5272,7 +5285,6 @@ init();
           var buildCard = window._buildDesktopCard;
           if (!buildCard) return;
 
-          // Build a card-slot per saved post
           posts.forEach(function(p) {
             if (!p.media || !p.media[0] || !p.media[0].url) return;
             var slot = document.createElement('div');
@@ -5280,13 +5292,11 @@ init();
             slot.style.cssText = 'width:100%;height:100vh;flex-shrink:0;scroll-snap-align:start;scroll-snap-stop:always;display:flex;align-items:center;justify-content:center;background:#000;position:relative;';
             var card = buildCard(p, p._id || '');
             if (!card) return;
-            // Store post data so buttons can reference it
             card._postData = p;
-            // Override card dimensions to fill viewer properly
             var wrap = card.querySelector('.desktop-card-video-wrap');
             if (wrap) { wrap.style.height='calc(100vh - 32px)'; wrap.style.maxHeight='calc(100vh - 32px)'; }
             card.style.height = '100vh';
-            // Re-wire comment button to use desktop comment panel
+            // Re-wire comment button to open desktop comments panel (visible above overlay via body.dsv-open CSS)
             var cmtBtns = card.querySelectorAll('.desktop-action-btn[aria-label="Comments"]');
             cmtBtns.forEach(function(b){
               var fresh = b.cloneNode(true);
@@ -5303,29 +5313,27 @@ init();
 
           if (!_dsvSlots.length) return;
 
-          // Show overlay + controls
+          // Mark body so CSS lifts share sheet + comments panel above this overlay
+          document.body.classList.add('dsv-open');
+
           dsvOverlay.style.display = 'flex';
           dsvBack.style.display = 'flex';
           dsvNavUp.style.display = 'flex';
           dsvNavDown.style.display = 'flex';
 
-          // Scroll to clicked post
-          var startIdx = Math.max(0, posts.filter(function(p){ return p.media&&p.media[0]&&p.media[0].url; }).findIndex(function(p){ return p._id === (clickedPost._id||''); }));
+          var startIdx = Math.max(0, posts.filter(function(q){ return q.media&&q.media[0]&&q.media[0].url; }).findIndex(function(q){ return q._id === (clickedPost._id||''); }));
 
           requestAnimationFrame(function(){
-            if (_dsvSlots[startIdx]) {
-              dsvFeed.scrollTop = _dsvSlots[startIdx].offsetTop;
-            }
-            // IntersectionObserver — add .active so video is full brightness, play/pause
+            if (_dsvSlots[startIdx]) dsvFeed.scrollTop = _dsvSlots[startIdx].offsetTop;
+
             _dsvObs = new IntersectionObserver(function(entries){
               entries.forEach(function(entry){
                 var card = entry.target.querySelector('.desktop-card');
-                var vid = entry.target.querySelector('video');
+                var vid  = entry.target.querySelector('video');
                 if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
-                  // Remove active from all, add to this one (fixes dark video)
                   _dsvSlots.forEach(function(s){ var c=s.querySelector('.desktop-card'); if(c) c.classList.remove('active'); });
                   if (card) card.classList.add('active');
-                  if (vid) { vid.muted = false; vid.currentTime = 0; vid.play().catch(function(){ vid.muted=true; vid.play().catch(function(){}); }); }
+                  if (vid) { vid.muted=false; vid.currentTime=0; vid.play().catch(function(){ vid.muted=true; vid.play().catch(function(){}); }); }
                   var pid = card && card.dataset.postId;
                   if (pid && typeof trackPresence === 'function') trackPresence(pid);
                 } else {
@@ -5366,7 +5374,6 @@ init();
           saved.forEach(function(post, idx) {
             var m = post.media && post.media[0];
             if (!m || !m.url) return;
-
             var ts = post.timestamp;
             var uploadMs = ts ? (typeof ts.seconds==='number' ? ts.seconds*1000 : (ts.toDate ? ts.toDate().getTime() : null)) : null;
             var nowMs = Date.now();
@@ -5375,49 +5382,30 @@ init();
             var timeLabel = '';
             if (ageMs !== null) {
               var _s=Math.floor(ageMs/1000),_m2=Math.floor(_s/60),_h=Math.floor(_m2/60),_d=Math.floor(_h/24);
-              timeLabel = _d>=1 ? _d+'d ago' : _h>=1 ? _h+'h ago' : _m2>=1 ? _m2+'m ago' : 'just now';
+              timeLabel = _d>=1?_d+'d ago':_h>=1?_h+'h ago':_m2>=1?_m2+'m ago':'just now';
             }
-
             var ratio = dsRatios[idx % dsRatios.length];
-            var arH = (16 * ratio).toFixed(1);
-
             var cell = document.createElement('div');
             cell.className = 'liked-cell';
             var vid2 = document.createElement('video');
-            vid2.src = m.url; vid2.muted = true; vid2.playsInline = true; vid2.preload = 'metadata';
-            vid2.style.cssText = 'width:100%;aspect-ratio:9/'+arH+';object-fit:cover;display:block;pointer-events:none;'+(expired?'opacity:0.45;filter:grayscale(0.4);':'');
-            vid2.addEventListener('loadedmetadata', function(){ vid2.currentTime=0.01; }, {once:true});
-            vid2.addEventListener('loadedmetadata', function(){
+            vid2.src = m.url; vid2.muted=true; vid2.playsInline=true; vid2.preload='metadata';
+            vid2.style.cssText='width:100%;aspect-ratio:9/'+(16*ratio).toFixed(1)+';object-fit:cover;display:block;pointer-events:none;'+(expired?'opacity:0.45;filter:grayscale(0.4);':'');
+            vid2.addEventListener('loadedmetadata',function(){ vid2.currentTime=0.01; },{once:true});
+            vid2.addEventListener('loadedmetadata',function(){
               var dur=Math.round(vid2.duration||0);
-              if(dur>0){ var db=document.createElement('div'); db.className='liked-cell-dur'; db.textContent=Math.floor(dur/60)+':'+(dur%60<10?'0':'')+(dur%60); cell.appendChild(db); }
+              if(dur>0){var db3=document.createElement('div');db3.className='liked-cell-dur';db3.textContent=Math.floor(dur/60)+':'+(dur%60<10?'0':'')+(dur%60);cell.appendChild(db3);}
             });
-
-            var ov = document.createElement('div');
-            ov.className = 'liked-cell-overlay';
-            var nameDiv = document.createElement('div');
-            nameDiv.className = 'liked-cell-name';
-            nameDiv.textContent = '@'+(post.name||post.userName||'creator');
-            ov.appendChild(nameDiv);
-            if (timeLabel) {
-              var tEl = document.createElement('div');
-              tEl.style.cssText = 'font-size:8px;font-weight:600;color:rgba(255,255,255,0.55);font-family:var(--font);margin-top:1px;';
-              tEl.textContent = timeLabel;
-              ov.appendChild(tEl);
-            }
-            cell.appendChild(vid2);
-            cell.appendChild(ov);
-            if (expired) {
-              var expBadge = document.createElement('div');
-              expBadge.style.cssText = 'position:absolute;top:5px;left:5px;background:rgba(0,0,0,0.6);color:rgba(255,255,255,0.75);font-size:7.5px;font-weight:800;font-family:var(--font);padding:2px 5px;border-radius:4px;letter-spacing:0.04em;';
-              expBadge.textContent = 'EXPIRED';
-              cell.appendChild(expBadge);
-            }
-            cell.addEventListener('mouseenter', function(){ cell.style.transform='scale(1.03)'; });
-            cell.addEventListener('mouseleave', function(){ cell.style.transform='scale(1)'; });
-            cell.addEventListener('click', function(){ window._openDsSavedVideo(post); });
+            var ov=document.createElement('div'); ov.className='liked-cell-overlay';
+            var nd=document.createElement('div'); nd.className='liked-cell-name'; nd.textContent='@'+(post.name||post.userName||'creator'); ov.appendChild(nd);
+            if(timeLabel){var tEl=document.createElement('div');tEl.style.cssText='font-size:8px;font-weight:600;color:rgba(255,255,255,0.55);font-family:var(--font);margin-top:1px;';tEl.textContent=timeLabel;ov.appendChild(tEl);}
+            cell.appendChild(vid2); cell.appendChild(ov);
+            if(expired){var eb=document.createElement('div');eb.style.cssText='position:absolute;top:5px;left:5px;background:rgba(0,0,0,0.6);color:rgba(255,255,255,0.75);font-size:7.5px;font-weight:800;font-family:var(--font);padding:2px 5px;border-radius:4px;letter-spacing:0.04em;';eb.textContent='EXPIRED';cell.appendChild(eb);}
+            cell.addEventListener('mouseenter',function(){ cell.style.transform='scale(1.03)'; });
+            cell.addEventListener('mouseleave',function(){ cell.style.transform='scale(1)'; });
+            cell.addEventListener('click',function(){ window._openDsSavedVideo(post); });
             cell.style.opacity='0'; cell.style.transform='translateY(12px) scale(0.97)';
             grid2.appendChild(cell);
-            setTimeout(function(){ cell.style.transition='opacity 0.3s ease,transform 0.3s cubic-bezier(0.34,1.56,0.64,1)'; cell.style.opacity='1'; cell.style.transform='translateY(0) scale(1)'; }, 40+idx*50);
+            setTimeout(function(){ cell.style.transition='opacity 0.3s ease,transform 0.3s cubic-bezier(0.34,1.56,0.64,1)'; cell.style.opacity='1'; cell.style.transform='translateY(0) scale(1)'; },40+idx*50);
           });
         })();
       }
