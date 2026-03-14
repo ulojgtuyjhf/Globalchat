@@ -4258,6 +4258,7 @@ init();
   // Expose so fetchPosts can call buildDesktopCard
   window._buildDesktopCard = buildDesktopCard;
   window._createPinElement = createPinElement;
+  window._openDesktopComments = function(postData, postId) { openDesktopComments(postData, postId, true); };
 
   function buildDesktopCard(postData, postId) {
     var card = document.createElement('div');
@@ -5278,14 +5279,14 @@ init();
             var wrap = card.querySelector('.desktop-card-video-wrap');
             if (wrap) { wrap.style.height='calc(100vh - 32px)'; wrap.style.maxHeight='calc(100vh - 32px)'; }
             card.style.height = '100vh';
-            // Wire comment button — clone to strip old listeners, wire openModal
+            // Wire comment button — use desktop comment panel, not mobile openModal
             var cmtBtns = card.querySelectorAll('.desktop-action-btn[aria-label="Comments"]');
             cmtBtns.forEach(function(b){
               var fresh = b.cloneNode(true);
               b.parentNode.replaceChild(fresh, b);
               fresh.addEventListener('click', function(e){
                 e.stopPropagation();
-                if (typeof openModal === 'function') openModal(p, p._id||'');
+                if (typeof window._openDesktopComments === 'function') window._openDesktopComments(p, p._id||'');
               });
             });
             slot.appendChild(card);
@@ -5349,7 +5350,7 @@ init();
           if (!saved.length) { if (grid2) grid2.innerHTML='<div style="padding:40px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Nothing saved yet</div>'; return; }
           if (!grid2) return;
           grid2.innerHTML = '';
-          // Masonry variable ratios — same as mobile liked grid
+          // Variable height ratios — same masonry feel as mobile
           var dsRatios = [1, 1, 1.35, 0.75, 1.2, 0.85, 1, 1.1, 0.9, 1.25];
           saved.forEach(function(post, idx) {
             var m = post.media && post.media[0];
@@ -5370,7 +5371,7 @@ init();
               else timeLabel = 'just now';
             }
 
-            // Variable height ratio for organic masonry look
+            // Variable height for organic masonry look
             var ratio = dsRatios[idx % dsRatios.length];
             var arH = (16 * ratio / dsRatios[0]).toFixed(1);
 
@@ -5405,7 +5406,6 @@ init();
               ov.appendChild(timeEl);
             }
             cell.appendChild(vid2); cell.appendChild(ov);
-            // Expired badge
             if (expired) {
               var expBadge = document.createElement('div');
               expBadge.style.cssText = 'position:absolute;top:5px;left:5px;background:rgba(0,0,0,0.6);color:rgba(255,255,255,0.75);font-size:7.5px;font-weight:800;font-family:var(--font);padding:2px 5px;border-radius:4px;backdrop-filter:blur(4px);letter-spacing:0.04em;';
