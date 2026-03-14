@@ -727,6 +727,14 @@
         #ds-saved-panel {
           background: transparent !important;
         }
+        /* Grid column header */
+        #ds-saved-panel > div:first-child > div:first-child {
+          border-bottom: 1px solid ${t.border} !important;
+        }
+        #ds-saved-badge {
+          background: ${t.textPrimary} !important;
+          color: ${t.surfacePrimary} !important;
+        }
         #ds-saved-grid {
           background: ${t.surfacePrimary} !important;
         }
@@ -744,6 +752,10 @@
         }
         #ds-saved-comments {
           background: ${t.surfacePrimary} !important;
+        }
+        /* Saved-viewer back button */
+        #dsv-back {
+          background: var(--brand-gradient) !important;
         }
 
         /* social connections widget */
@@ -931,12 +943,22 @@
             color: ${t.surfacePrimary} !important;
           }
           #ds-saved-panel { background: transparent !important; }
-          #ds-saved-grid {
+          #ds-saved-panel > div:first-child {
             background: ${t.sidebarBg} !important;
+            border-radius: 20px !important;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.07) !important;
           }
-          #ds-saved-grid > div:first-child {
+          /* Grid column header (back btn + title + badge) */
+          #ds-saved-panel > div:first-child > div:first-child {
             background: ${t.sidebarBg} !important;
             border-bottom: 1px solid ${t.dsDivider} !important;
+          }
+          #ds-saved-badge {
+            background: ${t.textPrimary} !important;
+            color: ${t.surfacePrimary} !important;
+          }
+          #ds-saved-grid {
+            background: ${t.sidebarBg} !important;
           }
           #ds-saved-info-col {
             background: ${t.sidebarBg} !important;
@@ -948,7 +970,10 @@
           #ds-saved-caption { color: ${t.dcCaption} !important; }
           #ds-saved-comments { background: ${t.sidebarBg} !important; }
           #ds-saved-video-card { background: #000 !important; }
-        }
+          /* Saved-viewer back button inside desktop-feed */
+          #dsv-back {
+            background: var(--brand-gradient) !important;
+          }
       `;
 
       document.body.classList.remove('theme-light', 'theme-dim', 'theme-dark');
