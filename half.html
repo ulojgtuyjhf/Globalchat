@@ -1784,32 +1784,7 @@ body {
   .dc-gif-btn:hover { background: #e0e0e0; color: #444; }
   .dc-gif-btn.active { background: #222; color: #fff; }
 
-  /* Scroll nav arrows — always visible on desktop, fixed to right edge of feed area */
-  .desktop-nav-arrows {
-    position: fixed;
-    /* centered vertically, right side of feed — always visible regardless of comments state */
-    right: 16px;
-    top: 50%; transform: translateY(-50%);
-    display: flex; flex-direction: column; gap: 10px;
-    z-index: 50;
-    pointer-events: all;
-    transition: right 0.42s cubic-bezier(0.22,1,0.36,1);
-  }
-  /* When comments panel is open, shift arrows left of it */
-  body.comments-open .desktop-nav-arrows {
-    right: calc(clamp(280px, 24vw, 360px) + 20px);
-  }
-  .desktop-nav-arrow {
-    width: 38px; height: 38px; border-radius: 50%;
-    background: #fff;
-    border: none;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; transition: all 0.15s;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
-  }
-  .desktop-nav-arrow:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.16); transform: scale(1.08); }
-  .desktop-nav-arrow:active { transform: scale(0.92); }
-  .desktop-nav-arrow svg { width: 15px; height: 15px; fill: none; stroke: #333; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
 
 }
 
@@ -1819,7 +1794,6 @@ body {
   #desktop-sidebar { display: none !important; }
   #desktop-feed { display: none !important; }
   #desktop-comments { display: none !important; }
-  .desktop-nav-arrows { display: none !important; }
 }
 
 </style>
@@ -2219,7 +2193,7 @@ body {
         // Import Firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, onSnapshot, updateDoc, doc, arrayUnion, arrayRemove, getDoc, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, onSnapshot, updateDoc, doc, arrayUnion, arrayRemove, getDoc, where, deleteDoc, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getDatabase, ref, onValue, set, serverTimestamp as rtServerTimestamp, onDisconnect, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 // Firebase Configuration
 const firebaseConfig = {
@@ -2239,7 +2213,7 @@ const rtdb = getDatabase(app);
 
 // Expose Firebase for non-module scripts (liked feed, panels etc.)
 window._fbDb = db;
-window._fbFirestoreFns = { getDocs, query, collection, where, orderBy, limit, getDoc, addDoc, updateDoc, deleteDoc, doc, arrayUnion, arrayRemove };
+window._fbFirestoreFns = { getDocs, query, collection, where, orderBy, limit, getDoc, addDoc, updateDoc, deleteDoc, doc, arrayUnion, arrayRemove, getCountFromServer };
 
 // currentUser exposed for non-module scripts via window._currentUser (set in init())
 
@@ -3285,13 +3259,29 @@ function createPinElement(postData, postId) {
     cmtBtn.innerHTML =
         '<div class="slide-action-icon" style="position:relative;">' +
             '<svg viewBox="0 0 122.97 122.88" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M61.44,0a61.46,61.46,0,0,1,54.91,89l6.44,25.74a5.83,5.83,0,0,1-7.25,7L91.62,115A61.43,61.43,0,1,1,61.44,0ZM96.63,26.25a49.78,49.78,0,1,0-9,77.52A5.83,5.83,0,0,1,92.4,103L109,107.77l-4.5-18a5.86,5.86,0,0,1,.51-4.34,49.06,49.06,0,0,0,4.62-11.58,50,50,0,0,0-13-47.62Z" fill="#ffffff" stroke="rgba(255,255,255,0.3)" stroke-width="1"/></svg>' +
-            ((postData.commentCount && postData.commentCount > 0) ? '<span class="cmt-live-dot"></span>' : '') +
+        '<span class="cmt-live-dot" style="background:#22c55e;box-shadow:0 0 7px rgba(34,197,94,0.95);"></span>' +
         '</div>' +
         '<span class="slide-action-label cmt-count" style="display:none;"></span>';
     cmtBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         openModal(postData, postId);
     });
+    // Async: get live comment count and set correct dot color immediately
+    (function(_mPid, _mBtn){
+        try {
+            var _mDb = window._fbDb, _mFns = window._fbFirestoreFns;
+            if (_mDb && _mFns && _mPid) {
+                _mFns.getDocs(_mFns.query(_mFns.collection(_mDb,'recence',_mPid,'comments'),_mFns.limit(1))).then(function(snap){
+                    var hasAny = !snap.empty;
+                    var dot = _mBtn.querySelector('.cmt-live-dot');
+                    if (dot) {
+                        dot.style.background = hasAny ? '#ff3b5c' : '#22c55e';
+                        dot.style.boxShadow = hasAny ? '0 0 7px rgba(255,59,92,0.95)' : '0 0 7px rgba(34,197,94,0.95)';
+                    }
+                }).catch(function(){});
+            }
+        } catch(e){}
+    })(postId, cmtBtn);
     slideActions.appendChild(cmtBtn);
 
     // Share button
@@ -3624,16 +3614,19 @@ function loadComments(postId) {
                 setTimeout(() => countEl.classList.remove('bump'), 400);
             }
         }
-        // Sync the red dot on the slide action comment button
+        // Sync dot on mobile card via aria-label: green=0 comments, red=has comments
         if (currentPostId) {
             const slideEl = document.querySelector(`.pin-container[data-post-id="${currentPostId}"]`);
             if (slideEl) {
-                const cmtIcon = slideEl.querySelector('.slide-action-icon');
-                if (cmtIcon) {
-                    var existingDot = cmtIcon.querySelector('.cmt-live-dot');
-                    if (rootCount > 0 && !existingDot) {
-                        var dot = document.createElement('span'); dot.className = 'cmt-live-dot'; cmtIcon.appendChild(dot);
-                    } else if (rootCount === 0 && existingDot) { existingDot.remove(); }
+                const cmtSlideBtn = slideEl.querySelector('.slide-action-btn[aria-label="Comments"]');
+                if (cmtSlideBtn) {
+                    const cmtIcon2 = cmtSlideBtn.querySelector('.slide-action-icon');
+                    if (cmtIcon2) {
+                        var existingDot2 = cmtIcon2.querySelector('.cmt-live-dot');
+                        if (!existingDot2) { existingDot2 = document.createElement('span'); existingDot2.className = 'cmt-live-dot'; cmtIcon2.appendChild(existingDot2); }
+                        existingDot2.style.background = rootCount > 0 ? '#ff3b5c' : '#22c55e';
+                        existingDot2.style.boxShadow = rootCount > 0 ? '0 0 7px rgba(255,59,92,0.95)' : '0 0 7px rgba(34,197,94,0.95)';
+                    }
                 }
             }
         }
@@ -4286,7 +4279,7 @@ init();
         if (ms <= 0) return 'Expiring…';
         var h = Math.floor(ms / 3600000);
         var m = Math.floor((ms % 3600000) / 60000);
-        return h >= 1 ? h + 'h ' + m + 'm left' : m + 'm left';
+        return h >= 1 ? h + 'h' : m + 'm';
       }
       _dcTimeLeftEl.textContent = _dcCardFmt(_dcExp - Date.now());
       var _dcCardTimer = setInterval(function() {
@@ -4384,9 +4377,26 @@ init();
     var cmtBtn = document.createElement('button');
     cmtBtn.className = 'desktop-action-btn';
     cmtBtn.setAttribute('aria-label', 'Comments');
-    var _dCmtHasComments = (postData.commentCount && postData.commentCount > 0);
-    cmtBtn.innerHTML = '<div class="desktop-action-icon" style="position:relative;"><svg viewBox="0 0 122.97 122.88" xmlns="http://www.w3.org/2000/svg"><path d="M61.44,0a61.46,61.46,0,0,1,54.91,89l6.44,25.74a5.83,5.83,0,0,1-7.25,7L91.62,115A61.43,61.43,0,1,1,61.44,0ZM96.63,26.25a49.78,49.78,0,1,0-9,77.52A5.83,5.83,0,0,1,92.4,103L109,107.77l-4.5-18a5.86,5.86,0,0,1,.51-4.34,49.06,49.06,0,0,0,4.62-11.58,50,50,0,0,0-13-47.62Z" fill="rgba(255,255,255,0.9)"/></svg>' + (_dCmtHasComments ? '<span class="cmt-live-dot"></span>' : '') + '</div>'
+    // Start with green dot (unknown count) — will be updated live when comments open
+    cmtBtn.innerHTML = '<div class="desktop-action-icon" style="position:relative;"><svg viewBox="0 0 122.97 122.88" xmlns="http://www.w3.org/2000/svg"><path d="M61.44,0a61.46,61.46,0,0,1,54.91,89l6.44,25.74a5.83,5.83,0,0,1-7.25,7L91.62,115A61.43,61.43,0,1,1,61.44,0ZM96.63,26.25a49.78,49.78,0,1,0-9,77.52A5.83,5.83,0,0,1,92.4,103L109,107.77l-4.5-18a5.86,5.86,0,0,1,.51-4.34,49.06,49.06,0,0,0,4.62-11.58,50,50,0,0,0-13-47.62Z" fill="rgba(255,255,255,0.9)"/></svg><span class="cmt-live-dot" style="background:#22c55e;box-shadow:0 0 7px rgba(34,197,94,0.95);"></span></div>'
       + '<span class="desktop-action-label" style="display:none;"></span>';
+    // Async: check for any comments and set dot color correctly
+    (function(_pId, _btn){
+      try {
+        var _db2 = window._fbDb, _fns2 = window._fbFirestoreFns;
+        if (_db2 && _fns2 && _pId) {
+          _fns2.getDocs(_fns2.query(_fns2.collection(_db2,"recence",_pId,"comments"),_fns2.limit(1))).then(function(snap){
+            var hasAny = !snap.empty;
+            var _icon2 = _btn.querySelector(".desktop-action-icon");
+            var _ico = _icon2 && _icon2.querySelector(".cmt-live-dot");
+            if (_ico) {
+              _ico.style.background = hasAny ? "#ff3b5c" : "#22c55e";
+              _ico.style.boxShadow = hasAny ? "0 0 7px rgba(255,59,92,0.95)" : "0 0 7px rgba(34,197,94,0.95)";
+            }
+          }).catch(function(){});
+        }
+      } catch(e){}
+    })(postId, cmtBtn);
     cmtBtn.addEventListener('click', function(e) {
       e.stopPropagation();
       openDesktopComments(postData, postId, true);
@@ -4503,8 +4513,7 @@ init();
         if (ms <= 0) return 'Expiring…';
         var h = Math.floor(ms / 3600000);
         var m = Math.floor((ms % 3600000) / 60000);
-        if (h >= 1) return h + 'h ' + m + 'm left';
-        return m + 'm left';
+        return h >= 1 ? h + 'h' : m + 'm';
       }
       if (_upMs) {
         var _dcExpireMs = _upMs + 24*60*60*1000;
@@ -4672,6 +4681,41 @@ init();
           setTimeout(function(){ countEl.classList.remove('bump'); }, 400);
         }
       }
+      // Live dot update — green=0 comments, red=has comments
+      (function(_rc){
+        // Desktop card
+        var _card = document.querySelector('.desktop-card[data-post-id="' + postId + '"]');
+        if (_card) {
+          var _allBtns = _card.querySelectorAll('.desktop-action-btn');
+          _allBtns.forEach(function(b){
+            if (b.getAttribute('aria-label') === 'Comments') {
+              var _icon = b.querySelector('.desktop-action-icon');
+              if (_icon) {
+                var _d = _icon.querySelector('.cmt-live-dot');
+                if (!_d) { _d = document.createElement('span'); _d.className = 'cmt-live-dot'; _icon.appendChild(_d); }
+                _d.style.background = _rc > 0 ? '#ff3b5c' : '#22c55e';
+                _d.style.boxShadow = _rc > 0 ? '0 0 7px rgba(255,59,92,0.95)' : '0 0 7px rgba(34,197,94,0.95)';
+              }
+            }
+          });
+        }
+        // Mobile card — comment btn is aria-label Comments
+        var _mCard = document.querySelector('.pin-container[data-post-id="' + postId + '"]');
+        if (_mCard) {
+          var _mBtns = _mCard.querySelectorAll('.slide-action-btn');
+          _mBtns.forEach(function(b){
+            if (b.getAttribute('aria-label') === 'Comments') {
+              var _mIcon = b.querySelector('.slide-action-icon');
+              if (_mIcon) {
+                var _md = _mIcon.querySelector('.cmt-live-dot');
+                if (!_md) { _md = document.createElement('span'); _md.className = 'cmt-live-dot'; _mIcon.appendChild(_md); }
+                _md.style.background = _rc > 0 ? '#ff3b5c' : '#22c55e';
+                _md.style.boxShadow = _rc > 0 ? '0 0 7px rgba(255,59,92,0.95)' : '0 0 7px rgba(34,197,94,0.95)';
+              }
+            }
+          });
+        }
+      })(rootCount);
       if (snapshot.empty && dcRenderedIds.size === 0) {
         if (dcList) dcList.innerHTML = '<div class="comments-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>No comments yet</span><span>Be the first to comment</span></div>';
         dcIsFirstLoad = false;
@@ -4896,10 +4940,8 @@ init();
   // ── Helper: create/show iframe panel in the main area ──
   function showDsIframePanel(src) {
     var panel = document.getElementById('ds-section-panel');
-    var arrows = document.getElementById('desktopNavArrows');
     dsFeed.style.display = 'none';
     dsComments.style.display = 'none';
-    if (arrows) arrows.style.display = 'none';
     if (!panel) {
       panel = document.createElement('div');
       panel.id = 'ds-section-panel';
@@ -4927,11 +4969,9 @@ init();
 
   function hideDsIframePanel() {
     var panel = document.getElementById('ds-section-panel');
-    var arrows = document.getElementById('desktopNavArrows');
     if (panel) panel.style.display = 'none';
     dsFeed.style.display = '';
     dsComments.style.display = '';
-    if (arrows) arrows.style.display = '';
     if (window._desktopFeedObs) {
       document.querySelectorAll('.desktop-card').forEach(function(card){ window._desktopFeedObs.observe(card); });
     }
@@ -5190,78 +5230,6 @@ init();
             +(_svTimeStr?'<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.6);text-shadow:0 1px 6px rgba(0,0,0,0.9);white-space:nowrap;">'+_svTimeStr+'</span>':'')
             +'</div>'
             +(post.text?'<div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:3px;text-shadow:0 1px 4px rgba(0,0,0,0.8);">'+post.text+'</div>':'');
-
-          // Action buttons (like, comment, share, save) — right of video
-          var existingActs = vidWrapOuter.querySelector('.sv-acts');
-          if (existingActs) existingActs.remove();
-          var svActs = document.createElement('div');
-          svActs.className = 'sv-acts';
-          svActs.style.cssText = 'position:absolute;right:-72px;bottom:80px;display:flex;flex-direction:column;align-items:center;gap:20px;z-index:30;';
-
-          // Like
-          var svLikeBtn = document.createElement('button');
-          var _svLiked = window._currentUser && post.likes && post.likes.includes(window._currentUser.uid);
-          svLikeBtn.className = _svLiked ? 'sv-btn on' : 'sv-btn';
-          svLikeBtn.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform 0.18s;';
-          svLikeBtn.innerHTML='<div style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;">'
-            +'<svg class="sv-heart" viewBox="0 0 24 24" width="26" height="26" fill="'+(_svLiked?'rgba(255,255,255,0.95)':'none')+'" stroke="rgba(255,255,255,0.95)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
-            +'</div><span style="font-size:11px;font-weight:800;color:rgba(255,255,255,0.88);text-shadow:0 1px 4px rgba(0,0,0,0.7);" class="sv-like-lbl">'+((post.likes&&post.likes.length)||0)+'</span>';
-          svLikeBtn.addEventListener('click',function(e){
-            e.stopPropagation();
-            if(!window._currentUser||!_svPostId)return;
-            var db6=window._fbDb,fns6=window._fbFirestoreFns;
-            if(!db6||!fns6)return;
-            var isOn=svLikeBtn.classList.contains('on');
-            svLikeBtn.classList.toggle('on');
-            var heart=svLikeBtn.querySelector('.sv-heart'),lbl=svLikeBtn.querySelector('.sv-like-lbl'),n=parseInt(lbl.textContent)||0;
-            lbl.textContent=isOn?Math.max(0,n-1):n+1;
-            if(heart)heart.setAttribute('fill',isOn?'none':'rgba(255,255,255,0.95)');
-            fns6.updateDoc(fns6.doc(db6,'recence',_svPostId),{likes:isOn?fns6.arrayRemove(window._currentUser.uid):fns6.arrayUnion(window._currentUser.uid)}).catch(function(){});
-          });
-          svActs.appendChild(svLikeBtn);
-
-          // Comment
-          var svCmtBtn=document.createElement('button');
-          var _svHasCmts=(post.commentCount&&post.commentCount>0);
-          svCmtBtn.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;';
-          svCmtBtn.innerHTML='<div style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;">'
-            +'<svg viewBox="0 0 122.97 122.88" width="26" height="26" xmlns="http://www.w3.org/2000/svg"><path d="M61.44,0a61.46,61.46,0,0,1,54.91,89l6.44,25.74a5.83,5.83,0,0,1-7.25,7L91.62,115A61.43,61.43,0,1,1,61.44,0ZM96.63,26.25a49.78,49.78,0,1,0-9,77.52A5.83,5.83,0,0,1,92.4,103L109,107.77l-4.5-18a5.86,5.86,0,0,1,.51-4.34,49.06,49.06,0,0,0,4.62-11.58,50,50,0,0,0-13-47.62Z" fill="rgba(255,255,255,0.9)"/></svg>'
-            +(_svHasCmts?'<span class="cmt-live-dot"></span>':'')
-            +'</div>';
-          svCmtBtn.addEventListener('click',function(e){
-            e.stopPropagation();
-            if(typeof openDesktopComments==='function'&&_svPostId)openDesktopComments(post,_svPostId,true);
-          });
-          svActs.appendChild(svCmtBtn);
-
-          // Share
-          var svShareBtn=document.createElement('button');
-          svShareBtn.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;';
-          svShareBtn.innerHTML='<div style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;">'
-            +'<svg viewBox="0 0 122.88 103.44" width="24" height="24" fill="rgba(255,255,255,0.9)"><path d="M69.49,102.77L49.8,84.04l-20.23,18.27c-0.45,0.49-1.09,0.79-1.8,0.79c-1.35,0-2.44-1.09-2.44-2.44V60.77L0.76,37.41c-0.98-0.93-1.01-2.47-0.09-3.45c0.31-0.33,0.7-0.55,1.11-0.67l0,0l118-33.2c1.3-0.36,2.64,0.39,3.01,1.69c0.19,0.66,0.08,1.34-0.24,1.89l-49.2,98.42c-0.6,1.2-2.06,1.69-3.26,1.09C69.86,103.07,69.66,102.93,69.49,102.77z"/></svg>'
-            +'</div><span style="font-size:11px;font-weight:800;color:rgba(255,255,255,0.88);text-shadow:0 1px 4px rgba(0,0,0,0.7);">Share</span>';
-          svShareBtn.addEventListener('click',function(e){
-            e.stopPropagation();
-            if(typeof openShareSheet==='function')openShareSheet(post,_svPostId);
-          });
-          svActs.appendChild(svShareBtn);
-
-          // Save
-          var svSaveBtn=document.createElement('button');
-          var _svIsSaved=window.isPostFavourited&&window.isPostFavourited(_svPostId);
-          svSaveBtn.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;';
-          svSaveBtn.innerHTML='<div style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;">'
-            +'<svg viewBox="0 0 24 24" width="24" height="24" fill="'+(_svIsSaved?'rgba(255,255,255,0.95)':'none')+'" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>'
-            +'</div><span style="font-size:11px;font-weight:800;color:rgba(255,255,255,0.88);text-shadow:0 1px 4px rgba(0,0,0,0.7);" class="sv-save-lbl">'+(_svIsSaved?'Saved':'Save')+'</span>';
-          svSaveBtn.addEventListener('click',function(e){
-            e.stopPropagation();
-            var s2=window.isPostFavourited&&window.isPostFavourited(_svPostId);
-            var icon=svSaveBtn.querySelector('svg'),lbl2=svSaveBtn.querySelector('.sv-save-lbl');
-            if(s2){window.removeFromFavourites&&window.removeFromFavourites(_svPostId);if(icon)icon.setAttribute('fill','none');if(lbl2)lbl2.textContent='Save';}
-            else{window.saveToFavourites&&window.saveToFavourites(post,_svPostId);if(icon)icon.setAttribute('fill','rgba(255,255,255,0.95)');if(lbl2)lbl2.textContent='Saved';}
-          });
-          svActs.appendChild(svSaveBtn);
-          vidWrapOuter.appendChild(svActs);
 
           // Load comments
           if (cmt) {
@@ -5687,25 +5655,7 @@ init();
     window._desktopFeedObs = obs;
   }
 
-  // Nav arrows HTML injection
-  function injectDesktopNavArrows() {
-    if (document.getElementById('desktopNavArrows')) return;
-    var arrows = document.createElement('div');
-    arrows.className = 'desktop-nav-arrows';
-    arrows.id = 'desktopNavArrows';
-    arrows.innerHTML =
-      '<button class="desktop-nav-arrow" id="dnUp" title="Previous"><svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg></button>' +
-      '<button class="desktop-nav-arrow" id="dnDown" title="Next"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>';
-    document.body.appendChild(arrows);
-
-    var feed = document.getElementById('desktop-feed');
-    document.getElementById('dnUp').addEventListener('click', function() {
-      if (feed) feed.scrollBy({ top: -window.innerHeight, behavior: 'smooth' });
-    });
-    document.getElementById('dnDown').addEventListener('click', function() {
-      if (feed) feed.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
-    });
-  }
+  // Nav arrows removed
 
   // Open first post in desktop panel on load
   document.addEventListener('desktopPostsReady', function(e) {
@@ -5727,7 +5677,7 @@ init();
     }
     setTimeout(function() {
       setupDesktopFeedObserver();
-      injectDesktopNavArrows();
+
     }, 200);
   });
 
