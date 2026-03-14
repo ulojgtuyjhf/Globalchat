@@ -884,16 +884,36 @@
             stroke: ${t.dsActionIcon} !important;
             filter: drop-shadow(${t.dsActionShadow}) !important;
           }
+          /* comment bubble icon — fill is on the path, must target path */
           .desktop-action-icon svg[viewBox="0 0 122.97 122.88"] {
             fill: ${t.dsActionIcon} !important;
             stroke: none !important;
             filter: drop-shadow(${t.dsActionShadow}) !important;
           }
+          .desktop-action-icon svg[viewBox="0 0 122.97 122.88"] path {
+            fill: ${t.dsActionIcon} !important;
+          }
+          /* send/share icon */
           .desktop-action-icon svg.send-icon,
           .desktop-action-icon svg[viewBox="0 0 122.88 103.44"] {
             fill: ${t.dsActionIcon} !important;
             stroke: none !important;
             filter: drop-shadow(${t.dsActionShadow}) !important;
+          }
+          .desktop-action-icon svg.send-icon path,
+          .desktop-action-icon svg[viewBox="0 0 122.88 103.44"] path {
+            fill: ${t.dsActionIcon} !important;
+          }
+          /* mobile slide action comment icon */
+          .slide-action-icon svg[viewBox="0 0 122.97 122.88"],
+          .slide-action-icon svg[viewBox="0 0 122.97 122.88"] path {
+            fill: ${t.dsActionIcon} !important;
+            stroke: none !important;
+          }
+          /* mobile slide action send/share icon */
+          .slide-action-icon svg.send-icon path,
+          .slide-action-icon svg[viewBox="0 0 122.88 103.44"] path {
+            fill: ${t.dsActionIcon} !important;
           }
           .desktop-action-label {
             color: ${t.dsActionLabel} !important;
