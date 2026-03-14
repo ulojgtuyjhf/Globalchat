@@ -703,11 +703,12 @@ body.dsv-open #desktop-comments {
     border: none;
 }
 .slide-action-btn.saved-on .slide-action-icon svg {
-    stroke: #ffffff !important;
-    fill: #ffffff !important;
+    fill: url(#brandBookmarkGrad) !important;
+    stroke: #626262 !important;
+    filter: drop-shadow(0 1px 4px rgba(0,0,0,0.7));
 }
 .slide-action-btn.saved-on .slide-action-label {
-    color: #ffffff !important;
+    color: rgba(255,255,255,0.92) !important;
 }
 
 /* Like pop + float heart */
@@ -1553,14 +1554,25 @@ body.dsv-open #desktop-comments {
     z-index: 5; pointer-events: none;
   }
   .desktop-card-creator {
-    font-size: 14px; font-weight: 900; color: #fff;
-    margin-bottom: 4px; text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+    font-size: 15px; font-weight: 900;
+    letter-spacing: -0.01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    /* brand gradient text — matches mobile exactly */
+    background: linear-gradient(90deg, #ffffff 0%, #d0d0d0 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    /* brand underline */
+    border-bottom: 1.5px solid;
+    border-image: linear-gradient(90deg, #fe2c55 0%, #626262 60%, rgba(255,255,255,0.2) 100%) 1;
+    padding-bottom: 1px;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.8));
+    margin-bottom: 0;
   }
   .desktop-card-caption {
     font-size: 12px; color: rgba(255,255,255,0.88);
     line-height: 1.4; text-shadow: 0 1px 6px rgba(0,0,0,0.6);
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-    overflow: hidden;
+    overflow: hidden; margin-top: 5px;
   }
 
   /* ── Action buttons: float OUTSIDE the right edge of the video card ──
@@ -1609,8 +1621,8 @@ body.dsv-open #desktop-comments {
   .desktop-action-btn.on .desktop-action-icon { background: none; border: none; }
   .desktop-action-btn.on .desktop-action-icon svg.heart-icon { fill: rgba(255,255,255,0.95) !important; stroke: rgba(255,255,255,0.95); }
   .desktop-action-btn.saved-on .desktop-action-icon { background: none; border: none; }
-  .desktop-action-btn.saved-on .desktop-action-icon svg { stroke: #fff !important; fill: #fff !important; }
-  .desktop-action-btn.saved-on .desktop-action-label { color: #fff !important; }
+  .desktop-action-btn.saved-on .desktop-action-icon svg { fill: url(#brandBookmarkGrad) !important; stroke: #626262 !important; filter: drop-shadow(0 1px 4px rgba(0,0,0,0.7)); }
+  .desktop-action-btn.saved-on .desktop-action-label { color: rgba(255,255,255,0.92) !important; }
   .desktop-action-btn:hover .desktop-action-icon { transform: scale(1.12); background: none; }
   /* Profile btn inside desktop actions */
   .desktop-action-btn .desktop-action-icon.profile-desktop {
@@ -1919,6 +1931,11 @@ body.dsv-open #desktop-comments {
     <svg width="0" height="0" style="position:absolute;overflow:hidden;">
         <defs>
             <linearGradient id="brandHeartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#0f0f0f"/>
+                <stop offset="40%" stop-color="#626262"/>
+                <stop offset="100%" stop-color="#a6a6a6"/>
+            </linearGradient>
+            <linearGradient id="brandBookmarkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stop-color="#0f0f0f"/>
                 <stop offset="40%" stop-color="#626262"/>
                 <stop offset="100%" stop-color="#a6a6a6"/>
@@ -2967,8 +2984,9 @@ function createPinElement(postData, postId) {
                 setTimeout(function() { if (vidLoader.parentNode) vidLoader.remove(); }, 380);
             };
             mediaElement.addEventListener('canplay', hideLoader, { once: true });
-            // Fallback: remove after 1.2s
-            setTimeout(hideLoader, 1200);
+            mediaElement.addEventListener('playing', hideLoader, { once: true });
+            // Fallback: remove after 3s max
+            setTimeout(hideLoader, 3000);
         } else {
             vidLoader.remove();
         }
@@ -4384,31 +4402,42 @@ init();
     info.className = 'desktop-card-info';
     var tsD = postData.timestamp;
     var _dcUpMs = tsD ? (tsD.seconds ? tsD.seconds*1000 : (tsD.toDate ? tsD.toDate().getTime() : null)) : null;
-    var _dcTimeLeftEl = document.createElement('span');
-    _dcTimeLeftEl.style.cssText = 'font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);white-space:nowrap;flex-shrink:0;';
-    if (_dcUpMs) {
-      var _dcExp = _dcUpMs + 24*60*60*1000;
-      function _dcCardFmt(ms) {
-        if (ms <= 0) return 'Expiring…';
-        var h = Math.floor(ms / 3600000);
-        var m = Math.floor((ms % 3600000) / 60000);
-        return h >= 1 ? h + 'h' : m + 'm';
-      }
-      _dcTimeLeftEl.textContent = _dcCardFmt(_dcExp - Date.now());
-      var _dcCardTimer = setInterval(function() {
-        var left = _dcExp - Date.now();
-        _dcTimeLeftEl.textContent = _dcCardFmt(left);
-        if (left <= 0) clearInterval(_dcCardTimer);
-      }, 60000);
-    }
+
+    // Creator row — matches mobile video-creator-av-row exactly
     var _dcCreatorRow = document.createElement('div');
-    _dcCreatorRow.style.cssText = 'display:flex;align-items:baseline;gap:7px;overflow:hidden;';
+    _dcCreatorRow.style.cssText = 'display:flex;align-items:baseline;gap:7px;overflow:hidden;margin-bottom:5px;';
+
     var _dcCreatorName = document.createElement('div');
     _dcCreatorName.className = 'desktop-card-creator';
     _dcCreatorName.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex-shrink:1;';
     _dcCreatorName.textContent = '@' + (postData.name || 'creator');
     _dcCreatorRow.appendChild(_dcCreatorName);
-    if (_dcUpMs) _dcCreatorRow.appendChild(_dcTimeLeftEl);
+
+    // Timestamp — same style as mobile video-creator-date
+    var _dcTimeLeftEl = document.createElement('span');
+    _dcTimeLeftEl.style.cssText = 'font-size:10px;font-weight:700;color:rgba(255,255,255,0.6);white-space:nowrap;flex-shrink:0;letter-spacing:0.03em;text-shadow:0 1px 6px rgba(0,0,0,0.9);';
+    function _dcCardFmt(ms) {
+      if (ms <= 0) return 'Expiring…';
+      var h = Math.floor(ms / 3600000);
+      var m = Math.floor((ms % 3600000) / 60000);
+      return h >= 1 ? h + 'h left' : m + 'm left';
+    }
+    if (_dcUpMs) {
+      var _dcExp = _dcUpMs + 24*60*60*1000;
+      var _dcLeft = _dcExp - Date.now();
+      _dcTimeLeftEl.textContent = _dcCardFmt(_dcLeft);
+      // Turn red when under 2 hours
+      if (_dcLeft < 7200000) _dcTimeLeftEl.style.color = 'rgba(255,59,92,0.9)';
+      var _dcCardTimer = setInterval(function() {
+        var left = _dcExp - Date.now();
+        _dcTimeLeftEl.textContent = _dcCardFmt(left);
+        if (left < 7200000) _dcTimeLeftEl.style.color = 'rgba(255,59,92,0.9)';
+        if (left <= 0) clearInterval(_dcCardTimer);
+      }, 60000);
+    } else {
+      _dcTimeLeftEl.textContent = '24h left';
+    }
+    _dcCreatorRow.appendChild(_dcTimeLeftEl);
     info.appendChild(_dcCreatorRow);
     if (postData.text) {
       var _dcCaption = document.createElement('div');
@@ -5059,13 +5088,13 @@ init();
     if (!panel) {
       panel = document.createElement('div');
       panel.id = 'ds-section-panel';
-      panel.style.cssText = 'flex:1;height:calc(100vh - 24px);border-radius:20px;overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,0.07);background:#fff;position:relative;';
+      panel.style.cssText = 'flex:1;height:calc(100vh - 24px);border-radius:20px;overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,0.07);background:#fff;position:relative;opacity:0;transition:opacity 0.2s ease;';
       var frame = document.createElement('iframe');
       frame.id = 'ds-section-frame';
       frame.style.cssText = 'width:100%;height:100%;border:none;display:block;';
       frame.setAttribute('allow', 'autoplay; camera; microphone');
       panel.appendChild(frame);
-      // Spinner overlay
+      // Spinner overlay — only for first load
       var loader = document.createElement('div');
       loader.className = 'ds-panel-loader';
       loader.style.cssText = 'position:absolute;inset:0;background:#f7f7f7;display:flex;align-items:center;justify-content:center;z-index:2;transition:opacity 0.3s;border-radius:20px;';
@@ -5073,17 +5102,32 @@ init();
       panel.appendChild(loader);
       document.getElementById('desktop-wrapper').appendChild(panel);
     }
-    panel.style.display = '';
     var frame = document.getElementById('ds-section-frame');
     var loader = panel.querySelector('.ds-panel-loader');
-    if (loader) { loader.style.opacity = '1'; loader.style.pointerEvents = 'all'; }
-    frame.onload = function() { if (loader) { loader.style.opacity = '0'; loader.style.pointerEvents = 'none'; } };
-    if (frame.src !== (window.location.origin + '/' + src) && frame.src !== src) frame.src = src;
+    var alreadyLoaded = frame._loadedSrc === src;
+
+    panel.style.display = '';
+
+    if (!alreadyLoaded) {
+      // First load — show spinner, fade in after load
+      panel.style.opacity = '0';
+      if (loader) { loader.style.opacity = '1'; loader.style.pointerEvents = 'all'; }
+      frame.onload = function() {
+        frame._loadedSrc = src;
+        if (loader) { loader.style.opacity = '0'; loader.style.pointerEvents = 'none'; }
+        panel.style.opacity = '1';
+      };
+      frame.src = src;
+    } else {
+      // Already loaded — just show instantly, no spinner
+      if (loader) { loader.style.opacity = '0'; loader.style.pointerEvents = 'none'; }
+      requestAnimationFrame(function() { panel.style.opacity = '1'; });
+    }
   }
 
   function hideDsIframePanel() {
     var panel = document.getElementById('ds-section-panel');
-    if (panel) panel.style.display = 'none';
+    if (panel) { panel.style.opacity = '0'; panel.style.display = 'none'; }
     dsFeed.style.display = '';
     dsComments.style.display = '';
     var _na2 = document.getElementById('desktopNavArrows'); if (_na2) _na2.style.display = '';
@@ -5141,46 +5185,50 @@ init();
     var btn = document.getElementById('dsNav' + section);
     if (btn) btn.classList.add('active');
 
+    // ── Always hide everything first ──
+    function hideAll() {
+      // Iframe panel (profile)
+      var _sp = document.getElementById('ds-section-panel');
+      if (_sp) { _sp.style.opacity = '0'; _sp.style.display = 'none'; }
+      // Saved panel
+      var _sav = document.getElementById('ds-saved-panel');
+      if (_sav) _sav.style.display = 'none';
+      // Close saved viewer if open
+      if (window._closeDsSavedViewer) window._closeDsSavedViewer();
+      // Nav arrows
+      var _na = document.getElementById('desktopNavArrows'); if (_na) _na.style.display = 'none';
+    }
+
     if (section === 'Home') {
-      hideDsIframePanel();
-      var _rna = document.getElementById('desktopNavArrows'); if (_rna) _rna.style.display = '';
-      var sp = document.getElementById('ds-saved-panel');
-      if (sp) sp.style.display = 'none';
+      hideAll();
       var feed2 = document.getElementById('desktop-feed');
       var cmt2  = document.getElementById('desktop-comments');
-      // Close saved viewer first (stops videos, cleans up)
-      if (window._closeDsSavedViewer) window._closeDsSavedViewer();
       if (feed2) {
         feed2.style.display = '';
-        // Restore the real home feed cards (saved viewer may have replaced them)
-        feed2.innerHTML = '';
-        document.querySelectorAll('.desktop-card[data-post-id]').forEach(function(c){
-          if (c.closest('#desktop-feed') || !c.parentNode) feed2.appendChild(c);
-        });
-        // Re-populate from global post cache if feed is empty
-        if (!feed2.querySelector('.desktop-card') && window._allDesktopCards) {
+        // Restore home feed cards from cache if needed
+        if (!feed2.querySelector('.desktop-card') && window._allDesktopCards && window._allDesktopCards.length) {
           window._allDesktopCards.forEach(function(c){ feed2.appendChild(c); });
         }
-        // Re-attach intersection observer
         if (window._desktopFeedObs) {
           feed2.querySelectorAll('.desktop-card').forEach(function(c){ window._desktopFeedObs.observe(c); });
         }
       }
       if (cmt2) { cmt2.style.display = ''; }
       document.body.classList.remove('dsv-open');
+      var _rna = document.getElementById('desktopNavArrows'); if (_rna) _rna.style.display = '';
       return;
     }
+
     if (section === 'Upload') {
-      // Slide up full-screen overlay (sidebar stays visible behind it)
       openDsUploadOverlay();
       return;
     }
+
     if (section === 'Top') {
-      // Snap feed to most commented card without leaving home
-      hideDsIframePanel();
+      // Snap to most commented without leaving home
       if (btn) btn.classList.remove('active');
-      var homeBtn = document.getElementById('dsNavHome');
-      if (homeBtn) homeBtn.classList.add('active');
+      var homeBtn2 = document.getElementById('dsNavHome');
+      if (homeBtn2) homeBtn2.classList.add('active');
       var cards = document.querySelectorAll('.desktop-card');
       var bestCard = null, bestCount = -1;
       cards.forEach(function(card) {
@@ -5188,21 +5236,21 @@ init();
         if (count > bestCount) { bestCount = count; bestCard = card; }
       });
       if (bestCard) {
-        var feed = document.getElementById('desktop-feed');
-        if (feed) feed.scrollTo({ top: bestCard.offsetTop, behavior: 'smooth' });
+        var feedTop = document.getElementById('desktop-feed');
+        if (feedTop) feedTop.scrollTo({ top: bestCard.offsetTop, behavior: 'smooth' });
       }
       return;
     }
+
     if (section === 'Liked') {
-      // Hide home nav arrows while in saved section
-      var _hna = document.getElementById('desktopNavArrows'); if (_hna) _hna.style.display = 'none';
-      // Pause desktop feed videos
+      hideAll();
+      // Pause all videos
       document.querySelectorAll('#desktop-feed video, #gallery video').forEach(function(v){ v.pause(); });
-      // Hide feed; keep comment panel in DOM but close it (it reopens when a saved video is clicked)
-      var feed = document.getElementById('desktop-feed');
-      var cmt  = document.getElementById('desktop-comments');
-      if (feed) feed.style.display = 'none';
-      if (cmt)  { cmt.classList.remove('open'); document.body.classList.remove('comments-open'); }
+      // Hide feed + close comment panel
+      var feedL = document.getElementById('desktop-feed');
+      var cmtL  = document.getElementById('desktop-comments');
+      if (feedL) feedL.style.display = 'none';
+      if (cmtL)  { cmtL.classList.remove('open'); document.body.classList.remove('comments-open'); }
 
       var panel = document.getElementById('ds-saved-panel');
       if (!panel) {
@@ -5440,8 +5488,12 @@ init();
       return;
     }
     if (section === 'Profile') {
-      var sp2 = document.getElementById('ds-saved-panel');
-      if (sp2) sp2.style.display = 'none';
+      hideAll();
+      // Hide feed and comment panel
+      var feedP = document.getElementById('desktop-feed');
+      var cmtP  = document.getElementById('desktop-comments');
+      if (feedP) feedP.style.display = 'none';
+      if (cmtP)  { cmtP.classList.remove('open'); document.body.classList.remove('comments-open'); }
       showDsIframePanel('profile.html');
       return;
     }
