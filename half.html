@@ -4270,7 +4270,25 @@ init();
   window._createPinElement = createPinElement;
   window._openDesktopComments = function(pd, pid) {
     var cmt = document.getElementById('desktop-comments');
-    if (cmt) { cmt.style.display = ''; }
+    if (cmt) {
+      // Clear any inline display:none from section-switching
+      cmt.style.display = '';
+      // If any fullscreen viewer is open, force-lift the comment panel above it
+      var dsvEl = document.getElementById('dsv-overlay');
+      var lkVEl = document.getElementById('liked-viewer');
+      var inViewer = document.body.classList.contains('dsv-open')
+                  || (dsvEl && dsvEl.style.display === 'flex')
+                  || (lkVEl && lkVEl.classList.contains('open'));
+      if (inViewer) {
+        cmt.style.position = 'fixed';
+        cmt.style.top      = '12px';
+        cmt.style.right    = '12px';
+        cmt.style.height   = 'calc(100vh - 24px)';
+        cmt.style.zIndex   = '10015';
+        cmt.style.display  = 'flex';
+        document.body.classList.add('dsv-open');
+      }
+    }
     openDesktopComments(pd, pid, true);
   };
 
@@ -5117,7 +5135,15 @@ init();
       var feed2 = document.getElementById('desktop-feed');
       var cmt2  = document.getElementById('desktop-comments');
       if (feed2) feed2.style.display = '';
-      if (cmt2)  cmt2.style.display  = '';
+      if (cmt2) {
+        cmt2.style.position = '';
+        cmt2.style.top      = '';
+        cmt2.style.right    = '';
+        cmt2.style.height   = '';
+        cmt2.style.zIndex   = '';
+        cmt2.style.display  = '';
+      }
+      document.body.classList.remove('dsv-open');
       if (window._closeDsSavedViewer) window._closeDsSavedViewer();
       return;
     }
@@ -5266,9 +5292,18 @@ init();
           dsvFeed.innerHTML = '';
           // Remove dsv-open so share sheet + comments panel z-index revert
           document.body.classList.remove('dsv-open');
-          // Close comments panel cleanly
+          document.body.classList.remove('comments-open');
+          // Close comments panel and fully reset all inline overrides
           var cmt = document.getElementById('desktop-comments');
-          if (cmt) { cmt.classList.remove('open'); document.body.classList.remove('comments-open'); }
+          if (cmt) {
+            cmt.classList.remove('open');
+            cmt.style.position = '';
+            cmt.style.top      = '';
+            cmt.style.right    = '';
+            cmt.style.height   = '';
+            cmt.style.zIndex   = '';
+            cmt.style.display  = 'none';
+          }
           dsvOverlay.dispatchEvent(new Event('dsvClose'));
         }
         window._closeDsSavedViewer = closeDsvOverlay;
