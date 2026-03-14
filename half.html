@@ -403,13 +403,18 @@ body {
 
 /* ── Desktop saved viewer overlay ── */
 #dsv-feed::-webkit-scrollbar { display: none; }
+.dsv-slot { scroll-snap-align: start; scroll-snap-stop: always; }
 #dsv-overlay .desktop-card {
-  height: 100vh;
-  min-height: 100vh;
+  height: 100vh !important;
+  min-height: 100vh !important;
 }
 #dsv-overlay .desktop-card-video-wrap {
-  height: calc(100vh - 32px);
-  max-height: calc(100vh - 32px);
+  height: calc(100vh - 32px) !important;
+  max-height: calc(100vh - 32px) !important;
+}
+#dsv-overlay .desktop-card-actions {
+  /* Keep actions right of the 9:16 card */
+  left: calc(50% + (calc((100vh - 32px) * 9 / 16) / 2) + 14px);
 }
 
 /* ── Comment live red dot ── */
@@ -5121,93 +5126,148 @@ init();
         panel.appendChild(gridCol);
         document.getElementById('desktop-wrapper').appendChild(panel);
 
-        panel.appendChild(gridCol);
-        document.getElementById('desktop-wrapper').appendChild(panel);
-
         // ── Desktop saved fullscreen viewer — scroll-snapped like home feed ──
         var dsvOverlay = document.createElement('div');
         dsvOverlay.id = 'dsv-overlay';
         dsvOverlay.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:#000;flex-direction:column;';
-        // Feed container — vertical scroll-snap
+
         var dsvFeed = document.createElement('div');
         dsvFeed.id = 'dsv-feed';
-        dsvFeed.style.cssText = 'flex:1;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;';
-        // Back button — top-left, brand gradient, same as mobile
-        var dsvBack = document.createElement('button');
-        dsvBack.id = 'dsv-back';
-        dsvBack.style.cssText = 'position:fixed;top:14px;left:14px;z-index:10010;width:36px;height:36px;border-radius:50%;background:var(--brand-gradient,linear-gradient(135deg,#fe2c55,#ff6b6b));border:none;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.4);';
-        dsvBack.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
-        dsvBack.addEventListener('click', function(){ closeDsvOverlay(); });
+        dsvFeed.style.cssText = 'flex:1;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;position:relative;';
+
         dsvOverlay.appendChild(dsvFeed);
         document.body.appendChild(dsvOverlay);
+
+        // Back button — brand gradient circle, top-left fixed
+        var dsvBack = document.createElement('button');
+        dsvBack.id = 'dsv-back';
+        dsvBack.style.cssText = 'position:fixed;top:14px;left:14px;z-index:10010;width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#fe2c55,#ff6b6b);border:none;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 16px rgba(254,44,85,0.45);transition:transform 0.15s;';
+        dsvBack.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+        dsvBack.onmouseenter = function(){ dsvBack.style.transform='scale(1.1)'; };
+        dsvBack.onmouseleave = function(){ dsvBack.style.transform='scale(1)'; };
         document.body.appendChild(dsvBack);
 
+        // Scroll nav arrows — prev/next, right side fixed
+        var dsvNavUp = document.createElement('button');
+        dsvNavUp.style.cssText = 'position:fixed;right:22px;top:50%;transform:translateY(-calc(50% + 28px));z-index:10010;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.14);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1.5px solid rgba(255,255,255,0.18);cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:background 0.15s,transform 0.15s;margin-bottom:8px;';
+        dsvNavUp.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>';
+        dsvNavUp.onmouseenter = function(){ dsvNavUp.style.background='rgba(255,255,255,0.24)'; dsvNavUp.style.transform='translateY(calc(-50% - 28px)) scale(1.08)'; };
+        dsvNavUp.onmouseleave = function(){ dsvNavUp.style.background='rgba(255,255,255,0.14)'; dsvNavUp.style.transform='translateY(calc(-50% - 28px)) scale(1)'; };
+        document.body.appendChild(dsvNavUp);
+
+        var dsvNavDown = document.createElement('button');
+        dsvNavDown.style.cssText = 'position:fixed;right:22px;top:50%;transform:translateY(calc(-50% + 28px));z-index:10010;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.14);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1.5px solid rgba(255,255,255,0.18);cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:background 0.15s,transform 0.15s;margin-top:8px;';
+        dsvNavDown.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+        dsvNavDown.onmouseenter = function(){ dsvNavDown.style.background='rgba(255,255,255,0.24)'; dsvNavDown.style.transform='translateY(calc(-50% + 28px)) scale(1.08)'; };
+        dsvNavDown.onmouseleave = function(){ dsvNavDown.style.background='rgba(255,255,255,0.14)'; dsvNavDown.style.transform='translateY(calc(-50% + 28px)) scale(1)'; };
+        document.body.appendChild(dsvNavDown);
+
         var _dsvObs = null;
+        var _dsvSlots = [];
+
+        function _dsvCurrentIndex() {
+          var best = 0, bestRatio = -1;
+          _dsvSlots.forEach(function(s, i){
+            var rect = s.getBoundingClientRect();
+            var vis = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
+            var ratio = vis / window.innerHeight;
+            if (ratio > bestRatio) { bestRatio = ratio; best = i; }
+          });
+          return best;
+        }
+
+        dsvNavUp.addEventListener('click', function(){
+          var i = _dsvCurrentIndex();
+          if (i > 0 && _dsvSlots[i-1]) _dsvSlots[i-1].scrollIntoView({ behavior:'smooth' });
+        });
+        dsvNavDown.addEventListener('click', function(){
+          var i = _dsvCurrentIndex();
+          if (i < _dsvSlots.length-1 && _dsvSlots[i+1]) _dsvSlots[i+1].scrollIntoView({ behavior:'smooth' });
+        });
 
         function closeDsvOverlay() {
           if (_dsvObs) { _dsvObs.disconnect(); _dsvObs = null; }
+          _dsvSlots = [];
           dsvFeed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
           dsvOverlay.style.display = 'none';
           dsvBack.style.display = 'none';
+          dsvNavUp.style.display = 'none';
+          dsvNavDown.style.display = 'none';
           dsvFeed.innerHTML = '';
         }
         window._closeDsSavedViewer = closeDsvOverlay;
+        dsvBack.addEventListener('click', closeDsvOverlay);
 
-        // Cell click — open fullscreen scrollable viewer starting at this post
         window._openDsSavedVideo = function(clickedPost) {
-          // Tear down previous
           if (_dsvObs) { _dsvObs.disconnect(); _dsvObs = null; }
+          _dsvSlots = [];
           dsvFeed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
           dsvFeed.innerHTML = '';
 
           var posts = window._savedPosts || [];
           if (!posts.length) return;
-
           var buildCard = window._buildDesktopCard;
           if (!buildCard) return;
 
-          // Build a desktop card for every saved post
-          var cards = [];
+          // Build a card-slot per saved post
           posts.forEach(function(p) {
             if (!p.media || !p.media[0] || !p.media[0].url) return;
-            var pid = p._id || '';
             var slot = document.createElement('div');
+            slot.className = 'dsv-slot';
             slot.style.cssText = 'width:100%;height:100vh;flex-shrink:0;scroll-snap-align:start;scroll-snap-stop:always;display:flex;align-items:center;justify-content:center;background:#000;position:relative;';
-            var card = buildCard(p, pid);
+            var card = buildCard(p, p._id || '');
             if (!card) return;
+            // Override card dimensions to fill viewer properly
+            var wrap = card.querySelector('.desktop-card-video-wrap');
+            if (wrap) { wrap.style.height='calc(100vh - 32px)'; wrap.style.maxHeight='calc(100vh - 32px)'; }
+            card.style.height = '100vh';
+            // Wire comment button to open desktop comments panel (above overlay via z-index)
+            var cmtBtns = card.querySelectorAll('.desktop-action-btn[aria-label="Comments"]');
+            cmtBtns.forEach(function(b){
+              b.onclick = function(e){
+                e.stopPropagation();
+                if (typeof openDesktopComments === 'function') {
+                  openDesktopComments(p, p._id||'', true);
+                  // Bring comments panel above overlay
+                  var dc = document.getElementById('desktop-comments');
+                  if (dc) { dc.style.zIndex='10020'; dc.style.display=''; }
+                }
+              };
+            });
             slot.appendChild(card);
             dsvFeed.appendChild(slot);
-            cards.push({ slot:slot, card:card, post:p });
+            _dsvSlots.push(slot);
           });
 
-          if (!cards.length) return;
+          if (!_dsvSlots.length) return;
 
-          // Show overlay + back button
+          // Show overlay + controls
           dsvOverlay.style.display = 'flex';
           dsvBack.style.display = 'flex';
+          dsvNavUp.style.display = 'flex';
+          dsvNavDown.style.display = 'flex';
 
           // Scroll to clicked post
-          var startIdx = posts.findIndex(function(p){ return p._id === (clickedPost._id||''); });
-          if (startIdx < 0) startIdx = 0;
-          // Use requestAnimationFrame so DOM is painted before scrolling
+          var startIdx = Math.max(0, posts.filter(function(p){ return p.media&&p.media[0]&&p.media[0].url; }).findIndex(function(p){ return p._id === (clickedPost._id||''); }));
+
           requestAnimationFrame(function(){
-            var slots = dsvFeed.querySelectorAll('div[style*="scroll-snap-align"]');
-            if (slots[startIdx]) dsvFeed.scrollTop = slots[startIdx].offsetTop;
-            // IntersectionObserver — play video in view
+            if (_dsvSlots[startIdx]) {
+              dsvFeed.scrollTop = _dsvSlots[startIdx].offsetTop;
+            }
+            // IntersectionObserver for autoplay
             _dsvObs = new IntersectionObserver(function(entries){
               entries.forEach(function(entry){
                 var vid = entry.target.querySelector('video');
                 if (!vid) return;
                 if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
-                  vid.muted = false;
-                  vid.currentTime = 0;
+                  vid.muted = false; vid.currentTime = 0;
                   vid.play().catch(function(){ vid.muted=true; vid.play().catch(function(){}); });
                 } else {
                   vid.pause();
                 }
               });
             }, { root: dsvFeed, threshold: 0.55 });
-            slots.forEach(function(s){ _dsvObs.observe(s); });
+            _dsvSlots.forEach(function(s){ _dsvObs.observe(s); });
           });
         };
       }
