@@ -755,7 +755,7 @@ body {
 .cs-overlay {
     position: fixed; inset: 0;
     background: rgba(0,0,0,0.5);
-    z-index: 2500; opacity: 0; pointer-events: none;
+    z-index: 10003; opacity: 0; pointer-events: none;
     transition: opacity 0.3s ease;
 }
 .cs-overlay.open { opacity: 1; pointer-events: all; }
@@ -765,7 +765,7 @@ body {
     height: 76dvh;
     background: #fff;
     border-radius: 20px 20px 0 0;
-    z-index: 2600;
+    z-index: 10005;
     display: flex; flex-direction: column;
     transform: translateY(100%);
     transition: transform 0.42s cubic-bezier(0.22,1,0.36,1);
@@ -2741,45 +2741,52 @@ async function setupVideoVisibility() {
     window._playVideo = playVideo;
 }
 
-// Auto-delete posts older than 24 hours (full cascade: replies + R2 file + Firestore doc)
+// Auto-delete posts older than 24 hours — full cascade: comments + replies + R2 files + Firestore doc
 async function deleteOldPosts() {
     try {
         const cutoff = Date.now() - (24 * 60 * 60 * 1000);
         const firestoreTs = new Date(cutoff);
-        const oldQuery = query(
-            collection(db, 'recence'),
-            where('timestamp', '<', firestoreTs)
-        );
-        const oldSnap = await getDocs(oldQuery);
+        const oldSnap = await getDocs(query(collection(db, 'recence'), where('timestamp', '<', firestoreTs)));
         if (oldSnap.empty) return;
 
         for (const d of oldSnap.docs) {
             const postId = d.id;
             const postData = d.data();
 
-            // 1. Delete all replies subcollection docs
+            // 1. Delete all comments (root + replies in same subcollection)
+            try {
+                const cmtSnap = await getDocs(collection(db, 'recence', postId, 'comments'));
+                await Promise.all(cmtSnap.docs.map(c => deleteDoc(doc(db, 'recence', postId, 'comments', c.id))));
+            } catch(e) { console.warn('comments delete failed', postId, e); }
+
+            // 2. Delete all replies subcollection docs
             try {
                 const repliesSnap = await getDocs(collection(db, 'recence', postId, 'replies'));
-                const replyDeletes = repliesSnap.docs.map(r => deleteDoc(doc(db, 'recence', postId, 'replies', r.id)));
-                await Promise.all(replyDeletes);
+                await Promise.all(repliesSnap.docs.map(r => deleteDoc(doc(db, 'recence', postId, 'replies', r.id))));
             } catch(e) { console.warn('replies delete failed', postId, e); }
 
-            // 2. Delete R2 storage file(s)
+            // 3. Delete R2 storage file(s) — use fileId or extract from URL
             try {
                 const media = postData.media || [];
                 for (const m of media) {
-                    if (m.fileId) await appwrite.deleteFile(m.fileId);
+                    let fileId = m.fileId;
+                    if (!fileId && m.url) {
+                        // Extract filename from R2 URL: .../media-uploads/filename
+                        const parts = m.url.split('/');
+                        fileId = parts[parts.length - 1];
+                    }
+                    if (fileId) await appwrite.deleteFile(fileId);
                 }
             } catch(e) { console.warn('R2 delete failed', postId, e); }
 
-            // 3. Delete Firestore post doc
+            // 4. Delete Firestore post document
             try {
                 await deleteDoc(doc(db, 'recence', postId));
             } catch(e) { console.warn('post delete failed', postId, e); }
         }
         console.log(`Purged ${oldSnap.size} expired posts`);
     } catch (err) {
-        console.error('Error purging old posts:', err);
+        console.error('deleteOldPosts error:', err);
     }
 }
 
@@ -5189,10 +5196,7 @@ init();
           if (_dsvObs) { _dsvObs.disconnect(); _dsvObs = null; }
           _dsvSlots = [];
           dsvFeed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
-          // Reset desktop-comments panel back to normal positioning
-          var _dc = document.getElementById('desktop-comments');
-          if (_dc) { _dc.style.position=''; _dc.style.right=''; _dc.style.top=''; _dc.style.height=''; _dc.style.borderRadius=''; _dc.style.zIndex=''; _dc.style.display=''; _dc.classList.remove('open'); }
-          document.body.classList.remove('comments-open');
+
           dsvOverlay.style.display = 'none';
           dsvBack.style.display = 'none';
           dsvNavUp.style.display = 'none';
@@ -5226,28 +5230,12 @@ init();
             var wrap = card.querySelector('.desktop-card-video-wrap');
             if (wrap) { wrap.style.height='calc(100vh - 32px)'; wrap.style.maxHeight='calc(100vh - 32px)'; }
             card.style.height = '100vh';
-            // Wire comment button — open desktop-comments panel as fixed overlay on top
+            // Wire comment button — use the same mobile comment sheet (openModal)
             var cmtBtns = card.querySelectorAll('.desktop-action-btn[aria-label="Comments"]');
             cmtBtns.forEach(function(b){
               b.onclick = function(e){
                 e.stopPropagation();
-                var dc = document.getElementById('desktop-comments');
-                if (dc) {
-                  // Temporarily make it fixed so it floats above the dsv overlay
-                  dc.style.position = 'fixed';
-                  dc.style.right = '0';
-                  dc.style.top = '0';
-                  dc.style.height = '100vh';
-                  dc.style.borderRadius = '20px 0 0 20px';
-                  dc.style.zIndex = '10020';
-                  dc.style.display = 'flex';
-                }
-                if (typeof openDesktopComments === 'function') openDesktopComments(p, p._id||'', true);
-                // When dsv overlay closes, reset desktop-comments positioning
-                dsvOverlay.addEventListener('dsvClose', function resetDc(){
-                  if (dc) { dc.style.position=''; dc.style.right=''; dc.style.top=''; dc.style.height=''; dc.style.borderRadius=''; dc.style.zIndex=''; dc.style.display=''; }
-                  dsvOverlay.removeEventListener('dsvClose', resetDc);
-                });
+                if (typeof openModal === 'function') openModal(p, p._id||'');
               };
             });
             slot.appendChild(card);
