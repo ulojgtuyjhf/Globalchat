@@ -2880,7 +2880,12 @@ async function fetchPosts() {
                 // Desktop feed
                 if (isDesktop && desktopFeed && typeof window._buildDesktopCard === 'function') {
                     const card = window._buildDesktopCard(postData, doc.id);
-                    if (card) desktopFeed.appendChild(card);
+                    if (card) {
+                        desktopFeed.appendChild(card);
+                        // Cache for restoring after saved-viewer exits
+                        if (!window._allDesktopCards) window._allDesktopCards = [];
+                        window._allDesktopCards.push(card);
+                    }
                 }
                 desktopPosts.push({ data: postData, id: doc.id });
             }
@@ -4271,23 +4276,8 @@ init();
   window._openDesktopComments = function(pd, pid) {
     var cmt = document.getElementById('desktop-comments');
     if (cmt) {
-      // Clear any inline display:none from section-switching
+      // Clear any inline display override from section-switching
       cmt.style.display = '';
-      // If any fullscreen viewer is open, force-lift the comment panel above it
-      var dsvEl = document.getElementById('dsv-overlay');
-      var lkVEl = document.getElementById('liked-viewer');
-      var inViewer = document.body.classList.contains('dsv-open')
-                  || (dsvEl && dsvEl.style.display === 'flex')
-                  || (lkVEl && lkVEl.classList.contains('open'));
-      if (inViewer) {
-        cmt.style.position = 'fixed';
-        cmt.style.top      = '12px';
-        cmt.style.right    = '12px';
-        cmt.style.height   = 'calc(100vh - 24px)';
-        cmt.style.zIndex   = '10015';
-        cmt.style.display  = 'flex';
-        document.body.classList.add('dsv-open');
-      }
     }
     openDesktopComments(pd, pid, true);
   };
@@ -5134,17 +5124,26 @@ init();
       if (sp) sp.style.display = 'none';
       var feed2 = document.getElementById('desktop-feed');
       var cmt2  = document.getElementById('desktop-comments');
-      if (feed2) feed2.style.display = '';
-      if (cmt2) {
-        cmt2.style.position = '';
-        cmt2.style.top      = '';
-        cmt2.style.right    = '';
-        cmt2.style.height   = '';
-        cmt2.style.zIndex   = '';
-        cmt2.style.display  = '';
-      }
-      document.body.classList.remove('dsv-open');
+      // Close saved viewer first (stops videos, cleans up)
       if (window._closeDsSavedViewer) window._closeDsSavedViewer();
+      if (feed2) {
+        feed2.style.display = '';
+        // Restore the real home feed cards (saved viewer may have replaced them)
+        feed2.innerHTML = '';
+        document.querySelectorAll('.desktop-card[data-post-id]').forEach(function(c){
+          if (c.closest('#desktop-feed') || !c.parentNode) feed2.appendChild(c);
+        });
+        // Re-populate from global post cache if feed is empty
+        if (!feed2.querySelector('.desktop-card') && window._allDesktopCards) {
+          window._allDesktopCards.forEach(function(c){ feed2.appendChild(c); });
+        }
+        // Re-attach intersection observer
+        if (window._desktopFeedObs) {
+          feed2.querySelectorAll('.desktop-card').forEach(function(c){ window._desktopFeedObs.observe(c); });
+        }
+      }
+      if (cmt2) { cmt2.style.display = ''; }
+      document.body.classList.remove('dsv-open');
       return;
     }
     if (section === 'Upload') {
@@ -5175,11 +5174,11 @@ init();
       var _hna = document.getElementById('desktopNavArrows'); if (_hna) _hna.style.display = 'none';
       // Pause desktop feed videos
       document.querySelectorAll('#desktop-feed video, #gallery video').forEach(function(v){ v.pause(); });
-      // Hide feed + comments, show saved panel
+      // Hide feed; keep comment panel in DOM but close it (it reopens when a saved video is clicked)
       var feed = document.getElementById('desktop-feed');
       var cmt  = document.getElementById('desktop-comments');
       if (feed) feed.style.display = 'none';
-      if (cmt)  { cmt.classList.remove('open'); cmt.style.display = 'none'; }
+      if (cmt)  { cmt.classList.remove('open'); document.body.classList.remove('comments-open'); }
 
       var panel = document.getElementById('ds-saved-panel');
       if (!panel) {
@@ -5222,163 +5221,133 @@ init();
         panel.appendChild(gridCol);
         document.getElementById('desktop-wrapper').appendChild(panel);
 
-        // ── Desktop saved fullscreen viewer — scroll-snapped like home feed ──
-        var dsvOverlay = document.createElement('div');
-        dsvOverlay.id = 'dsv-overlay';
-        dsvOverlay.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:#000;flex-direction:column;';
+        // ── Desktop saved viewer — reuses #desktop-feed + #desktop-comments exactly like home ──
+        // No full-screen overlay. We swap the desktop-feed content, show the comment panel,
+        // and add a back button inside the feed area. Same layout as home = comments always work.
 
-        var dsvFeed = document.createElement('div');
-        dsvFeed.id = 'dsv-feed';
-        dsvFeed.style.cssText = 'flex:1;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;position:relative;';
+        var _dsvObs = null;
+        var _dsvCards = [];
+        var _dsvFeedEl = document.getElementById('desktop-feed');
 
-        dsvOverlay.appendChild(dsvFeed);
-        document.body.appendChild(dsvOverlay);
-
-        // Back button — brand gradient circle, top-left fixed
+        // Back button — lives inside desktop-feed area, top-left
         var dsvBack = document.createElement('button');
         dsvBack.id = 'dsv-back';
-        dsvBack.style.cssText = 'position:fixed;top:14px;left:14px;z-index:10010;width:36px;height:36px;border-radius:50%;background:var(--brand-gradient);border:none;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.3);transition:transform 0.15s;-webkit-tap-highlight-color:transparent;';
+        dsvBack.style.cssText = [
+          'position:sticky','top:14px','left:14px',
+          'z-index:50','width:36px','height:36px',
+          'border-radius:50%','background:var(--brand-gradient)',
+          'border:none','cursor:pointer','display:none',
+          'align-items:center','justify-content:center',
+          'box-shadow:0 2px 12px rgba(0,0,0,0.3)',
+          'transition:transform 0.15s',
+          'margin:14px 0 0 14px',
+          'flex-shrink:0'
+        ].join(';');
         dsvBack.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
         dsvBack.onmouseenter = function(){ dsvBack.style.transform='scale(1.1)'; };
         dsvBack.onmouseleave = function(){ dsvBack.style.transform='scale(1)'; };
-        document.body.appendChild(dsvBack);
-
-        // Scroll nav arrows — prev/next, right side fixed
-        var dsvNavUp = document.createElement('button');
-        dsvNavUp.className = 'desktop-nav-arrow';
-        dsvNavUp.style.cssText = 'position:fixed;right:16px;top:calc(50% - 29px);z-index:10010;display:none;';
-        dsvNavUp.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>';
-
-        document.body.appendChild(dsvNavUp);
-
-        var dsvNavDown = document.createElement('button');
-        dsvNavDown.className = 'desktop-nav-arrow';
-        dsvNavDown.style.cssText = 'position:fixed;right:16px;top:calc(50% + 9px);z-index:10010;display:none;';
-        dsvNavDown.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
-
-        document.body.appendChild(dsvNavDown);
-
-        var _dsvObs = null;
-        var _dsvSlots = [];
-
-        function _dsvCurrentIndex() {
-          var best = 0, bestRatio = -1;
-          _dsvSlots.forEach(function(s, i){
-            var rect = s.getBoundingClientRect();
-            var vis = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
-            var ratio = vis / window.innerHeight;
-            if (ratio > bestRatio) { bestRatio = ratio; best = i; }
-          });
-          return best;
-        }
-
-        dsvNavUp.addEventListener('click', function(){
-          var i = _dsvCurrentIndex();
-          if (i > 0 && _dsvSlots[i-1]) _dsvSlots[i-1].scrollIntoView({ behavior:'smooth' });
-        });
-        dsvNavDown.addEventListener('click', function(){
-          var i = _dsvCurrentIndex();
-          if (i < _dsvSlots.length-1 && _dsvSlots[i+1]) _dsvSlots[i+1].scrollIntoView({ behavior:'smooth' });
-        });
 
         function closeDsvOverlay() {
           if (_dsvObs) { _dsvObs.disconnect(); _dsvObs = null; }
-          _dsvSlots = [];
-          dsvFeed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
-          dsvOverlay.style.display = 'none';
-          dsvBack.style.display = 'none';
-          dsvNavUp.style.display = 'none';
-          dsvNavDown.style.display = 'none';
-          dsvFeed.innerHTML = '';
-          // Remove dsv-open so share sheet + comments panel z-index revert
-          document.body.classList.remove('dsv-open');
-          document.body.classList.remove('comments-open');
-          // Close comments panel and fully reset all inline overrides
-          var cmt = document.getElementById('desktop-comments');
-          if (cmt) {
-            cmt.classList.remove('open');
-            cmt.style.position = '';
-            cmt.style.top      = '';
-            cmt.style.right    = '';
-            cmt.style.height   = '';
-            cmt.style.zIndex   = '';
-            cmt.style.display  = 'none';
+          _dsvCards = [];
+          var feed = document.getElementById('desktop-feed');
+          if (feed) {
+            feed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
+            feed.innerHTML = '';
+            // Restore real home feed cards from cache
+            if (window._allDesktopCards && window._allDesktopCards.length) {
+              window._allDesktopCards.forEach(function(c){ feed.appendChild(c); });
+              if (window._desktopFeedObs) {
+                window._allDesktopCards.forEach(function(c){ window._desktopFeedObs.observe(c); });
+              }
+            }
+            feed.style.display = 'none';
           }
-          dsvOverlay.dispatchEvent(new Event('dsvClose'));
+          dsvBack.style.display = 'none';
+          // Close comment panel cleanly
+          document.body.classList.remove('comments-open');
+          var cmt = document.getElementById('desktop-comments');
+          if (cmt) { cmt.classList.remove('open'); cmt.style.display = 'none'; }
+          // Show the saved grid panel again
+          if (panel) panel.style.display = 'flex';
+          var _na = document.getElementById('desktopNavArrows'); if (_na) _na.style.display = 'none';
         }
         window._closeDsSavedViewer = closeDsvOverlay;
         dsvBack.addEventListener('click', closeDsvOverlay);
+        if (_dsvFeedEl) _dsvFeedEl.appendChild(dsvBack);
 
         window._openDsSavedVideo = function(clickedPost) {
           if (_dsvObs) { _dsvObs.disconnect(); _dsvObs = null; }
-          _dsvSlots = [];
-          dsvFeed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
-          dsvFeed.innerHTML = '';
+          _dsvCards = [];
+
+          var feed = document.getElementById('desktop-feed');
+          var cmt  = document.getElementById('desktop-comments');
+          if (!feed) return;
+
+          // Pause any currently playing videos
+          feed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
+          feed.innerHTML = '';
 
           var posts = window._savedPosts || [];
           if (!posts.length) return;
           var buildCard = window._buildDesktopCard;
           if (!buildCard) return;
 
+          // Show back button at top of feed
+          dsvBack.style.display = 'flex';
+          feed.appendChild(dsvBack);
+
           posts.forEach(function(p) {
             if (!p.media || !p.media[0] || !p.media[0].url) return;
-            var slot = document.createElement('div');
-            slot.className = 'dsv-slot';
-            slot.style.cssText = 'width:100%;height:100vh;flex-shrink:0;scroll-snap-align:start;scroll-snap-stop:always;display:flex;align-items:center;justify-content:center;background:#000;position:relative;';
             var card = buildCard(p, p._id || '');
             if (!card) return;
             card._postData = p;
-            var wrap = card.querySelector('.desktop-card-video-wrap');
-            if (wrap) { wrap.style.height='calc(100vh - 32px)'; wrap.style.maxHeight='calc(100vh - 32px)'; }
-            card.style.height = '100vh';
-            // Re-wire comment button to open desktop comments panel (visible above overlay via body.dsv-open CSS)
-            var cmtBtns = card.querySelectorAll('.desktop-action-btn[aria-label="Comments"]');
-            cmtBtns.forEach(function(b){
-              var fresh = b.cloneNode(true);
-              b.parentNode.replaceChild(fresh, b);
-              fresh.addEventListener('click', function(e){
-                e.stopPropagation();
-                if (typeof window._openDesktopComments === 'function') window._openDesktopComments(p, p._id||'');
-              });
-            });
-            slot.appendChild(card);
-            dsvFeed.appendChild(slot);
-            _dsvSlots.push(slot);
+            _dsvCards.push(card);
+            feed.appendChild(card);
           });
 
-          if (!_dsvSlots.length) return;
+          if (!_dsvCards.length) return;
 
-          // Mark body so CSS lifts share sheet + comments panel above this overlay
-          document.body.classList.add('dsv-open');
+          // Hide grid, show feed — same columns as home
+          panel.style.display = 'none';
+          feed.style.display = '';
+          if (cmt) { cmt.style.display = ''; }
 
-          dsvOverlay.style.display = 'flex';
-          dsvBack.style.display = 'flex';
-          dsvNavUp.style.display = 'flex';
-          dsvNavDown.style.display = 'flex';
+          // Scroll to clicked post
+          var startIdx = Math.max(0, posts
+            .filter(function(q){ return q.media&&q.media[0]&&q.media[0].url; })
+            .findIndex(function(q){ return q._id === (clickedPost._id||''); }));
+          if (_dsvCards[startIdx]) {
+            feed.scrollTop = _dsvCards[startIdx].offsetTop;
+          }
 
-          var startIdx = Math.max(0, posts.filter(function(q){ return q.media&&q.media[0]&&q.media[0].url; }).findIndex(function(q){ return q._id === (clickedPost._id||''); }));
-
-          requestAnimationFrame(function(){
-            if (_dsvSlots[startIdx]) dsvFeed.scrollTop = _dsvSlots[startIdx].offsetTop;
-
-            _dsvObs = new IntersectionObserver(function(entries){
-              entries.forEach(function(entry){
-                var card = entry.target.querySelector('.desktop-card');
-                var vid  = entry.target.querySelector('video');
-                if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
-                  _dsvSlots.forEach(function(s){ var c=s.querySelector('.desktop-card'); if(c) c.classList.remove('active'); });
-                  if (card) card.classList.add('active');
-                  if (vid) { vid.muted=false; vid.currentTime=0; vid.play().catch(function(){ vid.muted=true; vid.play().catch(function(){}); }); }
-                  var pid = card && card.dataset.postId;
-                  if (pid && typeof trackPresence === 'function') trackPresence(pid);
-                } else {
-                  if (card) card.classList.remove('active');
-                  if (vid) vid.pause();
+          // IntersectionObserver — identical to home feed
+          _dsvObs = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+              var card = entry.target;
+              var vid  = card._video || card.querySelector('video');
+              if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+                // Deactivate all others
+                _dsvCards.forEach(function(c){ c.classList.remove('active'); });
+                card.classList.add('active');
+                if (vid) {
+                  vid.muted = false;
+                  vid.currentTime = 0;
+                  vid.play().catch(function(){ vid.muted=true; vid.play().catch(function(){}); });
                 }
-              });
-            }, { root: dsvFeed, threshold: 0.55 });
-            _dsvSlots.forEach(function(s){ _dsvObs.observe(s); });
-          });
+                var pid = card.dataset.postId;
+                if (pid && typeof trackPresence === 'function') trackPresence(pid);
+                // Auto-open comments for this post — exactly like home feed
+                if (pid && card._postData && typeof window._openDesktopComments === 'function') {
+                  window._openDesktopComments(card._postData, pid);
+                }
+              } else {
+                card.classList.remove('active');
+                if (vid) vid.pause();
+              }
+            });
+          }, { root: feed, threshold: 0.55 });
+          _dsvCards.forEach(function(c){ _dsvObs.observe(c); });
         };
       }
 
