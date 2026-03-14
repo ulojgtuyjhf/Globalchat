@@ -5107,151 +5107,140 @@ init();
         gridCol.appendChild(gridHead);
         gridCol.appendChild(gridScroll);
 
-        // Right: video viewer column (hidden until cell clicked)
-        var viewerCol = document.createElement('div');
-        viewerCol.id = 'ds-saved-viewer-col';
-        viewerCol.style.cssText = 'width:0;min-width:0;flex-shrink:0;height:calc(100vh - 24px);display:flex;gap:12px;overflow:hidden;';
-
-        // Video card (same floating style as desktop feed)
-        var vidWrapOuter = document.createElement('div');
-        vidWrapOuter.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;flex-shrink:0;width:0;min-width:0;overflow:hidden;';
-
-        var vidCard = document.createElement('div');
-        vidCard.id = 'ds-saved-video-card';
-        vidCard.style.cssText = 'height:calc(100vh - 24px - 32px);max-height:calc(100vh - 56px);aspect-ratio:9/16;border-radius:22px;overflow:hidden;background:#000;position:relative;box-shadow:0 16px 56px rgba(0,0,0,0.24),0 4px 14px rgba(0,0,0,0.10);flex-shrink:0;';
-
-        var vidEl = document.createElement('video');
-        vidEl.id = 'ds-saved-video';
-        vidEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-        vidEl.muted = false; vidEl.playsInline = true; vidEl.loop = true; vidEl.controls = false;
-
-        // Gradient overlay
-        var gradOverlay = document.createElement('div');
-        gradOverlay.style.cssText = 'position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,0.5) 80%,rgba(0,0,0,0.82) 100%);pointer-events:none;border-radius:22px;';
-
-        // Creator info bottom of video
-        var vidInfo = document.createElement('div');
-        vidInfo.id = 'ds-saved-vid-info';
-        vidInfo.style.cssText = 'position:absolute;bottom:18px;left:16px;right:16px;z-index:5;pointer-events:none;';
-
-        // Back-to-grid button inside the video card
-        var backToGrid = document.createElement('button');
-        backToGrid.style.cssText = 'position:absolute;top:14px;left:12px;z-index:10;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,0.5);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:transform 0.15s;';
-        backToGrid.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
-        backToGrid.addEventListener('click', function(e){ e.stopPropagation(); closeDsSavedViewer(); });
-        vidCard.appendChild(backToGrid);
-
-        vidCard.appendChild(vidEl);
-        vidCard.appendChild(gradOverlay);
-        vidCard.appendChild(vidInfo);
-        vidWrapOuter.appendChild(vidCard);
-
-        // Right info/comments panel
-        var infoCol = document.createElement('div');
-        infoCol.id = 'ds-saved-info-col';
-        infoCol.style.cssText = 'width:0;min-width:0;flex-shrink:0;background:#fff;border-radius:20px;box-shadow:0 2px 20px rgba(0,0,0,0.07);display:flex;flex-direction:column;overflow:hidden;';
-
-        infoCol.innerHTML =
-          '<div style="padding:18px 16px 12px;border-bottom:1px solid #f0f0f0;flex-shrink:0;">'
-          + '<div id="ds-saved-creator-row" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
-          + '<div id="ds-saved-avatar" style="width:36px;height:36px;border-radius:50%;background:#555;border:2px solid #f0f0f0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;overflow:hidden;flex-shrink:0;"></div>'
-          + '<span id="ds-saved-creator-name" style="font-size:13px;font-weight:800;color:#111;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>'
-          + '</div>'
-          + '<div id="ds-saved-caption" style="font-size:12.5px;color:#555;line-height:1.55;margin-bottom:6px;"></div>'
-          + '</div>'
-          + '<div style="padding:10px 16px 6px;font-size:13px;font-weight:900;color:#111;border-bottom:1px solid #f0f0f0;flex-shrink:0;">Comments</div>'
-          + '<div id="ds-saved-comments" style="flex:1;overflow-y:auto;padding:10px 16px;scrollbar-width:none;"></div>';
-
-        viewerCol.appendChild(vidWrapOuter);
-        viewerCol.appendChild(infoCol);
-
         panel.appendChild(gridCol);
-        panel.appendChild(viewerCol);
         document.getElementById('desktop-wrapper').appendChild(panel);
 
-        // Close viewer when clicking grid background
-        gridScroll.addEventListener('click', function(e) {
-          if (e.target === gridScroll) closeDsSavedViewer();
-        });
+        // ── Fullscreen overlay (created once, reused) ──
+        var svOverlay = document.createElement('div');
+        svOverlay.id = 'sv-fullscreen-overlay';
+        svOverlay.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);align-items:center;justify-content:center;gap:0;';
+        var svCard = document.createElement('div');
+        svCard.style.cssText = 'height:calc(100vh - 48px);aspect-ratio:9/16;border-radius:22px;overflow:hidden;background:#000;position:relative;box-shadow:0 24px 80px rgba(0,0,0,0.6);flex-shrink:0;';
+        var svVid = document.createElement('video');
+        svVid.id = 'sv-fullscreen-video';
+        svVid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+        svVid.muted = false; svVid.playsInline = true; svVid.loop = true;
+        var svGrad = document.createElement('div');
+        svGrad.style.cssText = 'position:absolute;inset:0;background:linear-gradient(to bottom,transparent 45%,rgba(0,0,0,0.55) 75%,rgba(0,0,0,0.88) 100%);pointer-events:none;border-radius:22px;';
+        var svInfo = document.createElement('div');
+        svInfo.id = 'sv-fullscreen-info';
+        svInfo.style.cssText = 'position:absolute;bottom:18px;left:16px;right:16px;z-index:5;pointer-events:none;';
+        var svBack = document.createElement('button');
+        svBack.style.cssText = 'position:absolute;top:14px;left:12px;z-index:20;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,0.55);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);';
+        svBack.innerHTML = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+        svBack.addEventListener('click', function(e){ e.stopPropagation(); closeSvOverlay(); });
+        svCard.appendChild(svBack);
+        svCard.appendChild(svVid);
+        svCard.appendChild(svGrad);
+        svCard.appendChild(svInfo);
+        // Action buttons column — right of card
+        var svActsCol = document.createElement('div');
+        svActsCol.id = 'sv-acts-col';
+        svActsCol.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:22px;margin-left:18px;padding-bottom:70px;align-self:flex-end;';
+        svOverlay.appendChild(svCard);
+        svOverlay.appendChild(svActsCol);
+        document.body.appendChild(svOverlay);
+        svOverlay.addEventListener('click', function(e){ if(e.target===svOverlay) closeSvOverlay(); });
 
-        function closeDsSavedViewer() {
-          var vc = document.getElementById('ds-saved-viewer-col');
-          var vw = vidWrapOuter;
-          var ic = document.getElementById('ds-saved-info-col');
-          if (vc) vc.style.cssText = 'width:0;min-width:0;flex-shrink:0;height:calc(100vh - 24px);display:flex;gap:12px;overflow:hidden;transition:width 0.38s cubic-bezier(0.22,1,0.36,1),min-width 0.38s cubic-bezier(0.22,1,0.36,1);';
-          if (vw) { vw.style.width='0'; vw.style.minWidth='0'; }
-          if (ic) { ic.style.width='0'; ic.style.minWidth='0'; }
-          var v = document.getElementById('ds-saved-video');
-          if (v) { v.pause(); v.src=''; }
+        function closeSvOverlay() {
+          svOverlay.style.display = 'none';
+          svVid.pause(); svVid.src = '';
         }
-        window._closeDsSavedViewer = closeDsSavedViewer;
+        window._closeDsSavedViewer = closeSvOverlay;
 
-        // Cell click — open viewer
+        function _svActionBtn(iconHtml, labelText, onClick) {
+          var b = document.createElement('button');
+          b.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;';
+          var ring = document.createElement('div');
+          ring.style.cssText = 'width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.12);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;';
+          ring.innerHTML = iconHtml;
+          b.appendChild(ring);
+          if (labelText !== null) {
+            var lbl = document.createElement('span');
+            lbl.style.cssText = 'font-size:11px;font-weight:800;color:rgba(255,255,255,0.88);text-shadow:0 1px 4px rgba(0,0,0,0.7);';
+            lbl.textContent = labelText;
+            b.appendChild(lbl);
+          }
+          b.addEventListener('click', onClick);
+          return b;
+        }
+
+        // Cell click — open fullscreen
         window._openDsSavedVideo = function(post) {
-          var vc  = document.getElementById('ds-saved-viewer-col');
-          var ic  = document.getElementById('ds-saved-info-col');
-          var v   = document.getElementById('ds-saved-video');
-          var inf = document.getElementById('ds-saved-vid-info');
-          var av  = document.getElementById('ds-saved-avatar');
-          var cn  = document.getElementById('ds-saved-creator-name');
-          var cap = document.getElementById('ds-saved-caption');
-          var cmt = document.getElementById('ds-saved-comments');
-          if (!vc || !v) return;
-
-          // Open columns
-          vc.style.cssText = 'width:auto;min-width:0;flex-shrink:0;height:calc(100vh - 24px);display:flex;gap:12px;overflow:visible;';
-          vidWrapOuter.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;flex-shrink:0;width:auto;min-width:calc((100vh - 56px) * 9/16);overflow:visible;position:relative;';
-          if (ic) { ic.style.width='clamp(260px,22vw,320px)'; ic.style.minWidth='clamp(260px,22vw,320px)'; ic.style.transition='none'; }
-
-          // Load video
-          var _svPostId = post._id || '';
-          v.src = (post.media && post.media[0] && post.media[0].url) || '';
-          v.load(); v.play().catch(function(){ v.muted=true; v.play().catch(function(){}); });
-
-          // Creator info
-          var letter = ((post.name||post.userName||'U')[0]).toUpperCase();
-          var hue = (letter.charCodeAt(0)*37)%360;
-          if (av) {
-            if (post.photoURL && !post.photoURL.includes('default_profile')) {
-              av.innerHTML = '<img src="'+post.photoURL+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.parentNode.textContent=\''+letter+'\'">';
-            } else { av.style.background='hsl('+hue+',50%,42%)'; av.textContent=letter; }
-          }
-          if (cn)  cn.textContent = '@'+(post.name||post.userName||'creator');
-          if (cap) cap.textContent = post.text||'';
-
-          // Timestamp on video overlay
-          var _svTs=post.timestamp;
-          var _svUpMs=_svTs?(typeof _svTs.seconds==='number'?_svTs.seconds*1000:(_svTs.toDate?_svTs.toDate().getTime():null)):null;
-          function _svFmt(ms){ if(ms<=0)return'Expiring…'; var h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000); return h>=1?h+'h':m+'m'; }
-          var _svTimeStr = _svUpMs ? _svFmt((_svUpMs+24*60*60*1000)-Date.now()) : '';
-          if (inf) inf.innerHTML =
-            '<div style="display:flex;align-items:baseline;gap:6px;">'
-            +'<div style="font-size:13px;font-weight:800;color:rgba(255,255,255,0.92);text-shadow:0 1px 6px rgba(0,0,0,0.8);">@'+(post.name||post.userName||'creator')+'</div>'
-            +(_svTimeStr?'<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.6);text-shadow:0 1px 6px rgba(0,0,0,0.9);white-space:nowrap;">'+_svTimeStr+'</span>':'')
+          var _pid = post._id || '';
+          svVid.src = (post.media && post.media[0] && post.media[0].url) || '';
+          svVid.load(); svVid.play().catch(function(){ svVid.muted=true; svVid.play().catch(function(){}); });
+          // Timestamp overlay info
+          var _ts=post.timestamp;
+          var _upMs=_ts?(typeof _ts.seconds==='number'?_ts.seconds*1000:(_ts.toDate?_ts.toDate().getTime():null)):null;
+          function _fmt(ms){ if(ms<=0)return'Expiring…'; var h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000); return h>=1?h+'h':m+'m'; }
+          var _tStr = _upMs ? _fmt((_upMs+86400000)-Date.now()) : '';
+          svInfo.innerHTML =
+            '<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px;">'
+            +'<span style="font-size:14px;font-weight:900;color:rgba(255,255,255,0.95);text-shadow:0 1px 8px rgba(0,0,0,0.8);">@'+(post.name||post.userName||'creator')+'</span>'
+            +(_tStr?'<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.6);white-space:nowrap;">'+_tStr+'</span>':'')
             +'</div>'
-            +(post.text?'<div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:3px;text-shadow:0 1px 4px rgba(0,0,0,0.8);">'+post.text+'</div>':'');
-
-          // Load comments
-          if (cmt) {
-            cmt.innerHTML='<div style="text-align:center;padding:24px 0;color:#ccc;font-size:12px;font-family:var(--font);">Loading…</div>';
-            try {
-              var db4=window._fbDb,fns4=window._fbFirestoreFns;
-              if(db4&&fns4&&_svPostId){
-                fns4.getDocs(fns4.query(fns4.collection(db4,'recence',_svPostId,'comments'),fns4.orderBy('timestamp','asc'),fns4.limit(50))).then(function(snap){
-                  if(snap.empty){cmt.innerHTML='<div style="text-align:center;padding:24px 0;color:#ccc;font-size:12px;font-family:var(--font);">No comments yet</div>';return;}
-                  cmt.innerHTML='';
-                  snap.forEach(function(d){
-                    var r=d.data(); if(r.parentId)return;
-                    var row=document.createElement('div');
-                    row.style.cssText='display:flex;gap:8px;margin-bottom:14px;align-items:flex-start;';
-                    var l=((r.userName||r.name||'U')[0]).toUpperCase(),h2=(l.charCodeAt(0)*37)%360;
-                    row.innerHTML='<div style="width:30px;height:30px;border-radius:50%;background:hsl('+h2+',50%,42%);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;flex-shrink:0;">'+(r.userPhotoURL||r.photoURL?'<img src="'+(r.userPhotoURL||r.photoURL)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentNode.textContent=\''+l+'\'">'  :l)+'</div><div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:800;color:#111;">'+(r.userName||r.name||'User')+'</div><div style="font-size:12px;color:#444;margin-top:2px;line-height:1.45;">'+((r.text||'').replace(/</g,'&lt;'))+'</div></div>';
-                    cmt.appendChild(row);
-                  });
-                }).catch(function(){cmt.innerHTML='<div style="text-align:center;padding:24px 0;color:#ccc;font-size:12px;">Could not load comments</div>';});
-              } else {cmt.innerHTML='<div style="text-align:center;padding:24px 0;color:#ccc;font-size:12px;font-family:var(--font);">Sign in to see comments</div>';}
-            } catch(e){cmt.innerHTML='';}
-          }
+            +(post.text?'<div style="font-size:12px;color:rgba(255,255,255,0.78);line-height:1.45;text-shadow:0 1px 4px rgba(0,0,0,0.8);">'+post.text+'</div>':'');
+          // Rebuild action buttons fresh for this post
+          svActsCol.innerHTML = '';
+          // Like
+          var _likeCount = (post.likes && post.likes.length) || 0;
+          var _isLiked = !!(window._currentUser && post.likes && post.likes.includes(window._currentUser.uid));
+          var _likeWrap = document.createElement('button');
+          _likeWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;cursor:pointer;';
+          var _likeRing = document.createElement('div');
+          _likeRing.style.cssText = 'width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.12);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;';
+          var _heartSvg = document.createElement('svg');
+          _heartSvg.setAttribute('viewBox','0 0 24 24'); _heartSvg.setAttribute('width','24'); _heartSvg.setAttribute('height','24');
+          _heartSvg.setAttribute('fill',_isLiked?'rgba(255,255,255,0.95)':'none');
+          _heartSvg.setAttribute('stroke','rgba(255,255,255,0.95)'); _heartSvg.setAttribute('stroke-width','2');
+          _heartSvg.setAttribute('stroke-linecap','round'); _heartSvg.setAttribute('stroke-linejoin','round');
+          _heartSvg.innerHTML = '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>';
+          _likeRing.appendChild(_heartSvg);
+          var _likeLbl = document.createElement('span');
+          _likeLbl.style.cssText = 'font-size:11px;font-weight:800;color:rgba(255,255,255,0.88);text-shadow:0 1px 4px rgba(0,0,0,0.7);';
+          _likeLbl.textContent = _likeCount;
+          _likeWrap.appendChild(_likeRing); _likeWrap.appendChild(_likeLbl);
+          _likeWrap.addEventListener('click', function(){
+            if(!window._currentUser||!_pid)return;
+            var _db=window._fbDb,_fn=window._fbFirestoreFns; if(!_db||!_fn)return;
+            _isLiked=!_isLiked;
+            _heartSvg.setAttribute('fill',_isLiked?'rgba(255,255,255,0.95)':'none');
+            _likeLbl.textContent = _isLiked?parseInt(_likeLbl.textContent)+1:Math.max(0,parseInt(_likeLbl.textContent)-1);
+            _fn.updateDoc(_fn.doc(_db,'recence',_pid),{likes:_isLiked?_fn.arrayUnion(window._currentUser.uid):_fn.arrayRemove(window._currentUser.uid)}).catch(function(){});
+          });
+          svActsCol.appendChild(_likeWrap);
+          // Comment dot — default green, async correct
+          var _dotSpan = document.createElement('span');
+          _dotSpan.className = 'cmt-live-dot';
+          _dotSpan.style.cssText = 'background:#22c55e;box-shadow:0 0 7px rgba(34,197,94,0.95);';
+          var _cmtInnerHtml = '<div style="position:relative;display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 122.97 122.88" width="24" height="24" xmlns="http://www.w3.org/2000/svg"><path d="M61.44,0a61.46,61.46,0,0,1,54.91,89l6.44,25.74a5.83,5.83,0,0,1-7.25,7L91.62,115A61.43,61.43,0,1,1,61.44,0ZM96.63,26.25a49.78,49.78,0,1,0-9,77.52A5.83,5.83,0,0,1,92.4,103L109,107.77l-4.5-18a5.86,5.86,0,0,1,.51-4.34,49.06,49.06,0,0,0,4.62-11.58,50,50,0,0,0-13-47.62Z" fill="rgba(255,255,255,0.9)"/></svg></div>';
+          var _cmtBtn = _svActionBtn(_cmtInnerHtml, null, function(){
+            if(typeof openDesktopComments==='function') openDesktopComments(post,_pid,true);
+          });
+          _cmtBtn.querySelector('div').appendChild(_dotSpan);
+          svActsCol.appendChild(_cmtBtn);
+          // Share
+          svActsCol.appendChild(_svActionBtn('<svg viewBox="0 0 122.88 103.44" width="22" height="22" fill="rgba(255,255,255,0.9)"><path d="M69.49,102.77L49.8,84.04l-20.23,18.27c-0.45,0.49-1.09,0.79-1.8,0.79c-1.35,0-2.44-1.09-2.44-2.44V60.77L0.76,37.41c-0.98-0.93-1.01-2.47-0.09-3.45c0.31-0.33,0.7-0.55,1.11-0.67l0,0l118-33.2c1.3-0.36,2.64,0.39,3.01,1.69c0.19,0.66,0.08,1.34-0.24,1.89l-49.2,98.42c-0.6,1.2-2.06,1.69-3.26,1.09C69.86,103.07,69.66,102.93,69.49,102.77z"/></svg>', 'Share', function(){ if(typeof openShareSheet==='function') openShareSheet(post,_pid); }));
+          // Save
+          var _isSaved = !!(window.isPostFavourited && window.isPostFavourited(_pid));
+          var _saveBtn = _svActionBtn('<svg viewBox="0 0 24 24" width="22" height="22" fill="'+(_isSaved?'rgba(255,255,255,0.95)':'none')+'" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>', _isSaved?'Saved':'Save', function(){
+            var s2=window.isPostFavourited&&window.isPostFavourited(_pid);
+            var ico=_saveBtn.querySelector('svg'),l2=_saveBtn.querySelector('span');
+            if(s2){window.removeFromFavourites&&window.removeFromFavourites(_pid);if(ico)ico.setAttribute('fill','none');if(l2)l2.textContent='Save';}
+            else{window.saveToFavourites&&window.saveToFavourites(post,_pid);if(ico)ico.setAttribute('fill','rgba(255,255,255,0.95)');if(l2)l2.textContent='Saved';}
+          });
+          svActsCol.appendChild(_saveBtn);
+          // Async: correct comment dot color
+          (function(_p,_dot){
+            try{var _d=window._fbDb,_f=window._fbFirestoreFns;if(_d&&_f&&_p){
+              _f.getDocs(_f.query(_f.collection(_d,'recence',_p,'comments'),_f.limit(1))).then(function(sn){
+                _dot.style.background=sn.empty?'#22c55e':'#ff3b5c';
+                _dot.style.boxShadow=sn.empty?'0 0 7px rgba(34,197,94,0.95)':'0 0 7px rgba(255,59,92,0.95)';
+              }).catch(function(){});
+            }}catch(e){}
+          })(_pid,_dotSpan);
+          svOverlay.style.display = 'flex';
         };
       }
 
