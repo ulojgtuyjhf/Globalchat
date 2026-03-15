@@ -5106,19 +5106,6 @@ init();
 
   var dcReplyPreview = document.getElementById('dc-reply-preview');
   var dcReplyClose = document.getElementById('dc-reply-close');
-
-  // ── Wire desktop reply button — createCommentElement dispatches '_reply' on dc-list ──
-  var _dcListEl = document.getElementById('dc-list');
-  if (_dcListEl) {
-    _dcListEl.addEventListener('_reply', function(e) {
-      dcReplyTo = { id: e._commentId, name: e._userName };
-      var rt = document.getElementById('dc-reply-text');
-      if (rt) rt.textContent = 'Replying to ' + e._userName;
-      if (dcReplyPreview) { dcReplyPreview.classList.add('show'); dcReplyPreview.style.display = 'flex'; }
-      if (dcInput) { dcInput.focus(); dcUpdateSubmit(); }
-    });
-  }
-
   if (dcReplyClose) {
     dcReplyClose.addEventListener('click', function() {
       dcReplyTo = null;
@@ -5951,6 +5938,7 @@ init();
     });
     if (posts && posts.length > 0) {
       openDesktopComments(posts[0].data, posts[0].id, false);
+      if (typeof trackPresence === 'function') trackPresence(posts[0].id);
       if (cards[0]) cards[0].classList.add('active');
       if (cards[0] && cards[0]._video) {
         var fv = cards[0]._video;
@@ -5982,8 +5970,8 @@ init();
     var commentEl = btn.closest('.comment');
     var bubble = btn.closest('.comment-bubble');
     if (!commentEl || !bubble) return;
-    var authorEl = bubble.querySelector('.comment-author');
-    var name = authorEl ? authorEl.childNodes[0].textContent.trim() : 'User';
+    var nameSpan = bubble.querySelector('.comment-author-name');
+    var name = nameSpan ? nameSpan.textContent.trim() : 'User';
     var cid = commentEl.dataset.commentId;
     setDcReply(cid, name);
   });
@@ -6371,6 +6359,11 @@ init();
         setTimeout(function() {
             var first = gallery.querySelector('.pin-container video');
             if (first) {
+                // Track presence for the first video immediately
+                var firstPin = gallery.querySelector('.pin-container');
+                if (firstPin && firstPin.dataset.postId && typeof trackPresence === 'function') {
+                    trackPresence(firstPin.dataset.postId);
+                }
                 if (typeof window._playVideo === 'function') {
                     window._playVideo(first);
                 } else {
