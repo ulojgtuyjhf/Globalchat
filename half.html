@@ -869,7 +869,7 @@ body.dsv-open #desktop-comments {
 .cs-count-num.bump { animation: countBump 0.32s cubic-bezier(0.34,1.56,0.64,1); }
 @keyframes countBump {
     0%  { transform: scale(1); }
-    50% { transform: scale(1.4); color: #fe2c55; }
+    50% { transform: scale(1.4); color: #626262; }
     100%{ transform: scale(1); }
 }
 .cs-close {
@@ -1043,11 +1043,11 @@ body.dsv-open #desktop-comments {
 }
 .like-button:active { transform: scale(0.8); }
 .like-button svg { width: 15px; height: 15px; fill: none; stroke: #d0d0d0; stroke-width: 1.8; flex-shrink: 0; transition: all 0.2s; }
-.like-button.liked svg { fill: #fe2c55; stroke: #fe2c55; transform: scale(1.15); }
+.like-button.liked svg { fill: url(#brandHeartGrad); stroke: #626262; transform: scale(1.15); }
 @keyframes cLikePop { 0%{transform:scale(1)} 35%{transform:scale(1.4)} 65%{transform:scale(0.9)} 100%{transform:scale(1.15)} }
 .like-button.pop svg { animation: cLikePop 0.35s cubic-bezier(0.34,1.56,0.64,1); }
 .like-count { font-size: 12px; font-weight: 600; color: #ccc; min-width: 10px; transition: color 0.15s; }
-.like-button.liked .like-count { color: #fe2c55; }
+.like-button.liked .like-count { color: #626262; }
 
 .reply-btn {
     background: none; border: none; cursor: pointer;
@@ -1140,9 +1140,9 @@ body.dsv-open #desktop-comments {
 .cf-gif-btn.active { color:#111; }
 .cf-send-btn {
     flex-shrink:0; width:34px; height:34px; border-radius:50%;
-    background:#fe2c55; border:none; cursor:pointer;
+    background: var(--brand-gradient); border:none; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
-    box-shadow:0 2px 10px rgba(254,44,85,0.3);
+    box-shadow:0 2px 10px rgba(0,0,0,0.3);
     transition:all 0.18s cubic-bezier(0.34,1.56,0.64,1);
     -webkit-tap-highlight-color:transparent;
 }
@@ -3275,7 +3275,8 @@ function createPinElement(postData, postId) {
     if (currentUser && initialLikes.includes(currentUser.uid)) {
         thumbBtn.classList.add('on');
     }
-    // ── Real-time like count listener ──
+    // ── Real-time like count listener — updates ALL devices ──
+    var _prevLikeCount = initialLikes.length;
     onSnapshot(doc(db, 'recence', postId), function(snap) {
         if (!snap.exists()) return;
         var d = snap.data();
@@ -3286,6 +3287,19 @@ function createPinElement(postData, postId) {
         } else {
             thumbBtn.classList.remove('on');
         }
+        // Fire float heart for ALL viewers when like count goes up
+        if (likes.length > _prevLikeCount) {
+            var heart2 = document.createElement('div');
+            heart2.className = 'float-heart';
+            heart2.innerHTML = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="hg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0f0f0f"/><stop offset="40%" stop-color="#626262"/><stop offset="100%" stop-color="#a6a6a6"/></linearGradient></defs><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="url(#hg2)" stroke="none"/></svg>';
+            var btnRect = thumbBtn.getBoundingClientRect();
+            var pinRect = pinContainer.getBoundingClientRect();
+            heart2.style.cssText = 'position:absolute;right:10px;bottom:' + (pinRect.bottom - btnRect.bottom + 30) + 'px;width:30px;height:30px;pointer-events:none;z-index:20;animation:floatHeart 0.9s ease-out forwards;';
+            pinContainer.appendChild(heart2);
+            thumbBtn.classList.remove('liked-pop'); void thumbBtn.offsetWidth; thumbBtn.classList.add('liked-pop');
+            setTimeout(function(){ heart2.remove(); }, 900);
+        }
+        _prevLikeCount = likes.length;
     });
     thumbBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
@@ -4064,36 +4078,40 @@ function createCommentElement(commentData, replies = []) {
 
     const likeButton = document.createElement('button');
     likeButton.className = 'like-button' + (commentData.likes && commentData.likes.includes(currentUser?.uid) ? ' liked' : '');
-    likeButton.innerHTML = `<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+    likeButton.innerHTML = `<svg viewBox="0 0 24 24"><defs><linearGradient id="cLikeGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0f0f0f"/><stop offset="50%" stop-color="#626262"/><stop offset="100%" stop-color="#a6a6a6"/></linearGradient></defs><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
 
     const likeCount = document.createElement('span');
     likeCount.className = 'like-count';
     likeCount.textContent = commentData.likes ? commentData.likes.length : 0;
 
-    let _localLikes = commentData.likes ? [...commentData.likes] : [];
+    // ── Real-time comment like listener ──
+    var _postIdForCmt = currentPostId || window._dcCurrentPostId;
+    if (_postIdForCmt && commentData.id && !commentData.id.startsWith('temp_')) {
+        onSnapshot(doc(db, 'recence', _postIdForCmt, 'comments', commentData.id), function(snap) {
+            if (!snap.exists()) return;
+            var likes = snap.data().likes || [];
+            likeCount.textContent = likes.length;
+            if (currentUser && likes.includes(currentUser.uid)) {
+                likeButton.classList.add('liked');
+            } else {
+                likeButton.classList.remove('liked');
+            }
+        });
+    }
+
     likeButton.addEventListener('click', async (e) => {
         e.stopPropagation();
         if (!currentUser) return;
         if (navigator.vibrate) navigator.vibrate(20);
         const isLiked = likeButton.classList.contains('liked');
         likeButton.classList.remove('pop'); void likeButton.offsetWidth; likeButton.classList.add('pop');
-        if (isLiked) {
-            likeButton.classList.remove('liked');
-            _localLikes = _localLikes.filter(id => id !== currentUser.uid);
-        } else {
-            likeButton.classList.add('liked');
-            _localLikes.push(currentUser.uid);
-        }
-        likeCount.textContent = _localLikes.length;
         try {
-            // Use the correct post context (mobile or desktop)
             var _postId = currentPostId || window._dcCurrentPostId;
             const commentRef = doc(db, 'recence', _postId, 'comments', commentData.id);
             await updateDoc(commentRef, { likes: isLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
+            // UI updated by onSnapshot above
         } catch (err) {
-            if (isLiked) { likeButton.classList.add('liked'); _localLikes.push(currentUser.uid); }
-            else { likeButton.classList.remove('liked'); _localLikes = _localLikes.filter(id => id !== currentUser.uid); }
-            likeCount.textContent = _localLikes.length;
+            console.error('Comment like error:', err);
         }
     });
     likeGroup.appendChild(likeButton);
