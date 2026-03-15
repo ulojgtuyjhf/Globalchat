@@ -2975,18 +2975,25 @@ function createPinElement(postData, postId) {
     if (!window._buildingForViewer) {
         const vidLoader = document.createElement('div');
         vidLoader.className = 'vid-loader-overlay';
-        vidLoader.style.cssText = 'position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:8;transition:opacity 0.35s;pointer-events:none;';
+        vidLoader.style.cssText = 'position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:8;transition:opacity 0.3s;pointer-events:none;';
         vidLoader.innerHTML = '<div class="spinner"></div>';
         pinContainer.appendChild(vidLoader);
         if (mediaElement && mediaElement.tagName === 'VIDEO') {
-            const hideLoader = function() {
+            function _hideVidLoader() {
                 vidLoader.style.opacity = '0';
-                setTimeout(function() { if (vidLoader.parentNode) vidLoader.remove(); }, 380);
-            };
-            mediaElement.addEventListener('canplay', hideLoader, { once: true });
-            mediaElement.addEventListener('playing', hideLoader, { once: true });
-            // Fallback: remove after 3s max
-            setTimeout(hideLoader, 3000);
+                setTimeout(function() { if (vidLoader.parentNode) vidLoader.parentNode.removeChild(vidLoader); }, 320);
+            }
+            function _showVidLoader() {
+                if (!vidLoader.parentNode) pinContainer.appendChild(vidLoader);
+                vidLoader.style.display = 'flex';
+                requestAnimationFrame(function(){ vidLoader.style.opacity = '1'; });
+            }
+            mediaElement.addEventListener('canplay',  _hideVidLoader, { once: true });
+            mediaElement.addEventListener('playing',  function() { _hideVidLoader(); }, { passive: true });
+            mediaElement.addEventListener('waiting',  function() { _showVidLoader(); }, { passive: true });
+            mediaElement.addEventListener('stalled',  function() { _showVidLoader(); }, { passive: true });
+            // Fallback: remove after 5s max
+            setTimeout(_hideVidLoader, 5000);
         } else {
             vidLoader.remove();
         }
@@ -3424,19 +3431,31 @@ function createPinElement(postData, postId) {
             '</svg>' +
         '</div>' +
         '<span class="slide-action-label">' + (_isSaved ? 'Saved' : 'Save') + '</span>';
+
+    function _applyMobSaveState(sv) {
+        var svg = saveBtn.querySelector('svg');
+        var lbl = saveBtn.querySelector('.slide-action-label');
+        if (sv) {
+            saveBtn.classList.add('saved-on');
+            if (svg) { svg.setAttribute('fill', 'url(#brandBookmarkGrad)'); svg.setAttribute('stroke', '#626262'); }
+            if (lbl) lbl.textContent = 'Saved';
+        } else {
+            saveBtn.classList.remove('saved-on');
+            if (svg) { svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'rgba(255,255,255,0.95)'); }
+            if (lbl) lbl.textContent = 'Save';
+        }
+    }
+    if (_isSaved) _applyMobSaveState(true);
+
     saveBtn.addEventListener('click', function(e) {
         e.stopPropagation();
         var saved = window.isPostFavourited && window.isPostFavourited(postId);
         if (saved) {
             window.removeFromFavourites && window.removeFromFavourites(postId);
-            saveBtn.classList.remove('saved-on');
-            var lbl = saveBtn.querySelector('.slide-action-label');
-            if (lbl) lbl.textContent = 'Save';
+            _applyMobSaveState(false);
         } else {
             window.saveToFavourites && window.saveToFavourites(postData, postId);
-            saveBtn.classList.add('saved-on');
-            var lbl = saveBtn.querySelector('.slide-action-label');
-            if (lbl) lbl.textContent = 'Saved';
+            _applyMobSaveState(true);
             var icon = saveBtn.querySelector('.slide-action-icon');
             if (icon) { icon.style.transform = 'scale(1.35)'; setTimeout(function(){ icon.style.transform = ''; }, 300); }
         }
@@ -4338,14 +4357,34 @@ init();
     wrap.className = 'desktop-card-video-wrap';
 
     var videoEl = null;
-    if (!isVid) return null; // video-only platform — skip images/other
+    if (!isVid) return null;
     videoEl = document.createElement('video');
     videoEl.src = mediaItem.url;
     videoEl.muted = true; videoEl.loop = true; videoEl.playsInline = true;
     videoEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-    // Shimmer while loading
-    wrap.classList.add('loading');
-    videoEl.addEventListener('canplay', function() { wrap.classList.remove('loading'); }, { once: true });
+
+    // Brand spinner overlay — shown while loading AND when buffering mid-play
+    var _dLoader = document.createElement('div');
+    _dLoader.style.cssText = 'position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:8;transition:opacity 0.3s;pointer-events:none;border-radius:22px;';
+    _dLoader.innerHTML = '<div class="spinner"></div>';
+    wrap.appendChild(_dLoader);
+
+    function _dHideLoader() {
+      _dLoader.style.opacity = '0';
+      setTimeout(function(){ _dLoader.style.display = 'none'; }, 320);
+    }
+    function _dShowLoader() {
+      _dLoader.style.display = 'flex';
+      requestAnimationFrame(function(){ _dLoader.style.opacity = '1'; });
+    }
+
+    videoEl.addEventListener('canplay',  _dHideLoader, { once: true });
+    videoEl.addEventListener('playing',  function() { _dHideLoader(); }, { passive: true });
+    videoEl.addEventListener('waiting',  function() { _dShowLoader(); }, { passive: true });
+    videoEl.addEventListener('stalled',  function() { _dShowLoader(); }, { passive: true });
+    // Fallback
+    setTimeout(_dHideLoader, 5000);
+
     wrap.appendChild(videoEl);
     card._video = videoEl;
 
@@ -4564,21 +4603,32 @@ init();
     dSaveBtn.setAttribute('aria-label', 'Save');
     dSaveBtn.innerHTML = '<div class="desktop-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>'
       + '<span class="desktop-action-label">' + (_dIsSaved ? 'Saved' : 'Save') + '</span>';
+
+    function _dApplySaveState(saved) {
+      var svg = dSaveBtn.querySelector('svg');
+      var lbl = dSaveBtn.querySelector('.desktop-action-label');
+      if (saved) {
+        dSaveBtn.classList.add('saved-on');
+        if (svg) { svg.setAttribute('fill', 'url(#brandBookmarkGrad)'); svg.setAttribute('stroke', '#626262'); }
+        if (lbl) lbl.textContent = 'Saved';
+      } else {
+        dSaveBtn.classList.remove('saved-on');
+        if (svg) { svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'rgba(255,255,255,0.9)'); }
+        if (lbl) lbl.textContent = 'Save';
+      }
+    }
+    // Apply initial state
+    if (_dIsSaved) _dApplySaveState(true);
+
     dSaveBtn.addEventListener('click', function(e) {
       e.stopPropagation();
       var isSaved = window.isPostFavourited && window.isPostFavourited(postId);
       if (isSaved) {
         window.removeFromFavourites && window.removeFromFavourites(postId);
-        dSaveBtn.classList.remove('saved-on');
-        var lbl = dSaveBtn.querySelector('.desktop-action-label');
-        if (lbl) lbl.textContent = 'Save';
-        var ic = dSaveBtn.querySelector('.desktop-action-icon');
-        if (ic) ic.style.background = '';
+        _dApplySaveState(false);
       } else {
         window.saveToFavourites && window.saveToFavourites(postData, postId);
-        dSaveBtn.classList.add('saved-on');
-        var lbl = dSaveBtn.querySelector('.desktop-action-label');
-        if (lbl) lbl.textContent = 'Saved';
+        _dApplySaveState(true);
         var ic = dSaveBtn.querySelector('.desktop-action-icon');
         if (ic) { ic.style.transform = 'scale(1.35)'; setTimeout(function(){ ic.style.transform=''; }, 300); }
       }
