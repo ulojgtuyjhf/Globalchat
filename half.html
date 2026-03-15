@@ -4536,19 +4536,33 @@ init();
 
     // Like btn
     var likeBtn = document.createElement('button');
-    likeBtn.className = 'desktop-action-btn' + (currentUser && postData.likes && postData.likes.includes(currentUser.uid) ? ' on' : '');
+    var _dIsLiked = currentUser && postData.likes && postData.likes.includes(currentUser.uid);
+    likeBtn.className = 'desktop-action-btn' + (_dIsLiked ? ' on' : '');
     likeBtn.setAttribute('aria-label', 'Like');
     likeBtn.innerHTML = '<div class="desktop-action-icon"><svg class="heart-icon" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>'
       + '<span class="desktop-action-label">' + ((postData.likes && postData.likes.length) || 0) + '</span>';
+
+    function _dApplyLikeState(on) {
+      var svg = likeBtn.querySelector('svg.heart-icon');
+      if (on) {
+        likeBtn.classList.add('on');
+        if (svg) { svg.setAttribute('fill', 'url(#brandHeartGrad)'); svg.setAttribute('stroke', '#626262'); }
+      } else {
+        likeBtn.classList.remove('on');
+        if (svg) { svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'rgba(255,255,255,0.9)'); }
+      }
+    }
+    if (_dIsLiked) _dApplyLikeState(true);
+
     likeBtn.addEventListener('click', function(e) {
       e.stopPropagation();
       if (!currentUser) return;
       if (navigator.vibrate) navigator.vibrate(20);
       var isOn = likeBtn.classList.contains('on');
-      likeBtn.classList.toggle('on');
       var lbl = likeBtn.querySelector('.desktop-action-label');
       var n = parseInt(lbl.textContent) || 0;
       lbl.textContent = isOn ? Math.max(0, n-1) : n+1;
+      _dApplyLikeState(!isOn);
       var postRef = doc(db, 'recence', postId);
       updateDoc(postRef, { likes: isOn ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) }).catch(function(){});
     });
@@ -4559,7 +4573,7 @@ init();
     cmtBtn.className = 'desktop-action-btn';
     cmtBtn.setAttribute('aria-label', 'Comments');
     // Start with green dot (unknown count) — will be updated live when comments open
-    cmtBtn.innerHTML = '<div class="desktop-action-icon" style="position:relative;"><svg viewBox="0 0 122.97 122.88" xmlns="http://www.w3.org/2000/svg"><path d="M61.44,0a61.46,61.46,0,0,1,54.91,89l6.44,25.74a5.83,5.83,0,0,1-7.25,7L91.62,115A61.43,61.43,0,1,1,61.44,0ZM96.63,26.25a49.78,49.78,0,1,0-9,77.52A5.83,5.83,0,0,1,92.4,103L109,107.77l-4.5-18a5.86,5.86,0,0,1,.51-4.34,49.06,49.06,0,0,0,4.62-11.58,50,50,0,0,0-13-47.62Z" fill="rgba(255,255,255,0.9)"/></svg><span class="cmt-live-dot" style="background:#22c55e;box-shadow:0 0 7px rgba(34,197,94,0.95);"></span></div>'
+    cmtBtn.innerHTML = '<div class="desktop-action-icon" style="position:relative;"><svg viewBox="0 0 122.97 122.88" xmlns="http://www.w3.org/2000/svg"><path d="M61.44,0a61.46,61.46,0,0,1,54.91,89l6.44,25.74a5.83,5.83,0,0,1-7.25,7L91.62,115A61.43,61.43,0,1,1,61.44,0ZM96.63,26.25a49.78,49.78,0,1,0-9,77.52A5.83,5.83,0,0,1,92.4,103L109,107.77l-4.5-18a5.86,5.86,0,0,1,.51-4.34,49.06,49.06,0,0,0,4.62-11.58,50,50,0,0,0-13-47.62Z" fill="url(#brandHeartGrad)"/></svg><span class="cmt-live-dot" style="background:#22c55e;box-shadow:0 0 7px rgba(34,197,94,0.95);"></span></div>'
       + '<span class="desktop-action-label" style="display:none;"></span>';
     // Async: check for any comments and set dot color correctly
     (function(_pId, _btn){
