@@ -3394,20 +3394,17 @@ function createPinElement(postData, postId) {
         e.stopPropagation();
         openModal(postData, postId);
     });
-    // Async: get live comment count and set correct dot color immediately
-    (function(_mPid, _mBtn){
+    // Real-time live dot — turns red the moment ANY comment exists
+    (function(_pid, _btn){
         try {
-            var _mDb = window._fbDb, _mFns = window._fbFirestoreFns;
-            if (_mDb && _mFns && _mPid) {
-                _mFns.getDocs(_mFns.query(_mFns.collection(_mDb,'recence',_mPid,'comments'),_mFns.limit(1))).then(function(snap){
-                    var hasAny = !snap.empty;
-                    var dot = _mBtn.querySelector('.cmt-live-dot');
-                    if (dot) {
-                        dot.style.background = hasAny ? '#ff3b5c' : '#22c55e';
-                        dot.style.boxShadow = hasAny ? '0 0 7px rgba(255,59,92,0.95)' : '0 0 7px rgba(34,197,94,0.95)';
-                    }
-                }).catch(function(){});
-            }
+            onSnapshot(collection(db, 'recence', _pid, 'comments'), function(snap) {
+                var hasAny = !snap.empty;
+                var dot = _btn.querySelector('.cmt-live-dot');
+                if (dot) {
+                    dot.style.background = hasAny ? '#ff3b5c' : '#22c55e';
+                    dot.style.boxShadow = hasAny ? '0 0 7px rgba(255,59,92,0.95)' : '0 0 7px rgba(34,197,94,0.95)';
+                }
+            });
         } catch(e){}
     })(postId, cmtBtn);
     slideActions.appendChild(cmtBtn);
@@ -3843,7 +3840,7 @@ function loadComments(postId) {
         let firstRoot = true;
         snapshot.forEach(d => {
             const c = d.data(); c.id = d.id;
-            if (c.parentId) return;
+            if (c.parentId) return; // replies handled below
             if (_renderedIds.has(c.id)) return;
             // Swap out optimistic temp element if present
             const opt = commentsList.querySelector('[data-comment-id^="temp_"]');
@@ -3863,26 +3860,56 @@ function loadComments(postId) {
             newEls.push(el);
         });
 
-        if (newEls.length > 0) {
+        // Also handle new replies that arrived after parent was already rendered
+        const newReplyEls = [];
+        snapshot.forEach(d => {
+            const c = d.data(); c.id = d.id;
+            if (!c.parentId) return;
+            if (_renderedIds.has(c.id)) return;
+            _renderedIds.add(c.id);
+            const rEl = createCommentElement(c, []);
+            if (!isFirstLoad) rEl.classList.add('new-live');
+            else rEl.classList.add('new-comment');
+            newReplyEls.push({ el: rEl, parentId: c.parentId });
+        });
+
+        if (newEls.length > 0 || newReplyEls.length > 0) {
             requestAnimationFrame(() => {
                 const frag = document.createDocumentFragment();
                 newEls.forEach(el => {
                     frag.appendChild(el);
-                    // Append replies flat immediately after parent
                     if (el._replies && el._replies.length > 0) {
                         el._replies.forEach(reply => {
-                            const rEl = createCommentElement(reply, []);
-                            rEl.classList.add('new-comment');
-                            frag.appendChild(rEl);
+                            if (!_renderedIds.has(reply.id)) {
+                                _renderedIds.add(reply.id);
+                                const rEl = createCommentElement(reply, []);
+                                rEl.classList.add('new-comment');
+                                frag.appendChild(rEl);
+                            }
                         });
                     }
                 });
                 commentsList.appendChild(frag);
+                // Insert new replies after their parent in the list
+                newReplyEls.forEach(function(item) {
+                    var parentEl = commentsList.querySelector('[data-comment-id="' + item.parentId + '"]');
+                    if (parentEl) {
+                        // Insert after parent and any existing replies
+                        var insertAfter = parentEl;
+                        var next = insertAfter.nextSibling;
+                        while (next && next.dataset && next.dataset.parentId === item.parentId) {
+                            insertAfter = next;
+                            next = insertAfter.nextSibling;
+                        }
+                        commentsList.insertBefore(item.el, insertAfter.nextSibling || null);
+                    } else {
+                        commentsList.appendChild(item.el);
+                    }
+                });
                 if (isAtBottom() || isFirstLoad) {
                     commentsList.scrollTop = commentsList.scrollHeight;
-                } else if (!isFirstLoad) {
-                    // User scrolled up — show pill instead of jumping
-                    _newPillCount += newEls.length;
+                } else if (!isFirstLoad && (newEls.length > 0 || newReplyEls.length > 0)) {
+                    _newPillCount += newEls.length + newReplyEls.length;
                     showNewPill(_newPillCount);
                 }
             });
@@ -4347,6 +4374,7 @@ init();
   var dcCurrentPostId = null;
   var dcCurrentPostData = null;
   var dcCommentsUnsub = null;
+  var dcViewersUnsub = null;
   var dcReplyTo = null;
   var dcRenderedIds = new Set();
 
@@ -4604,21 +4632,18 @@ init();
     // Start with green dot (unknown count) — will be updated live when comments open
     cmtBtn.innerHTML = '<div class="desktop-action-icon" style="position:relative;"><svg viewBox="0 0 122.97 122.88" xmlns="http://www.w3.org/2000/svg"><path d="M61.44,0a61.46,61.46,0,0,1,54.91,89l6.44,25.74a5.83,5.83,0,0,1-7.25,7L91.62,115A61.43,61.43,0,1,1,61.44,0ZM96.63,26.25a49.78,49.78,0,1,0-9,77.52A5.83,5.83,0,0,1,92.4,103L109,107.77l-4.5-18a5.86,5.86,0,0,1,.51-4.34,49.06,49.06,0,0,0,4.62-11.58,50,50,0,0,0-13-47.62Z" fill="url(#brandHeartGrad)"/></svg><span class="cmt-live-dot" style="background:#22c55e;box-shadow:0 0 7px rgba(34,197,94,0.95);"></span></div>'
       + '<span class="desktop-action-label" style="display:none;"></span>';
-    // Async: check for any comments and set dot color correctly
-    (function(_pId, _btn){
+    // Real-time live dot — turns red the moment ANY comment exists
+    (function(_pid, _btn){
       try {
-        var _db2 = window._fbDb, _fns2 = window._fbFirestoreFns;
-        if (_db2 && _fns2 && _pId) {
-          _fns2.getDocs(_fns2.query(_fns2.collection(_db2,"recence",_pId,"comments"),_fns2.limit(1))).then(function(snap){
-            var hasAny = !snap.empty;
-            var _icon2 = _btn.querySelector(".desktop-action-icon");
-            var _ico = _icon2 && _icon2.querySelector(".cmt-live-dot");
-            if (_ico) {
-              _ico.style.background = hasAny ? "#ff3b5c" : "#22c55e";
-              _ico.style.boxShadow = hasAny ? "0 0 7px rgba(255,59,92,0.95)" : "0 0 7px rgba(34,197,94,0.95)";
-            }
-          }).catch(function(){});
-        }
+        onSnapshot(collection(db, 'recence', _pid, 'comments'), function(snap) {
+          var hasAny = !snap.empty;
+          var _icon2 = _btn.querySelector('.desktop-action-icon');
+          var _ico = _icon2 && _icon2.querySelector('.cmt-live-dot');
+          if (_ico) {
+            _ico.style.background = hasAny ? '#ff3b5c' : '#22c55e';
+            _ico.style.boxShadow = hasAny ? '0 0 7px rgba(255,59,92,0.95)' : '0 0 7px rgba(34,197,94,0.95)';
+          }
+        });
       } catch(e){}
     })(postId, cmtBtn);
     cmtBtn.addEventListener('click', function(e) {
@@ -4826,11 +4851,12 @@ init();
     var liveAvatars = document.getElementById('dc-live-avatars');
     if (liveStrip) {
       liveStrip.style.display = 'flex';
+      // Unsub previous viewer listener before attaching new one
+      if (dcViewersUnsub) { try { dcViewersUnsub(); } catch(e){} dcViewersUnsub = null; }
       try {
-        onValue(ref(rtdb, 'viewers/' + postId), function(snap) {
+        dcViewersUnsub = onValue(ref(rtdb, 'viewers/' + postId), function(snap) {
           var count = snap.exists() ? Object.keys(snap.val()).length : 0;
           if (liveNum) liveNum.textContent = count > 999 ? (count/1000).toFixed(1)+'K' : count;
-          // Show up to 4 mini letter avatars of recent viewers
           if (liveAvatars) {
             liveAvatars.innerHTML = '';
             if (snap.exists()) {
@@ -4838,7 +4864,6 @@ init();
               viewers.forEach(function(v) {
                 var av = document.createElement('div');
                 av.className = 'dc-live-avatar';
-                // Random letter from uid
                 var letter = (v.uid || 'V')[0].toUpperCase();
                 av.textContent = letter;
                 liveAvatars.appendChild(av);
@@ -4979,23 +5004,54 @@ init();
         else el.classList.add('new-comment');
         newDcEls.push(el);
       });
-      if (newDcEls.length > 0 && dcList) {
+
+      // New replies that arrived after their parent was already rendered
+      var newDcReplyEls = [];
+      snapshot.forEach(function(d) {
+        var c = d.data(); c.id = d.id;
+        if (!c.parentId) return;
+        if (dcRenderedIds.has(c.id)) return;
+        dcRenderedIds.add(c.id);
+        var rEl = createCommentElement(c, []);
+        if (!dcIsFirstLoad) rEl.classList.add('new-live');
+        else rEl.classList.add('new-comment');
+        newDcReplyEls.push({ el: rEl, parentId: c.parentId });
+      });
+
+      if ((newDcEls.length > 0 || newDcReplyEls.length > 0) && dcList) {
         var frag2 = document.createDocumentFragment();
         newDcEls.forEach(function(el) {
             frag2.appendChild(el);
             if (el._replies && el._replies.length > 0) {
                 el._replies.forEach(function(reply) {
-                    var rEl = createCommentElement(reply, []);
-                    rEl.classList.add('new-comment');
-                    frag2.appendChild(rEl);
+                    if (!dcRenderedIds.has(reply.id)) {
+                        dcRenderedIds.add(reply.id);
+                        var rEl = createCommentElement(reply, []);
+                        rEl.classList.add('new-comment');
+                        frag2.appendChild(rEl);
+                    }
                 });
             }
         });
         dcList.appendChild(frag2);
+        // Insert new replies after their parent
+        newDcReplyEls.forEach(function(item) {
+          var parentEl = dcList.querySelector('[data-comment-id="' + item.parentId + '"]');
+          if (parentEl) {
+            var insertAfter = parentEl;
+            var next = insertAfter.nextSibling;
+            while (next && next.dataset && next.dataset.parentId === item.parentId) {
+              insertAfter = next; next = insertAfter.nextSibling;
+            }
+            dcList.insertBefore(item.el, insertAfter.nextSibling || null);
+          } else {
+            dcList.appendChild(item.el);
+          }
+        });
         if (dcIsAtBottom() || dcIsFirstLoad) {
           setTimeout(function(){ if (dcList) dcList.scrollTop = dcList.scrollHeight; }, 40);
         } else if (!dcIsFirstLoad) {
-          _dcPillCount += newDcEls.length;
+          _dcPillCount += newDcEls.length + newDcReplyEls.length;
           dcShowPill(_dcPillCount);
         }
       }
