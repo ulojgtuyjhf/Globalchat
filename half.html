@@ -308,7 +308,7 @@ body {
 .options { display: none !important; }
 .video-caption {
     position: absolute;
-    bottom: 90px; left: 16px; right: 66px;
+    bottom: 74px; left: 16px; right: 66px;
     z-index: 6;
     pointer-events: none;
 }
@@ -509,6 +509,29 @@ body.dsv-open #desktop-comments {
     pointer-events: none;
 }
 .video-music-pill svg { width: 11px; height: 11px; flex-shrink: 0; }
+/* Spinning vinyl disc */
+.music-disc {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(135deg, #2a2a2a 0%, #111 60%, #3a3a3a 100%);
+    border: 2px solid rgba(255,255,255,0.25);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    animation: discSpin 3s linear infinite;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.7);
+    position: relative;
+}
+.music-disc::after {
+    content: '';
+    position: absolute;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    opacity: 0.9;
+}
+@keyframes discSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
 .music-ticker { overflow: hidden; max-width: 150px; }
 .music-ticker-inner { white-space: nowrap; animation: musicScroll 7s linear infinite; display: inline-block; }
 @keyframes musicScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
@@ -621,6 +644,45 @@ body.dsv-open #desktop-comments {
 }
 .pause-indicator.show { opacity: 1; }
 .pause-indicator svg { width: 36px; height: 36px; }
+
+/* ─── VIDEO PROGRESS BAR ─── */
+.vid-progress-wrap {
+    position: absolute;
+    bottom: 64px; left: 0; right: 0;
+    height: 3px;
+    background: transparent;
+    z-index: 20;
+    pointer-events: auto;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    padding: 10px 0;
+    margin-bottom: -10px;
+    box-sizing: content-box;
+}
+.vid-progress-fill {
+    height: 3px;
+    width: 0%;
+    background: linear-gradient(90deg, #0f0f0f 0%, #626262 50%, #a6a6a6 100%);
+    transition: width 0.18s linear;
+    will-change: width;
+    pointer-events: none;
+    position: absolute;
+    top: 10px; left: 0;
+}
+.vid-progress-time {
+    position: absolute;
+    top: -22px; left: 0;
+    font-size: 11px; font-weight: 700;
+    font-family: var(--font, sans-serif);
+    color: rgba(255,255,255,0.85);
+    text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+    letter-spacing: 0.02em;
+    pointer-events: none;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.vid-progress-wrap.scrubbing .vid-progress-time { opacity: 1; }
 
 /* ─── RIGHT SIDE ACTION BUTTONS ─── */
 .slide-actions {
@@ -3137,7 +3199,8 @@ function createPinElement(postData, postId) {
     }
     const musicPill = document.createElement('div');
     musicPill.className = 'video-music-pill';
-    musicPill.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span class="music-ticker"><span class="music-ticker-inner">Original Sound &nbsp;•&nbsp; Original Sound &nbsp;•&nbsp; </span></span>';
+    var _musicCreator = (postData.name || 'creator');
+    musicPill.innerHTML = '<div class="music-disc"></div><span class="music-ticker"><span class="music-ticker-inner">Original Sound &nbsp;•&nbsp; @' + _musicCreator + ' &nbsp;•&nbsp; Original Sound &nbsp;•&nbsp; @' + _musicCreator + ' &nbsp;•&nbsp; </span></span>';
     captionEl.appendChild(musicPill);
 
     // Inline comment input row (TikTok-style tap to comment)
@@ -3158,6 +3221,55 @@ function createPinElement(postData, postId) {
     captionEl.appendChild(inlineCmtRow);
 
     pinContainer.appendChild(captionEl);
+
+    // ── Slim progress line + current time — above bottom nav ──
+    if (mediaElement && mediaElement.tagName === 'VIDEO') {
+        var progWrap = document.createElement('div');
+        progWrap.className = 'vid-progress-wrap';
+        var progFill = document.createElement('div');
+        progFill.className = 'vid-progress-fill';
+        var progTime = document.createElement('div');
+        progTime.className = 'vid-progress-time';
+        progTime.textContent = '0:00';
+        progWrap.appendChild(progFill);
+        progWrap.appendChild(progTime);
+        pinContainer.appendChild(progWrap);
+
+        function _fmtT(s) {
+            s = Math.floor(s || 0);
+            return Math.floor(s/60) + ':' + (s%60 < 10 ? '0' : '') + (s%60);
+        }
+        mediaElement.addEventListener('timeupdate', function() {
+            var dur = mediaElement.duration;
+            if (!dur || isNaN(dur)) return;
+            progFill.style.width = ((mediaElement.currentTime / dur) * 100) + '%';
+            progTime.textContent = _fmtT(mediaElement.currentTime) + ' / ' + _fmtT(dur);
+        }, { passive: true });
+
+        function _seekAt(e) {
+            var dur = mediaElement.duration;
+            if (!dur || isNaN(dur)) return;
+            var rect = progWrap.getBoundingClientRect();
+            var clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+            var ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+            mediaElement.currentTime = ratio * dur;
+            progFill.style.transition = 'none';
+            progFill.style.width = (ratio * 100) + '%';
+            // Move time label with finger, clamped so it doesn't overflow
+            var labelPct = Math.min(Math.max(ratio * 100, 0), 88);
+            progTime.style.left = labelPct + '%';
+            progTime.textContent = _fmtT(mediaElement.currentTime) + ' / ' + _fmtT(dur);
+            requestAnimationFrame(function(){ progFill.style.transition = ''; });
+        }
+        var _drag = false;
+        progWrap.addEventListener('mousedown',  function(e){ e.stopPropagation(); _drag=true; progWrap.classList.add('scrubbing'); _seekAt(e); });
+        progWrap.addEventListener('touchstart', function(e){ e.stopPropagation(); _drag=true; progWrap.classList.add('scrubbing'); _seekAt(e); }, {passive:true});
+        document.addEventListener('mousemove',  function(e){ if(_drag) _seekAt(e); });
+        document.addEventListener('touchmove',  function(e){ if(_drag) _seekAt(e); }, {passive:true});
+        document.addEventListener('mouseup',    function(){ _drag=false; progWrap.classList.remove('scrubbing'); });
+        document.addEventListener('touchend',   function(){ _drag=false; progWrap.classList.remove('scrubbing'); });
+        progWrap.addEventListener('click', function(e){ e.stopPropagation(); _seekAt(e); });
+    }
 
     // Video-only platform — no image badge needed
 
