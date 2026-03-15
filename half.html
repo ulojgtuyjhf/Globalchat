@@ -2358,8 +2358,14 @@ function setAv(el, name, photoURL) {
 }
 
 // ── Presence tracking: write user to RTDB on login, remove on disconnect ──
+var _lastPresencePostId = null;
 function trackPresence(postId) {
     if (!currentUser || !postId) return;
+    // Remove from previous video when scrolling away
+    if (_lastPresencePostId && _lastPresencePostId !== postId) {
+        try { set(ref(rtdb, 'viewers/' + _lastPresencePostId + '/' + currentUser.uid), null); } catch(e){}
+    }
+    _lastPresencePostId = postId;
     const presRef = ref(rtdb, 'viewers/' + postId + '/' + currentUser.uid);
     set(presRef, {
         uid: currentUser.uid,
@@ -3551,6 +3557,16 @@ function openModal(postData, postId) {
     
     likePostButton.classList.toggle('liked', postData.likes && postData.likes.includes(currentUser?.uid));
     likePostCount.textContent = postData.likes ? postData.likes.length : 0;
+
+    // ── Live like count listener for the comment sheet ──
+    if (window._likePostUnsub) { try { window._likePostUnsub(); } catch(e){} window._likePostUnsub = null; }
+    window._likePostUnsub = onSnapshot(doc(db, 'recence', postId), function(snap) {
+        if (!snap.exists()) return;
+        var d = snap.data();
+        var likes = d.likes || [];
+        likePostCount.textContent = likes.length;
+        likePostButton.classList.toggle('liked', !!(currentUser && likes.includes(currentUser.uid)));
+    });
     
     // Open the comment sheet (slides up from bottom)
     // The feed video stays playing in the background — no duplicate media shown
@@ -3704,6 +3720,7 @@ function closeModal() {
         commentsUnsubscribe();
         commentsUnsubscribe = null;
     }
+    if (window._likePostUnsub) { try { window._likePostUnsub(); } catch(e){} window._likePostUnsub = null; }
     
     currentPostId = null;
     currentPostData = null;
@@ -4554,11 +4571,21 @@ init();
     }
     if (_dIsLiked) _dApplyLikeState(true);
 
+    // ── Real-time like count for desktop card ──
+    onSnapshot(doc(db, 'recence', postId), function(snap) {
+      if (!snap.exists()) return;
+      var likes = snap.data().likes || [];
+      var lbl2 = likeBtn.querySelector('.desktop-action-label');
+      if (lbl2) lbl2.textContent = likes.length;
+      _dApplyLikeState(!!(currentUser && likes.includes(currentUser.uid)));
+    });
+
     likeBtn.addEventListener('click', function(e) {
       e.stopPropagation();
       if (!currentUser) return;
       if (navigator.vibrate) navigator.vibrate(20);
       var isOn = likeBtn.classList.contains('on');
+      // Optimistic UI — onSnapshot confirms
       var lbl = likeBtn.querySelector('.desktop-action-label');
       var n = parseInt(lbl.textContent) || 0;
       lbl.textContent = isOn ? Math.max(0, n-1) : n+1;
@@ -5079,6 +5106,19 @@ init();
 
   var dcReplyPreview = document.getElementById('dc-reply-preview');
   var dcReplyClose = document.getElementById('dc-reply-close');
+
+  // ── Wire desktop reply button — createCommentElement dispatches '_reply' on dc-list ──
+  var _dcListEl = document.getElementById('dc-list');
+  if (_dcListEl) {
+    _dcListEl.addEventListener('_reply', function(e) {
+      dcReplyTo = { id: e._commentId, name: e._userName };
+      var rt = document.getElementById('dc-reply-text');
+      if (rt) rt.textContent = 'Replying to ' + e._userName;
+      if (dcReplyPreview) { dcReplyPreview.classList.add('show'); dcReplyPreview.style.display = 'flex'; }
+      if (dcInput) { dcInput.focus(); dcUpdateSubmit(); }
+    });
+  }
+
   if (dcReplyClose) {
     dcReplyClose.addEventListener('click', function() {
       dcReplyTo = null;
