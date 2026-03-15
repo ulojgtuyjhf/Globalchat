@@ -4832,6 +4832,54 @@ init();
       }
     });
     actions.appendChild(dSaveBtn);
+
+    // ── Desktop progress bar — same as mobile, inside video wrap ──
+    var dProgWrap = document.createElement('div');
+    dProgWrap.className = 'vid-progress-wrap';
+    dProgWrap.style.bottom = '0';  // desktop card has no nav bar, go to absolute bottom
+    var dProgFill = document.createElement('div');
+    dProgFill.className = 'vid-progress-fill';
+    var dProgTime = document.createElement('div');
+    dProgTime.className = 'vid-progress-time';
+    dProgTime.textContent = '0:00';
+    dProgWrap.appendChild(dProgFill);
+    dProgWrap.appendChild(dProgTime);
+    wrap.appendChild(dProgWrap);
+
+    function _dFmtT(s) {
+        s = Math.floor(s || 0);
+        return Math.floor(s/60) + ':' + (s%60 < 10 ? '0' : '') + (s%60);
+    }
+    videoEl.addEventListener('timeupdate', function() {
+        var dur = videoEl.duration;
+        if (!dur || isNaN(dur)) return;
+        dProgFill.style.width = ((videoEl.currentTime / dur) * 100) + '%';
+        dProgTime.textContent = _dFmtT(videoEl.currentTime) + ' / ' + _dFmtT(dur);
+    }, { passive: true });
+
+    function _dSeekAt(e) {
+        var dur = videoEl.duration;
+        if (!dur || isNaN(dur)) return;
+        var rect = dProgWrap.getBoundingClientRect();
+        var clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+        var ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        videoEl.currentTime = ratio * dur;
+        dProgFill.style.transition = 'none';
+        dProgFill.style.width = (ratio * 100) + '%';
+        var labelPct = Math.min(Math.max(ratio * 100, 0), 88);
+        dProgTime.style.left = labelPct + '%';
+        dProgTime.textContent = _dFmtT(videoEl.currentTime) + ' / ' + _dFmtT(dur);
+        requestAnimationFrame(function(){ dProgFill.style.transition = ''; });
+    }
+    var _dDrag = false;
+    dProgWrap.addEventListener('mousedown',  function(e){ e.stopPropagation(); _dDrag=true; dProgWrap.classList.add('scrubbing'); _dSeekAt(e); });
+    dProgWrap.addEventListener('touchstart', function(e){ e.stopPropagation(); _dDrag=true; dProgWrap.classList.add('scrubbing'); _dSeekAt(e); }, {passive:true});
+    document.addEventListener('mousemove',  function(e){ if(_dDrag) _dSeekAt(e); });
+    document.addEventListener('touchmove',  function(e){ if(_dDrag) _dSeekAt(e); }, {passive:true});
+    document.addEventListener('mouseup',    function(){ _dDrag=false; dProgWrap.classList.remove('scrubbing'); });
+    document.addEventListener('touchend',   function(){ _dDrag=false; dProgWrap.classList.remove('scrubbing'); });
+    dProgWrap.addEventListener('click', function(e){ e.stopPropagation(); _dSeekAt(e); });
+
     var cardInner = document.createElement('div');
     cardInner.style.cssText = 'position:relative;height:100%;display:flex;align-items:center;justify-content:center;';
     cardInner.appendChild(wrap);
