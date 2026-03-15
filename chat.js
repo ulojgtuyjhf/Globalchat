@@ -175,7 +175,7 @@
         dcShareHoverText:     '#222222',
         dcArrowBg:            '#ffffff',
         dcArrowStroke:        '#333333',
-        // ── desktop video action buttons (sit beside the video card) ──
+        // ── desktop video action buttons ──
         dsActionIcon:         '#1a1a1a',
         dsActionLabel:        '#111111',
         dsActionShadow:       'none',
@@ -736,14 +736,6 @@
         #ds-saved-panel {
           background: transparent !important;
         }
-        /* Grid column header */
-        #ds-saved-panel > div:first-child > div:first-child {
-          border-bottom: 1px solid ${t.border} !important;
-        }
-        #ds-saved-badge {
-          background: ${t.textPrimary} !important;
-          color: ${t.surfacePrimary} !important;
-        }
         #ds-saved-grid {
           background: ${t.surfacePrimary} !important;
         }
@@ -761,10 +753,6 @@
         }
         #ds-saved-comments {
           background: ${t.surfacePrimary} !important;
-        }
-        /* Saved-viewer back button */
-        #dsv-back {
-          background: var(--brand-gradient) !important;
         }
 
         /* social connections widget */
@@ -879,57 +867,25 @@
           .desktop-nav-arrow { background: ${t.dcArrowBg} !important; }
           .desktop-nav-arrow svg { stroke: ${t.dcArrowStroke}; }
 
-          /* ── desktop video action buttons (float beside video card) ── */
+          /* ── desktop video action buttons ──
+             Icons float beside the video card on the desktop background.
+             Light theme: must be dark so they're visible on light gray bg.
+             Dark/dim: white as normal (on dark bg beside video).
+             CRITICAL: never override .on / .saved-on — those are set by JS
+             using SVG setAttribute with brand gradient. */
           .desktop-action-icon svg {
             stroke: ${t.dsActionIcon} !important;
             filter: drop-shadow(${t.dsActionShadow}) !important;
-          }
-          /* comment bubble icon — fill is on the path, must target path */
-          .desktop-action-icon svg[viewBox="0 0 122.97 122.88"] {
-            fill: ${t.dsActionIcon} !important;
-            stroke: none !important;
-            filter: drop-shadow(${t.dsActionShadow}) !important;
-          }
-          .desktop-action-icon svg[viewBox="0 0 122.97 122.88"] path {
-            fill: ${t.dsActionIcon} !important;
-          }
-          /* send/share icon */
-          .desktop-action-icon svg.send-icon,
-          .desktop-action-icon svg[viewBox="0 0 122.88 103.44"] {
-            fill: ${t.dsActionIcon} !important;
-            stroke: none !important;
-            filter: drop-shadow(${t.dsActionShadow}) !important;
-          }
-          .desktop-action-icon svg.send-icon path,
-          .desktop-action-icon svg[viewBox="0 0 122.88 103.44"] path {
-            fill: ${t.dsActionIcon} !important;
-          }
-          /* mobile slide action comment icon */
-          .slide-action-icon svg[viewBox="0 0 122.97 122.88"],
-          .slide-action-icon svg[viewBox="0 0 122.97 122.88"] path {
-            fill: ${t.dsActionIcon} !important;
-            stroke: none !important;
-          }
-          /* mobile slide action send/share icon */
-          .slide-action-icon svg.send-icon path,
-          .slide-action-icon svg[viewBox="0 0 122.88 103.44"] path {
-            fill: ${t.dsActionIcon} !important;
           }
           .desktop-action-label {
             color: ${t.dsActionLabel} !important;
             text-shadow: ${t.dsActionShadow} !important;
           }
-          /* keep liked/saved active states visible on all themes */
-          .desktop-action-btn.on .desktop-action-icon svg.heart-icon {
+          /* comment bubble (fill-based icon) — default state only */
+          .desktop-action-btn:not(.on) .desktop-action-icon svg[viewBox="0 0 122.97 122.88"],
+          .desktop-action-btn:not(.on) .desktop-action-icon svg[viewBox="0 0 122.97 122.88"] path {
             fill: ${t.dsActionIcon} !important;
-            stroke: ${t.dsActionIcon} !important;
-          }
-          .desktop-action-btn.saved-on .desktop-action-icon svg {
-            stroke: ${t.dsActionIcon} !important;
-            fill: ${t.dsActionIcon} !important;
-          }
-          .desktop-action-btn.saved-on .desktop-action-label {
-            color: ${t.dsActionLabel} !important;
+            stroke: none !important;
           }
           .desktop-card-video-wrap.loading::before {
             background: linear-gradient(110deg, ${t.shimmerBase} 25%, ${t.shimmerShine} 50%, ${t.shimmerBase} 75%);
@@ -1005,22 +961,12 @@
             color: ${t.surfacePrimary} !important;
           }
           #ds-saved-panel { background: transparent !important; }
-          #ds-saved-panel > div:first-child {
-            background: ${t.sidebarBg} !important;
-            border-radius: 20px !important;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.07) !important;
-          }
-          /* Grid column header (back btn + title + badge) */
-          #ds-saved-panel > div:first-child > div:first-child {
-            background: ${t.sidebarBg} !important;
-            border-bottom: 1px solid ${t.dsDivider} !important;
-          }
-          #ds-saved-badge {
-            background: ${t.textPrimary} !important;
-            color: ${t.surfacePrimary} !important;
-          }
           #ds-saved-grid {
             background: ${t.sidebarBg} !important;
+          }
+          #ds-saved-grid > div:first-child {
+            background: ${t.sidebarBg} !important;
+            border-bottom: 1px solid ${t.dsDivider} !important;
           }
           #ds-saved-info-col {
             background: ${t.sidebarBg} !important;
@@ -1031,11 +977,21 @@
           #ds-saved-creator-name { color: ${t.dcCreatorName} !important; }
           #ds-saved-caption { color: ${t.dcCaption} !important; }
           #ds-saved-comments { background: ${t.sidebarBg} !important; }
-          #ds-saved-video-card { background: #000 !important; }
-          /* Saved-viewer back button inside desktop-feed */
-          #dsv-back {
-            background: var(--brand-gradient) !important;
-          }
+          /* ── desktop saved panel ── */
+          #liked-section { background: ${t.desktopBg} !important; }
+          #liked-header { background: ${t.sidebarBg} !important; border-bottom: 1px solid ${t.dsDivider} !important; }
+          #liked-header-title { color: ${t.textPrimary} !important; }
+          #liked-count-badge { background: ${t.textPrimary} !important; color: ${t.surfacePrimary} !important; }
+          #ds-saved-panel { background: transparent !important; }
+          #ds-saved-panel > div:first-child { background: ${t.sidebarBg} !important; border-radius: 20px !important; }
+          #ds-saved-panel > div:first-child > div:first-child { background: ${t.sidebarBg} !important; border-bottom: 1px solid ${t.dsDivider} !important; }
+          #ds-saved-badge { background: ${t.textPrimary} !important; color: ${t.surfacePrimary} !important; }
+          #ds-saved-grid { background: ${t.sidebarBg} !important; }
+          #ds-saved-creator-name { color: ${t.dcCreatorName} !important; }
+          #ds-saved-caption { color: ${t.dcCaption} !important; }
+          #ds-saved-comments { background: ${t.sidebarBg} !important; }
+          #dsv-back { background: var(--brand-gradient) !important; }
+        }
       `;
 
       document.body.classList.remove('theme-light', 'theme-dim', 'theme-dark');
