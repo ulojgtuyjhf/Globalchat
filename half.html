@@ -123,8 +123,11 @@ body {
     scroll-snap-type: y mandatory;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    -ms-overflow-style: none;
 }
-.gallery::-webkit-scrollbar { display: none; }
+.gallery::-webkit-scrollbar { display: none; width: 0; height: 0; }
+html, body { scrollbar-width: none; -ms-overflow-style: none; }
+html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; height: 0; }
 
 .pin-container {
     position: relative;
@@ -133,8 +136,9 @@ body {
     scroll-snap-stop: always;
     overflow: hidden;
     background: #000;
-    background: #000;
     -webkit-tap-highlight-color: transparent;
+    contain: layout style;
+    will-change: transform;
 }
 .pin-container.leaving  { opacity: 0.5; transform: scale(0.97); transition: all 0.3s ease; }
 .pin-container.entering { animation: videoEnter 0.35s ease-out; }
@@ -3098,7 +3102,7 @@ function setupLazyLoading() {
             });
         }, {
             root: galleryEl,
-            rootMargin: '300px 0px',
+            rootMargin: '200% 0px',
             threshold: 0
         });
         all.slice(3).forEach(el => lazyObserver.observe(el));
@@ -7166,93 +7170,148 @@ init();
         if (!gallery) return;
         var current = 0, timer, isSettling = false;
         var userInteracted = false;
+        var _ticking = false; // rAF throttle flag for scroll handler
 
-        // Unmute all videos after first user interaction
+        // Unmute after first user interaction
         function unmuteAll() {
             if (userInteracted) return;
             userInteracted = true;
-            gallery.querySelectorAll('video').forEach(function(v) {
-                v.muted = false;
-                if (!v.paused) v.play().catch(function(){});
-            });
         }
         document.addEventListener('touchstart', unmuteAll, { once: true, passive: true });
         document.addEventListener('click', unmuteAll, { once: true });
 
+        // Pause only the currently active video during scroll — not a full DOM query
+        function pauseCurrentVideo() {
+            var slides = gallery.children; // direct children = pin-containers
+            var s = slides[current];
+            if (s) {
+                var v = s.querySelector('video');
+                if (v && !v.paused) v.pause();
+            }
+        }
+
         gallery.addEventListener('scroll', function() {
-            // Immediately mute/pause ALL videos while scrolling — prevents multiple sounds
-            gallery.querySelectorAll('video').forEach(function(v) {
-                if (!v.paused) { v.pause(); }
-            });
+            // Throttle to one rAF per frame — avoids jank from over-firing
+            if (!_ticking) {
+                requestAnimationFrame(function() {
+                    pauseCurrentVideo();
+                    _ticking = false;
+                });
+                _ticking = true;
+            }
             clearTimeout(timer);
-            timer = setTimeout(settle, 120); // longer debounce = waits for user to stop
+            timer = setTimeout(settle, 100);
         }, { passive: true });
 
         function settle() {
             if (isSettling) return;
-            var slides = gallery.querySelectorAll('.pin-container');
+            var slides = gallery.children;
             var h = window.innerHeight;
             var idx = Math.round(gallery.scrollTop / h);
             idx = Math.max(0, Math.min(idx, slides.length - 1));
-            if (idx === current) return;
+            if (idx === current && slides[current] && slides[current].querySelector('video') && !slides[current].querySelector('video').paused) return;
 
             isSettling = true;
 
+            // Pause previous — only 1 element
             var leaving = slides[current];
             if (leaving) {
+                var lv = leaving.querySelector('video');
+                if (lv) { lv.pause(); lv.currentTime = 0; }
                 leaving.classList.add('leaving');
                 setTimeout(function() { leaving.classList.remove('leaving'); }, 380);
             }
-            current = idx;
 
-            slides.forEach(function(s, i) {
-                var v = s.querySelector('video');
-                if (!v) return;
-                if (i === current) {
-                    v.currentTime = 0; // always restart — clean UX when returning
-                    v.muted = !userInteracted;
-                    v.play().catch(function(){ 
-                        v.muted = true;
-                        v.play().catch(function(){});
-                    });
-                    // Track real-time presence on this post
-                    var pid = s.dataset.postId;
-                    if (pid && typeof trackPresence === 'function') trackPresence(pid);
-                } else {
-                    v.pause();
-                    v.currentTime = 0;
+            // Also pause neighbors that may have crept in (only check ±2)
+            [current - 1, current + 1, current - 2, current + 2].forEach(function(i) {
+                if (i >= 0 && i < slides.length && i !== idx) {
+                    var sv = slides[i] && slides[i].querySelector('video');
+                    if (sv && !sv.paused) sv.pause();
                 }
             });
+
+            current = idx;
+
+            // Play new current slide
+            var entering = slides[current];
+            if (entering) {
+                entering.classList.add('entering');
+                setTimeout(function() { entering.classList.remove('entering'); }, 400);
+                var ev = entering.querySelector('video');
+                if (ev) {
+                    // Load src lazily if not yet loaded
+                    if (!ev.src && ev.dataset && ev.dataset.src) {
+                        ev.src = ev.dataset.src;
+                        ev.removeAttribute('data-src');
+                        ev.classList.add('loaded');
+                        ev.load();
+                    }
+                    ev.currentTime = 0;
+                    ev.muted = !userInteracted;
+                    var doPlay = function() {
+                        ev.play().catch(function() {
+                            ev.muted = true;
+                            ev.play().catch(function(){});
+                        });
+                    };
+                    if (ev.readyState >= 2) { doPlay(); }
+                    else { ev.addEventListener('canplay', doPlay, { once: true }); }
+                }
+                var pid = entering.dataset.postId;
+                if (pid && typeof trackPresence === 'function') trackPresence(pid);
+            }
+
+            // Preload next slide src so it's ready
+            var next = slides[idx + 1];
+            if (next) {
+                var nv = next.querySelector('video');
+                if (nv && !nv.src && nv.dataset && nv.dataset.src) {
+                    nv.src = nv.dataset.src;
+                    nv.removeAttribute('data-src');
+                    nv.classList.add('loaded');
+                    nv.preload = 'auto';
+                    nv.load();
+                }
+            }
 
             setTimeout(function() { isSettling = false; }, 400);
         }
 
-        // Auto-play first video — use playVideo helper which handles canplay + src loading
+        // Auto-play first video on load
         setTimeout(function() {
-            var first = gallery.querySelector('.pin-container video');
-            if (first) {
-                // Track presence for the first video immediately
-                var firstPin = gallery.querySelector('.pin-container');
-                if (firstPin && firstPin.dataset.postId && typeof trackPresence === 'function') {
-                    trackPresence(firstPin.dataset.postId);
-                }
-                if (typeof window._playVideo === 'function') {
-                    window._playVideo(first);
-                } else {
-                    // fallback
-                    var doPlay = function() {
-                        first.muted = false;
-                        first.play().catch(function(){
-                            first.muted = true;
-                            first.play().catch(function(){});
-                            document.addEventListener('click', function(){ first.muted = false; first.play().catch(function(){}); }, { once: true });
-                        });
-                    };
-                    if (first.readyState >= 2) { doPlay(); }
-                    else { first.addEventListener('canplay', doPlay, { once: true }); }
+            var firstPin = gallery.children[0];
+            if (!firstPin) return;
+            var first = firstPin.querySelector('video');
+            if (!first) return;
+            if (firstPin.dataset.postId && typeof trackPresence === 'function') {
+                trackPresence(firstPin.dataset.postId);
+            }
+            // Load src if not already
+            if (!first.src && first.dataset && first.dataset.src) {
+                first.src = first.dataset.src;
+                first.removeAttribute('data-src');
+                first.classList.add('loaded');
+                first.load();
+            }
+            var doPlay = function() {
+                first.muted = true; // muted until user interacts
+                first.play().catch(function(){});
+            };
+            if (first.readyState >= 2) { doPlay(); }
+            else { first.addEventListener('canplay', doPlay, { once: true }); }
+            // Preload second video too
+            var secondPin = gallery.children[1];
+            if (secondPin) {
+                var sv = secondPin.querySelector('video');
+                if (sv && !sv.src && sv.dataset && sv.dataset.src) {
+                    sv.src = sv.dataset.src;
+                    sv.removeAttribute('data-src');
+                    sv.classList.add('loaded');
+                    sv.preload = 'auto';
+                    sv.load();
                 }
             }
-        }, 500);
+        }, 400);
 
         // When comment sheet opens: shrink gallery so video "floats up"
         var commentSheet = document.getElementById('commentSheet');
