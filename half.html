@@ -861,10 +861,10 @@ body.dsv-open #desktop-comments {
 
 /* ─── SUPER LIKE — bigger at rest, heart burst on click ─── */
 .slide-action-btn[aria-label="Super Like"] .slide-action-icon {
-    width: 54px; height: 54px;
+    width: 60px; height: 60px;
 }
 .slide-action-btn[aria-label="Super Like"] .slide-action-icon svg {
-    width: 34px; height: 30px;
+    width: 46px !important; height: 40px !important;
     filter: drop-shadow(0 2px 8px rgba(0,0,0,0.55));
     transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
 }
@@ -3656,7 +3656,7 @@ function createPinElement(postData, postId) {
     dislikeBtn.setAttribute('aria-label', 'Super Like');
     dislikeBtn.innerHTML =
         '<div class="slide-action-icon">' +
-            '<svg viewBox="0 0 28 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="24">' +
+            '<svg viewBox="0 0 28 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="46" height="40">' +
                 // Two hearts overlapping — super like
                 '<path d="M7 3.5a3.5 3.5 0 0 0-3.5 3.5c0 4 3.5 7 7 9.5C14 14 17.5 11 17.5 7a3.5 3.5 0 0 0-7 0 3.5 3.5 0 0 0-3.5-3.5z" opacity="0.5"/>' +
                 '<path d="M13 5.5a3.5 3.5 0 0 0-3.5 3.5c0 4 3.5 7 7 9.5C20 16 23.5 13 23.5 9a3.5 3.5 0 0 0-7 0 3.5 3.5 0 0 0-3.5-3.5z"/>' +
@@ -3689,21 +3689,39 @@ function createPinElement(postData, postId) {
         void dislikeBtn.offsetWidth;
         dislikeBtn.classList.add('dislike-pop');
 
-        // Heart burst — 8 hearts fly out from button position
+        // Small pleasant chime sound
+        try {
+            var _ac = new (window.AudioContext || window.webkitAudioContext)();
+            var _notes = [523.25, 659.25, 783.99, 1046.50]; // C5 E5 G5 C6
+            _notes.forEach(function(freq, i) {
+                var osc = _ac.createOscillator();
+                var gain = _ac.createGain();
+                osc.connect(gain); gain.connect(_ac.destination);
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0, _ac.currentTime + i * 0.08);
+                gain.gain.linearRampToValueAtTime(0.18, _ac.currentTime + i * 0.08 + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, _ac.currentTime + i * 0.08 + 0.25);
+                osc.start(_ac.currentTime + i * 0.08);
+                osc.stop(_ac.currentTime + i * 0.08 + 0.3);
+            });
+        } catch(e) {}
+
+        // Rainbow hearts burst
+        var _rainbow = ['#ff0040','#ff6600','#ffcc00','#33dd55','#00aaff','#aa44ff','#ff44aa','#ff2255'];
         var _rect = dislikeBtn.getBoundingClientRect();
         var _cx = _rect.left + _rect.width / 2;
         var _cy = _rect.top + _rect.height / 2;
-        var _sizes = [18, 14, 20, 12, 16, 22, 14, 18];
-        var _angles = [-70, -50, -90, -30, -110, -60, -80, -40];
-        _sizes.forEach(function(sz, i) {
+        _rainbow.forEach(function(color, i) {
             var p = document.createElement('div');
             p.className = 'super-heart-particle';
-            var angle = (_angles[i] + (Math.random() * 20 - 10)) * (Math.PI / 180);
-            var dist = 80 + Math.random() * 80;
-            var dx = Math.cos(angle) * dist * 0.4;
-            var dy = -Math.abs(Math.sin(angle) * dist) - 40;
-            var rot = (Math.random() * 40 - 20) + 'deg';
-            var dur = (0.7 + Math.random() * 0.5) + 's';
+            var sz = 14 + Math.random() * 12;
+            var angle = (-110 + i * 28 + Math.random() * 14) * (Math.PI / 180);
+            var dist = 90 + Math.random() * 70;
+            var dx = Math.cos(angle) * dist * 0.45;
+            var dy = -Math.abs(Math.sin(angle) * dist) - 50;
+            var rot = (Math.random() * 50 - 25) + 'deg';
+            var dur = (0.75 + Math.random() * 0.45) + 's';
             p.style.cssText = [
                 'left:' + (_cx - sz/2) + 'px',
                 'top:' + (_cy - sz/2) + 'px',
@@ -3714,7 +3732,7 @@ function createPinElement(postData, postId) {
                 '--r:' + rot,
                 '--dur:' + dur
             ].join(';');
-            p.innerHTML = '<svg viewBox="0 0 24 24" width="' + sz + '" height="' + sz + '" fill="url(#brandHeartGrad)" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+            p.innerHTML = '<svg viewBox="0 0 24 24" width="' + sz + '" height="' + sz + '" fill="' + color + '" stroke="none" style="filter:drop-shadow(0 1px 4px ' + color + '88)"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
             document.body.appendChild(p);
             setTimeout(function() { p.parentNode && p.parentNode.removeChild(p); }, 1400);
         });
