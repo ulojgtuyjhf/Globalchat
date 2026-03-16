@@ -2284,13 +2284,15 @@ body.dsv-open #desktop-comments {
           </div>
           Home
         </button>
-        <button class="ds-nav-item" id="dsNavTop">
+        <button class="ds-nav-item" id="dsNavTop" style="position:relative;">
           <div class="ds-nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
+            <span class="nav-badge" id="updBadgeDesk" style="display:none;position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;border-radius:99px;background:var(--brand-gradient);border:1.5px solid #fff;font-size:9px;font-weight:900;color:#fff;font-family:var(--font);padding:0 3px;align-items:center;justify-content:center;"></span>
           </div>
-          Top
+          Updates
         </button>
         <button class="ds-nav-item ds-upload-btn" id="dsNavUpload">
           <div class="ds-nav-icon" style="background:var(--brand-gradient);">
@@ -2612,7 +2614,7 @@ body.dsv-open #desktop-comments {
         // Import Firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, onSnapshot, updateDoc, doc, arrayUnion, arrayRemove, getDoc, where, deleteDoc, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, onSnapshot, updateDoc, doc, arrayUnion, arrayRemove, getDoc, where, deleteDoc, getCountFromServer, startAfter } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getDatabase, ref, onValue, set, serverTimestamp as rtServerTimestamp, onDisconnect, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 // Firebase Configuration
 const firebaseConfig = {
@@ -3210,78 +3212,138 @@ async function deleteOldPosts() {
 }
 
 let _fetchPostsRunning = false;
-async function fetchPosts() {
-    if (_fetchPostsRunning) return; // prevent duplicate calls
+let _lastVisible = null;
+let _allPostsLoaded = false;
+const PAGE_SIZE = 8;
+
+async function fetchPosts(loadMore) {
+    if (_fetchPostsRunning) return;
+    if (!loadMore && _allPostsLoaded) return;
     _fetchPostsRunning = true;
     try {
-        // First delete posts older than 24 hours
-        await deleteOldPosts();
-        // Clear gallery before loading to prevent duplicates
-        if (gallery) gallery.innerHTML = '';
+        if (!loadMore) {
+            await deleteOldPosts();
+            if (gallery) gallery.innerHTML = '';
+            _lastVisible = null;
+            _allPostsLoaded = false;
+            if (!window._allDesktopCards) window._allDesktopCards = [];
+        }
+
         const recenceCollection = collection(db, 'recence');
-        const q = query(recenceCollection, orderBy('timestamp', 'desc'), limit(50));
+        let q;
+        if (loadMore && _lastVisible) {
+            q = query(recenceCollection, orderBy('timestamp', 'desc'), startAfter(_lastVisible), limit(PAGE_SIZE));
+        } else {
+            q = query(recenceCollection, orderBy('timestamp', 'desc'), limit(PAGE_SIZE));
+        }
+
         const querySnapshot = await getDocs(q);
 
-        loadingContainer.classList.add('hidden');
-        setTimeout(() => {
-            loadingContainer.style.display = 'none';
-        }, 300);
+        if (!loadMore) {
+            loadingContainer.classList.add('hidden');
+            setTimeout(() => { loadingContainer.style.display = 'none'; }, 300);
+        }
 
         if (querySnapshot.empty) {
-            gallery.innerHTML = '<div style="text-align: center; padding: 20px;">No posts found</div>';
+            if (!loadMore) gallery.innerHTML = '<div style="text-align:center;padding:20px;">No posts found</div>';
+            _allPostsLoaded = true;
+            _fetchPostsRunning = false;
             return;
         }
+
+        // Track last doc for next page
+        _lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+        if (querySnapshot.docs.length < PAGE_SIZE) _allPostsLoaded = true;
 
         const desktopFeed = document.getElementById('desktop-feed');
         const desktopPosts = [];
         const isDesktop = window.innerWidth >= 900;
-
         const _nowMs = Date.now();
+
         querySnapshot.forEach((doc) => {
             const postData = doc.data();
-            // Hard client-side expiry guard — skip posts older than 24h
             const _pts = postData.timestamp;
             const _pUpMs = _pts ? (_pts.seconds ? _pts.seconds*1000 : (_pts.toDate ? _pts.toDate().getTime() : null)) : null;
             if (_pUpMs && (_nowMs - _pUpMs) > 24*60*60*1000) return;
-            if (postData.media && postData.media.length > 0) {
-                // Video-only platform — skip image posts
-                const _m = postData.media[0];
-                const _isVid = _m && (_m.type === 'video' || (_m.contentType && _m.contentType.startsWith('video/')));
-                if (!_isVid) return;
-                // Mobile feed
-                if (!isDesktop) {
-                    const pinElement = createPinElement(postData, doc.id);
-                    if (pinElement) gallery.appendChild(pinElement);
-                }
-                // Desktop feed
-                if (isDesktop && desktopFeed && typeof window._buildDesktopCard === 'function') {
-                    const card = window._buildDesktopCard(postData, doc.id);
-                    if (card) {
-                        desktopFeed.appendChild(card);
-                        // Cache for restoring after saved-viewer exits
-                        if (!window._allDesktopCards) window._allDesktopCards = [];
-                        window._allDesktopCards.push(card);
-                    }
-                }
-                desktopPosts.push({ data: postData, id: doc.id });
+            if (!postData.media || !postData.media.length) return;
+            const _m = postData.media[0];
+            const _isVid = _m && (_m.type === 'video' || (_m.contentType && _m.contentType.startsWith('video/')));
+            if (!_isVid) return;
+
+            if (!isDesktop) {
+                const pinElement = createPinElement(postData, doc.id);
+                if (pinElement) gallery.appendChild(pinElement);
             }
+            if (isDesktop && desktopFeed && typeof window._buildDesktopCard === 'function') {
+                const card = window._buildDesktopCard(postData, doc.id);
+                if (card) {
+                    desktopFeed.appendChild(card);
+                    window._allDesktopCards.push(card);
+                }
+            }
+            desktopPosts.push({ data: postData, id: doc.id });
         });
 
         if (isDesktop) {
-            document.dispatchEvent(new CustomEvent('desktopPostsReady', { detail: { posts: desktopPosts } }));
+            if (!loadMore) {
+                document.dispatchEvent(new CustomEvent('desktopPostsReady', { detail: { posts: desktopPosts } }));
+            } else if (window._desktopFeedObs) {
+                document.querySelectorAll('.desktop-card').forEach(function(c) {
+                    window._desktopFeedObs.observe(c);
+                });
+            }
         } else {
-            setupLazyLoading();
-            setupVideoVisibility();
+            if (!loadMore) {
+                setupLazyLoading();
+                setupVideoVisibility();
+            } else {
+                // Re-run lazy load for new pins
+                setupLazyLoading();
+            }
         }
+
+        // Setup infinite scroll sentinel after first load
+        if (!loadMore) _setupScrollSentinel();
+
     } catch (error) {
         console.error('Error fetching posts:', error);
         loadingContainer.classList.add('hidden');
-        setTimeout(() => {
-            loadingContainer.style.display = 'none';
-        }, 300);
-        gallery.innerHTML = '<div style="text-align: center; padding: 20px;">Error loading content. Please try again later.</div>';
+        setTimeout(() => { loadingContainer.style.display = 'none'; }, 300);
+        if (!loadMore) gallery.innerHTML = '<div style="text-align:center;padding:20px;">Error loading content. Please try again later.</div>';
     } finally {
         _fetchPostsRunning = false;
+    }
+}
+
+function _setupScrollSentinel() {
+    // Mobile: sentinel at end of gallery
+    var _sentinel = document.getElementById('_scroll_sentinel');
+    if (_sentinel) _sentinel.remove();
+    _sentinel = document.createElement('div');
+    _sentinel.id = '_scroll_sentinel';
+    _sentinel.style.height = '1px';
+    var gal = document.getElementById('gallery');
+    if (gal) gal.appendChild(_sentinel);
+
+    var _sentObs = new IntersectionObserver(function(entries) {
+        if (entries[0].isIntersecting && !_allPostsLoaded && !_fetchPostsRunning) {
+            fetchPosts(true);
+        }
+    }, { root: null, threshold: 0 });
+    _sentObs.observe(_sentinel);
+
+    // Desktop: sentinel at end of desktop-feed
+    var _dFeed = document.getElementById('desktop-feed');
+    if (_dFeed) {
+        var _dSentinel = document.createElement('div');
+        _dSentinel.style.height = '1px';
+        _dFeed.appendChild(_dSentinel);
+        var _dSentObs = new IntersectionObserver(function(entries) {
+            if (entries[0].isIntersecting && !_allPostsLoaded && !_fetchPostsRunning) {
+                fetchPosts(true);
+            }
+        }, { root: _dFeed, threshold: 0 });
+        _dSentObs.observe(_dSentinel);
     }
 }
 
@@ -6381,7 +6443,7 @@ init();
 
   // Nav listeners
   document.getElementById('dsNavHome').addEventListener('click',    function(){ showDesktopSection('Home'); });
-  document.getElementById('dsNavTop').addEventListener('click',     function(){ showDesktopSection('Top'); });
+  document.getElementById('dsNavTop').addEventListener('click', function(){ window.openUpdatesPanel && window.openUpdatesPanel(); });
   document.getElementById('dsNavUpload').addEventListener('click',  function(){ showDesktopSection('Upload'); });
   document.getElementById('dsNavLiked').addEventListener('click',   function(){ showDesktopSection('Liked'); });
   document.getElementById('dsNavProfile').addEventListener('click', function(){ showDesktopSection('Profile'); });
@@ -7558,6 +7620,13 @@ init();
         if (nb && updates.length) {
             nb.textContent = updates.length > 9 ? '9+' : updates.length;
             nb.classList.add('show');
+        }
+        // Desktop badge
+        var nbd = document.getElementById('updBadgeDesk');
+        if (nbd && updates.length) {
+            nbd.textContent = updates.length > 9 ? '9+' : updates.length;
+            nbd.style.display = 'flex';
+            nbd.style.animation = 'badgePulse 2s ease-in-out infinite';
         }
     }
 
