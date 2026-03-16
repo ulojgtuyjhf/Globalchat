@@ -1040,6 +1040,24 @@ body.dsv-open #desktop-comments {
     50% { transform: scale(1.22); box-shadow: 0 0 0 5px rgba(98,98,98,0); }
 }
 @media (min-width: 900px) { #mob-feed-tabs { display: none !important; } }
+
+/* Desktop feed tabs — fixed, centered over the feed column */
+#desk-feed-tabs {
+    display: none; /* shown only on desktop via media query below */
+}
+@media (min-width: 900px) {
+    #desk-feed-tabs {
+        position: fixed;
+        top: 16px;
+        left: 50%; transform: translateX(-50%);
+        z-index: 200;
+        display: flex; align-items: center;
+        pointer-events: auto;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.22) 0%, transparent 100%);
+        padding: 6px 4px 10px;
+        border-radius: 12px;
+    }
+}
 .lazy-load { opacity: 0; transition: opacity 0.3s ease-in; }
 .lazy-load.loaded { opacity: 1; }
 
@@ -2311,10 +2329,10 @@ body.dsv-open #desktop-comments {
 
       </aside>
 
-      <!-- Desktop feed tabs — For You / Top -->
-      <div id="desk-feed-tabs" style="position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:0;z-index:60;pointer-events:auto;">
-          <button class="mob-feed-tab active" id="deskTabForYou" style="font-size:14px;color:rgba(255,255,255,0.5);text-shadow:0 1px 6px rgba(0,0,0,0.8);">For You</button>
-          <button class="mob-feed-tab" id="deskTabTop" style="font-size:14px;color:rgba(255,255,255,0.5);text-shadow:0 1px 6px rgba(0,0,0,0.8);">Top</button>
+      <!-- Desktop feed tabs — For You / Top, fixed over feed -->
+      <div id="desk-feed-tabs">
+          <button class="mob-feed-tab active" id="deskTabForYou">For You</button>
+          <button class="mob-feed-tab" id="deskTabTop">Top</button>
       </div>
 
       <!-- Center feed — cards populated by JS -->
@@ -6337,6 +6355,9 @@ init();
   // ── Desktop feed tabs ──
   var _dtForYou = document.getElementById('deskTabForYou');
   var _dtTop    = document.getElementById('deskTabTop');
+  // For You always default
+  if (_dtForYou) _dtForYou.classList.add('active');
+  if (_dtTop) _dtTop.classList.remove('active');
   if (_dtForYou) _dtForYou.addEventListener('click', function() {
       _dtForYou.classList.add('active'); _dtTop.classList.remove('active');
       var feed = document.getElementById('desktop-feed');
@@ -6348,7 +6369,8 @@ init();
       var best = null, bestN = -1;
       cards.forEach(function(c){ var n=parseInt(c.dataset.superlikeCount||0); if(n>bestN){bestN=n;best=c;} });
       if (best) { var feed=document.getElementById('desktop-feed'); if(feed) feed.scrollTo({top:best.offsetTop,behavior:'smooth'}); }
-      // Top stays active until user taps For You
+      // Revert to For You after scroll
+      setTimeout(function(){ _dtForYou.classList.add('active'); _dtTop.classList.remove('active'); }, 800);
   });
 
   // ── Sidebar: load suggested users ──
