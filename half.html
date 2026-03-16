@@ -336,24 +336,25 @@ body {
 .video-creator-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
 .video-follow-btn {
     flex-shrink: 0;
-    font-size: 9.5px; font-weight: 800;
-    padding: 3px 9px; border-radius: 99px;
-    border: 1.5px solid rgba(255,255,255,0.7);
-    background: rgba(255,255,255,0.1);
+    font-size: 9px; font-weight: 800;
+    padding: 3px 10px 3px 7px;
+    border-radius: 99px;
+    border: none;
+    background: var(--brand-gradient);
     color: #fff; cursor: pointer;
     font-family: var(--font, sans-serif);
-    transition: all 0.15s;
+    transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), opacity 0.18s;
     pointer-events: auto;
     -webkit-tap-highlight-color: transparent;
     white-space: nowrap;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
+    display: flex; align-items: center; gap: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
 }
-.video-follow-btn:active { transform: scale(0.9); }
+.video-follow-btn:active { transform: scale(0.88); }
 .video-follow-btn.following {
-    background: transparent;
-    border-color: rgba(255,255,255,0.25);
-    color: rgba(255,255,255,0.45);
+    opacity: 0.6;
 }
 /* Inline comment row — TikTok style, below description */
 .inline-cmt-row {
@@ -858,15 +859,50 @@ body.dsv-open #desktop-comments {
 .float-heart { position: absolute; width: 30px; height: 30px; pointer-events: none; z-index: 20; animation: floatHeart 0.9s ease-out forwards; }
 .float-heart svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4)); }
 
-/* ─── DISLIKE BUTTON — fills brand gradient on active, same pattern as like ─── */
-.slide-action-btn[aria-label="Dislike"] .slide-action-icon svg {
-    stroke: rgba(255,255,255,0.95);
+/* ─── SUPER LIKE — bigger at rest, heart burst on click ─── */
+.slide-action-btn[aria-label="Super Like"] .slide-action-icon {
+    width: 54px; height: 54px;
 }
-.slide-action-btn[aria-label="Dislike"].on .slide-action-icon svg {
-    fill: url(#brandDislikeGrad) !important;
+.slide-action-btn[aria-label="Super Like"] .slide-action-icon svg {
+    width: 34px; height: 30px;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.55));
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+.slide-action-btn[aria-label="Super Like"]:hover .slide-action-icon svg {
+    transform: scale(1.12);
+}
+.slide-action-btn[aria-label="Super Like"] .slide-action-label {
+    font-size: 10px; font-weight: 800;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    background: linear-gradient(90deg, #fff 0%, #a6a6a6 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.slide-action-btn[aria-label="Super Like"].on .slide-action-icon svg {
+    fill: url(#brandHeartGrad) !important;
     stroke: #626262 !important;
+    filter: drop-shadow(0 0 14px rgba(210,210,210,0.9)) drop-shadow(0 2px 6px rgba(0,0,0,0.5)) !important;
 }
-.slide-action-btn[aria-label="Dislike"].dislike-pop .slide-action-icon { animation: likePop 0.42s cubic-bezier(0.34,1.56,0.64,1); }
+.slide-action-btn[aria-label="Super Like"].dislike-pop .slide-action-icon svg {
+    animation: superLikePop 0.55s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes superLikePop {
+    0%   { transform: scale(1); }
+    20%  { transform: scale(1.9) rotate(-8deg); }
+    45%  { transform: scale(1.4) rotate(5deg); }
+    65%  { transform: scale(1.65) rotate(-3deg); }
+    100% { transform: scale(1); }
+}
+/* floating hearts burst */
+@keyframes burstHeart {
+    0%   { opacity: 1; transform: translateY(0) scale(1) rotate(var(--r)); }
+    60%  { opacity: 1; }
+    100% { opacity: 0; transform: translateY(var(--dy)) translateX(var(--dx)) scale(0.4) rotate(var(--r)); }
+}
+.super-heart-particle {
+    position: fixed; pointer-events: none; z-index: 9999;
+    animation: burstHeart var(--dur) ease-out forwards;
+}
 
 /* ─── BOTTOM NAV ─── */
 #bottom-nav {
@@ -1185,10 +1221,12 @@ body.dsv-open #desktop-comments {
 .like-button:active { transform: scale(0.8); }
 .like-button svg { width: 15px; height: 15px; fill: none; stroke: #d0d0d0; stroke-width: 1.8; flex-shrink: 0; transition: all 0.2s; }
 .like-button.liked svg { fill: url(#brandHeartGrad); stroke: #626262; transform: scale(1.15); }
-@keyframes cLikePop { 0%{transform:scale(1)} 35%{transform:scale(1.4)} 65%{transform:scale(0.9)} 100%{transform:scale(1.15)} }
-.like-button.pop svg { animation: cLikePop 0.35s cubic-bezier(0.34,1.56,0.64,1); }
-.like-count { font-size: 12px; font-weight: 600; color: #ccc; min-width: 10px; transition: color 0.15s; }
+@keyframes cLikePop { 0%{transform:scale(1)} 35%{transform:scale(1.5)} 55%{transform:scale(0.88)} 100%{transform:scale(1.15)} }
+.like-button.pop svg { animation: cLikePop 0.38s cubic-bezier(0.34,1.56,0.64,1); }
+.like-count { font-size: 12px; font-weight: 600; color: #bbb; min-width: 10px; transition: color 0.15s; }
 .like-button.liked .like-count { color: #626262; }
+/* desktop dislike button liked state */
+#dc-list .like-button.liked svg { fill: url(#brandHeartGrad); stroke: #626262; }
 
 .reply-btn {
     background: none; border: none; cursor: pointer;
@@ -1764,9 +1802,9 @@ body.dsv-open #desktop-comments {
   .desktop-action-btn.saved-on .desktop-action-icon { background: none; border: none; }
   .desktop-action-btn.saved-on .desktop-action-icon svg { fill: url(#brandBookmarkGrad) !important; stroke: #626262 !important; filter: drop-shadow(0 1px 4px rgba(0,0,0,0.7)); }
   .desktop-action-btn.saved-on .desktop-action-label { color: rgba(255,255,255,0.92) !important; }
-  /* Dislike on-state — same fill pattern as like */
-  .desktop-action-btn[aria-label="Dislike"].on .desktop-action-icon svg {
-    fill: url(#brandDislikeGrad) !important; stroke: #626262 !important;
+  /* Super Like on-state */
+  .desktop-action-btn[aria-label="Super Like"].on .desktop-action-icon svg {
+    fill: url(#brandHeartGrad) !important; stroke: #626262 !important;
   }
   .desktop-action-btn:hover .desktop-action-icon { transform: scale(1.12); background: none; }
   /* Profile btn inside desktop actions */
@@ -1928,7 +1966,7 @@ body.dsv-open #desktop-comments {
   #dc-list .comment-text { color: #333; }
   #dc-list .comment-time { color: #ccc; }
   #dc-list .like-button svg { stroke: #ddd; }
-  #dc-list .like-button.liked svg { fill: #222; stroke: #222; }
+  #dc-list .like-button.liked svg { fill: url(#brandHeartGrad); stroke: #626262; }
   #dc-list .like-count { color: #ccc; }
   #dc-list .reply-btn { color: #ccc; }
   #dc-list .view-replies-btn { color: #aaa; }
@@ -3264,17 +3302,20 @@ function createPinElement(postData, postId) {
     const creatorRow = document.createElement('div');
     creatorRow.className = 'video-creator-av-row';
 
-    // Avatar
+    // Avatar — uses per-user hue color for placeholder
     var _cavEl = document.createElement('div');
     _cavEl.className = 'video-creator-av-img';
+    var _cavLetter = ((postData.name || 'U')[0]).toUpperCase();
+    var _cavHue = (_cavLetter.charCodeAt(0) * 37) % 360;
+    _cavEl.style.background = 'hsl(' + _cavHue + ',50%,38%)';
     if (postData.photoURL && !postData.photoURL.includes('default_profile')) {
         var _cavImg = document.createElement('img');
         _cavImg.src = postData.photoURL;
         _cavImg.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
-        _cavImg.onerror = function() { this.style.display='none'; _cavEl.textContent = ((postData.name||'U')[0]).toUpperCase(); };
+        _cavImg.onerror = function() { this.style.display='none'; _cavEl.textContent = _cavLetter; };
         _cavEl.appendChild(_cavImg);
     } else {
-        _cavEl.textContent = ((postData.name||'U')[0]).toUpperCase();
+        _cavEl.textContent = _cavLetter;
     }
     creatorRow.appendChild(_cavEl);
 
@@ -3286,13 +3327,18 @@ function createPinElement(postData, postId) {
     creatorNameEl.className = 'video-creator-name';
     creatorNameEl.textContent = postData.name || 'Creator';
 
-    // Second line: @handle • time
+    // Second line: @handle · time — only show handle if different from display name
     var _subLine = document.createElement('div');
     _subLine.style.cssText = 'display:flex;align-items:center;gap:4px;';
-    var _handleEl = document.createElement('span');
-    _handleEl.className = 'video-creator-handle';
-    _handleEl.textContent = '@' + (postData.userName || postData.name || 'creator');
-
+    var _rawHandle = postData.userName || '';
+    var _rawName = postData.name || '';
+    // Only show @handle when it's genuinely a different username field
+    if (_rawHandle && _rawHandle.toLowerCase() !== _rawName.toLowerCase()) {
+        var _handleEl = document.createElement('span');
+        _handleEl.className = 'video-creator-handle';
+        _handleEl.textContent = '@' + _rawHandle;
+        _subLine.appendChild(_handleEl);
+    }
     const creatorDateEl = document.createElement('span');
     creatorDateEl.className = 'video-creator-date';
     creatorDateEl.style.cssText = 'white-space:nowrap;flex-shrink:0;';
@@ -3324,24 +3370,27 @@ function createPinElement(postData, postId) {
         creatorDateEl.textContent = '· 24h';
     }
 
-    _subLine.appendChild(_handleEl);
     _subLine.appendChild(creatorDateEl);
     _meta.appendChild(creatorNameEl);
     _meta.appendChild(_subLine);
     creatorRow.appendChild(_meta);
 
-    // Inline follow button — small, brand-styled, tight
+    // Inline follow button — brand gradient, + icon
     var _inlineFollow = document.createElement('button');
     _inlineFollow.className = 'video-follow-btn';
     const _isFollowedCreator = currentUser && followedUsers.has(postData.userId);
-    _inlineFollow.textContent = _isFollowedCreator ? '✓ Following' : 'Follow';
+    _inlineFollow.innerHTML = _isFollowedCreator
+        ? '<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><polyline points="1,6 4.5,10 11,2" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Following'
+        : '<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><line x1="6" y1="1" x2="6" y2="11" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><line x1="1" y1="6" x2="11" y2="6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>Follow';
     if (_isFollowedCreator) _inlineFollow.classList.add('following');
     _inlineFollow.addEventListener('click', async function(e) {
         e.stopPropagation();
         if (!currentUser || postData.userId === currentUser.uid) return;
         if (navigator.vibrate) navigator.vibrate(20);
         var nowFollowing = !followedUsers.has(postData.userId);
-        _inlineFollow.textContent = nowFollowing ? '✓ Following' : 'Follow';
+        _inlineFollow.innerHTML = nowFollowing
+            ? '<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><polyline points="1,6 4.5,10 11,2" stroke="rgba(255,255,255,0.5)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Following'
+            : '<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><line x1="6" y1="1" x2="6" y2="11" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><line x1="1" y1="6" x2="11" y2="6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>Follow';
         _inlineFollow.classList.toggle('following', nowFollowing);
         await toggleFollow(postData.userId, postData.name || 'User');
     });
@@ -3601,46 +3650,82 @@ function createPinElement(postData, postId) {
             // Count & state updated by onSnapshot above
         } catch(err) { console.error('Like error:', err); }
     });
-    // DISLIKE button — same behaviour as like, fills brand gradient when on
+    // SUPER LIKE button — "loved it" / fire reaction
     const dislikeBtn = document.createElement('button');
     dislikeBtn.className = 'slide-action-btn';
-    dislikeBtn.setAttribute('aria-label', 'Dislike');
+    dislikeBtn.setAttribute('aria-label', 'Super Like');
     dislikeBtn.innerHTML =
         '<div class="slide-action-icon">' +
-            '<svg class="dislike-icon" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">' +
-                '<path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3z"/>' +
-                '<path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/>' +
+            '<svg viewBox="0 0 28 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="24">' +
+                // Two hearts overlapping — super like
+                '<path d="M7 3.5a3.5 3.5 0 0 0-3.5 3.5c0 4 3.5 7 7 9.5C14 14 17.5 11 17.5 7a3.5 3.5 0 0 0-7 0 3.5 3.5 0 0 0-3.5-3.5z" opacity="0.5"/>' +
+                '<path d="M13 5.5a3.5 3.5 0 0 0-3.5 3.5c0 4 3.5 7 7 9.5C20 16 23.5 13 23.5 9a3.5 3.5 0 0 0-7 0 3.5 3.5 0 0 0-3.5-3.5z"/>' +
+                // Sparkle dots
+                '<circle cx="25" cy="3" r="1" fill="rgba(255,255,255,0.8)" stroke="none"/>' +
+                '<circle cx="27" cy="7" r="0.7" fill="rgba(255,255,255,0.6)" stroke="none"/>' +
+                '<circle cx="23" cy="1" r="0.7" fill="rgba(255,255,255,0.6)" stroke="none"/>' +
             '</svg>' +
         '</div>' +
-        '<span class="slide-action-label dislike-lbl"></span>';
+        '<span class="slide-action-label superlike-lbl"></span>';
 
-    var _dislikeLbl = dislikeBtn.querySelector('.dislike-lbl');
-    var _initialDislikes = postData.dislikes || [];
-    _dislikeLbl.textContent = _initialDislikes.length || '';
-    if (currentUser && _initialDislikes.includes(currentUser.uid)) dislikeBtn.classList.add('on');
+    var _superlikeLbl = dislikeBtn.querySelector('.superlike-lbl');
+    var _initialSuperlikes = postData.superlikes || [];
+    _superlikeLbl.textContent = _initialSuperlikes.length || '';
+    if (currentUser && _initialSuperlikes.includes(currentUser.uid)) dislikeBtn.classList.add('on');
 
     onSnapshot(doc(db, 'recence', postId), function(snap) {
         if (!snap.exists()) return;
-        var dislikes = snap.data().dislikes || [];
-        _dislikeLbl.textContent = dislikes.length || '';
-        if (currentUser && dislikes.includes(currentUser.uid)) dislikeBtn.classList.add('on');
+        var sl = snap.data().superlikes || [];
+        _superlikeLbl.textContent = sl.length || '';
+        if (currentUser && sl.includes(currentUser.uid)) dislikeBtn.classList.add('on');
         else dislikeBtn.classList.remove('on');
     });
 
     dislikeBtn.addEventListener('click', async function(e) {
         e.stopPropagation();
         if (!currentUser) return;
-        if (navigator.vibrate) navigator.vibrate(20);
+        if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
         dislikeBtn.classList.remove('dislike-pop');
         void dislikeBtn.offsetWidth;
         dislikeBtn.classList.add('dislike-pop');
+
+        // Heart burst — 8 hearts fly out from button position
+        var _rect = dislikeBtn.getBoundingClientRect();
+        var _cx = _rect.left + _rect.width / 2;
+        var _cy = _rect.top + _rect.height / 2;
+        var _sizes = [18, 14, 20, 12, 16, 22, 14, 18];
+        var _angles = [-70, -50, -90, -30, -110, -60, -80, -40];
+        _sizes.forEach(function(sz, i) {
+            var p = document.createElement('div');
+            p.className = 'super-heart-particle';
+            var angle = (_angles[i] + (Math.random() * 20 - 10)) * (Math.PI / 180);
+            var dist = 80 + Math.random() * 80;
+            var dx = Math.cos(angle) * dist * 0.4;
+            var dy = -Math.abs(Math.sin(angle) * dist) - 40;
+            var rot = (Math.random() * 40 - 20) + 'deg';
+            var dur = (0.7 + Math.random() * 0.5) + 's';
+            p.style.cssText = [
+                'left:' + (_cx - sz/2) + 'px',
+                'top:' + (_cy - sz/2) + 'px',
+                'width:' + sz + 'px',
+                'height:' + sz + 'px',
+                '--dx:' + dx + 'px',
+                '--dy:' + dy + 'px',
+                '--r:' + rot,
+                '--dur:' + dur
+            ].join(';');
+            p.innerHTML = '<svg viewBox="0 0 24 24" width="' + sz + '" height="' + sz + '" fill="url(#brandHeartGrad)" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+            document.body.appendChild(p);
+            setTimeout(function() { p.parentNode && p.parentNode.removeChild(p); }, 1400);
+        });
+
         try {
             var postRef2 = doc(db, 'recence', postId);
             var postDoc2 = await getDoc(postRef2);
             if (!postDoc2.exists()) return;
-            var dislikes2 = postDoc2.data().dislikes || [];
-            await updateDoc(postRef2, { dislikes: dislikes2.includes(currentUser.uid) ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
-        } catch(err) { console.error('Dislike error:', err); }
+            var sl2 = postDoc2.data().superlikes || [];
+            await updateDoc(postRef2, { superlikes: sl2.includes(currentUser.uid) ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
+        } catch(err) { console.error('Superlike error:', err); }
     });
 
     slideActions.appendChild(dislikeBtn);
@@ -4341,7 +4426,7 @@ function createCommentElement(commentData, replies = []) {
 
     const likeButton = document.createElement('button');
     likeButton.className = 'like-button' + (commentData.likes && commentData.likes.includes(currentUser?.uid) ? ' liked' : '');
-    likeButton.innerHTML = `<svg viewBox="0 0 24 24"><defs><linearGradient id="cLikeGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0f0f0f"/><stop offset="50%" stop-color="#626262"/><stop offset="100%" stop-color="#a6a6a6"/></linearGradient></defs><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+    likeButton.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`;
 
     const likeCount = document.createElement('span');
     likeCount.className = 'like-count';
@@ -4379,6 +4464,42 @@ function createCommentElement(commentData, replies = []) {
     });
     likeGroup.appendChild(likeButton);
     likeGroup.appendChild(likeCount);
+
+    // Dislike button on comment
+    const cmtDislikeBtn = document.createElement('button');
+    cmtDislikeBtn.className = 'like-button' + (commentData.dislikes && commentData.dislikes.includes(currentUser?.uid) ? ' liked' : '');
+    cmtDislikeBtn.style.cssText = 'margin-left:6px;';
+    cmtDislikeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>`;
+    const cmtDislikeCount = document.createElement('span');
+    cmtDislikeCount.className = 'like-count';
+    cmtDislikeCount.textContent = commentData.dislikes ? commentData.dislikes.length : 0;
+
+    if (_postIdForCmt && commentData.id && !commentData.id.startsWith('temp_')) {
+        onSnapshot(doc(db, 'recence', _postIdForCmt, 'comments', commentData.id), function(snap) {
+            if (!snap.exists()) return;
+            var dlikes = snap.data().dislikes || [];
+            cmtDislikeCount.textContent = dlikes.length || 0;
+            if (currentUser && dlikes.includes(currentUser.uid)) cmtDislikeBtn.classList.add('liked');
+            else cmtDislikeBtn.classList.remove('liked');
+        });
+    }
+    cmtDislikeBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!currentUser) return;
+        if (navigator.vibrate) navigator.vibrate(15);
+        cmtDislikeBtn.classList.remove('pop'); void cmtDislikeBtn.offsetWidth; cmtDislikeBtn.classList.add('pop');
+        try {
+            var _pid2 = currentPostId || window._dcCurrentPostId;
+            const cRef2 = doc(db, 'recence', _pid2, 'comments', commentData.id);
+            const cSnap2 = await getDoc(cRef2);
+            if (!cSnap2.exists()) return;
+            var dl2 = cSnap2.data().dislikes || [];
+            await updateDoc(cRef2, { dislikes: dl2.includes(currentUser.uid) ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
+        } catch(err) { console.error('Comment dislike error:', err); }
+    });
+    likeGroup.appendChild(cmtDislikeBtn);
+    likeGroup.appendChild(cmtDislikeCount);
+
     actions.appendChild(likeGroup);
 
     bubble.appendChild(actions);
@@ -4800,7 +4921,9 @@ init();
     _dcSubLine.style.cssText = 'display:flex;align-items:center;gap:3px;';
     var _dcHandle = document.createElement('span');
     _dcHandle.style.cssText = 'font-size:9px;font-weight:600;color:rgba(255,255,255,0.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.01em;text-shadow:0 1px 4px rgba(0,0,0,0.8);';
-    _dcHandle.textContent = '@' + (postData.userName || postData.name || 'creator');
+    var _dcRawH = postData.userName || '';
+    var _dcRawN = postData.name || '';
+    _dcHandle.textContent = '@' + (_dcRawH && _dcRawH.toLowerCase() !== _dcRawN.toLowerCase() ? _dcRawH : _dcRawN);
 
     var _dcTimeLeftEl = document.createElement('span');
     _dcTimeLeftEl.style.cssText = 'font-size:9px;font-weight:700;color:rgba(255,255,255,0.45);white-space:nowrap;flex-shrink:0;letter-spacing:0.02em;text-shadow:0 1px 6px rgba(0,0,0,0.9);';
@@ -4832,18 +4955,23 @@ init();
 
     // Inline follow button
     var _dcFollowBtn = document.createElement('button');
-    _dcFollowBtn.style.cssText = 'flex-shrink:0;font-size:9px;font-weight:800;padding:3px 8px;border-radius:99px;border:1.5px solid rgba(255,255,255,0.7);background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;font-family:var(--font,sans-serif);transition:all 0.15s;white-space:nowrap;letter-spacing:0.03em;text-transform:uppercase;-webkit-tap-highlight-color:transparent;';
     var _dcIsFollowed = currentUser && followedUsers.has(postData.userId);
-    _dcFollowBtn.textContent = _dcIsFollowed ? '✓ Following' : 'Follow';
-    if (_dcIsFollowed) _dcFollowBtn.style.cssText += 'border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.45);background:transparent;';
+    _dcFollowBtn.innerHTML = _dcIsFollowed
+      ? '<svg width="8" height="8" viewBox="0 0 12 12" fill="none"><polyline points="1,6 4.5,10 11,2" stroke="rgba(255,255,255,0.5)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Following'
+      : '<svg width="8" height="8" viewBox="0 0 12 12" fill="none"><line x1="6" y1="1" x2="6" y2="11" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><line x1="1" y1="6" x2="11" y2="6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>Follow';
+    var _dcFollowBase = 'flex-shrink:0;font-size:9px;font-weight:800;padding:3px 8px 3px 6px;border-radius:99px;border:none;background:var(--brand-gradient);color:#fff;cursor:pointer;font-family:var(--font,sans-serif);transition:transform 0.18s,opacity 0.18s;white-space:nowrap;letter-spacing:0.04em;text-transform:uppercase;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;gap:3px;box-shadow:0 2px 8px rgba(0,0,0,0.35);';
+    _dcFollowBtn.style.cssText = _dcIsFollowed ? _dcFollowBase + 'opacity:0.6;' : _dcFollowBase;
     if (currentUser && postData.userId === currentUser.uid) _dcFollowBtn.style.display = 'none';
     _dcFollowBtn.addEventListener('click', async function(e) {
       e.stopPropagation();
       if (!currentUser || postData.userId === currentUser.uid) return;
       var nowFollowing = !followedUsers.has(postData.userId);
-      _dcFollowBtn.textContent = nowFollowing ? '✓ Following' : 'Follow';
-      _dcFollowBtn.style.borderColor = nowFollowing ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.7)';
-      _dcFollowBtn.style.color = nowFollowing ? 'rgba(255,255,255,0.45)' : '#fff';
+      _dcFollowBtn.innerHTML = nowFollowing
+        ? '<svg width="8" height="8" viewBox="0 0 12 12" fill="none"><polyline points="1,6 4.5,10 11,2" stroke="rgba(255,255,255,0.5)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Following'
+        : '<svg width="8" height="8" viewBox="0 0 12 12" fill="none"><line x1="6" y1="1" x2="6" y2="11" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><line x1="1" y1="6" x2="11" y2="6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>Follow';
+      _dcFollowBtn.style.cssText = nowFollowing
+        ? _dcFollowBase + 'opacity:0.6;'
+        : _dcFollowBase;
       await toggleFollow(postData.userId, postData.name || 'User');
     });
     _dcCreatorRow.appendChild(_dcFollowBtn);
@@ -4861,41 +4989,44 @@ init();
     var actions = document.createElement('div');
     actions.className = 'desktop-card-actions';
 
-    // DISLIKE button — top of actions, matches mobile
+    // SUPER LIKE button — desktop
     var dDislikeBtn = document.createElement('button');
     dDislikeBtn.className = 'desktop-action-btn';
-    dDislikeBtn.setAttribute('aria-label', 'Dislike');
+    dDislikeBtn.setAttribute('aria-label', 'Super Like');
     dDislikeBtn.innerHTML =
-      '<div class="desktop-action-icon">' +
-        '<svg class="dislike-icon" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">' +
-          '<path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3z"/>' +
-          '<path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/>' +
+      '<div class="desktop-action-icon" style="width:50px;height:50px;">' +
+        '<svg viewBox="0 0 28 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="24">' +
+          '<path d="M7 3.5a3.5 3.5 0 0 0-3.5 3.5c0 4 3.5 7 7 9.5C14 14 17.5 11 17.5 7a3.5 3.5 0 0 0-7 0 3.5 3.5 0 0 0-3.5-3.5z" opacity="0.5"/>' +
+          '<path d="M13 5.5a3.5 3.5 0 0 0-3.5 3.5c0 4 3.5 7 7 9.5C20 16 23.5 13 23.5 9a3.5 3.5 0 0 0-7 0 3.5 3.5 0 0 0-3.5-3.5z"/>' +
+          '<circle cx="25" cy="3" r="1" fill="rgba(255,255,255,0.8)" stroke="none"/>' +
+          '<circle cx="27" cy="7" r="0.7" fill="rgba(255,255,255,0.6)" stroke="none"/>' +
+          '<circle cx="23" cy="1" r="0.7" fill="rgba(255,255,255,0.6)" stroke="none"/>' +
         '</svg>' +
       '</div>' +
       '<span class="desktop-action-label dDislike-lbl"></span>';
 
     var _dDislikeLbl = dDislikeBtn.querySelector('.dDislike-lbl');
-    var _dInitDislikes = postData.dislikes || [];
-    _dDislikeLbl.textContent = _dInitDislikes.length || '';
-    if (currentUser && _dInitDislikes.includes(currentUser.uid)) dDislikeBtn.classList.add('on');
+    var _dInitSL = postData.superlikes || [];
+    _dDislikeLbl.textContent = _dInitSL.length || '';
+    if (currentUser && _dInitSL.includes(currentUser.uid)) dDislikeBtn.classList.add('on');
 
     onSnapshot(doc(db, 'recence', postId), function(snap) {
       if (!snap.exists()) return;
-      var dislikes = snap.data().dislikes || [];
-      _dDislikeLbl.textContent = dislikes.length || '';
-      if (currentUser && dislikes.includes(currentUser.uid)) dDislikeBtn.classList.add('on');
+      var sl = snap.data().superlikes || [];
+      _dDislikeLbl.textContent = sl.length || '';
+      if (currentUser && sl.includes(currentUser.uid)) dDislikeBtn.classList.add('on');
       else dDislikeBtn.classList.remove('on');
     });
     dDislikeBtn.addEventListener('click', async function(e) {
       e.stopPropagation();
       if (!currentUser) return;
-      if (navigator.vibrate) navigator.vibrate(20);
+      if (navigator.vibrate) navigator.vibrate([30,20,30]);
       try {
         var _ddr = doc(db, 'recence', postId);
         var _ddd = await getDoc(_ddr);
         if (!_ddd.exists()) return;
-        var _ddl = _ddd.data().dislikes || [];
-        await updateDoc(_ddr, { dislikes: _ddl.includes(currentUser.uid) ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
+        var _ddl = _ddd.data().superlikes || [];
+        await updateDoc(_ddr, { superlikes: _ddl.includes(currentUser.uid) ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
       } catch(e) {}
     });
     actions.appendChild(dDislikeBtn);
