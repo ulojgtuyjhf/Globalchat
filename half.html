@@ -1041,21 +1041,35 @@ body.dsv-open #desktop-comments {
 }
 @media (min-width: 900px) { #mob-feed-tabs { display: none !important; } }
 
-/* Desktop feed tabs — fixed, centered over the feed column */
-#desk-feed-tabs {
-    display: none; /* shown only on desktop via media query below */
-}
+/* Desktop feed tabs — inside each video card, centered at top */
+#desk-feed-tabs { display: none; }
 @media (min-width: 900px) {
-    #desk-feed-tabs {
-        position: fixed;
-        top: 16px;
-        left: 50%; transform: translateX(-50%);
-        z-index: 200;
+    .desk-card-tabs {
+        position: absolute;
+        top: 12px; left: 50%; transform: translateX(-50%);
+        z-index: 20;
         display: flex; align-items: center;
         pointer-events: auto;
-        background: linear-gradient(to bottom, rgba(0,0,0,0.22) 0%, transparent 100%);
-        padding: 6px 4px 10px;
-        border-radius: 12px;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, transparent 100%);
+        padding: 4px 4px 10px;
+        border-radius: 8px;
+        white-space: nowrap;
+    }
+    /* Updates panel — right sidebar on desktop */
+    #updates-panel {
+        left: auto !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        top: 0 !important;
+        width: 340px !important;
+        height: 100vh !important;
+        border-radius: 0 !important;
+        transform: translateX(100%) !important;
+        transition: transform 0.42s cubic-bezier(0.22,1,0.36,1) !important;
+        box-shadow: -4px 0 32px rgba(0,0,0,0.14) !important;
+    }
+    #updates-panel.open {
+        transform: translateX(0) !important;
     }
 }
 .lazy-load { opacity: 0; transition: opacity 0.3s ease-in; }
@@ -2328,12 +2342,6 @@ body.dsv-open #desktop-comments {
         </div>
 
       </aside>
-
-      <!-- Desktop feed tabs — For You / Top, fixed over feed -->
-      <div id="desk-feed-tabs">
-          <button class="mob-feed-tab active" id="deskTabForYou">For You</button>
-          <button class="mob-feed-tab" id="deskTabTop">Top</button>
-      </div>
 
       <!-- Center feed — cards populated by JS -->
       <main id="desktop-feed" style="position:relative;">
@@ -4969,7 +4977,33 @@ init();
     wrap.appendChild(videoEl);
     card._video = videoEl;
 
-    // Live viewer: left label + center avatar cluster (desktop)
+    // ── For You / Top tabs — centered at top of video card ──
+    var _cardTabs = document.createElement('div');
+    _cardTabs.className = 'desk-card-tabs';
+    _cardTabs.innerHTML =
+        '<button class="mob-feed-tab active" data-tab="foryou">For You</button>' +
+        '<button class="mob-feed-tab" data-tab="top">Top</button>';
+    _cardTabs.querySelector('[data-tab="foryou"]').addEventListener('click', function(e) {
+        e.stopPropagation();
+        var feed = document.getElementById('desktop-feed');
+        if (feed) feed.scrollTo({ top: 0, behavior: 'smooth' });
+        document.querySelectorAll('.desk-card-tabs [data-tab="foryou"]').forEach(function(b){ b.classList.add('active'); });
+        document.querySelectorAll('.desk-card-tabs [data-tab="top"]').forEach(function(b){ b.classList.remove('active'); });
+    });
+    _cardTabs.querySelector('[data-tab="top"]').addEventListener('click', function(e) {
+        e.stopPropagation();
+        var cards = document.querySelectorAll('.desktop-card');
+        var best = null, bestN = -1;
+        cards.forEach(function(c){ var n=parseInt(c.dataset.superlikeCount||0); if(n>bestN){bestN=n;best=c;} });
+        if (best) { var feed=document.getElementById('desktop-feed'); if(feed) feed.scrollTo({top:best.offsetTop,behavior:'smooth'}); }
+        document.querySelectorAll('.desk-card-tabs [data-tab="top"]').forEach(function(b){ b.classList.add('active'); });
+        document.querySelectorAll('.desk-card-tabs [data-tab="foryou"]').forEach(function(b){ b.classList.remove('active'); });
+        setTimeout(function(){
+            document.querySelectorAll('.desk-card-tabs [data-tab="foryou"]').forEach(function(b){ b.classList.add('active'); });
+            document.querySelectorAll('.desk-card-tabs [data-tab="top"]').forEach(function(b){ b.classList.remove('active'); });
+        }, 800);
+    });
+    wrap.appendChild(_cardTabs);
     var dWatchLeft = document.createElement('div');
     dWatchLeft.className = 'desktop-watch-left';
 
@@ -6352,26 +6386,7 @@ init();
   document.getElementById('dsNavLiked').addEventListener('click',   function(){ showDesktopSection('Liked'); });
   document.getElementById('dsNavProfile').addEventListener('click', function(){ showDesktopSection('Profile'); });
 
-  // ── Desktop feed tabs ──
-  var _dtForYou = document.getElementById('deskTabForYou');
-  var _dtTop    = document.getElementById('deskTabTop');
-  // For You always default
-  if (_dtForYou) _dtForYou.classList.add('active');
-  if (_dtTop) _dtTop.classList.remove('active');
-  if (_dtForYou) _dtForYou.addEventListener('click', function() {
-      _dtForYou.classList.add('active'); _dtTop.classList.remove('active');
-      var feed = document.getElementById('desktop-feed');
-      if (feed) feed.scrollTo({ top: 0, behavior: 'smooth' });
-  });
-  if (_dtTop) _dtTop.addEventListener('click', function() {
-      _dtTop.classList.add('active'); _dtForYou.classList.remove('active');
-      var cards = document.querySelectorAll('.desktop-card');
-      var best = null, bestN = -1;
-      cards.forEach(function(c){ var n=parseInt(c.dataset.superlikeCount||0); if(n>bestN){bestN=n;best=c;} });
-      if (best) { var feed=document.getElementById('desktop-feed'); if(feed) feed.scrollTo({top:best.offsetTop,behavior:'smooth'}); }
-      // Revert to For You after scroll
-      setTimeout(function(){ _dtForYou.classList.add('active'); _dtTop.classList.remove('active'); }, 800);
-  });
+  // Desktop feed tabs are now inside each video card (injected by _buildDesktopCard)
 
   // ── Sidebar: load suggested users ──
   function loadSuggestedUsers() {
@@ -6759,8 +6774,6 @@ init();
     </script>
     
     <div id="updates-panel" style="position:fixed;left:0;right:0;bottom:0;height:58vh;background:#fafafa;z-index:600;transform:translateY(100%);transition:transform 0.42s cubic-bezier(0.22,1,0.36,1);display:flex;flex-direction:column;overflow:hidden;border-radius:24px 24px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,0.18);">
-        <!-- brand top strip -->
-        <div style="height:3px;background:var(--brand-gradient);flex-shrink:0;border-radius:24px 24px 0 0;"></div>
         <!-- drag handle -->
         <div style="display:flex;justify-content:center;padding:8px 0 0;flex-shrink:0;"><div style="width:36px;height:4px;border-radius:2px;background:#e0e0e0;"></div></div>
         <div style="display:flex;align-items:center;gap:12px;padding:10px 16px 10px;background:#fafafa;border-bottom:1px solid #f0f0f0;flex-shrink:0;">
@@ -7464,7 +7477,8 @@ init();
     window.openUpdatesPanel = function() {
         var panel = document.getElementById('updates-panel');
         if (!panel) return;
-        panel.style.transform = 'translateY(0)';
+        var desk = window.innerWidth >= 900;
+        panel.style.transform = desk ? 'translateX(0)' : 'translateY(0)';
         document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
         var nb = document.getElementById('navTop'); if(nb) nb.classList.add('active');
         var badge = document.getElementById('updatesBadge'); if(badge) badge.classList.remove('show');
@@ -7473,7 +7487,8 @@ init();
     window.closeUpdatesPanel = function() {
         var panel = document.getElementById('updates-panel');
         if (!panel) return;
-        panel.style.transform = 'translateY(100%)';
+        var desk = window.innerWidth >= 900;
+        panel.style.transform = desk ? 'translateX(100%)' : 'translateY(100%)';
         document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
         var nh = document.getElementById('navHome'); if(nh) nh.classList.add('active');
     };
