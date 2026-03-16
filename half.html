@@ -1805,6 +1805,22 @@ body.dsv-open #desktop-comments {
   /* Super Like on-state */
   .desktop-action-btn[aria-label="Super Like"].on .desktop-action-icon svg {
     fill: url(#brandHeartGrad) !important; stroke: #626262 !important;
+    filter: drop-shadow(0 0 14px rgba(210,210,210,0.9)) drop-shadow(0 2px 6px rgba(0,0,0,0.5)) !important;
+  }
+  /* Desktop super like — bigger at rest */
+  .desktop-action-btn[aria-label="Super Like"] .desktop-action-icon {
+    width: 54px; height: 54px;
+  }
+  .desktop-action-btn[aria-label="Super Like"] .desktop-action-icon svg {
+    width: 36px !important; height: 32px !important;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.55));
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .desktop-action-btn[aria-label="Super Like"]:hover .desktop-action-icon svg {
+    transform: scale(1.12);
+  }
+  .desktop-action-btn[aria-label="Super Like"].d-sl-pop .desktop-action-icon svg {
+    animation: superLikePop 0.55s cubic-bezier(0.34,1.56,0.64,1);
   }
   .desktop-action-btn:hover .desktop-action-icon { transform: scale(1.12); background: none; }
   /* Profile btn inside desktop actions */
@@ -5039,6 +5055,47 @@ init();
       e.stopPropagation();
       if (!currentUser) return;
       if (navigator.vibrate) navigator.vibrate([30,20,30]);
+
+      // Pop animation
+      dDislikeBtn.classList.remove('d-sl-pop');
+      void dDislikeBtn.offsetWidth;
+      dDislikeBtn.classList.add('d-sl-pop');
+
+      // Chime sound
+      try {
+        var _ac = new (window.AudioContext || window.webkitAudioContext)();
+        [523.25, 659.25, 783.99, 1046.50].forEach(function(freq, i) {
+          var osc = _ac.createOscillator(), gain = _ac.createGain();
+          osc.connect(gain); gain.connect(_ac.destination);
+          osc.type = 'sine'; osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0, _ac.currentTime + i*0.08);
+          gain.gain.linearRampToValueAtTime(0.18, _ac.currentTime + i*0.08 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, _ac.currentTime + i*0.08 + 0.25);
+          osc.start(_ac.currentTime + i*0.08);
+          osc.stop(_ac.currentTime + i*0.08 + 0.3);
+        });
+      } catch(e) {}
+
+      // Rainbow heart burst
+      var _rainbow = ['#ff0040','#ff6600','#ffcc00','#33dd55','#00aaff','#aa44ff','#ff44aa','#ff2255'];
+      var _rect = dDislikeBtn.getBoundingClientRect();
+      var _cx = _rect.left + _rect.width / 2, _cy = _rect.top + _rect.height / 2;
+      _rainbow.forEach(function(color, i) {
+        var p = document.createElement('div');
+        p.className = 'super-heart-particle';
+        var sz = 14 + Math.random() * 12;
+        var angle = (-110 + i * 28 + Math.random() * 14) * (Math.PI / 180);
+        var dist = 90 + Math.random() * 70;
+        var dx = Math.cos(angle) * dist * 0.45;
+        var dy = -Math.abs(Math.sin(angle) * dist) - 50;
+        var rot = (Math.random() * 50 - 25) + 'deg';
+        var dur = (0.75 + Math.random() * 0.45) + 's';
+        p.style.cssText = 'left:'+(_cx-sz/2)+'px;top:'+(_cy-sz/2)+'px;width:'+sz+'px;height:'+sz+'px;--dx:'+dx+'px;--dy:'+dy+'px;--r:'+rot+';--dur:'+dur;
+        p.innerHTML = '<svg viewBox="0 0 24 24" width="'+sz+'" height="'+sz+'" fill="'+color+'" stroke="none" style="filter:drop-shadow(0 1px 4px '+color+'88)"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+        document.body.appendChild(p);
+        setTimeout(function(){ p.parentNode && p.parentNode.removeChild(p); }, 1400);
+      });
+
       try {
         var _ddr = doc(db, 'recence', postId);
         var _ddd = await getDoc(_ddr);
