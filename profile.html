@@ -1,954 +1,425 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Theme Customizer</title>
-    <style>
-        :root {
-            --background: #ffffff;
-            --text: #0f1419;
-            --secondary-text: #536471;
-            --border: #eff3f4;
-            --primary: #1d9bf0;
-            --hover: rgba(29, 155, 240, 0.1);
-            --card-bg: #f7f9f9;
-            --font-size: 1rem; /* Default font size */
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile — Recence</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+    --brand-gradient: linear-gradient(135deg, #0f0f0f 0%, #3a3a3a 40%, #626262 70%, #a6a6a6 100%);
+    --font: 'Outfit', -apple-system, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: var(--font);
+    background: #000;
+    color: #fff;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
 
-        [data-theme="dim"] {
-            --background: #15202b;
-            --text: #ffffff;
-            --secondary-text: #8899a6;
-            --border: #38444d;
-            --primary: #1d9bf0;
-            --hover: rgba(29, 155, 240, 0.1);
-            --card-bg: #1e2732;
-        }
+/* ── HERO ── */
+.hero {
+    position: relative;
+    padding-top: env(safe-area-inset-top, 0px);
+    background: #000;
+    display: flex; flex-direction: column; align-items: center;
+    padding-bottom: 32px; overflow: hidden;
+}
+.hero-glow {
+    position: absolute; top: -80px; left: 50%; transform: translateX(-50%);
+    width: 320px; height: 320px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(98,98,98,0.15) 0%, transparent 70%);
+    pointer-events: none;
+}
+.hero-top {
+    width: 100%; display: flex; align-items: center; justify-content: flex-end;
+    padding: 16px 18px 0; position: relative; z-index: 2;
+}
+.save-btn {
+    height: 34px; padding: 0 20px; border-radius: 99px;
+    border: none; background: var(--brand-gradient);
+    color: #fff; font-size: 11px; font-weight: 800;
+    font-family: var(--font); cursor: pointer;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.45);
+    letter-spacing: 0.06em; text-transform: uppercase;
+    opacity: 0; pointer-events: none;
+    transform: translateY(-4px);
+    transition: opacity 0.22s, transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
+}
+.save-btn.on { opacity: 1; pointer-events: all; transform: translateY(0); }
+.save-btn:active { transform: scale(0.92); }
 
-        [data-theme="dark"] {
-            --background: #000000;
-            --text: #ffffff;
-            --secondary-text: #71767b;
-            --border: #2f3336;
-            --primary: #1d9bf0;
-            --hover: rgba(29, 155, 240, 0.1);
-            --card-bg: #16181c;
-        }
+/* ── AVATAR ── */
+.avatar-area {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 12px; margin-top: 24px;
+}
+.avatar-ring {
+    padding: 3px; border-radius: 50%;
+    background: var(--brand-gradient);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.55);
+}
+.avatar-wrap { position: relative; cursor: pointer; display: block; }
+.avatar {
+    width: 104px; height: 104px; border-radius: 50%;
+    background: #2a2a2a;
+    border: 3.5px solid #000;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px; font-weight: 900; color: #fff;
+    transition: opacity 0.18s;
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar-cam {
+    position: absolute; bottom: 2px; right: 2px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--brand-gradient);
+    border: 2.5px solid #000;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.55);
+    transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
+}
+.avatar-wrap:hover .avatar-cam,
+.avatar-wrap:active .avatar-cam { transform: scale(1.18); }
+.avatar-wrap:active .avatar { opacity: 0.7; }
+.avatar-cam svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#avatar-input { display: none; }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            transition: all 0.25s cubic-bezier(0.33, 1, 0.68, 1);
-        }
+.upload-bar {
+    width: 104px; height: 2px;
+    background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;
+    opacity: 0; transition: opacity 0.2s;
+}
+.upload-bar.on { opacity: 1; }
+.upload-bar-fill {
+    height: 100%; width: 0%;
+    background: var(--brand-gradient);
+    transition: width 0.3s ease;
+}
 
-        body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--background);
-            color: var(--text);
-            line-height: 1.5;
-            overflow-x: hidden;
-            width: 100%;
-            min-height: 100vh;
-            font-size: var(--font-size);
-        }
+.hero-name {
+    font-size: 24px; font-weight: 900; letter-spacing: -0.03em;
+    color: #fff; text-align: center; min-height: 30px;
+}
+.hero-handle {
+    font-size: 13px; font-weight: 600; letter-spacing: 0.01em;
+    color: rgba(255,255,255,0.4); text-align: center; min-height: 18px;
+}
+.hero-tap {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.22); text-transform: uppercase; margin-top: 2px;
+}
 
-        .container {
-            width: 100%;
-            max-width: 600px;
-            padding: 16px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
+/* ── BODY ── */
+.body {
+    background: #f3f3f3;
+    border-radius: 30px 30px 0 0;
+    padding: 8px 16px 100px;
+    min-height: 60vh;
+    position: relative;
+}
+.drag-pill {
+    width: 40px; height: 4px; border-radius: 2px;
+    background: #ddd; margin: 10px auto 22px;
+}
+.max { max-width: 520px; margin: 0 auto; }
 
-        @media (max-width: 600px) {
-            .container {
-                padding: 12px;
-            }
-        }
+/* ── SECTION ── */
+.sec { margin-bottom: 22px; }
+.sec-lbl {
+    font-size: 10px; font-weight: 900; color: #bbb;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    margin-bottom: 8px; padding-left: 6px;
+}
+.card {
+    background: #fff; border-radius: 18px;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.05); overflow: hidden;
+}
 
-        .theme-selector {
-            position: relative;
-            margin-bottom: 24px;
-            width: 100%;
-        }
+/* ── FIELDS ── */
+.field {
+    padding: 13px 16px;
+    border-bottom: 1px solid #f5f5f5;
+    position: relative;
+}
+.field:last-child { border-bottom: none; }
+.field-lbl {
+    font-size: 9.5px; font-weight: 900; color: #c0c0c0;
+    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 3px;
+}
+.field input, .field textarea {
+    width: 100%; background: transparent;
+    border: none; outline: none; resize: none;
+    font-size: 15px; font-weight: 700; color: #111;
+    font-family: var(--font); line-height: 1.45; padding: 0;
+}
+.field textarea { min-height: 56px; }
+.field input::placeholder, .field textarea::placeholder { color: #d0d0d0; font-weight: 500; }
+.field::after {
+    content: ''; position: absolute;
+    bottom: 0; left: 16px; right: 16px; height: 2px;
+    background: var(--brand-gradient);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.22s cubic-bezier(0.22,1,0.36,1);
+}
+.field:focus-within::after { transform: scaleX(1); }
+.field:focus-within .field-lbl { color: #888; }
 
-        .theme-btn {
-            display: flex;
-            align-items: center;
-            padding: 12px 20px;
-            background-color: var(--background);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 9999px;
-            font-size: calc(var(--font-size) * 0.9375);
-            font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            width: 100%;
-            justify-content: space-between;
-        }
+/* ── INFO ROWS ── */
+.info-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-bottom: 1px solid #f5f5f5;
+}
+.info-row:last-child { border-bottom: none; }
+.info-k { font-size: 13px; font-weight: 700; color: #aaa; }
+.info-v {
+    font-size: 13px; font-weight: 700; color: #444;
+    max-width: 60%; text-align: right;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
-        .theme-btn:hover {
-            background-color: var(--hover);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
+/* ── SIGN OUT ── */
+.signout {
+    width: 100%; height: 50px; border-radius: 16px;
+    border: 1.5px solid #ebebeb; background: #fff;
+    color: #aaa; font-size: 13px; font-weight: 800;
+    font-family: var(--font); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all 0.15s; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.signout:hover { background: #fafafa; color: #666; }
+.signout:active { transform: scale(0.97); }
+.signout svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 
-        .theme-btn:active {
-            transform: translateY(0);
-        }
-
-        .theme-btn-text {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .theme-btn svg {
-            fill: var(--text);
-        }
-
-        .theme-btn .chevron {
-            transition: transform 0.3s ease;
-        }
-
-        .theme-btn .chevron.rotate {
-            transform: rotate(180deg);
-        }
-
-        .theme-dropdown {
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            width: 100%;
-            background-color: var(--background);
-            border-radius: 16px;
-            border: 1px solid var(--border);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-            z-index: 100;
-            overflow: hidden;
-            opacity: 0;
-            transform: translateY(-12px) scale(0.98);
-            visibility: hidden;
-            pointer-events: none;
-            transform-origin: top center;
-            transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.33, 1, 0.68, 1), visibility 0.2s;
-        }
-
-        .theme-dropdown.show {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-            visibility: visible;
-            pointer-events: all;
-        }
-
-        .theme-options {
-            padding: 8px;
-        }
-
-        .theme-option {
-            display: flex;
-            align-items: center;
-            padding: 16px;
-            cursor: pointer;
-            border-radius: 12px;
-            margin-bottom: 4px;
-            position: relative;
-            overflow: hidden;
-            transition: background-color 0.2s ease;
-        }
-
-        .theme-option:hover {
-            background-color: var(--hover);
-        }
-
-        .theme-option:active {
-            transform: scale(0.98);
-        }
-
-        .theme-option .color-preview {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            margin-right: 12px;
-            border: 1px solid var(--border);
-            transition: transform 0.3s ease;
-        }
-
-        .theme-option:hover .color-preview {
-            transform: scale(1.1);
-        }
-
-        .light-preview {
-            background-color: #ffffff;
-            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
-        }
-
-        .dim-preview {
-            background-color: #15202b;
-        }
-
-        .dark-preview {
-            background-color: #000000;
-        }
-
-        .theme-option .theme-details {
-            flex-grow: 1;
-        }
-
-        .theme-option .theme-name {
-            font-weight: 700;
-            font-size: calc(var(--font-size) * 0.9375);
-            margin-bottom: 4px;
-        }
-
-        .theme-option .theme-description {
-            color: var(--secondary-text);
-            font-size: calc(var(--font-size) * 0.8125);
-        }
-
-        .theme-indicator {
-            position: absolute;
-            right: 16px;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transform: scale(0);
-            transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        .theme-indicator svg {
-            width: 14px;
-            height: 14px;
-            fill: var(--primary);
-        }
-
-        .theme-option.active .theme-indicator {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        .content-section {
-            margin-bottom: 24px;
-            padding: 20px;
-            background-color: var(--card-bg);
-            border-radius: 16px;
-            border: 1px solid var(--border);
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            width: 100%;
-        }
-
-        @media (max-width: 480px) {
-            .content-section {
-                padding: 16px;
-            }
-        }
-
-        .content-section:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .color-palettes {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 20px;
-            width: 100%;
-        }
-
-        .color-palette {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            border-radius: 18px;
-            border: 1px solid var(--border);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            cursor: pointer;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            background-color: var(--background);
-            position: relative;
-        }
-
-        .color-palette:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-        }
-
-        .color-palette:active {
-            transform: translateY(0) scale(0.98);
-        }
-
-        .chat-bubble {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            margin-right: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .palette-name {
-            font-weight: 600;
-            font-size: calc(var(--font-size) * 0.875);
-            flex-grow: 1;
-        }
-
-        .palette-selected {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background-color: var(--primary);
-            display: none;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .palette-selected svg {
-            width: 12px;
-            height: 12px;
-            fill: white;
-        }
-
-        .color-palette.active .palette-selected {
-            display: flex;
-            animation: pulse 1s infinite alternate;
-        }
-
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(29, 155, 240, 0.4);
-            }
-            100% {
-                box-shadow: 0 0 0 4px rgba(29, 155, 240, 0);
-            }
-        }
-
-        .ripple {
-            position: absolute;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.3);
-            transform: scale(0);
-            animation: ripple 0.6s linear;
-            pointer-events: none;
-        }
-
-        @keyframes ripple {
-            to {
-                transform: scale(4);
-                opacity: 0;
-            }
-        }
-
-        .heading {
-            font-size: calc(var(--font-size) * 1);
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: var(--text);
-        }
-
-        .subheading {
-            font-size: calc(var(--font-size) * 0.875);
-            color: var(--secondary-text);
-            margin-bottom: 16px;
-        }
-
-        /* Font size slider */
-        .font-size-control {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-top: 16px;
-        }
-
-        .font-size-slider-container {
-            flex-grow: 1;
-            position: relative;
-        }
-
-        .font-size-control .size-label {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px;
-            height: 32px;
-            color: var(--secondary-text);
-            font-size: calc(var(--font-size) * 0.75);
-        }
-
-        .font-size-control .size-label.small {
-            font-size: calc(var(--font-size) * 0.625);
-        }
-
-        .font-size-control .size-label.large {
-            font-size: calc(var(--font-size) * 0.875);
-        }
-
-        .font-size-slider {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 4px;
-            background: var(--border);
-            border-radius: 4px;
-            outline: none;
-        }
-
-        .font-size-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: var(--primary);
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .font-size-slider::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: var(--primary);
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            border: none;
-        }
-
-        .font-size-slider::-webkit-slider-thumb:hover {
-            transform: scale(1.1);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .font-size-slider::-moz-range-thumb:hover {
-            transform: scale(1.1);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .font-size-value {
-            margin-left: 8px;
-            font-size: calc(var(--font-size) * 0.875);
-            color: var(--secondary-text);
-            min-width: 40px;
-            text-align: center;
-            font-weight: 600;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 375px) {
-            .container {
-                padding: 10px;
-            }
-            
-            .theme-btn, .color-palette {
-                padding: 10px;
-            }
-            
-            .chat-bubble {
-                width: 36px;
-                height: 36px;
-            }
-            
-            .heading {
-                font-size: calc(var(--font-size) * 0.9375);
-            }
-            
-            .subheading {
-                font-size: calc(var(--font-size) * 0.8125);
-            }
-        }
-
-        /* New notification styles */
-        #notification-container {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            width: calc(100% - 32px);
-            max-width: 320px;
-        }
-
-        .notification {
-            background-color: var(--card-bg);
-            color: var(--text);
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: calc(var(--font-size) * 0.875);
-            font-weight: 600;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            border: 1px solid var(--border);
-        }
-    </style>
+/* ── TOAST ── */
+.toast {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: #111; color: #fff;
+    font-size: 13px; font-weight: 700; font-family: var(--font);
+    padding: 11px 22px; border-radius: 99px;
+    opacity: 0; pointer-events: none; z-index: 9999;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    white-space: nowrap; box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+.toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="theme-selector">
-            <button class="theme-btn" id="theme-toggle">
-                <div class="theme-btn-text">
-                    <svg viewBox="0 0 24 24" width="20" height="20">
-                        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm0-2a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"></path>
-                    </svg>
-                    Display
-                </div>
-                <svg class="chevron" viewBox="0 0 24 24" width="20" height="20">
-                    <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"></path>
-                </svg>
-            </button>
 
-            <div class="theme-dropdown" id="theme-dropdown">
-                <div class="theme-options">
-                    <div class="theme-option" data-theme="light">
-                        <div class="color-preview light-preview"></div>
-                        <div class="theme-details">
-                            <div class="theme-name">Default</div>
-                            <div class="theme-description">Light mode</div>
-                        </div>
-                        <div class="theme-indicator">
-                            <svg viewBox="0 0 24 24">
-                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="theme-option" data-theme="dim">
-                        <div class="color-preview dim-preview"></div>
-                        <div class="theme-details">
-                            <div class="theme-name">Dim</div>
-                            <div class="theme-description">Less bright, easier on the eyes</div>
-                        </div>
-                        <div class="theme-indicator">
-                            <svg viewBox="0 0 24 24">
-                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="theme-option" data-theme="dark">
-                        <div class="color-preview dark-preview"></div>
-                        <div class="theme-details">
-                            <div class="theme-name">Lights out</div>
-                            <div class="theme-description">Dark mode for night use</div>
-                        </div>
-                        <div class="theme-indicator">
-                            <svg viewBox="0 0 24 24">
-                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="hero">
+    <div class="hero-glow"></div>
 
-        <div class="content-section">
-            <div class="heading">Font Size</div>
-            <div class="subheading">Adjust the text size to your preference</div>
-            <div class="font-size-control">
-                <div class="size-label small">A</div>
-                <div class="font-size-slider-container">
-                    <input type="range" min="0.8" max="1.3" step="0.05" value="1" class="font-size-slider" id="font-size-slider">
-                </div>
-                <div class="size-label large">A</div>
-                <div class="font-size-value" id="font-size-value">100%</div>
-            </div>
-        </div>
-
-        <div class="content-section">
-            <div class="heading">Chat Color</div>
-            <div class="subheading">Choose the color for your chat bubbles</div>
-            <div class="color-palettes" id="color-palettes">
-                <!-- Color palettes will be added dynamically -->
-            </div>
-        </div>
+    <div class="hero-top">
+        <button class="save-btn" id="saveBtn" onclick="saveProfile()">Save changes</button>
     </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Theme controls
-        const themeBtn = document.getElementById('theme-toggle');
-        const themeDropdown = document.getElementById('theme-dropdown');
-        const themeOptions = document.querySelectorAll('.theme-option');
-        const chevron = document.querySelector('.chevron');
-        const colorPalettes = document.getElementById('color-palettes');
-        const fontSizeSlider = document.getElementById('font-size-slider');
-        const fontSizeValue = document.getElementById('font-size-value');
-        
-        // Chat bubble colors (simplified, no brand names)
-        const chatColors = [
-            {
-                name: "Default Blue",
-                color: "#1d9bf0"
-            },
-            {
-                name: "Purple",
-                color: "#833AB4"
-            },
-            {
-                name: "Red",
-                color: "#E01E5A"
-            },
-            {
-                name: "Green",
-                color: "#1DB954"
-            },
-            {
-                name: "Orange",
-                color: "#F56040"
-            },
-            {
-                name: "Pink",
-                color: "#EB459E"
-            },
-            {
-                name: "Yellow",
-                color: "#FFFC00"
-            },
-            {
-                name: "Turquoise",
-                color: "#36C5F0"
-            },
-            {
-                name: "Dark Blue",
-                color: "#3b5998"
-            },
-            {
-                name: "Black",
-                color: "#000000"
-            },
-            {
-                name: "Gray",
-                color: "#71767b"
+    <div class="avatar-area">
+        <div class="avatar-ring">
+            <div class="avatar-wrap" onclick="document.getElementById('avatar-input').click()">
+                <div class="avatar" id="avatarEl"><span id="avatarLetter"></span></div>
+                <div class="avatar-cam">
+                    <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                </div>
+            </div>
+        </div>
+        <div class="upload-bar" id="uploadBar"><div class="upload-bar-fill" id="uploadFill"></div></div>
+        <div class="hero-name" id="heroName"> </div>
+        <div class="hero-handle" id="heroHandle"> </div>
+        <div class="hero-tap">tap photo to change</div>
+    </div>
+    <input type="file" id="avatar-input" accept="image/*" onchange="handleAvatarChange(event)">
+</div>
+
+<div class="body">
+    <div class="drag-pill"></div>
+    <div class="max">
+
+        <div class="sec">
+            <div class="sec-lbl">Edit Profile</div>
+            <div class="card">
+                <div class="field">
+                    <div class="field-lbl">Display Name</div>
+                    <input type="text" id="nameInput" placeholder="Your name" maxlength="40" oninput="markDirty();updateHero()">
+                </div>
+                <div class="field">
+                    <div class="field-lbl">Username</div>
+                    <input type="text" id="usernameInput" placeholder="username" maxlength="20" oninput="markDirty();updateHero()">
+                </div>
+                <div class="field">
+                    <div class="field-lbl">Bio</div>
+                    <textarea id="bioInput" placeholder="Say something about yourself…" maxlength="150" oninput="markDirty()"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="sec">
+            <div class="sec-lbl">Account</div>
+            <div class="card">
+                <div class="info-row"><span class="info-k">Email</span><span class="info-v" id="infoEmail">—</span></div>
+                <div class="info-row"><span class="info-k">Joined</span><span class="info-v" id="infoJoined">—</span></div>
+                <div class="info-row"><span class="info-k">Account type</span><span class="info-v" id="infoType">—</span></div>
+            </div>
+        </div>
+
+        <div class="sec">
+            <button class="signout" onclick="doSignOut()">
+                <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Sign out
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, updateProfile, signOut as fbSignOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",
+    authDomain: "globalchat-2d669.firebaseapp.com",
+    projectId: "globalchat-2d669",
+    storageBucket: "globalchat-2d669.firebasestorage.app",
+    messagingSenderId: "178714711978",
+    appId: "1:178714711978:web:fb831188be23e62a4bbdd3"
+};
+const R2_WORKER_URL = "https://r2-upload.katlegomashilwane0691.workers.dev";
+const R2_PUBLIC_URL = "https://d12ce6c6e74de3e7c64467f70e565f7f.r2.cloudflarestorage.com/media-uploads";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null, userData = {}, pendingPhotoURL = null;
+
+window.markDirty = () => document.getElementById('saveBtn').classList.add('on');
+
+window.updateHero = () => {
+    const n = document.getElementById('nameInput').value;
+    const u = document.getElementById('usernameInput').value;
+    document.getElementById('heroName').textContent = n || ' ';
+    document.getElementById('heroHandle').textContent = u ? '@' + u : ' ';
+    if (n && !document.getElementById('avatarEl').querySelector('img')) {
+        const hue = (n[0].toUpperCase().charCodeAt(0) * 37) % 360;
+        document.getElementById('avatarEl').style.background = `hsl(${hue},50%,38%)`;
+        document.getElementById('avatarLetter').textContent = n[0].toUpperCase();
+    }
+};
+
+onAuthStateChanged(auth, async user => {
+    if (!user) { window.location.href = '/'; return; }
+    currentUser = user;
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    userData = snap.exists() ? snap.data() : {};
+    const username = userData.username || user.displayName || user.email?.split('@')[0] || 'user';
+    const name = userData.displayName || user.displayName || username;
+    const photo = userData.photoURL || user.photoURL || '';
+
+    document.getElementById('nameInput').value = name;
+    document.getElementById('usernameInput').value = username;
+    document.getElementById('bioInput').value = userData.bio || '';
+    document.getElementById('heroName').textContent = name;
+    document.getElementById('heroHandle').textContent = '@' + username;
+    document.getElementById('infoEmail').textContent = user.email || '—';
+    document.getElementById('infoType').textContent = userData.isAutoGenerated ? 'Auto-generated' : 'Manual';
+    if (userData.createdAt) {
+        document.getElementById('infoJoined').textContent =
+            new Date(userData.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+    setAvatar(name, photo);
+});
+
+function setAvatar(name, photo) {
+    const el = document.getElementById('avatarEl');
+    const hue = ((name[0]||'U').toUpperCase().charCodeAt(0) * 37) % 360;
+    el.style.background = `hsl(${hue},50%,38%)`;
+    if (photo) {
+        const img = document.createElement('img');
+        img.src = photo;
+        img.onerror = () => { img.remove(); document.getElementById('avatarLetter').textContent = (name[0]||'U').toUpperCase(); };
+        el.innerHTML = ''; el.appendChild(img);
+    } else {
+        document.getElementById('avatarLetter').textContent = (name[0]||'U').toUpperCase();
+    }
+}
+
+window.handleAvatarChange = async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5*1024*1024) { toast('Image must be under 5MB'); return; }
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const el = document.getElementById('avatarEl');
+        el.innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+    };
+    reader.readAsDataURL(file);
+    const bar = document.getElementById('uploadBar'), fill = document.getElementById('uploadFill');
+    bar.classList.add('on'); fill.style.width = '30%';
+    try {
+        const ext = file.name.split('.').pop();
+        const fileId = `avatars_${currentUser.uid}_${Date.now()}.${ext}`;
+        const fd = new FormData();
+        fd.append('file', file); fd.append('fileId', fileId);
+        fill.style.width = '60%';
+        const res = await fetch(R2_WORKER_URL + '/upload', { method: 'POST', body: fd });
+        fill.style.width = '90%';
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        pendingPhotoURL = data.url || `${R2_PUBLIC_URL}/${fileId}`;
+        fill.style.width = '100%';
+        setTimeout(() => { bar.classList.remove('on'); fill.style.width = '0%'; }, 500);
+        markDirty();
+        toast('Photo ready — tap Save');
+    } catch(err) {
+        bar.classList.remove('on'); fill.style.width = '0%';
+        toast('Upload failed. Try again.'); console.error(err);
+    }
+};
+
+window.saveProfile = async () => {
+    const btn = document.getElementById('saveBtn');
+    btn.textContent = 'Saving…';
+    const name = document.getElementById('nameInput').value.trim();
+    const username = document.getElementById('usernameInput').value.trim().replace(/[^a-zA-Z0-9_]/g,'');
+    const bio = document.getElementById('bioInput').value.trim();
+    if (!name) { toast('Name cannot be empty'); btn.textContent = 'Save changes'; return; }
+    if (username.length < 3) { toast('Username needs 3+ characters'); btn.textContent = 'Save changes'; return; }
+    const photo = pendingPhotoURL || userData.photoURL || currentUser.photoURL || '';
+    try {
+        await updateProfile(currentUser, { displayName: name, photoURL: photo || null });
+        await setDoc(doc(db, 'users', currentUser.uid), { displayName: name, username, bio, photoURL: photo, updatedAt: new Date().toISOString() }, { merge: true });
+        try {
+            const q = query(collection(db, 'recence'), where('userId', '==', currentUser.uid));
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+                const batch = writeBatch(db);
+                snap.forEach(d => batch.update(doc(db, 'recence', d.id), { name, userName: username, photoURL: photo }));
+                await batch.commit();
             }
-        ];
-        
-        // Load saved theme from localStorage - keep original keys to maintain compatibility
-        const savedTheme = localStorage.getItem('twitter-theme') || 'light';
-        setTheme(savedTheme);
-        
-        // Load saved color palette from localStorage
-        const savedPalette = localStorage.getItem('color-palette') || '0'; // Default to the first color
-        
-        // Load saved font size from localStorage
-        const savedFontSize = localStorage.getItem('font-size') || '1';
-        fontSizeSlider.value = savedFontSize;
-        updateFontSize(savedFontSize);
-        
-        // Font size slider event
-        fontSizeSlider.addEventListener('input', function() {
-            updateFontSize(this.value);
-        });
-        
-        fontSizeSlider.addEventListener('change', function() {
-            // Save font size when slider stops
-            localStorage.setItem('font-size', this.value);
-            
-            // Broadcast font size change event to other pages
-            const fontSizeChangeEvent = new CustomEvent('fontSizeChanged', {
-                detail: { fontSize: this.value }
-            });
-            window.dispatchEvent(fontSizeChangeEvent);
-            
-            // Show notification
-            const percentage = Math.round(this.value * 100);
-            showNotification(`Font size set to ${percentage}%`);
-        });
-        
-        // Update font size function
-        function updateFontSize(size) {
-            // Update CSS variable
-            document.documentElement.style.setProperty('--font-size', `${size}rem`);
-            
-            // Update percentage display
-            const percentage = Math.round(size * 100);
-            fontSizeValue.textContent = `${percentage}%`;
-        }
-        
-        // Toggle theme dropdown
-        themeBtn.addEventListener('click', function(event) {
-            themeDropdown.classList.toggle('show');
-            chevron.classList.toggle('rotate');
-            
-            // Add ripple effect
-            createRipple(event, this);
-        });
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            if (!themeBtn.contains(event.target) && !themeDropdown.contains(event.target)) {
-                themeDropdown.classList.remove('show');
-                chevron.classList.remove('rotate');
-            }
-        });
-        
-        // Handle theme selection
-        themeOptions.forEach(option => {
-            option.addEventListener('click', function(event) {
-                const theme = this.getAttribute('data-theme');
-                
-                // Add ripple effect
-                createRipple(event, this);
-                
-                // Set theme with animation
-                setThemeWithAnimation(theme);
-                
-                // Close dropdown with slight delay
-                setTimeout(() => {
-                    themeDropdown.classList.remove('show');
-                    chevron.classList.remove('rotate');
-                }, 300);
-            });
-        });
-        
-        function setTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-            // Keep original localStorage key to maintain compatibility with other pages
-            localStorage.setItem('twitter-theme', theme);
-            
-            // Update active class
-            themeOptions.forEach(option => {
-                if (option.getAttribute('data-theme') === theme) {
-                    option.classList.add('active');
-                } else {
-                    option.classList.remove('active');
-                }
-            });
-            
-            // Broadcast theme change event to other pages
-            const themeChangeEvent = new CustomEvent('themeChanged', {
-                detail: { theme: theme }
-            });
-            window.dispatchEvent(themeChangeEvent);
-        }
-        
-        function setThemeWithAnimation(theme) {
-            // First add a class to trigger animation
-            document.body.classList.add('theme-transition');
-            
-            // Set the theme
-            setTheme(theme);
-            
-            // Remove the animation class after transition completes
-            setTimeout(() => {
-                document.body.classList.remove('theme-transition');
-            }, 500);
-        }
-        
-        // Create ripple effect
-        function createRipple(event, element) {
-            const ripple = document.createElement('span');
-            ripple.classList.add('ripple');
-            
-            const rect = element.getBoundingClientRect();
-            const size = Math.max(rect.width, rect.height);
-            
-            const x = event.clientX - rect.left - size / 2;
-            const y = event.clientY - rect.top - size / 2;
-            
-            ripple.style.width = ripple.style.height = `${size}px`;
-            ripple.style.left = `${x}px`;
-            ripple.style.top = `${y}px`;
-            
-            element.appendChild(ripple);
-            
-            setTimeout(() => {
-                ripple.remove();
-            }, 600);
-        }
-        
-        // Generate color palettes as chat bubbles
-        chatColors.forEach((colorObj, index) => {
-            const paletteElement = document.createElement('div');
-            paletteElement.className = 'color-palette';
-            paletteElement.dataset.color = colorObj.color;
-            paletteElement.dataset.index = index;
-            
-            // Check if this color is saved
-            if (savedPalette && savedPalette === index.toString()) {
-                paletteElement.classList.add('active');
-            }
-            
-            const chatBubble = document.createElement('div');
-            chatBubble.className = 'chat-bubble';
-            chatBubble.style.backgroundColor = colorObj.color;
-            
-            // For light colors, add a border
-            if (colorObj.color === '#FFFC00' || colorObj.color === '#FFFFFF') {
-                chatBubble.style.border = '1px solid #ddd';
-            }
-            
-            const paletteName = document.createElement('div');
-            paletteName.className = 'palette-name';
-            paletteName.textContent = colorObj.name;
-            
-            // Add check icon for selected palette
-            const selectedIcon = document.createElement('div');
-            selectedIcon.className = 'palette-selected';
-            selectedIcon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>';
-            
-            paletteElement.appendChild(chatBubble);
-            paletteElement.appendChild(paletteName);
-            paletteElement.appendChild(selectedIcon);
-            
-            // Add click event to select palette
-            paletteElement.addEventListener('click', function(event) {
-                // Add ripple effect
-                createRipple(event, this);
-                
-                // Save color selection - keep original keys for compatibility
-                const colorIndex = this.dataset.index;
-                const colorValue = this.dataset.color;
-                localStorage.setItem('color-palette', colorIndex);
-                localStorage.setItem('color-value', colorValue);
-                
-                // Update active class
-                document.querySelectorAll('.color-palette').forEach(p => {
-                    p.classList.remove('active');
-                });
-                this.classList.add('active');
-                
-                // Set CSS variable for chat bubble color
-                document.documentElement.style.setProperty('--chat-bubble', colorValue);
-                
-                // Broadcast color change event to other pages
-                const colorChangeEvent = new CustomEvent('chatColorChanged', {
-                    detail: { color: colorValue }
-                });
-                window.dispatchEvent(colorChangeEvent);
-                
-                // Show notification
-                showNotification(`${colorObj.name} selected!`);
-            });
-            
-            colorPalettes.appendChild(paletteElement);
-        });
-        
-        // Apply saved color on page load
-        const savedColorValue = localStorage.getItem('color-value');
-        if (savedColorValue) {
-            document.documentElement.style.setProperty('--chat-bubble', savedColorValue);
-        }
-        
-        // Show notification
-        function showNotification(message) {
-            // Check if notification container exists
-            let notificationContainer = document.getElementById('notification-container');
-            
-            if (!notificationContainer) {
-                notificationContainer = document.createElement('div');
-                notificationContainer.id = 'notification-container';
-                document.body.appendChild(notificationContainer);
-            }
-            
-            const notification = document.createElement('div');
-            notification.className = 'notification';
-            
-            // Add success icon
-            const icon = document.createElement('div');
-            icon.style.marginRight = '8px';
-            icon.style.color = 'var(--primary)';
-            icon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path></svg>';
-            
-            notification.appendChild(icon);
-            notification.appendChild(document.createTextNode(message));
-            notificationContainer.appendChild(notification);
-            
-            // Trigger animation
-            setTimeout(() => {
-                notification.style.opacity = '1';
-                notification.style.transform = 'translateY(0)';
-            }, 10);
-            
-            // Remove notification after delay
-            setTimeout(() => {
-                notification.style.opacity = '0';
-                notification.style.transform = 'translateY(-20px)';
-                setTimeout(() => {
-                    notification.remove();
-                }, 300);
-            }, 3000);
-        }
-        
-        
-        // Initialize active theme indicator
-        themeOptions.forEach(option => {
-            if (option.getAttribute('data-theme') === savedTheme) {
-                option.classList.add('active');
-            }
-        });
-        
-        // Listen for theme changes from other pages
-        window.addEventListener('storage', function(event) {
-            if (event.key === 'twitter-theme') {
-                setTheme(event.newValue);
-            }
-            if (event.key === 'color-palette' || event.key === 'color-value') {
-                const colorPalettes = document.querySelectorAll('.color-palette');
-                colorPalettes.forEach(palette => {
-                    if (palette.dataset.index === event.newValue) {
-                        palette.classList.add('active');
-                    } else {
-                        palette.classList.remove('active');
-                    }
-                });
-                
-                if (event.key === 'color-value') {
-                    document.documentElement.style.setProperty('--chat-bubble', event.newValue);
-                }
-            }
-            if (event.key === 'font-size') {
-                // Update font size slider and value when changed from another page
-                fontSizeSlider.value = event.newValue;
-                updateFontSize(event.newValue);
-            }
-        });
-        
-        // Handle window resize for responsive behavior
-        function handleResize() {
-            // Adjust container padding based on screen width
-            const container = document.querySelector('.container');
-            if (window.innerWidth < 480) {
-                container.style.padding = '10px';
-            } else {
-                container.style.padding = '16px';
-            }
-            
-            // Close dropdown when resizing
-            themeDropdown.classList.remove('show');
-            chevron.classList.remove('rotate');
-        }
-        
-        // Initial call and event listener for resize
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        
-        // Ensure the theme dropdown position is adjusted if window size changes
-        window.addEventListener('resize', function() {
-            if (themeDropdown.classList.contains('show')) {
-                // Reposition dropdown if open during resize
-                const themeBtn = document.getElementById('theme-toggle');
-                const rect = themeBtn.getBoundingClientRect();
-                themeDropdown.style.width = rect.width + 'px';
-            }
-        });
-    });
+        } catch(e) {}
+        userData = { ...userData, displayName: name, username, bio, photoURL: photo };
+        pendingPhotoURL = null;
+        btn.classList.remove('on');
+        toast('Profile saved ✓');
+    } catch(err) { console.error(err); toast('Failed to save.'); }
+    btn.textContent = 'Save changes';
+};
+
+window.doSignOut = async () => { await fbSignOut(auth); window.location.href = '/'; };
+
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('on');
+    clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 2800);
+}
 </script>
 </body>
 </html>
