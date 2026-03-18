@@ -6880,25 +6880,30 @@ init();
 
     /* Filter tabs */
     .upd-tabs {
-        display: flex; gap: 6px; padding: 8px 14px;
-        border-bottom: 1px solid #f4f4f4; flex-shrink: 0;
+        display: flex; gap: 5px; padding: 10px 14px;
+        border-bottom: 1px solid #f0f0f0; flex-shrink: 0;
         overflow-x: auto; scrollbar-width: none;
     }
     .upd-tabs::-webkit-scrollbar { display: none; }
     .upd-tab {
         flex-shrink: 0;
-        padding: 5px 13px; border-radius: 99px;
+        display: flex; align-items: center; gap: 5px;
+        padding: 6px 13px; border-radius: 99px;
         font-size: 11px; font-weight: 800; font-family: var(--font);
         border: 1.5px solid #e8e8e8; background: #f8f8f8;
         color: #777; cursor: pointer;
-        transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+        transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
         -webkit-tap-highlight-color: transparent;
+        letter-spacing: 0.01em;
     }
+    .upd-tab svg { width: 12px; height: 12px; flex-shrink: 0; transition: stroke 0.2s; }
     .upd-tab.active {
-        background: var(--brand-gradient); color: #fff; border-color: transparent;
-        box-shadow: 0 3px 12px rgba(0,0,0,0.16);
+        background: #111; color: #fff; border-color: transparent;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.18);
     }
-    .upd-tab:active { transform: scale(0.92); }
+    .upd-tab.active svg { stroke: #fff !important; }
+    .upd-tab:not(.active):hover { background: #f0f0f0; border-color: #ddd; color: #333; }
+    .upd-tab:active { transform: scale(0.91); }
 
     /* Scroll list */
     #updates-list {
@@ -7037,11 +7042,26 @@ init();
         </div>
         <!-- Filter tabs -->
         <div class="upd-tabs">
-            <button class="upd-tab active" data-filter="all">All</button>
-            <button class="upd-tab" data-filter="comment">💬 Comments</button>
-            <button class="upd-tab" data-filter="like">❤️ Likes</button>
-            <button class="upd-tab" data-filter="superlike">⚡ Super Likes</button>
-            <button class="upd-tab" data-filter="follow">👤 Follows</button>
+            <button class="upd-tab active" data-filter="all">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M3 12h3m12 0h3M12 3v3m0 12v3"/></svg>
+                All
+            </button>
+            <button class="upd-tab" data-filter="comment">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Comments
+            </button>
+            <button class="upd-tab" data-filter="like">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                Likes
+            </button>
+            <button class="upd-tab" data-filter="superlike">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Super Likes
+            </button>
+            <button class="upd-tab" data-filter="follow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                Follows
+            </button>
         </div>
         <div id="updates-list">
             <div id="updates-empty">
@@ -7112,11 +7132,11 @@ init();
         // ── Type icon badge ──
         function typeIcon(type) {
             var icons = {
-                comment:   { bg: '#3b82f6', svg: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
-                like:      { bg: '#ef4444', svg: '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>' },
-                superlike: { bg: '#f59e0b', svg: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>' },
-                dislike:   { bg: '#8b5cf6', svg: '<path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3z"/>' },
-                follow:    { bg: '#10b981', svg: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>' }
+                comment:   { bg: '#2563eb', svg: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="white" stroke="none"/>' },
+                like:      { bg: '#dc2626', svg: '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="white" stroke="none"/>' },
+                superlike: { bg: '#d97706', svg: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="white" stroke="none"/>' },
+                dislike:   { bg: '#7c3aed', svg: '<path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3z" fill="white" stroke="none"/>' },
+                follow:    { bg: '#059669', svg: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="9" cy="7" r="4" fill="white" stroke="none"/><line x1="19" y1="8" x2="19" y2="14" stroke="white" stroke-width="2.5" stroke-linecap="round"/><line x1="22" y1="11" x2="16" y2="11" stroke="white" stroke-width="2.5" stroke-linecap="round"/>' }
             };
             return icons[type] || icons.comment;
         }
@@ -7337,12 +7357,12 @@ init();
                                         id: 'like_'+postId+'_'+likerUid,
                                         type: 'like',
                                         actorName: name, actorPhoto: photo,
-                                        text: '<strong>'+name+'</strong> liked your video ❤️',
+                                        text: '<strong>'+name+'</strong> liked your video',
                                         postId: postId, postThumb: thumb,
                                         ts: Date.now(), read: false
                                     });
                                 }).catch(function(){
-                                    pushNotif({ id:'like_'+postId+'_'+likerUid, type:'like', actorName:'Someone', actorPhoto:'', text:'<strong>Someone</strong> liked your video ❤️', postId:postId, postThumb:thumb, ts:Date.now(), read:false });
+                                    pushNotif({ id: 'like_'+postId+'_'+likerUid, type: 'like', actorName:'Someone', actorPhoto:'', text:'<strong>Someone</strong> liked your video', postId:postId, postThumb:thumb, ts:Date.now(), read:false });
                                 });
                             }
                         });
@@ -7356,9 +7376,9 @@ init();
                             fns.getDoc(fns.doc(db,'users',sUid)).then(function(ud){
                                 var name = ud.exists() ? (ud.data().displayName||ud.data().name||'Someone') : 'Someone';
                                 var photo = ud.exists() ? (ud.data().photoURL||'') : '';
-                                pushNotif({ id:slid, type:'superlike', actorName:name, actorPhoto:photo, text:'<strong>'+name+'</strong> super liked your video ⚡', postId:postId, postThumb:thumb, ts:Date.now(), read:false });
+                                pushNotif({ id:slid, type:'superlike', actorName:name, actorPhoto:photo, text:'<strong>'+name+'</strong> super liked your video', postId:postId, postThumb:thumb, ts:Date.now(), read:false });
                             }).catch(function(){
-                                pushNotif({ id:slid, type:'superlike', actorName:'Someone', actorPhoto:'', text:'<strong>Someone</strong> super liked your video ⚡', postId:postId, postThumb:thumb, ts:Date.now(), read:false });
+                                pushNotif({ id:slid, type:'superlike', actorName:'Someone', actorPhoto:'', text:'<strong>Someone</strong> super liked your video', postId:postId, postThumb:thumb, ts:Date.now(), read:false });
                             });
                         });
                     });
@@ -7381,9 +7401,9 @@ init();
                             fns.getDoc(fns.doc(db,'users',f.followerUserId||'x')).then(function(ud){
                                 var name = ud.exists() ? (ud.data().displayName||ud.data().name||'Someone') : 'Someone';
                                 var photo = ud.exists() ? (ud.data().photoURL||'') : '';
-                                pushNotif({ id:fid, type:'follow', actorName:name, actorPhoto:photo, text:'<strong>'+name+'</strong> started following you 👤', postId:null, postThumb:null, ts:fMs, read:false });
+                                pushNotif({ id:fid, type:'follow', actorName:name, actorPhoto:photo, text:'<strong>'+name+'</strong> started following you', postId:null, postThumb:null, ts:fMs, read:false });
                             }).catch(function(){
-                                pushNotif({ id:fid, type:'follow', actorName:'Someone', actorPhoto:'', text:'<strong>Someone</strong> started following you 👤', postId:null, postThumb:null, ts:fMs, read:false });
+                                pushNotif({ id:fid, type:'follow', actorName:'Someone', actorPhoto:'', text:'<strong>Someone</strong> started following you', postId:null, postThumb:null, ts:fMs, read:false });
                             });
                         });
                     }
