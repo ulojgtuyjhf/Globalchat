@@ -6164,32 +6164,40 @@ init();
     var btn = document.getElementById('dsNav' + section);
     if (btn) btn.classList.add('active');
 
-    // ── Always hide everything first ──
+    // ── Always hide EVERYTHING first — blank slate ──
     function hideAll() {
+      // Feed
+      var _feed = document.getElementById('desktop-feed');
+      if (_feed) _feed.style.display = 'none';
+      // Comments
+      var _cmt = document.getElementById('desktop-comments');
+      if (_cmt) { _cmt.style.display = 'none'; _cmt.classList.remove('open'); document.body.classList.remove('comments-open'); }
+      // Updates column
+      var _upd = document.getElementById('updates-column');
+      if (_upd) { _upd.style.display = 'none'; }
+      // Saved panel
+      var _sav = document.getElementById('ds-saved-panel');
+      if (_sav) _sav.style.display = 'none';
       // Iframe section panel (profile)
       var _sp = document.getElementById('ds-section-panel');
       if (_sp) { _sp.style.opacity = '0'; _sp.style.display = 'none'; }
-      // Saved panel — remove from flex flow entirely
-      var _sav = document.getElementById('ds-saved-panel');
-      if (_sav) { _sav.style.display = 'none'; }
-      // Close saved viewer if open
+      // Close saved viewer
       if (window._closeDsSavedViewer) window._closeDsSavedViewer();
-      // Restore desktop-feed and comments to normal display
-      var _feed = document.getElementById('desktop-feed');
-      var _cmt  = document.getElementById('desktop-comments');
-      if (_feed) _feed.style.display = '';
-      if (_cmt)  _cmt.style.display  = '';
       // Nav arrows
-      var _na = document.getElementById('desktopNavArrows'); if (_na) _na.style.display = 'none';
+      var _na = document.getElementById('desktopNavArrows');
+      if (_na) _na.style.display = 'none';
+      // Body classes
+      document.body.classList.remove('dsv-open');
     }
 
     if (section === 'Home') {
       hideAll();
+      // Show ONLY feed and comments
       var feed2 = document.getElementById('desktop-feed');
       var cmt2  = document.getElementById('desktop-comments');
+      var upd2  = document.getElementById('updates-column');
       if (feed2) {
         feed2.style.display = '';
-        // Restore home feed cards from cache if needed
         if (!feed2.querySelector('.desktop-card') && window._allDesktopCards && window._allDesktopCards.length) {
           window._allDesktopCards.forEach(function(c){ feed2.appendChild(c); });
         }
@@ -6197,9 +6205,10 @@ init();
           feed2.querySelectorAll('.desktop-card').forEach(function(c){ window._desktopFeedObs.observe(c); });
         }
       }
-      if (cmt2) { cmt2.style.display = ''; }
-      document.body.classList.remove('dsv-open');
-      var _rna = document.getElementById('desktopNavArrows'); if (_rna) _rna.style.display = '';
+      if (cmt2) cmt2.style.display = '';
+      if (upd2) upd2.style.display = '';
+      var _rna = document.getElementById('desktopNavArrows');
+      if (_rna) _rna.style.display = '';
       return;
     }
 
@@ -6229,11 +6238,6 @@ init();
 
     if (section === 'Liked') {
       hideAll();
-      // Now hide feed and comments — Liked panel replaces them
-      var feedL = document.getElementById('desktop-feed');
-      var cmtL  = document.getElementById('desktop-comments');
-      if (feedL) { feedL.style.display = 'none'; }
-      if (cmtL)  { cmtL.style.display = 'none'; cmtL.classList.remove('open'); document.body.classList.remove('comments-open'); }
       // Pause all videos
       document.querySelectorAll('#desktop-feed video').forEach(function(v){ v.pause(); });
 
@@ -6495,11 +6499,6 @@ init();
     }
     if (section === 'Profile') {
       hideAll();
-      // Hide feed and comment panel — profile panel replaces them
-      var feedP = document.getElementById('desktop-feed');
-      var cmtP  = document.getElementById('desktop-comments');
-      if (feedP) { feedP.style.display = 'none'; }
-      if (cmtP)  { cmtP.style.display = 'none'; cmtP.classList.remove('open'); document.body.classList.remove('comments-open'); }
       showDsIframePanel('profile.html');
       return;
     }
@@ -7464,8 +7463,8 @@ init();
         // ── Open / Close panel ──
         window.openUpdatesPanel = function() {
             var col = document.getElementById('updates-column');
+            if (col) { col.style.display = ''; col.classList.add('open'); }
             if (panel) panel.classList.add('open');
-            if (col) col.classList.add('open');
             document.body.classList.add('updates-open');
             setTimeout(function(){
                 _notifs.forEach(function(n){ n.read = true; });
