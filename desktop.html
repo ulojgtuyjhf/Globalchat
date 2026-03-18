@@ -6066,9 +6066,6 @@ init();
   // ── Helper: create/show iframe panel in the main area ──
   function showDsIframePanel(src) {
     var panel = document.getElementById('ds-section-panel');
-    dsFeed.style.display = 'none';
-    dsComments.style.display = 'none';
-    var _na = document.getElementById('desktopNavArrows'); if (_na) _na.style.display = 'none';
     if (!panel) {
       panel = document.createElement('div');
       panel.id = 'ds-section-panel';
@@ -6078,7 +6075,6 @@ init();
       frame.style.cssText = 'width:100%;height:100%;border:none;display:block;';
       frame.setAttribute('allow', 'autoplay; camera; microphone');
       panel.appendChild(frame);
-      // Spinner overlay — only for first load
       var loader = document.createElement('div');
       loader.className = 'ds-panel-loader';
       loader.style.cssText = 'position:absolute;inset:0;background:#f7f7f7;display:flex;align-items:center;justify-content:center;z-index:2;transition:opacity 0.3s;border-radius:20px;';
@@ -6089,11 +6085,8 @@ init();
     var frame = document.getElementById('ds-section-frame');
     var loader = panel.querySelector('.ds-panel-loader');
     var alreadyLoaded = frame._loadedSrc === src;
-
     panel.style.display = '';
-
     if (!alreadyLoaded) {
-      // First load — show spinner, fade in after load
       panel.style.opacity = '0';
       if (loader) { loader.style.opacity = '1'; loader.style.pointerEvents = 'all'; }
       frame.onload = function() {
@@ -6103,7 +6096,6 @@ init();
       };
       frame.src = src;
     } else {
-      // Already loaded — just show instantly, no spinner
       if (loader) { loader.style.opacity = '0'; loader.style.pointerEvents = 'none'; }
       requestAnimationFrame(function() { panel.style.opacity = '1'; });
     }
@@ -6171,6 +6163,10 @@ init();
 
     // ── Always hide EVERYTHING in main area — blank slate ──
     function hideAll() {
+      // Pause videos
+      document.querySelectorAll('#desktop-feed video').forEach(function(v){ v.pause(); });
+      // Kill saved viewer observer if running
+      if (window._dsvObsRef) { window._dsvObsRef.disconnect(); window._dsvObsRef = null; }
       // Hide every child of #ds-main-area
       var mainArea = document.getElementById('ds-main-area');
       if (mainArea) {
@@ -6184,8 +6180,6 @@ init();
       document.body.classList.remove('comments-open', 'dsv-open', 'updates-open');
       var _upd = document.getElementById('updates-column');
       if (_upd) _upd.classList.remove('open');
-      // Close saved viewer
-      if (window._closeDsSavedViewer) window._closeDsSavedViewer();
       // Nav arrows
       var _na = document.getElementById('desktopNavArrows');
       if (_na) _na.style.display = 'none';
@@ -6310,37 +6304,19 @@ init();
 
         function closeDsvOverlay() {
           if (_dsvObs) { _dsvObs.disconnect(); _dsvObs = null; }
+          window._dsvObsRef = null;
           _dsvCards = [];
           var feed = document.getElementById('desktop-feed');
           if (feed) {
             feed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
             feed.innerHTML = '';
-            // Restore real home feed cards from cache
             if (window._allDesktopCards && window._allDesktopCards.length) {
               window._allDesktopCards.forEach(function(c){ feed.appendChild(c); });
-              if (window._desktopFeedObs) {
-                window._allDesktopCards.forEach(function(c){ window._desktopFeedObs.observe(c); });
-              }
             }
-            feed.style.display = 'none';
           }
           dsvBack.style.display = 'none';
-          // Close comment panel cleanly
-          document.body.classList.remove('comments-open', 'dsv-open');
-          var cmt = document.getElementById('desktop-comments');
-          if (cmt) { cmt.classList.remove('open'); cmt.style.display = 'none'; }
-          // Hide feed — saved grid panel will show instead
-          var feedBack = document.getElementById('desktop-feed');
-          if (feedBack) feedBack.style.display = 'none';
-          // Show the saved grid panel again
-          if (panel) panel.style.display = 'flex';
-          var _na = document.getElementById('desktopNavArrows'); if (_na) _na.style.display = 'none';
-          // Restore home feed arrow wiring
-          var _homeFeed = document.getElementById('desktop-feed');
-          var _dnUp2 = document.getElementById('dnUp');
-          var _dnDown2 = document.getElementById('dnDown');
-          if (_dnUp2) { _dnUp2.onclick = function(){ if(_homeFeed) _homeFeed.scrollBy({ top: -window.innerHeight, behavior: 'smooth' }); }; }
-          if (_dnDown2) { _dnDown2.onclick = function(){ if(_homeFeed) _homeFeed.scrollBy({ top: window.innerHeight, behavior: 'smooth' }); }; }
+          // Go back to Liked grid cleanly
+          showDesktopSection('Liked');
         }
         window._closeDsSavedViewer = closeDsvOverlay;
         dsvBack.addEventListener('click', closeDsvOverlay);
