@@ -1971,6 +1971,37 @@ body.dsv-open #updates-column {
     pointer-events: all;
     margin-left: 0;
   }
+
+  /* ══════════════════════════════
+     UPDATES COLUMN ISLAND
+  ══════════════════════════════ */
+  #updates-column {
+    width: 0; min-width: 0; flex-shrink: 0;
+    height: calc(100vh - 24px);
+    display: flex; flex-direction: column;
+    background: transparent;
+    overflow: hidden;
+    border-radius: 20px;
+    z-index: 20;
+    opacity: 0; pointer-events: none;
+    transition: width 0.42s cubic-bezier(0.22,1,0.36,1),
+                min-width 0.42s cubic-bezier(0.22,1,0.36,1),
+                opacity 0.28s ease;
+  }
+  #updates-column.open {
+    width: clamp(270px, 22vw, 320px);
+    min-width: clamp(270px, 22vw, 320px);
+    opacity: 1; pointer-events: all;
+  }
+  /* Both panels open simultaneously — shrink each so feed stays visible */
+  body.comments-open.updates-open #desktop-comments.open {
+    width: clamp(240px, 19vw, 290px) !important;
+    min-width: clamp(240px, 19vw, 290px) !important;
+  }
+  body.comments-open.updates-open #updates-column.open {
+    width: clamp(240px, 19vw, 290px) !important;
+    min-width: clamp(240px, 19vw, 290px) !important;
+  }
   /* Comment toggle button on video card */
   .dc-toggle-btn {
     position: absolute;
@@ -6821,32 +6852,21 @@ init();
          UPDATES / NOTIFICATIONS PANEL
          ══════════════════════════════════════════════ -->
     <style>
-    /* ── Updates panel overlay backdrop ── */
+    /* ── Updates panel overlay backdrop — hidden on desktop ── */
     #updates-overlay {
-        position: fixed; inset: 0;
-        background: rgba(0,0,0,0.38);
-        z-index: 590;
-        opacity: 0; pointer-events: none;
-        transition: opacity 0.32s ease;
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
+        display: none;
     }
-    #updates-overlay.open { opacity: 1; pointer-events: all; }
 
-    /* ── Panel itself ── */
+    /* ── Panel — sits inside #updates-column flex child ── */
     #updates-panel {
-        position: fixed; left: 0; right: 0; bottom: 0;
-        height: 72vh;
+        position: relative;
+        width: 100%; height: 100%;
         background: #fff;
-        z-index: 600;
-        transform: translateY(100%);
-        transition: transform 0.44s cubic-bezier(0.22,1,0.36,1);
+        z-index: 1;
         display: flex; flex-direction: column;
         overflow: hidden;
-        border-radius: 28px 28px 0 0;
-        box-shadow: 0 -16px 60px rgba(0,0,0,0.2);
+        border-radius: 20px;
     }
-    #updates-panel.open { transform: translateY(0); }
 
     /* Top gradient accent bar */
     #updates-panel::before {
@@ -6855,15 +6875,11 @@ init();
         height: 3px;
         flex-shrink: 0;
         background: var(--brand-gradient);
-        border-radius: 28px 28px 0 0;
+        border-radius: 20px 20px 0 0;
     }
 
-    /* Drag handle */
-    .upd-handle-row {
-        display: flex; justify-content: center;
-        padding: 8px 0 0; flex-shrink: 0;
-    }
-    .upd-handle { width: 40px; height: 4px; border-radius: 2px; background: #e0e0e0; }
+    /* Drag handle — hidden on desktop */
+    .upd-handle-row { display: none; }
 
     /* Header row */
     .upd-header {
@@ -7024,55 +7040,6 @@ init();
         flex-shrink: 0; display: flex; align-items: center; justify-content: center;
     }
 
-    /* ── Updates column — flex sibling inside #desktop-wrapper, mirrors comments ── */
-    @media (min-width: 900px) {
-        #updates-column {
-            width: 0; min-width: 0; flex-shrink: 0;
-            height: calc(100vh - 24px);
-            display: flex; flex-direction: column;
-            background: #ffffff;
-            overflow: hidden;
-            border-radius: 20px;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.07);
-            z-index: 20;
-            opacity: 0; pointer-events: none;
-            transition: width 0.42s cubic-bezier(0.22,1,0.36,1),
-                        min-width 0.42s cubic-bezier(0.22,1,0.36,1),
-                        opacity 0.28s ease;
-        }
-        #updates-column.open {
-            width: clamp(270px, 22vw, 320px);
-            min-width: clamp(270px, 22vw, 320px);
-            opacity: 1; pointer-events: all;
-        }
-        /* Both panels open — each shrinks so feed stays visible */
-        body.comments-open.updates-open #desktop-comments.open {
-            width: clamp(240px, 20vw, 300px) !important;
-            min-width: clamp(240px, 20vw, 300px) !important;
-        }
-        body.comments-open.updates-open #updates-column.open {
-            width: clamp(240px, 20vw, 300px) !important;
-            min-width: clamp(240px, 20vw, 300px) !important;
-        }
-        /* Panel lives inside the column — reset all fixed positioning */
-        #updates-panel {
-            position: relative !important;
-            left: auto !important; right: auto !important;
-            top: auto !important; bottom: auto !important;
-            width: 100% !important; height: 100% !important;
-            border-radius: 20px !important;
-            transform: none !important;
-            transition: none !important;
-            box-shadow: none !important;
-            border-left: none !important;
-            display: flex !important; flex-direction: column !important;
-            overflow: hidden !important;
-        }
-        #updates-panel::before { border-radius: 20px 20px 0 0 !important; }
-        #updates-overlay { display: none !important; }
-        body.updates-open #desktop-wrapper { padding-right: 12px !important; }
-        .upd-handle-row { display: none !important; }
-    }
     </style>
 
     <!-- Backdrop -->
