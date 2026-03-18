@@ -6230,17 +6230,21 @@ init();
       var cmt2  = document.getElementById('desktop-comments');
       var upd2  = document.getElementById('updates-column');
       if (feed2) {
-        feed2.style.display = '';
-        if (!feed2.querySelector('.desktop-card') && window._allDesktopCards && window._allDesktopCards.length) {
+        // Always clear and restore real home cards
+        feed2.querySelectorAll('video').forEach(function(v){ v.pause(); });
+        feed2.innerHTML = '';
+        if (window._allDesktopCards && window._allDesktopCards.length) {
           window._allDesktopCards.forEach(function(c){ feed2.appendChild(c); });
         }
+        feed2.style.display = '';
         if (window._desktopFeedObs) {
           feed2.querySelectorAll('.desktop-card').forEach(function(c){ window._desktopFeedObs.observe(c); });
         }
-        // Restore home video to saved position
+        // Restore to where user left off
         if (_homeVideoState.postId) {
           var savedCard = feed2.querySelector('.desktop-card[data-post-id="'+_homeVideoState.postId+'"]');
           if (savedCard) {
+            feed2.scrollTop = savedCard.offsetTop;
             var savedVid = savedCard._video || savedCard.querySelector('video');
             if (savedVid && _homeVideoState.time > 0) {
               savedVid.currentTime = _homeVideoState.time;
