@@ -6166,14 +6166,19 @@ init();
 
     // ── Always hide everything first ──
     function hideAll() {
-      // Iframe panel (profile)
+      // Iframe section panel (profile)
       var _sp = document.getElementById('ds-section-panel');
       if (_sp) { _sp.style.opacity = '0'; _sp.style.display = 'none'; }
-      // Saved panel
+      // Saved panel — remove from flex flow entirely
       var _sav = document.getElementById('ds-saved-panel');
-      if (_sav) _sav.style.display = 'none';
+      if (_sav) { _sav.style.display = 'none'; }
       // Close saved viewer if open
       if (window._closeDsSavedViewer) window._closeDsSavedViewer();
+      // Restore desktop-feed and comments to normal display
+      var _feed = document.getElementById('desktop-feed');
+      var _cmt  = document.getElementById('desktop-comments');
+      if (_feed) _feed.style.display = '';
+      if (_cmt)  _cmt.style.display  = '';
       // Nav arrows
       var _na = document.getElementById('desktopNavArrows'); if (_na) _na.style.display = 'none';
     }
@@ -6224,13 +6229,13 @@ init();
 
     if (section === 'Liked') {
       hideAll();
-      // Pause all videos
-      document.querySelectorAll('#desktop-feed video, #gallery video').forEach(function(v){ v.pause(); });
-      // Hide feed + close comment panel
+      // Now hide feed and comments — Liked panel replaces them
       var feedL = document.getElementById('desktop-feed');
       var cmtL  = document.getElementById('desktop-comments');
-      if (feedL) feedL.style.display = 'none';
-      if (cmtL)  { cmtL.classList.remove('open'); document.body.classList.remove('comments-open'); }
+      if (feedL) { feedL.style.display = 'none'; }
+      if (cmtL)  { cmtL.style.display = 'none'; cmtL.classList.remove('open'); document.body.classList.remove('comments-open'); }
+      // Pause all videos
+      document.querySelectorAll('#desktop-feed video').forEach(function(v){ v.pause(); });
 
       var panel = document.getElementById('ds-saved-panel');
       if (!panel) {
@@ -6317,9 +6322,12 @@ init();
           }
           dsvBack.style.display = 'none';
           // Close comment panel cleanly
-          document.body.classList.remove('comments-open');
+          document.body.classList.remove('comments-open', 'dsv-open');
           var cmt = document.getElementById('desktop-comments');
           if (cmt) { cmt.classList.remove('open'); cmt.style.display = 'none'; }
+          // Hide feed — saved grid panel will show instead
+          var feedBack = document.getElementById('desktop-feed');
+          if (feedBack) feedBack.style.display = 'none';
           // Show the saved grid panel again
           if (panel) panel.style.display = 'flex';
           var _na = document.getElementById('desktopNavArrows'); if (_na) _na.style.display = 'none';
@@ -6487,11 +6495,11 @@ init();
     }
     if (section === 'Profile') {
       hideAll();
-      // Hide feed and comment panel
+      // Hide feed and comment panel — profile panel replaces them
       var feedP = document.getElementById('desktop-feed');
       var cmtP  = document.getElementById('desktop-comments');
-      if (feedP) feedP.style.display = 'none';
-      if (cmtP)  { cmtP.classList.remove('open'); document.body.classList.remove('comments-open'); }
+      if (feedP) { feedP.style.display = 'none'; }
+      if (cmtP)  { cmtP.style.display = 'none'; cmtP.classList.remove('open'); document.body.classList.remove('comments-open'); }
       showDsIframePanel('profile.html');
       return;
     }
