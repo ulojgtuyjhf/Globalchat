@@ -6200,12 +6200,12 @@ init();
 
     // ── Always hide EVERYTHING in main area — blank slate ──
     function hideAll() {
-      // Pause ALL playing videos first
-      document.querySelectorAll('#desktop-feed video, #ds-main-area video').forEach(function(v){
-        v.pause();
-      });
-      // Kill saved viewer observer if running
+      // Disconnect liked viewer observer first — stops autoplay
       if (window._dsvObsRef) { window._dsvObsRef.disconnect(); window._dsvObsRef = null; }
+      // Also disconnect via the local _dsvObs if accessible
+      var _savedPanel = document.getElementById('ds-saved-panel');
+      // Pause ALL videos everywhere
+      document.querySelectorAll('video').forEach(function(v){ v.pause(); });
       // Hide every child of #ds-main-area
       var mainArea = document.getElementById('ds-main-area');
       if (mainArea) {
@@ -6459,6 +6459,7 @@ init();
             });
           }, { root: feed, threshold: 0.55 });
           _dsvCards.forEach(function(c){ _dsvObs.observe(c); });
+          window._dsvObsRef = _dsvObs;
 
           // Show nav arrows, rewire to dsv feed
           var _na = document.getElementById('desktopNavArrows');
