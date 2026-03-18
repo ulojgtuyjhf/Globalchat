@@ -6156,10 +6156,22 @@ init();
     if (homeBtn) homeBtn.classList.add('active');
   }
 
+  // ── Remember last section and comments state ──
+  var _lastSection = 'Home';
+  var _commentsWasOpen = false;
+  var _lastPostId = null;
+  var _lastPostData = null;
+
   function showDesktopSection(section) {
     document.querySelectorAll('.ds-nav-item').forEach(function(b){ b.classList.remove('active'); });
     var btn = document.getElementById('dsNav' + section);
     if (btn) btn.classList.add('active');
+
+    // Save state of current section before switching
+    _commentsWasOpen = document.body.classList.contains('comments-open');
+    _lastPostId = window._dcCurrentPostId || null;
+    _lastPostData = window._dcCurrentPostData || null;
+    _lastSection = section;
 
     // ── Always hide EVERYTHING in main area — blank slate ──
     function hideAll() {
@@ -6199,7 +6211,15 @@ init();
           feed2.querySelectorAll('.desktop-card').forEach(function(c){ window._desktopFeedObs.observe(c); });
         }
       }
-      if (cmt2) cmt2.style.display = '';
+      if (cmt2) {
+        cmt2.style.display = '';
+        // Restore comments panel open state
+        if (_commentsWasOpen && _lastPostId && _lastPostData) {
+          cmt2.classList.add('open');
+          document.body.classList.add('comments-open');
+          openDesktopComments(_lastPostData, _lastPostId, false);
+        }
+      }
       if (upd2) upd2.style.display = '';
       var _rna = document.getElementById('desktopNavArrows');
       if (_rna) _rna.style.display = '';
@@ -6787,6 +6807,9 @@ init();
           var pdata = card._postData;
           if (pid && pdata) {
             openDesktopComments(pdata, pid, false);
+            // Track for state restoration when returning to Home
+            _lastPostId = pid;
+            _lastPostData = pdata;
             if (typeof trackPresence === 'function') trackPresence(pid);
           }
         } else {
