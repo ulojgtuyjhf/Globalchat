@@ -742,15 +742,15 @@
 
         /* updates / notifications panel (mobile bottom sheet + desktop column) */
         #updates-panel  { background: ${t.updBg} !important; }
-        .upd-header { border-bottom-color: ${t.updHeaderBorder} !important; }
+        .upd-header { background: ${t.updBg} !important; border-bottom: 1px solid ${t.updHeaderBorder} !important; }
         .upd-title  { color: ${t.updTitleColor} !important; }
         .upd-close-btn { background: ${t.updCloseBg} !important; }
         .upd-close-btn svg { stroke: ${t.updCloseIcon} !important; }
-        .upd-tabs { border-bottom-color: ${t.updListBorder} !important; background: ${t.updBg} !important; }
+        .upd-tabs { background: ${t.updBg} !important; border-bottom: 1px solid ${t.updListBorder} !important; }
         .upd-tab { background: ${t.updTabBg} !important; border-color: ${t.updTabBorder} !important; color: ${t.updTabColor} !important; }
         .upd-tab svg { stroke: ${t.updTabColor} !important; }
-        .upd-tab.active { background: ${t.updTabActiveBg} !important; color: ${t.updTabActiveColor} !important; border-color: transparent !important; }
-        .upd-tab.active svg { stroke: ${t.updTabActiveColor} !important; }
+        .upd-tab.active { background: var(--brand-gradient) !important; color: #ffffff !important; border-color: transparent !important; }
+        .upd-tab.active svg { stroke: #ffffff !important; }
         #updates-list { background: ${t.updBg} !important; }
         .upd-row { background: ${t.updRowBg} !important; }
         .upd-row.unread { background: ${t.updRowUnreadBg} !important; border-color: ${t.updRowUnreadBorder} !important; }
@@ -1086,11 +1086,11 @@
           /* ── updates column + panel ── */
           #updates-column { background: ${t.updColumnBg} !important; }
           #updates-panel  { background: ${t.updBg} !important; }
-          .upd-header { border-bottom-color: ${t.updHeaderBorder} !important; }
+          .upd-header { background: ${t.updBg} !important; border-bottom: 1px solid ${t.updHeaderBorder} !important; }
           .upd-title  { color: ${t.updTitleColor} !important; }
           .upd-close-btn { background: ${t.updCloseBg} !important; }
           .upd-close-btn svg { stroke: ${t.updCloseIcon} !important; }
-          .upd-tabs { border-bottom-color: ${t.updListBorder} !important; }
+          .upd-tabs { background: ${t.updBg} !important; border-bottom: 1px solid ${t.updListBorder} !important; }
           .upd-tab {
             background: ${t.updTabBg} !important;
             border-color: ${t.updTabBorder} !important;
@@ -1098,11 +1098,12 @@
           }
           .upd-tab svg { stroke: ${t.updTabColor} !important; }
           .upd-tab.active {
-            background: ${t.updTabActiveBg} !important;
-            color: ${t.updTabActiveColor} !important;
+            background: var(--brand-gradient) !important;
+            color: #ffffff !important;
             border-color: transparent !important;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.18) !important;
           }
-          .upd-tab.active svg { stroke: ${t.updTabActiveColor} !important; }
+          .upd-tab.active svg { stroke: #ffffff !important; }
           #updates-list { background: ${t.updBg} !important; }
           .upd-row { background: ${t.updRowBg} !important; border-color: transparent !important; }
           .upd-row.unread {
