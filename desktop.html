@@ -2365,6 +2365,9 @@ if (window === window.top && window.matchMedia('(max-width: 899px)').matches) {
 
       </aside>
 
+      <!-- Main area — only ONE section visible at a time -->
+      <div id="ds-main-area" style="flex:1;display:flex;height:calc(100vh - 24px);gap:12px;min-width:0;overflow:hidden;">
+
       <!-- Center feed — cards populated by JS -->
       <main id="desktop-feed" style="position:relative;">
         <!-- desktop video cards go here -->
@@ -2503,7 +2506,9 @@ if (window === window.top && window.matchMedia('(max-width: 899px)').matches) {
                 </div>
             </div>
         </div>
-      </aside>
+      </aside><!-- end #updates-column -->
+
+      </div><!-- end #ds-main-area -->
 
     </div>
     <!-- ═══ END DESKTOP LAYOUT ═══ -->
@@ -6079,7 +6084,7 @@ init();
       loader.style.cssText = 'position:absolute;inset:0;background:#f7f7f7;display:flex;align-items:center;justify-content:center;z-index:2;transition:opacity 0.3s;border-radius:20px;';
       loader.innerHTML = '<div class="spinner"></div>';
       panel.appendChild(loader);
-      document.getElementById('desktop-wrapper').appendChild(panel);
+      document.getElementById('ds-main-area').appendChild(panel);
     }
     var frame = document.getElementById('ds-section-frame');
     var loader = panel.querySelector('.ds-panel-loader');
@@ -6164,35 +6169,30 @@ init();
     var btn = document.getElementById('dsNav' + section);
     if (btn) btn.classList.add('active');
 
-    // ── Always hide EVERYTHING first — blank slate ──
+    // ── Always hide EVERYTHING in main area — blank slate ──
     function hideAll() {
-      // Feed
-      var _feed = document.getElementById('desktop-feed');
-      if (_feed) _feed.style.display = 'none';
-      // Comments
+      // Hide every child of #ds-main-area
+      var mainArea = document.getElementById('ds-main-area');
+      if (mainArea) {
+        Array.from(mainArea.children).forEach(function(el) {
+          el.style.display = 'none';
+        });
+      }
+      // Clean up classes
       var _cmt = document.getElementById('desktop-comments');
-      if (_cmt) { _cmt.style.display = 'none'; _cmt.classList.remove('open'); document.body.classList.remove('comments-open'); }
-      // Updates column
+      if (_cmt) _cmt.classList.remove('open');
+      document.body.classList.remove('comments-open', 'dsv-open', 'updates-open');
       var _upd = document.getElementById('updates-column');
-      if (_upd) { _upd.style.display = 'none'; }
-      // Saved panel
-      var _sav = document.getElementById('ds-saved-panel');
-      if (_sav) _sav.style.display = 'none';
-      // Iframe section panel (profile)
-      var _sp = document.getElementById('ds-section-panel');
-      if (_sp) { _sp.style.opacity = '0'; _sp.style.display = 'none'; }
+      if (_upd) _upd.classList.remove('open');
       // Close saved viewer
       if (window._closeDsSavedViewer) window._closeDsSavedViewer();
       // Nav arrows
       var _na = document.getElementById('desktopNavArrows');
       if (_na) _na.style.display = 'none';
-      // Body classes
-      document.body.classList.remove('dsv-open');
     }
 
     if (section === 'Home') {
       hideAll();
-      // Show ONLY feed and comments
       var feed2 = document.getElementById('desktop-feed');
       var cmt2  = document.getElementById('desktop-comments');
       var upd2  = document.getElementById('updates-column');
@@ -6280,7 +6280,7 @@ init();
         gridCol.appendChild(gridScroll);
 
         panel.appendChild(gridCol);
-        document.getElementById('desktop-wrapper').appendChild(panel);
+        document.getElementById('ds-main-area').appendChild(panel);
 
         // ── Desktop saved viewer — reuses #desktop-feed + #desktop-comments exactly like home ──
         // No full-screen overlay. We swap the desktop-feed content, show the comment panel,
