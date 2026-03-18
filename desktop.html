@@ -457,6 +457,12 @@ html::-webkit-scrollbar { display: none; }
   body.comments-open .desktop-nav-arrows {
     right: calc(clamp(280px, 24vw, 360px) + 20px);
   }
+  body.updates-open .desktop-nav-arrows {
+    right: calc(clamp(270px, 22vw, 320px) + 20px);
+  }
+  body.comments-open.updates-open .desktop-nav-arrows {
+    right: calc(clamp(240px, 20vw, 300px) + clamp(240px, 20vw, 300px) + 24px);
+  }
   .desktop-nav-arrow {
     width: 38px; height: 38px; border-radius: 50%;
     background: #fff;
@@ -493,6 +499,13 @@ body.dsv-open #desktop-comments {
   height: calc(100vh - 24px) !important;
   z-index: 10015 !important;
   display: flex !important;
+}
+body.dsv-open #updates-column {
+  position: fixed !important;
+  top: 12px !important;
+  right: calc(clamp(270px, 22vw, 320px) + 24px) !important;
+  height: calc(100vh - 24px) !important;
+  z-index: 10015 !important;
 }
 
 /* ── Comment live red dot ── */
@@ -2414,6 +2427,9 @@ if (window === window.top && window.matchMedia('(max-width: 899px)').matches) {
           </button>
         </div>
       </aside>
+
+      <!-- Updates column — flex sibling, pushes feed like comments -->
+      <aside id="updates-column" aria-label="Updates"></aside>
 
     </div>
     <!-- ═══ END DESKTOP LAYOUT ═══ -->
@@ -7008,31 +7024,54 @@ init();
         flex-shrink: 0; display: flex; align-items: center; justify-content: center;
     }
 
-    /* Desktop overrides — right sidebar that PUSHES content left */
+    /* ── Updates column — flex sibling inside #desktop-wrapper, mirrors comments ── */
     @media (min-width: 900px) {
-        #updates-overlay { display: none !important; }
+        #updates-column {
+            width: 0; min-width: 0; flex-shrink: 0;
+            height: calc(100vh - 24px);
+            display: flex; flex-direction: column;
+            background: #ffffff;
+            overflow: hidden;
+            border-radius: 20px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.07);
+            z-index: 20;
+            opacity: 0; pointer-events: none;
+            transition: width 0.42s cubic-bezier(0.22,1,0.36,1),
+                        min-width 0.42s cubic-bezier(0.22,1,0.36,1),
+                        opacity 0.28s ease;
+        }
+        #updates-column.open {
+            width: clamp(270px, 22vw, 320px);
+            min-width: clamp(270px, 22vw, 320px);
+            opacity: 1; pointer-events: all;
+        }
+        /* Both panels open — each shrinks so feed stays visible */
+        body.comments-open.updates-open #desktop-comments.open {
+            width: clamp(240px, 20vw, 300px) !important;
+            min-width: clamp(240px, 20vw, 300px) !important;
+        }
+        body.comments-open.updates-open #updates-column.open {
+            width: clamp(240px, 20vw, 300px) !important;
+            min-width: clamp(240px, 20vw, 300px) !important;
+        }
+        /* Panel lives inside the column — reset all fixed positioning */
         #updates-panel {
-            left: auto !important; right: 0 !important;
-            bottom: 0 !important; top: 0 !important;
-            width: 320px !important; height: 100vh !important;
-            border-radius: 0 !important;
-            transform: translateX(100%) !important;
-            transition: transform 0.42s cubic-bezier(0.22,1,0.36,1) !important;
-            box-shadow: -4px 0 24px rgba(0,0,0,0.08) !important;
-            border-left: 1px solid #efefef !important;
-            background: #fff !important;
-            z-index: 600 !important;
+            position: relative !important;
+            left: auto !important; right: auto !important;
+            top: auto !important; bottom: auto !important;
+            width: 100% !important; height: 100% !important;
+            border-radius: 20px !important;
+            transform: none !important;
+            transition: none !important;
+            box-shadow: none !important;
+            border-left: none !important;
+            display: flex !important; flex-direction: column !important;
+            overflow: hidden !important;
         }
-        #updates-panel::before { border-radius: 0 !important; }
-        #updates-panel.open { transform: translateX(0) !important; }
-        .upd-handle-row { display: none; }
-        /* Push the whole desktop layout when updates panel opens */
-        #desktop-wrapper {
-            transition: padding-right 0.42s cubic-bezier(0.22,1,0.36,1);
-        }
-        body.updates-open #desktop-wrapper {
-            padding-right: calc(320px + 12px) !important;
-        }
+        #updates-panel::before { border-radius: 20px 20px 0 0 !important; }
+        #updates-overlay { display: none !important; }
+        body.updates-open #desktop-wrapper { padding-right: 12px !important; }
+        .upd-handle-row { display: none !important; }
     }
     </style>
 
@@ -7464,10 +7503,12 @@ init();
 
         // ── Open / Close panel ──
         window.openUpdatesPanel = function() {
-            panel.classList.add('open');
+            var col = document.getElementById('updates-column');
+            if (col && panel && panel.parentElement !== col) col.appendChild(panel);
+            if (panel) panel.classList.add('open');
             if (overlay) overlay.classList.add('open');
+            if (col) col.classList.add('open');
             document.body.classList.add('updates-open');
-            // Mark all read after 2 seconds
             setTimeout(function(){
                 _notifs.forEach(function(n){ n.read = true; });
                 refreshBadge();
@@ -7478,8 +7519,10 @@ init();
         };
 
         window.closeUpdatesPanel = function() {
-            panel.classList.remove('open');
+            var col = document.getElementById('updates-column');
+            if (panel) panel.classList.remove('open');
             if (overlay) overlay.classList.remove('open');
+            if (col) col.classList.remove('open');
             document.body.classList.remove('updates-open');
         };
 
