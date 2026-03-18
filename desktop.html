@@ -6163,6 +6163,28 @@ init();
   var _commentsWasOpen = false;
   var _lastPostId = null;
   var _lastPostData = null;
+  // ── Remember video playback state per section ──
+  var _homeVideoState  = { postId: null, time: 0 }; // home feed
+  var _likedVideoState = { postId: null, time: 0 }; // liked viewer
+
+  function _saveVideoState(section) {
+    if (section === 'Home') {
+      var activeCard = document.querySelector('#desktop-feed .desktop-card.active');
+      if (activeCard) {
+        var vid = activeCard._video || activeCard.querySelector('video');
+        _homeVideoState.postId = activeCard.dataset.postId || null;
+        _homeVideoState.time   = vid ? vid.currentTime : 0;
+      }
+    } else if (section === 'Liked') {
+      // Liked viewer uses #desktop-feed too when open
+      var activeCard2 = document.querySelector('#desktop-feed .desktop-card.active');
+      if (activeCard2) {
+        var vid2 = activeCard2._video || activeCard2.querySelector('video');
+        _likedVideoState.postId = activeCard2.dataset.postId || null;
+        _likedVideoState.time   = vid2 ? vid2.currentTime : 0;
+      }
+    }
+  }
 
   function showDesktopSection(section) {
     document.querySelectorAll('.ds-nav-item').forEach(function(b){ b.classList.remove('active'); });
@@ -6170,6 +6192,7 @@ init();
     if (btn) btn.classList.add('active');
 
     // Save state of current section before switching
+    _saveVideoState(_lastSection);
     _commentsWasOpen = document.body.classList.contains('comments-open');
     _lastPostId = window._dcCurrentPostId || null;
     _lastPostData = window._dcCurrentPostData || null;
@@ -6177,8 +6200,10 @@ init();
 
     // ── Always hide EVERYTHING in main area — blank slate ──
     function hideAll() {
-      // Pause videos
-      document.querySelectorAll('#desktop-feed video').forEach(function(v){ v.pause(); });
+      // Pause ALL playing videos first
+      document.querySelectorAll('#desktop-feed video, #ds-main-area video').forEach(function(v){
+        v.pause();
+      });
       // Kill saved viewer observer if running
       if (window._dsvObsRef) { window._dsvObsRef.disconnect(); window._dsvObsRef = null; }
       // Hide every child of #ds-main-area
@@ -6212,10 +6237,20 @@ init();
         if (window._desktopFeedObs) {
           feed2.querySelectorAll('.desktop-card').forEach(function(c){ window._desktopFeedObs.observe(c); });
         }
+        // Restore home video to saved position
+        if (_homeVideoState.postId) {
+          var savedCard = feed2.querySelector('.desktop-card[data-post-id="'+_homeVideoState.postId+'"]');
+          if (savedCard) {
+            var savedVid = savedCard._video || savedCard.querySelector('video');
+            if (savedVid && _homeVideoState.time > 0) {
+              savedVid.currentTime = _homeVideoState.time;
+              playDesktopVideo(savedVid);
+            }
+          }
+        }
       }
       if (cmt2) {
         cmt2.style.display = '';
-        // Restore comments panel open state
         if (_commentsWasOpen && _lastPostId && _lastPostData) {
           cmt2.classList.add('open');
           document.body.classList.add('comments-open');
@@ -6387,6 +6422,14 @@ init();
             .findIndex(function(q){ return q._id === (clickedPost._id||''); }));
           if (_dsvCards[startIdx]) {
             feed.scrollTop = _dsvCards[startIdx].offsetTop;
+          }
+          // Restore liked video time if returning to same post
+          if (_likedVideoState.postId && _likedVideoState.time > 0) {
+            var rCard = feed.querySelector('.desktop-card[data-post-id="'+_likedVideoState.postId+'"]');
+            if (rCard) {
+              var rVid = rCard._video || rCard.querySelector('video');
+              if (rVid) rVid.currentTime = _likedVideoState.time;
+            }
           }
 
           // IntersectionObserver — identical to home feed
