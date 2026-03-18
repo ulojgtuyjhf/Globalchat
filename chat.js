@@ -197,6 +197,29 @@
         panelHeaderBorder:    '#efefef',
         panelTitle:           '#111111',
         panelBackIcon:        '#111111',
+        // ── updates / notifications panel ──
+        updBg:                '#ffffff',
+        updColumnBg:          '#ffffff',
+        updHeaderBorder:      '#f0f0f0',
+        updTitleColor:        '#111111',
+        updCloseBg:           '#f2f2f2',
+        updCloseIcon:         '#555555',
+        updTabBg:             '#f8f8f8',
+        updTabBorder:         '#e8e8e8',
+        updTabColor:          '#777777',
+        updTabActiveBg:       '#111111',
+        updTabActiveColor:    '#ffffff',
+        updListBorder:        '#f0f0f0',
+        updRowBg:             '#fafafa',
+        updRowUnreadBg:       '#f5f5f5',
+        updRowUnreadBorder:   'rgba(0,0,0,0.06)',
+        updRowHoverBg:        '#f0f0f0',
+        updBodyText:          '#222222',
+        updBodyStrong:        '#111111',
+        updTimeColor:         '#aaaaaa',
+        updEmptyIcon:         '#bbbbbb',
+        updEmptyText:         '#bbbbbb',
+        updDotColor:          '#111111',
       },
 
       // ── DIM ───────────────────────────────────────────────────
@@ -372,6 +395,29 @@
         panelHeaderBorder:    '#38444d',
         panelTitle:           '#ffffff',
         panelBackIcon:        '#ffffff',
+        // ── updates / notifications panel ──
+        updBg:                '#15202b',
+        updColumnBg:          '#15202b',
+        updHeaderBorder:      '#38444d',
+        updTitleColor:        '#ffffff',
+        updCloseBg:           '#253240',
+        updCloseIcon:         '#8899a6',
+        updTabBg:             '#1e2732',
+        updTabBorder:         '#38444d',
+        updTabColor:          '#8899a6',
+        updTabActiveBg:       '#f7f9f9',
+        updTabActiveColor:    '#0f1419',
+        updListBorder:        '#38444d',
+        updRowBg:             '#1e2732',
+        updRowUnreadBg:       '#253240',
+        updRowUnreadBorder:   'rgba(255,255,255,0.06)',
+        updRowHoverBg:        '#22303c',
+        updBodyText:          '#e7e9ea',
+        updBodyStrong:        '#ffffff',
+        updTimeColor:         '#536471',
+        updEmptyIcon:         '#536471',
+        updEmptyText:         '#536471',
+        updDotColor:          '#f7f9f9',
       },
 
       // ── DARK ──────────────────────────────────────────────────
@@ -550,6 +596,29 @@
         panelHeaderBorder:    '#2f3336',
         panelTitle:           '#ffffff',
         panelBackIcon:        '#ffffff',
+        // ── updates / notifications panel ──
+        updBg:                '#080808',
+        updColumnBg:          '#080808',
+        updHeaderBorder:      '#2f3336',
+        updTitleColor:        '#ffffff',
+        updCloseBg:           '#1a1a1a',
+        updCloseIcon:         '#a6a6a6',
+        updTabBg:             '#111111',
+        updTabBorder:         '#2f3336',
+        updTabColor:          '#a6a6a6',
+        updTabActiveBg:       '#ffffff',
+        updTabActiveColor:    '#000000',
+        updListBorder:        '#2f3336',
+        updRowBg:             '#111111',
+        updRowUnreadBg:       '#1a1a1a',
+        updRowUnreadBorder:   'rgba(255,255,255,0.05)',
+        updRowHoverBg:        '#1a1a1a',
+        updBodyText:          '#e7e9ea',
+        updBodyStrong:        '#ffffff',
+        updTimeColor:         '#555555',
+        updEmptyIcon:         '#555555',
+        updEmptyText:         '#555555',
+        updDotColor:          '#ffffff',
       }
     },
 
@@ -670,6 +739,28 @@
         .share-sheet-url { background: ${t.shareUrlBg}; border-color: ${t.shareUrlBorder}; }
         .share-sheet-url-text { color: ${t.shareUrlText}; }
         .share-option-label { color: ${t.shareOptionLabel}; }
+
+        /* updates / notifications panel (mobile bottom sheet + desktop column) */
+        #updates-panel  { background: ${t.updBg} !important; }
+        .upd-header { border-bottom-color: ${t.updHeaderBorder} !important; }
+        .upd-title  { color: ${t.updTitleColor} !important; }
+        .upd-close-btn { background: ${t.updCloseBg} !important; }
+        .upd-close-btn svg { stroke: ${t.updCloseIcon} !important; }
+        .upd-tabs { border-bottom-color: ${t.updListBorder} !important; background: ${t.updBg} !important; }
+        .upd-tab { background: ${t.updTabBg} !important; border-color: ${t.updTabBorder} !important; color: ${t.updTabColor} !important; }
+        .upd-tab svg { stroke: ${t.updTabColor} !important; }
+        .upd-tab.active { background: ${t.updTabActiveBg} !important; color: ${t.updTabActiveColor} !important; border-color: transparent !important; }
+        .upd-tab.active svg { stroke: ${t.updTabActiveColor} !important; }
+        #updates-list { background: ${t.updBg} !important; }
+        .upd-row { background: ${t.updRowBg} !important; }
+        .upd-row.unread { background: ${t.updRowUnreadBg} !important; border-color: ${t.updRowUnreadBorder} !important; }
+        .upd-row:hover { background: ${t.updRowHoverBg} !important; }
+        .upd-body-text { color: ${t.updBodyText} !important; }
+        .upd-body-text strong { color: ${t.updBodyStrong} !important; }
+        .upd-time { color: ${t.updTimeColor} !important; }
+        #updates-empty svg { stroke: ${t.updEmptyIcon} !important; }
+        #updates-empty span { color: ${t.updEmptyText} !important; }
+        .upd-unread-dot { background: ${t.updDotColor} !important; }
 
         /* following panel */
         #followingPanel { background: ${t.fpBg} !important; }
@@ -991,6 +1082,41 @@
           #ds-saved-caption { color: ${t.dcCaption} !important; }
           #ds-saved-comments { background: ${t.sidebarBg} !important; }
           #dsv-back { background: var(--brand-gradient) !important; }
+
+          /* ── updates column + panel ── */
+          #updates-column { background: ${t.updColumnBg} !important; }
+          #updates-panel  { background: ${t.updBg} !important; }
+          .upd-header { border-bottom-color: ${t.updHeaderBorder} !important; }
+          .upd-title  { color: ${t.updTitleColor} !important; }
+          .upd-close-btn { background: ${t.updCloseBg} !important; }
+          .upd-close-btn svg { stroke: ${t.updCloseIcon} !important; }
+          .upd-tabs { border-bottom-color: ${t.updListBorder} !important; }
+          .upd-tab {
+            background: ${t.updTabBg} !important;
+            border-color: ${t.updTabBorder} !important;
+            color: ${t.updTabColor} !important;
+          }
+          .upd-tab svg { stroke: ${t.updTabColor} !important; }
+          .upd-tab.active {
+            background: ${t.updTabActiveBg} !important;
+            color: ${t.updTabActiveColor} !important;
+            border-color: transparent !important;
+          }
+          .upd-tab.active svg { stroke: ${t.updTabActiveColor} !important; }
+          #updates-list { background: ${t.updBg} !important; }
+          .upd-row { background: ${t.updRowBg} !important; border-color: transparent !important; }
+          .upd-row.unread {
+            background: ${t.updRowUnreadBg} !important;
+            border-color: ${t.updRowUnreadBorder} !important;
+          }
+          .upd-row:hover { background: ${t.updRowHoverBg} !important; }
+          .upd-body-text { color: ${t.updBodyText} !important; }
+          .upd-body-text strong { color: ${t.updBodyStrong} !important; }
+          .upd-time { color: ${t.updTimeColor} !important; }
+          #updates-empty svg { stroke: ${t.updEmptyIcon} !important; }
+          #updates-empty span { color: ${t.updEmptyText} !important; }
+          .upd-unread-dot { background: ${t.updDotColor} !important; box-shadow: 0 0 6px ${t.updDotColor}44 !important; }
+          #updates-count-badge.show { background: var(--brand-gradient) !important; }
         }
       `;
 
