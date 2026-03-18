@@ -6801,23 +6801,648 @@ init();
 })();
     </script>
     
-    <div id="updates-panel" style="position:fixed;left:0;right:0;bottom:0;height:58vh;background:#fafafa;z-index:600;transform:translateY(100%);transition:transform 0.42s cubic-bezier(0.22,1,0.36,1);display:flex;flex-direction:column;overflow:hidden;border-radius:24px 24px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,0.18);">
-        <!-- drag handle -->
-        <div style="display:flex;justify-content:center;padding:8px 0 0;flex-shrink:0;"><div style="width:36px;height:4px;border-radius:2px;background:#e0e0e0;"></div></div>
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 16px 10px;background:#fafafa;border-bottom:1px solid #f0f0f0;flex-shrink:0;">
-            <button onclick="closeUpdatesPanel()" style="width:32px;height:32px;border-radius:50%;background:#f2f2f2;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+    <!-- ══════════════════════════════════════════════
+         UPDATES / NOTIFICATIONS PANEL
+         ══════════════════════════════════════════════ -->
+    <style>
+    /* ── Updates panel overlay backdrop ── */
+    #updates-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.38);
+        z-index: 590;
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.32s ease;
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+    }
+    #updates-overlay.open { opacity: 1; pointer-events: all; }
+
+    /* ── Panel itself ── */
+    #updates-panel {
+        position: fixed; left: 0; right: 0; bottom: 0;
+        height: 72vh;
+        background: #fff;
+        z-index: 600;
+        transform: translateY(100%);
+        transition: transform 0.44s cubic-bezier(0.22,1,0.36,1);
+        display: flex; flex-direction: column;
+        overflow: hidden;
+        border-radius: 28px 28px 0 0;
+        box-shadow: 0 -16px 60px rgba(0,0,0,0.2);
+    }
+    #updates-panel.open { transform: translateY(0); }
+
+    /* Top gradient accent bar */
+    #updates-panel::before {
+        content: '';
+        display: block;
+        height: 3px;
+        flex-shrink: 0;
+        background: var(--brand-gradient);
+        border-radius: 28px 28px 0 0;
+    }
+
+    /* Drag handle */
+    .upd-handle-row {
+        display: flex; justify-content: center;
+        padding: 8px 0 0; flex-shrink: 0;
+    }
+    .upd-handle { width: 40px; height: 4px; border-radius: 2px; background: #e0e0e0; }
+
+    /* Header row */
+    .upd-header {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 16px 12px;
+        border-bottom: 1px solid #f0f0f0;
+        flex-shrink: 0;
+    }
+    .upd-close-btn {
+        width: 32px; height: 32px; border-radius: 50%;
+        background: #f2f2f2; border: none; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; transition: background 0.14s, transform 0.14s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .upd-close-btn:active { transform: scale(0.88); background: #e8e8e8; }
+    .upd-title {
+        font-size: 17px; font-weight: 900; color: #111;
+        letter-spacing: -0.025em; font-family: var(--font); flex: 1;
+    }
+    #updates-count-badge {
+        display: none;
+        background: var(--brand-gradient); color: #fff;
+        font-size: 10px; font-weight: 900;
+        padding: 3px 10px; border-radius: 99px;
+        font-family: var(--font);
+        animation: badgePulse 2s ease-in-out infinite;
+    }
+    #updates-count-badge.show { display: inline-block; }
+
+    /* Filter tabs */
+    .upd-tabs {
+        display: flex; gap: 6px; padding: 8px 14px;
+        border-bottom: 1px solid #f4f4f4; flex-shrink: 0;
+        overflow-x: auto; scrollbar-width: none;
+    }
+    .upd-tabs::-webkit-scrollbar { display: none; }
+    .upd-tab {
+        flex-shrink: 0;
+        padding: 5px 13px; border-radius: 99px;
+        font-size: 11px; font-weight: 800; font-family: var(--font);
+        border: 1.5px solid #e8e8e8; background: #f8f8f8;
+        color: #777; cursor: pointer;
+        transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+        -webkit-tap-highlight-color: transparent;
+    }
+    .upd-tab.active {
+        background: var(--brand-gradient); color: #fff; border-color: transparent;
+        box-shadow: 0 3px 12px rgba(0,0,0,0.16);
+    }
+    .upd-tab:active { transform: scale(0.92); }
+
+    /* Scroll list */
+    #updates-list {
+        flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+        padding: 6px 12px calc(env(safe-area-inset-bottom,0px) + 12px);
+        display: flex; flex-direction: column; gap: 6px;
+        scrollbar-width: none;
+    }
+    #updates-list::-webkit-scrollbar { display: none; }
+
+    /* Empty state */
+    #updates-empty {
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 12px; padding: 60px 0; opacity: 0.4;
+    }
+
+    /* Notification row */
+    .upd-row {
+        display: flex; align-items: flex-start; gap: 11px;
+        padding: 12px 12px;
+        border-radius: 16px;
+        background: #fafafa;
+        border: 1.5px solid transparent;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: background 0.15s, border-color 0.15s, transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
+        position: relative;
+        /* entrance animation */
+        animation: updRowIn 0.38s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    @keyframes updRowIn {
+        from { opacity: 0; transform: translateX(28px) scale(0.96); }
+        to   { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    .upd-row.unread {
+        background: #f5f5f5;
+        border-color: rgba(0,0,0,0.06);
+    }
+    .upd-row:hover { background: #f0f0f0; border-color: #e8e8e8; }
+    .upd-row:active { transform: scale(0.97); background: #ebebeb; }
+
+    /* Unread dot */
+    .upd-unread-dot {
+        position: absolute; top: 14px; right: 12px;
+        width: 8px; height: 8px; border-radius: 50%;
+        background: var(--brand-gradient);
+        box-shadow: 0 0 6px rgba(0,0,0,0.35);
+        animation: updDotPulse 2s ease-in-out infinite;
+    }
+    @keyframes updDotPulse {
+        0%,100% { opacity:1; transform:scale(1); }
+        50% { opacity:0.5; transform:scale(0.7); }
+    }
+
+    /* Avatar in notification */
+    .upd-av {
+        width: 42px; height: 42px; border-radius: 50%;
+        flex-shrink: 0; object-fit: cover;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px; font-weight: 900; color: #fff;
+        overflow: hidden;
+        position: relative;
+    }
+    .upd-av img { width:100%; height:100%; object-fit:cover; border-radius:50%; display:block; }
+
+    /* Type icon badge on avatar */
+    .upd-type-badge {
+        position: absolute; bottom: -2px; right: -2px;
+        width: 18px; height: 18px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        border: 2px solid #fff;
+        flex-shrink: 0;
+    }
+    .upd-type-badge svg { width: 9px; height: 9px; }
+
+    /* Text block */
+    .upd-body { flex: 1; min-width: 0; }
+    .upd-body-text {
+        font-size: 13px; font-weight: 600; color: #222;
+        font-family: var(--font); line-height: 1.4;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .upd-body-text strong { font-weight: 900; color: #111; }
+    .upd-time {
+        font-size: 10px; font-weight: 700; color: #aaa;
+        font-family: var(--font); margin-top: 3px;
+        letter-spacing: 0.02em;
+    }
+
+    /* Thumb preview */
+    .upd-thumb {
+        width: 44px; height: 58px;
+        border-radius: 8px; object-fit: cover;
+        flex-shrink: 0; background: #e0e0e0;
+        overflow: hidden;
+    }
+    .upd-thumb video { width:100%; height:100%; object-fit:cover; pointer-events:none; }
+    .upd-thumb-ph {
+        width: 44px; height: 58px; border-radius: 8px;
+        background: linear-gradient(135deg, #e0e0e0, #ccc);
+        flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    }
+
+    /* Desktop overrides — right sidebar */
+    @media (min-width: 900px) {
+        #updates-overlay { display: none !important; }
+        #updates-panel {
+            left: auto !important; right: 0 !important;
+            bottom: 0 !important; top: 0 !important;
+            width: 340px !important; height: 100vh !important;
+            border-radius: 0 !important;
+            transform: translateX(100%) !important;
+            transition: transform 0.42s cubic-bezier(0.22,1,0.36,1) !important;
+            box-shadow: -6px 0 40px rgba(0,0,0,0.14) !important;
+        }
+        #updates-panel::before { border-radius: 0 !important; }
+        #updates-panel.open { transform: translateX(0) !important; }
+        .upd-handle-row { display: none; }
+        .upd-close-btn svg { transform: rotate(180deg); } /* arrow points right = close */
+    }
+    </style>
+
+    <!-- Backdrop -->
+    <div id="updates-overlay" onclick="closeUpdatesPanel()"></div>
+
+    <!-- Panel -->
+    <div id="updates-panel">
+        <div class="upd-handle-row"><div class="upd-handle"></div></div>
+        <div class="upd-header">
+            <button class="upd-close-btn" onclick="closeUpdatesPanel()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
-            <span style="font-size:16px;font-weight:800;color:#111;letter-spacing:-0.02em;font-family:var(--font);flex:1;">Updates</span>
-            <span id="updates-count-badge" style="display:none;background:var(--brand-gradient);color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;font-family:var(--font);"></span>
+            <span class="upd-title">Updates</span>
+            <span id="updates-count-badge"></span>
         </div>
-        <div id="updates-list" style="flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:8px;">
-            <div id="updates-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:40px 0;opacity:0.45;">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <!-- Filter tabs -->
+        <div class="upd-tabs">
+            <button class="upd-tab active" data-filter="all">All</button>
+            <button class="upd-tab" data-filter="comment">💬 Comments</button>
+            <button class="upd-tab" data-filter="like">❤️ Likes</button>
+            <button class="upd-tab" data-filter="superlike">⚡ Super Likes</button>
+            <button class="upd-tab" data-filter="follow">👤 Follows</button>
+        </div>
+        <div id="updates-list">
+            <div id="updates-empty">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 <span style="font-size:13px;font-weight:700;color:#bbb;font-family:var(--font);">No updates yet</span>
             </div>
         </div>
     </div>
+
+    <script>
+    // ═══════════════════════════════════════════════════════════
+    //  UPDATES / NOTIFICATIONS  — full system
+    // ═══════════════════════════════════════════════════════════
+    (function(){
+        var panel   = document.getElementById('updates-panel');
+        var overlay = document.getElementById('updates-overlay');
+        var list    = document.getElementById('updates-list');
+        var empty   = document.getElementById('updates-empty');
+        var badge   = document.getElementById('updates-count-badge');
+        var deskBadge = document.getElementById('updBadgeDesk');
+        var mobBadge  = document.getElementById('updatesBadge');
+
+        // In-memory notification store
+        var _notifs = [];          // { id, type, text, actorName, actorPhoto, postId, postThumb, ts, read }
+        var _unreadCount = 0;
+        var _currentFilter = 'all';
+        var _firestoreListeners = []; // unsubscribe handles
+
+        // ── Badge helpers ──
+        function setBadge(n) {
+            var label = n > 0 ? (n > 99 ? '99+' : String(n)) : '';
+            [badge, deskBadge, mobBadge].forEach(function(el) {
+                if (!el) return;
+                if (n > 0) {
+                    el.textContent = label;
+                    el.style.display = 'flex';
+                    el.classList.add('show');
+                } else {
+                    el.style.display = 'none';
+                    el.classList.remove('show');
+                }
+            });
+        }
+
+        function refreshBadge() {
+            _unreadCount = _notifs.filter(function(n){ return !n.read; }).length;
+            setBadge(_unreadCount);
+            var countBadge = document.getElementById('updates-count-badge');
+            if (countBadge) {
+                if (_unreadCount > 0) {
+                    countBadge.textContent = _unreadCount + ' new';
+                    countBadge.classList.add('show');
+                } else {
+                    countBadge.classList.remove('show');
+                }
+            }
+        }
+
+        // ── Time-ago helper ──
+        function timeAgo(ms) {
+            var d = Date.now() - ms;
+            if (d < 60000)   return 'just now';
+            if (d < 3600000) return Math.floor(d/60000) + 'm ago';
+            if (d < 86400000)return Math.floor(d/3600000) + 'h ago';
+            return Math.floor(d/86400000) + 'd ago';
+        }
+
+        // ── Type icon badge ──
+        function typeIcon(type) {
+            var icons = {
+                comment:   { bg: '#3b82f6', svg: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
+                like:      { bg: '#ef4444', svg: '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>' },
+                superlike: { bg: '#f59e0b', svg: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>' },
+                dislike:   { bg: '#8b5cf6', svg: '<path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3z"/>' },
+                follow:    { bg: '#10b981', svg: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>' }
+            };
+            return icons[type] || icons.comment;
+        }
+
+        // ── Build a notification row element ──
+        function buildRow(n, delay) {
+            var icon = typeIcon(n.type);
+            var letter = ((n.actorName||'?')[0]).toUpperCase();
+            var hue = (letter.charCodeAt(0) * 43) % 360;
+
+            var row = document.createElement('div');
+            row.className = 'upd-row' + (n.read ? '' : ' unread');
+            row.dataset.notifId = n.id;
+            row.dataset.type = n.type;
+            row.style.animationDelay = (delay||0) + 'ms';
+
+            // Avatar
+            var avEl = document.createElement('div');
+            avEl.className = 'upd-av';
+            avEl.style.background = 'hsl('+hue+',48%,40%)';
+            if (n.actorPhoto) {
+                avEl.innerHTML = '<img src="'+n.actorPhoto+'" onerror="this.style.display=\'none\'">';
+            } else {
+                avEl.textContent = letter;
+            }
+            // Type badge on avatar
+            var tb = document.createElement('div');
+            tb.className = 'upd-type-badge';
+            tb.style.background = icon.bg;
+            tb.innerHTML = '<svg viewBox="0 0 24 24" fill="white" stroke="none">'+icon.svg+'</svg>';
+            avEl.appendChild(tb);
+            row.appendChild(avEl);
+
+            // Body text
+            var body = document.createElement('div');
+            body.className = 'upd-body';
+            var txt = document.createElement('div');
+            txt.className = 'upd-body-text';
+            txt.innerHTML = n.text || '';
+            var time = document.createElement('div');
+            time.className = 'upd-time';
+            time.textContent = timeAgo(n.ts);
+            body.appendChild(txt);
+            body.appendChild(time);
+            row.appendChild(body);
+
+            // Thumbnail if post-related
+            if (n.postThumb) {
+                var thumb = document.createElement('div');
+                thumb.className = 'upd-thumb';
+                thumb.innerHTML = '<img src="'+n.postThumb+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">';
+                row.appendChild(thumb);
+            }
+
+            // Unread dot
+            if (!n.read) {
+                var dot = document.createElement('div');
+                dot.className = 'upd-unread-dot';
+                row.appendChild(dot);
+            }
+
+            // Click — mark read + navigate
+            row.addEventListener('click', function() {
+                // Mark read
+                n.read = true;
+                row.classList.remove('unread');
+                var dot2 = row.querySelector('.upd-unread-dot');
+                if (dot2) dot2.remove();
+                refreshBadge();
+
+                // Navigate to post / comment section
+                if (n.postId) {
+                    closeUpdatesPanel();
+                    // Small delay so panel closes first
+                    setTimeout(function() {
+                        var openTarget = function() {
+                            // If comment-type, open the comment sheet for that post
+                            if (n.type === 'comment' || n.type === 'dislike') {
+                                // Try desktop first
+                                var dc = document.querySelector('.desktop-card[data-post-id="'+n.postId+'"]');
+                                if (dc) {
+                                    dc.scrollIntoView({ behavior:'smooth', block:'center' });
+                                    setTimeout(function(){
+                                        var cmtBtn = dc.querySelector('[data-action="comment"], .dc-cmt-btn, button[title*="omment"]');
+                                        if (cmtBtn) cmtBtn.click();
+                                        else if (typeof openDesktopComments === 'function') openDesktopComments(n.postId);
+                                    }, 350);
+                                } else {
+                                    // Mobile — scroll gallery to post then open comment sheet
+                                    var pin = document.querySelector('.pin-container[data-post-id="'+n.postId+'"]');
+                                    if (pin) {
+                                        pin.scrollIntoView({ behavior:'smooth', block:'start' });
+                                        setTimeout(function(){
+                                            var cBtn = pin.querySelector('[data-action="comment"],.slide-cmt-btn');
+                                            if (cBtn) cBtn.click();
+                                            else if (window._openCommentSheet) window._openCommentSheet(n.postId);
+                                        }, 400);
+                                    }
+                                }
+                            } else {
+                                // Like / superlike / follow — just scroll to the post card
+                                var dc2 = document.querySelector('.desktop-card[data-post-id="'+n.postId+'"]');
+                                if (dc2) {
+                                    dc2.scrollIntoView({ behavior:'smooth', block:'center' });
+                                    dc2.style.outline = '2px solid #111';
+                                    dc2.style.outlineOffset = '3px';
+                                    setTimeout(function(){ dc2.style.outline=''; dc2.style.outlineOffset=''; }, 1800);
+                                } else {
+                                    var pin2 = document.querySelector('.pin-container[data-post-id="'+n.postId+'"]');
+                                    if (pin2) pin2.scrollIntoView({ behavior:'smooth', block:'start' });
+                                }
+                            }
+                        };
+                        openTarget();
+                    }, 320);
+                }
+            });
+
+            return row;
+        }
+
+        // ── Render list with current filter ──
+        function renderList() {
+            list.innerHTML = '';
+            list.appendChild(empty);
+
+            var filtered = _notifs.filter(function(n){
+                if (_currentFilter === 'all') return true;
+                return n.type === _currentFilter;
+            });
+
+            if (filtered.length === 0) {
+                empty.style.display = 'flex';
+                return;
+            }
+            empty.style.display = 'none';
+
+            // Newest first
+            filtered.sort(function(a,b){ return b.ts - a.ts; });
+
+            filtered.forEach(function(n, i) {
+                list.appendChild(buildRow(n, i * 45));
+            });
+        }
+
+        // ── Push a new notification (called by Firestore listeners below) ──
+        function pushNotif(notif) {
+            // Dedup by id
+            if (_notifs.find(function(n){ return n.id === notif.id; })) return;
+            _notifs.unshift(notif);
+            if (_notifs.length > 200) _notifs.pop();
+            refreshBadge();
+            if (panel.classList.contains('open')) renderList();
+        }
+
+        // ── Firestore realtime listeners — attach when user is known ──
+        function attachListeners(uid) {
+            // Clean old
+            _firestoreListeners.forEach(function(unsub){ try{ unsub(); }catch(e){} });
+            _firestoreListeners = [];
+
+            var db = window._fbDb || (window.firebase && window.firebase.firestore ? window.firebase.firestore() : null);
+            var fns = window._fbFirestoreFns;
+            if (!db || !fns) return;
+
+            var { collection, query, where, orderBy, limit, onSnapshot, getDocs } = fns;
+
+            // Load recent posts by this user so we can watch their comments/likes
+            getDocs(query(collection(db,'recence'), where('uid','==',uid), orderBy('timestamp','desc'), limit(20)))
+            .then(function(snap) {
+                snap.forEach(function(postDoc) {
+                    var postId = postDoc.id;
+                    var postData = postDoc.data();
+                    var thumb = postData.thumbnail || (postData.media && postData.media[0] && postData.media[0].url) || '';
+                    var startAt = Date.now();
+
+                    // ── Watch comments ──
+                    var unsubCmt = onSnapshot(
+                        query(collection(db,'recence',postId,'comments'), orderBy('createdAt','desc'), limit(50)),
+                        function(cSnap) {
+                            cSnap.docChanges().forEach(function(change) {
+                                if (change.type !== 'added') return;
+                                var c = change.doc.data();
+                                var cMs = c.createdAt ? (c.createdAt.seconds ? c.createdAt.seconds*1000 : Date.now()) : Date.now();
+                                if (cMs < startAt - 5000) return; // skip old
+                                if (c.uid === uid) return; // own comment
+                                pushNotif({
+                                    id: 'cmt_'+change.doc.id,
+                                    type: 'comment',
+                                    actorName: c.userName || c.name || 'Someone',
+                                    actorPhoto: c.userPhoto || c.photoURL || '',
+                                    text: '<strong>'+(c.userName||'Someone')+'</strong> commented on your video: "'+(c.text||'').slice(0,60)+'"',
+                                    postId: postId,
+                                    postThumb: thumb,
+                                    ts: cMs,
+                                    read: false
+                                });
+                            });
+                        }
+                    );
+                    _firestoreListeners.push(unsubCmt);
+
+                    // ── Watch likes array on post doc ──
+                    var prevLikes = new Set((postData.likes || []));
+                    var unsubPost = onSnapshot(postDoc.ref, function(docSnap) {
+                        if (!docSnap.exists()) return;
+                        var d = docSnap.data();
+                        var newLikes = d.likes || [];
+                        newLikes.forEach(function(likerUid) {
+                            if (likerUid === uid) return;
+                            if (!prevLikes.has(likerUid)) {
+                                prevLikes.add(likerUid);
+                                // Try get actor name from users collection (best effort)
+                                fns.getDoc(fns.doc(db,'users',likerUid)).then(function(ud){
+                                    var name = ud.exists() ? (ud.data().displayName||ud.data().name||'Someone') : 'Someone';
+                                    var photo = ud.exists() ? (ud.data().photoURL||'') : '';
+                                    pushNotif({
+                                        id: 'like_'+postId+'_'+likerUid,
+                                        type: 'like',
+                                        actorName: name, actorPhoto: photo,
+                                        text: '<strong>'+name+'</strong> liked your video ❤️',
+                                        postId: postId, postThumb: thumb,
+                                        ts: Date.now(), read: false
+                                    });
+                                }).catch(function(){
+                                    pushNotif({ id:'like_'+postId+'_'+likerUid, type:'like', actorName:'Someone', actorPhoto:'', text:'<strong>Someone</strong> liked your video ❤️', postId:postId, postThumb:thumb, ts:Date.now(), read:false });
+                                });
+                            }
+                        });
+
+                        // Watch superlikes
+                        var sl = d.superlikes || [];
+                        sl.forEach(function(sUid) {
+                            if (sUid === uid) return;
+                            var slid = 'sl_'+postId+'_'+sUid;
+                            if (_notifs.find(function(n){ return n.id===slid; })) return;
+                            fns.getDoc(fns.doc(db,'users',sUid)).then(function(ud){
+                                var name = ud.exists() ? (ud.data().displayName||ud.data().name||'Someone') : 'Someone';
+                                var photo = ud.exists() ? (ud.data().photoURL||'') : '';
+                                pushNotif({ id:slid, type:'superlike', actorName:name, actorPhoto:photo, text:'<strong>'+name+'</strong> super liked your video ⚡', postId:postId, postThumb:thumb, ts:Date.now(), read:false });
+                            }).catch(function(){
+                                pushNotif({ id:slid, type:'superlike', actorName:'Someone', actorPhoto:'', text:'<strong>Someone</strong> super liked your video ⚡', postId:postId, postThumb:thumb, ts:Date.now(), read:false });
+                            });
+                        });
+                    });
+                    _firestoreListeners.push(unsubPost);
+                });
+            }).catch(function(e){ console.warn('updates: post fetch', e); });
+
+            // ── Watch follows ──
+            var startAtFollow = Date.now();
+            try {
+                var unsubFollow = onSnapshot(
+                    query(collection(db,'follows'), where('followedUserId','==',uid), orderBy('timestamp','desc'), limit(30)),
+                    function(fSnap) {
+                        fSnap.docChanges().forEach(function(change){
+                            if (change.type !== 'added') return;
+                            var f = change.doc.data();
+                            var fMs = f.timestamp ? (f.timestamp.seconds ? f.timestamp.seconds*1000 : Date.now()) : Date.now();
+                            if (fMs < startAtFollow - 5000) return;
+                            var fid = 'follow_'+change.doc.id;
+                            fns.getDoc(fns.doc(db,'users',f.followerUserId||'x')).then(function(ud){
+                                var name = ud.exists() ? (ud.data().displayName||ud.data().name||'Someone') : 'Someone';
+                                var photo = ud.exists() ? (ud.data().photoURL||'') : '';
+                                pushNotif({ id:fid, type:'follow', actorName:name, actorPhoto:photo, text:'<strong>'+name+'</strong> started following you 👤', postId:null, postThumb:null, ts:fMs, read:false });
+                            }).catch(function(){
+                                pushNotif({ id:fid, type:'follow', actorName:'Someone', actorPhoto:'', text:'<strong>Someone</strong> started following you 👤', postId:null, postThumb:null, ts:fMs, read:false });
+                            });
+                        });
+                    }
+                );
+                _firestoreListeners.push(unsubFollow);
+            } catch(e){}
+        }
+
+        // ── Wait for Firebase auth ──
+        var _authAttempts = 0;
+        function tryAttach() {
+            var auth = window._fbAuth;
+            if (auth && auth.currentUser) {
+                attachListeners(auth.currentUser.uid);
+                return;
+            }
+            if (window.firebase && window.firebase.auth) {
+                window.firebase.auth().onAuthStateChanged(function(user){ if(user) attachListeners(user.uid); });
+                return;
+            }
+            // Poll up to 8s
+            if (_authAttempts++ < 16) setTimeout(tryAttach, 500);
+        }
+        setTimeout(tryAttach, 800);
+
+        // ── Filter tabs ──
+        document.querySelectorAll('.upd-tab').forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.upd-tab').forEach(function(t){ t.classList.remove('active'); });
+                tab.classList.add('active');
+                _currentFilter = tab.dataset.filter;
+                renderList();
+            });
+        });
+
+        // ── Open / Close panel ──
+        window.openUpdatesPanel = function() {
+            panel.classList.add('open');
+            if (overlay) overlay.classList.add('open');
+            // Mark all read after 2 seconds
+            setTimeout(function(){
+                _notifs.forEach(function(n){ n.read = true; });
+                refreshBadge();
+                // Remove unread dots in DOM
+                list.querySelectorAll('.upd-unread-dot').forEach(function(d){ d.remove(); });
+                list.querySelectorAll('.upd-row.unread').forEach(function(r){ r.classList.remove('unread'); });
+            }, 2000);
+            renderList();
+        };
+
+        window.closeUpdatesPanel = function() {
+            panel.classList.remove('open');
+            if (overlay) overlay.classList.remove('open');
+        };
+
+        // Expose push for external use (e.g. comment sheet)
+        window._pushNotification = pushNotif;
+    })();
+    </script>
 
     <nav id="bottom-nav">
         <!-- Home: play-in-circle -->
