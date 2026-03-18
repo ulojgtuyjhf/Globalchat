@@ -676,15 +676,44 @@ body.dsv-open #desktop-comments {
 /* ─── PAUSE INDICATOR ─── */
 .pause-indicator {
     position: absolute; top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    opacity: 0; z-index: 15; pointer-events: none;
-    transition: opacity 0.2s;
-    background: rgba(0,0,0,0.5);
-    border-radius: 50%; width: 72px; height: 72px;
+    transform: translate(-50%, -50%) scale(0.7);
+    opacity: 0; z-index: 20; pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    background: linear-gradient(135deg, #0f0f0f 0%, #3a3a3a 40%, #626262 70%, #a6a6a6 100%);
+    border-radius: 50%; width: 52px; height: 52px;
     display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 3px 16px rgba(0,0,0,0.45);
 }
-.pause-indicator.show { opacity: 1; }
-.pause-indicator svg { width: 36px; height: 36px; }
+.pause-indicator.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+/* When showing the pause/play icon during long-press, move it to top-center */
+.pause-indicator.top-pos {
+    top: calc(env(safe-area-inset-top, 0px) + 20px);
+    left: 50%;
+    transform: translateX(-50%) scale(0.7);
+}
+.pause-indicator.top-pos.show {
+    transform: translateX(-50%) scale(1);
+}
+.pause-indicator svg { width: 22px; height: 22px; }
+/* UI hide — double tap to toggle, long press to hold-hide */
+.pin-container .slide-actions,
+.pin-container .video-caption,
+.pin-container .live-watch-left,
+.pin-container .live-viewer-badge,
+.pin-container .inline-cmt-row {
+    transition: opacity 0.35s ease;
+}
+.pin-container.ui-hidden .slide-actions,
+.pin-container.ui-hidden .video-caption,
+.pin-container.ui-hidden .live-watch-left,
+.pin-container.ui-hidden .live-viewer-badge,
+.pin-container.ui-hidden .inline-cmt-row {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
 
 /* ─── VIDEO PROGRESS BAR ─── */
 .vid-progress-wrap {
@@ -939,10 +968,19 @@ body.dsv-open #desktop-comments {
     box-shadow: 0 -4px 24px rgba(0,0,0,0.06);
     display: flex; align-items: center; justify-content: space-around;
     z-index: 300;
-    transition: transform 0.32s cubic-bezier(0.22,1,0.36,1);
+    transition: transform 0.32s cubic-bezier(0.22,1,0.36,1), opacity 0.3s ease;
 }
 #bottom-nav.hidden-nav {
     transform: translateY(100%);
+}
+/* Hide bottom nav + top tabs during long-press pause */
+body.paused-view #bottom-nav {
+    opacity: 0;
+    pointer-events: none;
+}
+body.paused-view #mob-feed-tabs {
+    opacity: 0;
+    pointer-events: none;
 }
 .nav-btn {
     flex: 1; display: flex; flex-direction: column;
@@ -1015,8 +1053,8 @@ body.dsv-open #desktop-comments {
     display: flex; align-items: center; justify-content: center;
     pointer-events: none;
     padding: 10px 8px 0;
-    /* subtle top gradient so tabs read on any video */
     background: linear-gradient(to bottom, rgba(0,0,0,0.28) 0%, transparent 100%);
+    transition: opacity 0.3s ease;
 }
 #mob-feed-tabs-center {
     flex: 1; display: flex; justify-content: center; align-items: center;
@@ -2857,42 +2895,144 @@ function createPinElement(postData, postId) {
     // Pause indicator (brand styled)
     const pauseEl = document.createElement('div');
     pauseEl.className = 'pause-indicator';
-    pauseEl.innerHTML = `<svg viewBox="0 0 24 24"><rect x="5" y="3" width="4" height="18" rx="2" fill="#a6a6a6"/><rect x="15" y="3" width="4" height="18" rx="2" fill="#3a3a3a"/></svg>`;
+    // Brand gradient triangle = paused state (play triangle = "press to resume")
+    // Two white bars = playing state shown during long-press hold
+    var _svgTriangle = '<svg viewBox="0 0 24 24"><polygon points="6,2 21,12 6,22" fill="#fff"/></svg>';
+    var _svgBars     = '<svg viewBox="0 0 24 24"><rect x="4"  y="3" width="5" height="18" rx="2" fill="#fff"/><rect x="15" y="3" width="5" height="18" rx="2" fill="#fff"/></svg>';
+    var _svgSound    = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="#fff" stroke="none"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
+    var _svgMuted    = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="#fff" stroke="none"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
+    pauseEl.innerHTML = _svgTriangle;
     pinContainer.appendChild(pauseEl);
 
-    // Hide pause indicator when video actually starts playing
+    // ── Hide pause indicator when video plays ──
     if (mediaElement && mediaElement.tagName === 'VIDEO') {
-        mediaElement.addEventListener('play', function() { pauseEl.classList.remove('show'); }, { passive: true });
+        mediaElement.addEventListener('play',    function() { pauseEl.classList.remove('show'); }, { passive: true });
         mediaElement.addEventListener('playing', function() { pauseEl.classList.remove('show'); }, { passive: true });
     }
 
-    // Register video with visibility observer — only for desktop cards, NOT gallery or liked-viewer (those have their own observers)
+    // Register with visibility observer — desktop cards only
     if (mediaElement && mediaElement.tagName === 'VIDEO' && window._videoVisObs) {
         var inGallery = mediaElement.closest('#gallery');
         var inLikedViewer = mediaElement.closest('#liked-viewer-feed');
         if (!inGallery && !inLikedViewer) window._videoVisObs.observe(mediaElement);
     }
 
-    // openComments custom event fired by the comment button in injected slide-actions
-    pinContainer.addEventListener('openComments', () => {
-        openModal(postData, postId);
-    });
+    pinContainer.addEventListener('openComments', () => { openModal(postData, postId); });
 
-    // Tapping anywhere on the pin (outside buttons/overlays) toggles play/pause
-    pinContainer.addEventListener('click', (e) => {
-        // Ignore clicks on interactive elements
-        if (e.target.closest('button, a, input, textarea, .slide-actions, .video-caption, .inline-cmt-row, .vid-progress-wrap, .live-viewer-badge, .live-watch-left')) return;
-        if (!mediaElement || mediaElement.tagName !== 'VIDEO') return;
-        if (mediaElement.paused) {
-            mediaElement.muted = false;
-            var pr = mediaElement.play();
-            if (pr && pr.catch) pr.catch(() => { mediaElement.muted = true; mediaElement.play().catch(() => {}); });
-            pauseEl.classList.remove('show');
-        } else {
-            mediaElement.pause();
+    // ── Interactions ──
+    // Single tap  = toggle mute/unmute — icon shows in CENTER of screen
+    // Double tap  = toggle all UI overlays with smooth animated fade (persistent)
+    // Long press  = pause video, hide ALL UI (incl. top bar), show ▶ icon at TOP CENTER
+
+    var _tapTimer  = null;
+    var _tapCount  = 0;
+    var _longTimer = null;
+    var _isHolding = false;
+
+    function _isUI(e) {
+        return !!e.target.closest('button,a,input,textarea,.slide-actions,.video-caption,.inline-cmt-row,.vid-progress-wrap,.live-viewer-badge,.live-watch-left');
+    }
+
+    var _touchStartX = 0, _touchStartY = 0;
+
+    // TOUCH START — record position, arm long-press
+    pinContainer.addEventListener('touchstart', function(e) {
+        if (_isUI(e)) return;
+        _isHolding = false;
+        clearTimeout(_longTimer);
+        _touchStartX = e.touches[0].clientX;
+        _touchStartY = e.touches[0].clientY;
+        _longTimer = setTimeout(function() {
+            _isHolding = true;
+            // Pause the video
+            if (mediaElement && !mediaElement.paused) {
+                mediaElement.pause();
+            }
+            // Hide ALL UI including top tabs and bottom nav
+            pinContainer.classList.add('ui-hidden');
+            document.body.classList.add('paused-view');
+            // Show ▶ pause icon at TOP CENTER (not middle of screen)
+            pauseEl.classList.remove('top-pos');
+            pauseEl.classList.add('top-pos');
+            pauseEl.innerHTML = _svgTriangle;
             pauseEl.classList.add('show');
+        }, 500);
+    }, { passive: true });
+
+    // TOUCH MOVE — if finger moves >8px it's a scroll, cancel long-press
+    pinContainer.addEventListener('touchmove', function(e) {
+        var dx = e.touches[0].clientX - _touchStartX;
+        var dy = e.touches[0].clientY - _touchStartY;
+        if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+            clearTimeout(_longTimer);
+            _isHolding = false;
         }
-    });
+    }, { passive: true });
+
+    // TOUCH END
+    pinContainer.addEventListener('touchend', function(e) {
+        if (_isUI(e)) return;
+        clearTimeout(_longTimer);
+
+        if (_isHolding) {
+            // Long press release — hide pause icon, restore UI, resume video
+            _isHolding = false;
+            pauseEl.classList.remove('show');
+            pauseEl.classList.remove('top-pos');
+            document.body.classList.remove('paused-view');
+            // Only restore UI if double-tap hasn't hidden it persistently
+            if (!window._uiHidden) pinContainer.classList.remove('ui-hidden');
+            if (mediaElement && mediaElement.paused) {
+                mediaElement.muted = window._globalMuted;
+                mediaElement.play().catch(function(){ mediaElement.muted = true; mediaElement.play().catch(function(){}); });
+            }
+            return;
+        }
+
+        // Tap detection — wait 280ms to distinguish single from double
+        _tapCount++;
+        clearTimeout(_tapTimer);
+        _tapTimer = setTimeout(function() {
+            if (_tapCount === 1) {
+                // SINGLE TAP — toggle mute/unmute, icon appears in CENTER
+                window._userInteracted = true;
+                var isMuted = !window._globalMuted;
+                window._globalMuted = isMuted;
+                document.querySelectorAll('video').forEach(function(v) {
+                    v.muted = isMuted;
+                    if (!v.paused) v.play().catch(function(){});
+                });
+                // Sound icon shows in center (no top-pos class)
+                pauseEl.classList.remove('top-pos');
+                pauseEl.innerHTML = isMuted ? _svgMuted : _svgSound;
+                pauseEl.classList.add('show');
+                setTimeout(function() { pauseEl.classList.remove('show'); }, 700);
+            }
+            _tapCount = 0;
+        }, 280);
+
+        if (_tapCount >= 2) {
+            // DOUBLE TAP — toggle UI overlay visibility with smooth animated fade
+            clearTimeout(_tapTimer);
+            _tapCount = 0;
+            window._uiHidden = !window._uiHidden;
+            pinContainer.classList.toggle('ui-hidden', window._uiHidden);
+        }
+    }, { passive: true });
+
+    pinContainer.addEventListener('touchcancel', function() {
+        clearTimeout(_longTimer);
+        _isHolding = false;
+        pauseEl.classList.remove('show');
+        pauseEl.classList.remove('top-pos');
+        document.body.classList.remove('paused-view');
+        if (!window._uiHidden) pinContainer.classList.remove('ui-hidden');
+    }, { passive: true });
+
+    // Apply global ui-hidden state when this pin becomes active
+    pinContainer._applyUIState = function() {
+        pinContainer.classList.toggle('ui-hidden', !!window._uiHidden);
+    };
 
     // ── Slide action buttons — Profile(+follow) → Heart → Comment ──
     const slideActions = document.createElement('div');
@@ -6217,30 +6357,35 @@ init();
 
         // ── Global interaction flag — one source of truth for the whole app ──
         window._userInteracted = false;
+        window._globalMuted = true; // starts muted, first tap unmutes
         function markInteracted() {
             if (window._userInteracted) return;
             window._userInteracted = true;
-            // Unmute + resume the currently visible video immediately
+            window._globalMuted = false;
             var active = window._galleryCurrentPin;
             if (active) {
                 var av = active.querySelector('video');
                 if (av) {
                     av.muted = false;
-                    if (av.paused) av.play().catch(function(){});
+                    av.play().catch(function(){ av.muted = true; av.play().catch(function(){}); });
+                    // Flash the sound icon so user sees audio just unlocked
+                    var pi = active.querySelector('.pause-indicator');
+                    if (pi) {
+                        pi.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="#fff" stroke="none"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
+                        pi.classList.add('show');
+                        setTimeout(function() { pi.classList.remove('show'); }, 700);
+                    }
                 }
             }
         }
-        // Any gesture counts — tap, swipe, click
-        document.addEventListener('touchstart', markInteracted, { passive: true });
-        document.addEventListener('touchmove',  markInteracted, { passive: true });
-        document.addEventListener('click',      markInteracted);
+        // touchend so _galleryCurrentPin is already set when we unmute
+        document.addEventListener('touchend', markInteracted, { once: true, passive: true });
+        document.addEventListener('click',    markInteracted, { once: true });
 
         window._galleryCurrentPin = null;
 
         function playActive(v) {
-            // If user already interacted, play with sound.
-            // If not, play muted — sound will unlock the moment they swipe.
-            v.muted = !window._userInteracted;
+            v.muted = window._globalMuted !== false ? !window._userInteracted : window._globalMuted;
             var p = v.play();
             if (p && p.catch) p.catch(function() {
                 // Browser blocked even muted — shouldn't happen, but handle gracefully
@@ -6277,6 +6422,10 @@ init();
                     pin.classList.add('entering');
                     setTimeout(function() { pin.classList.remove('entering'); }, 350);
 
+                    // Apply global UI-hidden state to incoming pin
+                    pin.classList.toggle('ui-hidden', !!window._uiHidden);
+                    if (typeof pin._applyUIState === 'function') pin._applyUIState();
+
                     var pid = pin.dataset.postId;
                     if (pid && typeof trackPresence === 'function') trackPresence(pid);
 
@@ -6292,13 +6441,16 @@ init();
                         }
                     });
 
-                } else {
-                    // ── Not visible — full stop, no audio leak ──
+                } else if (!entry.isIntersecting) {
+                    // ── Fully out of view — hard stop ──
                     v.pause();
                     v.muted = true;
+                    v.currentTime = 0;
                 }
+                // Note: isIntersecting=true but ratio<0.85 means mid-scroll — do nothing,
+                // let CSS snap finish before we act
             });
-        }, { root: gallery, threshold: 0.85 });
+        }, { root: gallery, threshold: [0, 0.85] });
 
         function observePin(pin) { obs.observe(pin); }
         gallery.querySelectorAll('.pin-container').forEach(observePin);
@@ -6396,7 +6548,6 @@ init();
         }
 
         function pauseAllVideos() {
-            // Mute first (instant silence), then pause every video on the page
             document.querySelectorAll('video').forEach(function(v) {
                 v.muted = true;
                 v.pause();
@@ -6404,10 +6555,20 @@ init();
         }
 
         function resumeHomeVideo() {
-            if (gal) {
-                var v = gal.querySelector('.pin-container.active video') || gal.querySelector('video');
-                if (v) v.play().catch(function(){});
+            // Hard stop everything first
+            document.querySelectorAll('video').forEach(function(v){ v.pause(); v.muted = true; });
+            // Then only play the known visible gallery pin
+            var activePin = window._galleryCurrentPin;
+            if (!activePin && gal) {
+                var pins = gal.querySelectorAll('.pin-container');
+                var idx  = Math.round(gal.scrollTop / window.innerHeight);
+                activePin = pins[Math.max(0, idx)] || null;
             }
+            if (!activePin) return;
+            var v = activePin.querySelector('video');
+            if (!v) return;
+            v.muted = !window._userInteracted;
+            v.play().catch(function(){ v.muted = true; v.play().catch(function(){}); });
         }
 
         // ── Transition animation helper ──
@@ -7107,6 +7268,8 @@ function openLikedViewer(startIdx) {
                 vid.currentTime = 0;
                 vid.muted = false;
                 vid.play().catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
+                // Apply global UI-hidden state
+                pin.classList.toggle('ui-hidden', !!window._uiHidden);
                 var pid = pin.dataset.postId;
                 if (pid && typeof trackPresence === 'function') trackPresence(pid);
                 // Preload adjacent — no unloading, no flicker
@@ -7120,54 +7283,68 @@ function openLikedViewer(startIdx) {
                         av.src = av.dataset.savedSrc; av.muted = true; av.preload = 'auto'; av.load();
                     }
                 });
-            } else {
-                // Hard pause + mute — kills ghost audio from previous video
+            } else if (!entry.isIntersecting) {
+                // Fully out of view — hard stop
                 vid.pause();
                 vid.muted = true;
+                vid.currentTime = 0;
             }
         });
-    }, { root: vfeed, threshold: 0.85 });
+    }, { root: vfeed, threshold: [0, 0.85] });
     pins.forEach(function(pin) { _viewerObs.observe(pin); });
 
     // Back button — close viewer, return to grid
     if (back) {
         back.onclick = function() {
-            // 1. Kill liked viewer observer
+            // Step 1 — kill liked viewer observer + stop every video instantly
             if (_viewerObs) { _viewerObs.disconnect(); _viewerObs = null; }
-
-            // 2. Hard stop ALL liked viewer videos
-            vfeed.querySelectorAll('video').forEach(function(v){
-                v.pause(); v.muted = true; v.currentTime = 0;
-            });
             _viewerCurrentPin = null;
-
-            // 3. Hard stop ALL gallery videos
-            document.querySelectorAll('#gallery video').forEach(function(v){
-                v.pause(); v.muted = true;
+            document.querySelectorAll('video').forEach(function(v){
+                v.pause();
+                v.muted = true;
+                v.currentTime = 0;
             });
 
-            // 4. Close viewer
-            viewer.style.transform = 'translateY(100%)';
-            viewer.classList.remove('open');
+            // Step 2 — disconnect gallery observer BEFORE animation starts
+            var galObs = window._galleryObs;
+            if (galObs) galObs.disconnect();
 
-            // 5. After animation, resume only the visible gallery pin
+            // Step 3 — close the viewer
+            viewer.classList.remove('open');
+            viewer.style.transform = 'translateY(100%)';
+
+            // Step 4 — after transition done, reconnect obs & resume only IF on home
             setTimeout(function() {
+                // Hard stop again — belt and suspenders
+                document.querySelectorAll('video').forEach(function(v){
+                    v.pause(); v.muted = true;
+                });
+
+                // Reconnect gallery observer
+                var gal = document.getElementById('gallery');
+                if (gal && galObs) {
+                    gal.querySelectorAll('.pin-container').forEach(function(p){ galObs.observe(p); });
+                    window._galleryObs = galObs;
+                }
+
+                // Only play if user is on home right now
+                if (window._mobSection !== 'home') return;
+
                 var activePin = window._galleryCurrentPin;
-                if (!activePin) {
-                    // fallback: find by scroll position
-                    var gal = document.getElementById('gallery');
-                    if (!gal) return;
-                    var pins = gal.querySelectorAll('.pin-container');
-                    var idx  = Math.round(gal.scrollTop / window.innerHeight);
-                    activePin = pins[idx] || null;
+                if (!activePin && gal) {
+                    var allP = gal.querySelectorAll('.pin-container');
+                    var i = Math.round(gal.scrollTop / window.innerHeight);
+                    activePin = allP[Math.max(0, i)] || null;
                 }
                 if (!activePin) return;
                 var v = activePin.querySelector('video');
                 if (!v) return;
+                // One final check — make sure nothing else snuck in
+                document.querySelectorAll('video').forEach(function(x){ if(x!==v){x.pause();x.muted=true;} });
                 v.muted = !window._userInteracted;
                 v.currentTime = 0;
                 v.play().catch(function(){ v.muted = true; v.play().catch(function(){}); });
-            }, 380);
+            }, 450);
         };
     }
 }
