@@ -6245,11 +6245,6 @@ init();
           var savedCard = feed2.querySelector('.desktop-card[data-post-id="'+_homeVideoState.postId+'"]');
           if (savedCard) {
             feed2.scrollTop = savedCard.offsetTop;
-            var savedVid = savedCard._video || savedCard.querySelector('video');
-            if (savedVid && _homeVideoState.time > 0) {
-              savedVid.currentTime = _homeVideoState.time;
-              playDesktopVideo(savedVid);
-            }
           }
         }
       }
@@ -6420,21 +6415,17 @@ init();
           feed.style.display = '';
           if (cmt) { cmt.style.display = ''; }
 
-          // Scroll to clicked post
+          // Scroll to clicked post or restore last position
           var startIdx = Math.max(0, posts
             .filter(function(q){ return q.media&&q.media[0]&&q.media[0].url; })
             .findIndex(function(q){ return q._id === (clickedPost._id||''); }));
-          if (_dsvCards[startIdx]) {
-            feed.scrollTop = _dsvCards[startIdx].offsetTop;
+          var targetCard = _dsvCards[startIdx] || null;
+          // If returning to same post, use saved position
+          if (_likedVideoState.postId) {
+            var restoredCard = feed.querySelector('.desktop-card[data-post-id="'+_likedVideoState.postId+'"]');
+            if (restoredCard) targetCard = restoredCard;
           }
-          // Restore liked video time if returning to same post
-          if (_likedVideoState.postId && _likedVideoState.time > 0) {
-            var rCard = feed.querySelector('.desktop-card[data-post-id="'+_likedVideoState.postId+'"]');
-            if (rCard) {
-              var rVid = rCard._video || rCard.querySelector('video');
-              if (rVid) rVid.currentTime = _likedVideoState.time;
-            }
-          }
+          if (targetCard) feed.scrollTop = targetCard.offsetTop;
 
           // IntersectionObserver — identical to home feed
           _dsvObs = new IntersectionObserver(function(entries) {
