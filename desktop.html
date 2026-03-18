@@ -6809,9 +6809,19 @@ init();
           var pdata = card._postData;
           if (pid && pdata) {
             openDesktopComments(pdata, pid, false);
-            // Track for state restoration when returning to Home
             _lastPostId = pid;
             _lastPostData = pdata;
+            if (typeof trackPresence === 'function') trackPresence(pid);
+          } else if (pid) {
+            // postData not cached yet — fetch it then open comments
+            getDoc(doc(db, 'recence', pid)).then(function(d) {
+              if (!d.exists()) return;
+              var fetchedData = d.data();
+              card._postData = fetchedData;
+              openDesktopComments(fetchedData, pid, false);
+              _lastPostId = pid;
+              _lastPostData = fetchedData;
+            }).catch(function(){});
             if (typeof trackPresence === 'function') trackPresence(pid);
           }
         } else {
