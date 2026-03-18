@@ -1116,22 +1116,24 @@ body.paused-view #mob-feed-tabs {
         border-radius: 8px;
         white-space: nowrap;
     }
-    /* Updates panel — right sidebar on desktop */
+    /* Updates panel — desktop push sidebar */
+    #updates-overlay { display: none !important; }
     #updates-panel {
-        left: auto !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        top: 0 !important;
-        width: 340px !important;
-        height: 100vh !important;
+        left: auto !important; right: 0 !important;
+        bottom: 0 !important; top: 0 !important;
+        width: 320px !important; height: 100vh !important;
         border-radius: 0 !important;
         transform: translateX(100%) !important;
         transition: transform 0.42s cubic-bezier(0.22,1,0.36,1) !important;
-        box-shadow: -4px 0 32px rgba(0,0,0,0.14) !important;
+        box-shadow: -4px 0 24px rgba(0,0,0,0.08) !important;
+        border-left: 1px solid #efefef !important;
+        background: #fff !important;
+        z-index: 600 !important;
     }
-    #updates-panel.open {
-        transform: translateX(0) !important;
-    }
+    #updates-panel.open { transform: translateX(0) !important; }
+    #updates-panel .upd-handle-row { display: none !important; }
+    #desktop-wrapper { transition: padding-right 0.42s cubic-bezier(0.22,1,0.36,1); }
+    body.updates-open #desktop-wrapper { padding-right: calc(320px + 12px) !important; }
 }
 .lazy-load { opacity: 0; transition: opacity 0.3s ease-in; }
 .lazy-load.loaded { opacity: 1; }
@@ -6114,19 +6116,204 @@ init();
 })();
     </script>
     
-    <div id="updates-panel" style="position:fixed;left:0;right:0;bottom:0;height:58vh;background:#fafafa;z-index:600;transform:translateY(100%);transition:transform 0.42s cubic-bezier(0.22,1,0.36,1);display:flex;flex-direction:column;overflow:hidden;border-radius:24px 24px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,0.18);">
-        <!-- drag handle -->
-        <div style="display:flex;justify-content:center;padding:8px 0 0;flex-shrink:0;"><div style="width:36px;height:4px;border-radius:2px;background:#e0e0e0;"></div></div>
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 16px 10px;background:#fafafa;border-bottom:1px solid #f0f0f0;flex-shrink:0;">
-            <button onclick="closeUpdatesPanel()" style="width:32px;height:32px;border-radius:50%;background:#f2f2f2;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+    <!-- ══════════════════════════════════════════════
+         UPDATES / NOTIFICATIONS PANEL
+         ══════════════════════════════════════════════ -->
+    <style>
+    /* ── Updates panel overlay backdrop (mobile only) ── */
+    #updates-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.38);
+        z-index: 590;
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.32s ease;
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+    }
+    #updates-overlay.open { opacity: 1; pointer-events: all; }
+
+    /* ── Panel ── */
+    #updates-panel {
+        position: fixed; left: 0; right: 0; bottom: 0;
+        height: 72vh;
+        background: #fff;
+        z-index: 600;
+        transform: translateY(100%);
+        transition: transform 0.44s cubic-bezier(0.22,1,0.36,1);
+        display: flex; flex-direction: column;
+        overflow: hidden;
+        border-radius: 28px 28px 0 0;
+        box-shadow: 0 -16px 60px rgba(0,0,0,0.2);
+    }
+    #updates-panel.open { transform: translateY(0); }
+    #updates-panel::before {
+        content: ''; display: block; height: 3px; flex-shrink: 0;
+        background: var(--brand-gradient);
+        border-radius: 28px 28px 0 0;
+    }
+    .upd-handle-row { display: flex; justify-content: center; padding: 8px 0 0; flex-shrink: 0; }
+    .upd-handle { width: 40px; height: 4px; border-radius: 2px; background: #e0e0e0; }
+    .upd-header {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 16px 12px;
+        border-bottom: 1px solid #f0f0f0; flex-shrink: 0;
+    }
+    .upd-close-btn {
+        width: 32px; height: 32px; border-radius: 50%;
+        background: #f2f2f2; border: none; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; transition: background 0.14s, transform 0.14s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .upd-close-btn:active { transform: scale(0.88); background: #e8e8e8; }
+    .upd-title { font-size: 17px; font-weight: 900; color: #111; letter-spacing: -0.025em; font-family: var(--font); flex: 1; }
+    #updates-count-badge {
+        display: none;
+        background: var(--brand-gradient); color: #fff;
+        font-size: 10px; font-weight: 900;
+        padding: 3px 10px; border-radius: 99px; font-family: var(--font);
+        animation: badgePulse 2s ease-in-out infinite;
+    }
+    #updates-count-badge.show { display: inline-block; }
+
+    /* Filter tabs — same icon style as sidebar nav */
+    .upd-tabs {
+        display: flex; gap: 5px; padding: 10px 14px;
+        border-bottom: 1px solid #f0f0f0; flex-shrink: 0;
+        overflow-x: auto; scrollbar-width: none;
+    }
+    .upd-tabs::-webkit-scrollbar { display: none; }
+    .upd-tab {
+        flex-shrink: 0; display: flex; align-items: center; gap: 5px;
+        padding: 6px 13px; border-radius: 99px;
+        font-size: 11px; font-weight: 800; font-family: var(--font);
+        border: 1.5px solid #e8e8e8; background: #f8f8f8;
+        color: #777; cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+        -webkit-tap-highlight-color: transparent; letter-spacing: 0.01em;
+    }
+    .upd-tab svg { width: 12px; height: 12px; flex-shrink: 0; stroke: #888; transition: stroke 0.2s; }
+    .upd-tab.active { background: #111; color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(0,0,0,0.18); }
+    .upd-tab.active svg { stroke: #fff !important; }
+    .upd-tab:not(.active):hover { background: #f0f0f0; border-color: #ddd; color: #333; }
+    .upd-tab:active { transform: scale(0.91); }
+
+    /* List */
+    #updates-list {
+        flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+        padding: 6px 12px calc(env(safe-area-inset-bottom,0px) + 12px);
+        display: flex; flex-direction: column; gap: 6px; scrollbar-width: none;
+    }
+    #updates-list::-webkit-scrollbar { display: none; }
+    #updates-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 60px 0; opacity: 0.4; }
+
+    /* Notification row */
+    .upd-row {
+        display: flex; align-items: flex-start; gap: 11px;
+        padding: 12px; border-radius: 16px;
+        background: #fafafa; border: 1.5px solid transparent;
+        cursor: pointer; -webkit-tap-highlight-color: transparent;
+        transition: background 0.15s, transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
+        position: relative;
+        animation: updRowIn 0.38s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    @keyframes updRowIn {
+        from { opacity: 0; transform: translateX(28px) scale(0.96); }
+        to   { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    .upd-row.unread { background: #f5f5f5; border-color: rgba(0,0,0,0.06); }
+    .upd-row:hover { background: #f0f0f0; border-color: #e8e8e8; }
+    .upd-row:active { transform: scale(0.97); }
+    .upd-unread-dot {
+        position: absolute; top: 14px; right: 12px;
+        width: 8px; height: 8px; border-radius: 50%;
+        background: #111; box-shadow: 0 0 6px rgba(0,0,0,0.3);
+        animation: updDotPulse 2s ease-in-out infinite;
+    }
+    @keyframes updDotPulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.5;transform:scale(0.7);} }
+
+    /* Avatar */
+    .upd-av {
+        width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px; font-weight: 900; color: #fff; overflow: hidden; position: relative;
+    }
+    .upd-av img { width:100%;height:100%;object-fit:cover;border-radius:50%;display:block; }
+    .upd-type-badge {
+        position: absolute; bottom: -2px; right: -2px;
+        width: 18px; height: 18px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        border: 2px solid #fff;
+    }
+    .upd-type-badge svg { width: 9px; height: 9px; }
+
+    /* Body */
+    .upd-body { flex: 1; min-width: 0; }
+    .upd-body-text {
+        font-size: 13px; font-weight: 600; color: #222; font-family: var(--font); line-height: 1.4;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .upd-body-text strong { font-weight: 900; color: #111; }
+    .upd-time { font-size: 10px; font-weight: 700; color: #aaa; font-family: var(--font); margin-top: 3px; letter-spacing: 0.02em; }
+
+    /* Thumbnail */
+    .upd-thumb { width: 44px; height: 58px; border-radius: 8px; flex-shrink: 0; background: #e0e0e0; overflow: hidden; }
+    .upd-thumb img { width:100%;height:100%;object-fit:cover;display:block; }
+    </style>
+
+    <!-- Backdrop (mobile) -->
+    <div id="updates-overlay" onclick="closeUpdatesPanel()"></div>
+
+    <!-- Panel -->
+    <div id="updates-panel">
+        <div class="upd-handle-row"><div class="upd-handle"></div></div>
+        <div class="upd-header">
+            <button class="upd-close-btn" onclick="closeUpdatesPanel()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
-            <span style="font-size:16px;font-weight:800;color:#111;letter-spacing:-0.02em;font-family:var(--font);flex:1;">Updates</span>
-            <span id="updates-count-badge" style="display:none;background:var(--brand-gradient);color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;font-family:var(--font);"></span>
+            <span class="upd-title">Updates</span>
+            <span id="updates-count-badge"></span>
         </div>
-        <div id="updates-list" style="flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:8px;">
-            <div id="updates-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:40px 0;opacity:0.45;">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <!-- Filter tabs — icons identical to sidebar nav style -->
+        <div class="upd-tabs">
+            <button class="upd-tab active" data-filter="all">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                    <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+                </svg>
+                All
+            </button>
+            <button class="upd-tab" data-filter="comment">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                Comments
+            </button>
+            <button class="upd-tab" data-filter="like">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                Likes
+            </button>
+            <button class="upd-tab" data-filter="superlike">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                Super Likes
+            </button>
+            <button class="upd-tab" data-filter="follow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <line x1="19" y1="8" x2="19" y2="14"/>
+                    <line x1="22" y1="11" x2="16" y2="11"/>
+                </svg>
+                Follows
+            </button>
+        </div>
+        <div id="updates-list">
+            <div id="updates-empty">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 <span style="font-size:13px;font-weight:700;color:#bbb;font-family:var(--font);">No updates yet</span>
             </div>
         </div>
@@ -6767,102 +6954,254 @@ init();
         });
     })();
 
-    // ── UPDATES PANEL — replies to user's comments ──
-    window.openUpdatesPanel = function() {
-        var panel = document.getElementById('updates-panel');
-        if (!panel) return;
-        var desk = window.innerWidth >= 900;
-        panel.style.transform = desk ? 'translateX(0)' : 'translateY(0)';
-        document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
-        var nb = document.getElementById('navTop'); if(nb) nb.classList.add('active');
-        var badge = document.getElementById('updatesBadge'); if(badge) badge.classList.remove('show');
-        loadUpdates();
-    };
-    window.closeUpdatesPanel = function() {
-        var panel = document.getElementById('updates-panel');
-        if (!panel) return;
-        var desk = window.innerWidth >= 900;
-        panel.style.transform = desk ? 'translateX(100%)' : 'translateY(100%)';
-        document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
-        var nh = document.getElementById('navHome'); if(nh) nh.classList.add('active');
-    };
+    // ── UPDATES / NOTIFICATIONS — full system ──
+    (function(){
+        var panel     = document.getElementById('updates-panel');
+        var overlay   = document.getElementById('updates-overlay');
+        var list      = document.getElementById('updates-list');
+        var empty     = document.getElementById('updates-empty');
+        var badge     = document.getElementById('updates-count-badge');
+        var deskBadge = document.getElementById('updBadgeDesk');
+        var mobBadge  = document.getElementById('updatesBadge');
 
-    var _updRunning = false;
-    function loadUpdates() {
-        if (!currentUser || _updRunning) return;
-        _updRunning = true;
-        var list = document.getElementById('updates-list');
-        var empty = document.getElementById('updates-empty');
-        var countBadge = document.getElementById('updates-count-badge');
-        getDocs(query(collection(db,'recence'), where('userId','==',currentUser.uid), orderBy('timestamp','desc'), limit(20)))
-        .then(function(snap) {
-            var updates = []; var pending = snap.docs.length;
-            if (!pending) { _updRunning=false; return; }
-            snap.docs.forEach(function(postDoc) {
-                var pd = postDoc.data();
-                getDocs(query(collection(db,'recence',postDoc.id,'comments'), orderBy('timestamp','desc'), limit(30)))
-                .then(function(cmtSnap) {
-                    cmtSnap.docs.forEach(function(cd) {
-                        var c = cd.data();
-                        if (c.userId !== currentUser.uid) {
-                            updates.push({ postId:postDoc.id, postData:pd, commentId:cd.id, comment:c, ts:c.timestamp?.seconds||0 });
+        var _notifs   = [];
+        var _currentFilter = 'all';
+        var _firestoreListeners = [];
+
+        function timeAgo(ms) {
+            var d = Date.now() - ms;
+            if (d < 60000)    return 'just now';
+            if (d < 3600000)  return Math.floor(d/60000)+'m ago';
+            if (d < 86400000) return Math.floor(d/3600000)+'h ago';
+            return Math.floor(d/86400000)+'d ago';
+        }
+
+        function refreshBadge() {
+            var n = _notifs.filter(function(x){ return !x.read; }).length;
+            var label = n > 0 ? (n > 99 ? '99+' : String(n)) : '';
+            [mobBadge, deskBadge].forEach(function(el) {
+                if (!el) return;
+                if (n > 0) { el.textContent = label; el.style.display = 'flex'; el.classList.add('show'); }
+                else { el.style.display = 'none'; el.classList.remove('show'); }
+            });
+            if (badge) {
+                if (n > 0) { badge.textContent = n+' new'; badge.classList.add('show'); }
+                else badge.classList.remove('show');
+            }
+        }
+
+        function typeIcon(type) {
+            var map = {
+                comment:   { bg:'#2563eb', svg:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="white" stroke="none"/>' },
+                like:      { bg:'#dc2626', svg:'<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="white" stroke="none"/>' },
+                superlike: { bg:'#d97706', svg:'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="white" stroke="none"/>' },
+                follow:    { bg:'#059669', svg:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="9" cy="7" r="4" fill="white"/><line x1="19" y1="8" x2="19" y2="14" stroke="white" stroke-width="2.5" stroke-linecap="round"/><line x1="22" y1="11" x2="16" y2="11" stroke="white" stroke-width="2.5" stroke-linecap="round"/>' }
+            };
+            return map[type] || map.comment;
+        }
+
+        function pushNotif(n) {
+            if (_notifs.find(function(x){ return x.id === n.id; })) return;
+            _notifs.unshift(n);
+            if (_notifs.length > 200) _notifs.pop();
+            refreshBadge();
+            if (panel && panel.classList.contains('open')) renderList();
+        }
+
+        function buildRow(n, delay) {
+            var icon = typeIcon(n.type);
+            var letter = ((n.actorName||'?')[0]).toUpperCase();
+            var hue = (letter.charCodeAt(0)*43)%360;
+            var row = document.createElement('div');
+            row.className = 'upd-row'+(n.read?'':' unread');
+            row.dataset.notifId = n.id; row.dataset.type = n.type;
+            row.style.animationDelay = (delay||0)+'ms';
+
+            // Avatar
+            var av = document.createElement('div');
+            av.className = 'upd-av';
+            av.style.background = 'hsl('+hue+',48%,40%)';
+            av.innerHTML = n.actorPhoto
+                ? '<img src="'+n.actorPhoto+'" onerror="this.style.display=\'none\'">'
+                : letter;
+            var tb = document.createElement('div');
+            tb.className = 'upd-type-badge'; tb.style.background = icon.bg;
+            tb.innerHTML = '<svg viewBox="0 0 24 24">'+icon.svg+'</svg>';
+            av.appendChild(tb); row.appendChild(av);
+
+            // Body
+            var body = document.createElement('div'); body.className = 'upd-body';
+            var txt = document.createElement('div'); txt.className = 'upd-body-text'; txt.innerHTML = n.text||'';
+            var time = document.createElement('div'); time.className = 'upd-time'; time.textContent = timeAgo(n.ts);
+            body.appendChild(txt); body.appendChild(time); row.appendChild(body);
+
+            // Thumb
+            if (n.postThumb) {
+                var th = document.createElement('div'); th.className = 'upd-thumb';
+                th.innerHTML = '<img src="'+n.postThumb+'" onerror="this.style.display=\'none\'">';
+                row.appendChild(th);
+            }
+
+            // Unread dot
+            if (!n.read) { var dot = document.createElement('div'); dot.className = 'upd-unread-dot'; row.appendChild(dot); }
+
+            // Click to navigate
+            row.addEventListener('click', function(){
+                n.read = true; row.classList.remove('unread');
+                var d2 = row.querySelector('.upd-unread-dot'); if(d2) d2.remove();
+                refreshBadge();
+                if (n.postId) {
+                    closeUpdatesPanel();
+                    setTimeout(function(){
+                        if (n.type === 'comment') {
+                            var pin = document.querySelector('.pin-container[data-post-id="'+n.postId+'"]');
+                            if (pin) {
+                                var g = document.getElementById('gallery'); if(g) g.scrollTo({top:pin.offsetTop,behavior:'smooth'});
+                                setTimeout(function(){ if(typeof window._openCommentSheet==='function') window._openCommentSheet(n.postId); }, 400);
+                            }
+                        } else {
+                            var dc = document.querySelector('.desktop-card[data-post-id="'+n.postId+'"]');
+                            if (dc) { dc.scrollIntoView({behavior:'smooth',block:'center'}); dc.style.outline='2px solid #111'; dc.style.outlineOffset='3px'; setTimeout(function(){ dc.style.outline=''; dc.style.outlineOffset=''; },1800); }
+                            else { var pin2 = document.querySelector('.pin-container[data-post-id="'+n.postId+'"]'); if(pin2){ var g2=document.getElementById('gallery'); if(g2) g2.scrollTo({top:pin2.offsetTop,behavior:'smooth'}); } }
                         }
-                    });
-                    pending--;
-                    if (pending===0) _renderUpdates(updates, list, empty, countBadge);
-                }).catch(function(){ pending--; if(pending===0) _renderUpdates(updates,list,empty,countBadge); });
+                    }, 320);
+                }
             });
-        }).catch(function(){ _updRunning=false; });
-    }
+            return row;
+        }
 
-    function _renderUpdates(updates, list, empty, countBadge) {
-        _updRunning = false;
-        updates.sort(function(a,b){ return b.ts-a.ts; });
-        list.querySelectorAll('.update-item').forEach(function(el){ el.remove(); });
-        if (!updates.length) { if(empty) empty.style.display='flex'; if(countBadge) countBadge.style.display='none'; return; }
-        if (empty) empty.style.display='none';
-        if (countBadge) { countBadge.textContent=updates.length; countBadge.style.display='inline-block'; }
-        updates.slice(0,30).forEach(function(u,i) {
-            var item = document.createElement('div');
-            item.className = 'update-item';
-            var letter = ((u.comment.userName||'?')[0]).toUpperCase();
-            var hue = (letter.charCodeAt(0)*37)%360;
-            var diff = u.ts ? Math.floor(Date.now()/1000-u.ts) : 0;
-            var ago = !diff ? 'just now' : diff<60 ? 'just now' : diff<3600 ? Math.floor(diff/60)+'m ago' : diff<86400 ? Math.floor(diff/3600)+'h ago' : Math.floor(diff/86400)+'d ago';
-            item.style.cssText = 'display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:12px 14px;cursor:pointer;box-shadow:0 1px 8px rgba(0,0,0,0.05);transition:transform 0.18s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.18s;-webkit-tap-highlight-color:transparent;opacity:0;animation:updFadeIn 0.3s ease '+(i*0.05)+'s both;';
-            item.innerHTML =
-                '<div style="width:42px;height:42px;border-radius:50%;background:hsl('+hue+',50%,38%);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#fff;flex-shrink:0;font-family:var(--font);overflow:hidden;">'+(u.comment.userPhoto?'<img src="'+u.comment.userPhoto+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.remove()">':letter)+'</div>'+
-                '<div style="flex:1;min-width:0;">'+
-                    '<div style="font-size:13px;font-weight:800;color:#111;font-family:var(--font);margin-bottom:2px;">'+escHtml(u.comment.userName||'Someone')+' <span style="font-weight:600;color:#888;">commented on your video</span></div>'+
-                    '<div style="font-size:12px;font-weight:500;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--font);">"'+escHtml(u.comment.text||'')+'"</div>'+
-                    '<div style="font-size:10px;font-weight:700;color:#ccc;margin-top:3px;font-family:var(--font);">'+ago+'</div>'+
-                '</div>'+
-                '<div style="width:42px;height:42px;border-radius:10px;overflow:hidden;flex-shrink:0;background:#f0f0f0;">'+(u.postData.media&&u.postData.media[0]?'<video src="'+u.postData.media[0].url+'" muted playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover;display:block;" onloadedmetadata="this.currentTime=0.5"></video>':'')+'</div>';
-            item.addEventListener('click', function() {
-                window.closeUpdatesPanel && window.closeUpdatesPanel();
-                setTimeout(function() {
-                    var pinEl = document.querySelector('.pin-container[data-post-id="'+u.postId+'"]');
-                    if (pinEl) { var g=document.getElementById('gallery'); if(g) g.scrollTo({top:pinEl.offsetTop,behavior:'smooth'}); }
-                    if (typeof openModal==='function') openModal(u.postData, u.postId);
-                }, 450);
+        function renderList() {
+            list.innerHTML = ''; list.appendChild(empty);
+            var filtered = _notifs.filter(function(n){ return _currentFilter==='all' || n.type===_currentFilter; });
+            filtered.sort(function(a,b){ return b.ts-a.ts; });
+            if (!filtered.length) { empty.style.display='flex'; return; }
+            empty.style.display='none';
+            filtered.forEach(function(n,i){ list.appendChild(buildRow(n, i*45)); });
+        }
+
+        // Filter tab clicks
+        document.querySelectorAll('.upd-tab').forEach(function(tab){
+            tab.addEventListener('click', function(){
+                document.querySelectorAll('.upd-tab').forEach(function(t){ t.classList.remove('active'); });
+                tab.classList.add('active');
+                _currentFilter = tab.dataset.filter;
+                renderList();
             });
-            list.appendChild(item);
         });
-        var nb = document.getElementById('updatesBadge');
-        if (nb && updates.length) {
-            nb.textContent = updates.length > 9 ? '9+' : updates.length;
-            nb.classList.add('show');
-        }
-        // Desktop badge
-        var nbd = document.getElementById('updBadgeDesk');
-        if (nbd && updates.length) {
-            nbd.textContent = updates.length > 9 ? '9+' : updates.length;
-            nbd.style.display = 'flex';
-            nbd.style.animation = 'badgePulse 2s ease-in-out infinite';
-        }
-    }
 
-    function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+        // Attach Firestore realtime listeners
+        function attachListeners(uid) {
+            _firestoreListeners.forEach(function(u){ try{u();}catch(e){} });
+            _firestoreListeners = [];
+            var fns = window._fbFirestoreFns; var db = window._fbDb;
+            if (!fns || !db) return;
+            var { collection, query, where, orderBy, limit, onSnapshot, getDocs, getDoc, doc } = fns;
+            var startAt = Date.now();
+
+            // Watch posts owned by this user for comments, likes, superlikes
+            getDocs(query(collection(db,'recence'), where('uid','==',uid), orderBy('timestamp','desc'), limit(20)))
+            .then(function(snap){
+                snap.forEach(function(postDoc){
+                    var pd = postDoc.data(), postId = postDoc.id;
+                    var thumb = pd.thumbnail||(pd.media&&pd.media[0]&&pd.media[0].url)||'';
+
+                    // Comments
+                    var unsubC = onSnapshot(query(collection(db,'recence',postId,'comments'), orderBy('createdAt','desc'), limit(50)), function(cs){
+                        cs.docChanges().forEach(function(ch){
+                            if(ch.type!=='added') return;
+                            var c = ch.doc.data();
+                            var ms = c.createdAt?(c.createdAt.seconds?c.createdAt.seconds*1000:Date.now()):Date.now();
+                            if(ms < startAt-5000) return;
+                            if((c.uid||c.userId)===uid) return;
+                            pushNotif({ id:'cmt_'+ch.doc.id, type:'comment',
+                                actorName: c.userName||c.name||'Someone', actorPhoto: c.userPhoto||c.photoURL||'',
+                                text: '<strong>'+(c.userName||'Someone')+'</strong> commented on your video: "'+(c.text||'').slice(0,60)+'"',
+                                postId, postThumb: thumb, ts: ms, read: false });
+                        });
+                    });
+                    _firestoreListeners.push(unsubC);
+
+                    // Likes & superlikes via post doc snapshot
+                    var prevLikes = new Set(pd.likes||[]);
+                    var prevSL    = new Set(pd.superlikes||[]);
+                    var unsubP = onSnapshot(postDoc.ref, function(ds){
+                        if(!ds.exists()) return;
+                        var d = ds.data();
+                        (d.likes||[]).forEach(function(luid){
+                            if(luid===uid||prevLikes.has(luid)) return;
+                            prevLikes.add(luid);
+                            getDoc(doc(db,'users',luid)).then(function(ud){
+                                var nm=ud.exists()?(ud.data().displayName||ud.data().name||'Someone'):'Someone';
+                                var ph=ud.exists()?(ud.data().photoURL||''):'';
+                                pushNotif({id:'like_'+postId+'_'+luid,type:'like',actorName:nm,actorPhoto:ph,text:'<strong>'+nm+'</strong> liked your video',postId,postThumb:thumb,ts:Date.now(),read:false});
+                            }).catch(function(){ pushNotif({id:'like_'+postId+'_'+luid,type:'like',actorName:'Someone',actorPhoto:'',text:'<strong>Someone</strong> liked your video',postId,postThumb:thumb,ts:Date.now(),read:false}); });
+                        });
+                        (d.superlikes||[]).forEach(function(sluid){
+                            if(sluid===uid||prevSL.has(sluid)) return;
+                            prevSL.add(sluid);
+                            getDoc(doc(db,'users',sluid)).then(function(ud){
+                                var nm=ud.exists()?(ud.data().displayName||ud.data().name||'Someone'):'Someone';
+                                var ph=ud.exists()?(ud.data().photoURL||''):'';
+                                pushNotif({id:'sl_'+postId+'_'+sluid,type:'superlike',actorName:nm,actorPhoto:ph,text:'<strong>'+nm+'</strong> super liked your video',postId,postThumb:thumb,ts:Date.now(),read:false});
+                            }).catch(function(){ pushNotif({id:'sl_'+postId+'_'+sluid,type:'superlike',actorName:'Someone',actorPhoto:'',text:'<strong>Someone</strong> super liked your video',postId,postThumb:thumb,ts:Date.now(),read:false}); });
+                        });
+                    });
+                    _firestoreListeners.push(unsubP);
+                });
+            }).catch(function(e){ console.warn('upd:posts',e); });
+
+            // Follows
+            try {
+                var unsubF = onSnapshot(query(collection(db,'follows'), where('followedUserId','==',uid), orderBy('timestamp','desc'), limit(30)), function(fs){
+                    fs.docChanges().forEach(function(ch){
+                        if(ch.type!=='added') return;
+                        var f=ch.doc.data();
+                        var fms=f.timestamp?(f.timestamp.seconds?f.timestamp.seconds*1000:Date.now()):Date.now();
+                        if(fms<startAt-5000) return;
+                        getDoc(doc(db,'users',f.followerUserId||'x')).then(function(ud){
+                            var nm=ud.exists()?(ud.data().displayName||ud.data().name||'Someone'):'Someone';
+                            var ph=ud.exists()?(ud.data().photoURL||''):'';
+                            pushNotif({id:'follow_'+ch.doc.id,type:'follow',actorName:nm,actorPhoto:ph,text:'<strong>'+nm+'</strong> started following you',postId:null,postThumb:null,ts:fms,read:false});
+                        }).catch(function(){ pushNotif({id:'follow_'+ch.doc.id,type:'follow',actorName:'Someone',actorPhoto:'',text:'<strong>Someone</strong> started following you',postId:null,postThumb:null,ts:fms,read:false}); });
+                    });
+                });
+                _firestoreListeners.push(unsubF);
+            }catch(e){}
+        }
+
+        // Wait for auth
+        var _att=0;
+        function tryAttach(){
+            if(window._fbAuth&&window._fbAuth.currentUser){ attachListeners(window._fbAuth.currentUser.uid); return; }
+            if(_att++<20) setTimeout(tryAttach,500);
+        }
+        setTimeout(tryAttach,800);
+
+        // Open / Close
+        window.openUpdatesPanel = function(){
+            if(!panel) return;
+            panel.classList.add('open');
+            if(overlay) overlay.classList.add('open');
+            document.body.classList.add('updates-open');
+            document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
+            var nb=document.getElementById('navTop'); if(nb) nb.classList.add('active');
+            setTimeout(function(){
+                _notifs.forEach(function(n){ n.read=true; }); refreshBadge();
+                list.querySelectorAll('.upd-unread-dot').forEach(function(d){ d.remove(); });
+                list.querySelectorAll('.upd-row.unread').forEach(function(r){ r.classList.remove('unread'); });
+            }, 2000);
+            renderList();
+        };
+        window.closeUpdatesPanel = function(){
+            if(!panel) return;
+            panel.classList.remove('open');
+            if(overlay) overlay.classList.remove('open');
+            document.body.classList.remove('updates-open');
+            document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
+            var nh=document.getElementById('navHome'); if(nh) nh.classList.add('active');
+        };
+        window._pushNotification = pushNotif;
+    })();
 
     // ── TOP toast — small branded label top-right ──
     function _showTopToast() {
