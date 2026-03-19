@@ -336,8 +336,9 @@ html::-webkit-scrollbar { display: none; }
 }
 .video-creator-av {
     width: 32px; height: 32px; border-radius: 50%;
-    border: 2px solid rgba(255,255,255,0.85);
-    background: #555;
+    border: 2px solid transparent;
+    background: linear-gradient(#1a1a1a, #1a1a1a) padding-box,
+                linear-gradient(135deg, #0f0f0f 0%, #626262 50%, #a6a6a6 100%) border-box;
     object-fit: cover; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
     font-size: 13px; font-weight: 900; color: #fff;
@@ -352,17 +353,18 @@ html::-webkit-scrollbar { display: none; }
     padding: 3px 10px 3px 7px;
     border-radius: 99px;
     border: none;
-    background: var(--brand-gradient);
+    background: linear-gradient(135deg, #0f0f0f 0%, #3a3a3a 50%, #626262 100%);
     color: #fff; cursor: pointer;
     font-family: var(--font, sans-serif);
-    transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), opacity 0.18s;
+    transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), opacity 0.18s, box-shadow 0.18s;
     pointer-events: auto;
     -webkit-tap-highlight-color: transparent;
     white-space: nowrap;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     display: flex; align-items: center; gap: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.12);
 }
 .video-follow-btn:active { transform: scale(0.88); }
 .video-follow-btn.following {
@@ -435,15 +437,11 @@ html::-webkit-scrollbar { display: none; }
     letter-spacing: -0.01em;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     /* brand gradient text */
-    background: linear-gradient(90deg, #ffffff 0%, #d0d0d0 100%);
+    background: linear-gradient(90deg, #ffffff 0%, #a6a6a6 100%);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     background-clip: text;
-    /* brand underline */
-    border-bottom: 1.5px solid;
-    border-image: linear-gradient(90deg, #fe2c55 0%, #626262 60%, rgba(255,255,255,0.2) 100%) 1;
-    padding-bottom: 1px;
     text-shadow: none;
-    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.8));
+    filter: drop-shadow(0 2px 12px rgba(0,0,0,0.95));
 }
 .video-creator-date {
     font-size: 10px; font-weight: 700;
@@ -685,10 +683,11 @@ body.dsv-open #desktop-comments {
     transform: translate(-50%, -50%) scale(0.7);
     opacity: 0; z-index: 20; pointer-events: none;
     transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
-    background: linear-gradient(135deg, #0f0f0f 0%, #3a3a3a 40%, #626262 70%, #a6a6a6 100%);
-    border-radius: 50%; width: 52px; height: 52px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #3a3a3a 40%, #626262 70%, #a6a6a6 100%);
+    border-radius: 50%; width: 58px; height: 58px;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 3px 16px rgba(0,0,0,0.45);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.7), 0 0 0 2px rgba(166,166,166,0.35), inset 0 1px 0 rgba(255,255,255,0.18);
+    border: 1.5px solid rgba(255,255,255,0.12);
 }
 .pause-indicator.show {
     opacity: 1;
@@ -734,16 +733,26 @@ body.dsv-open #desktop-comments {
     padding: 10px 0;
     margin-bottom: -10px;
     box-sizing: content-box;
+    /* Hidden by default — appears on interaction like YouTube/TikTok */
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+/* Show when user touches/hovers the video */
+.pin-container:hover .vid-progress-wrap,
+.vid-progress-wrap.scrubbing,
+.vid-progress-wrap.visible {
+    opacity: 1;
 }
 .vid-progress-fill {
     height: 3px;
     width: 0%;
-    background: linear-gradient(90deg, #0f0f0f 0%, #626262 50%, #a6a6a6 100%);
+    background: linear-gradient(90deg, #fff 0%, #a6a6a6 100%);
     transition: width 0.18s linear;
     will-change: width;
     pointer-events: none;
     position: absolute;
     top: 10px; left: 0;
+    border-radius: 2px;
 }
 .vid-progress-time {
     position: absolute;
@@ -758,7 +767,8 @@ body.dsv-open #desktop-comments {
     opacity: 0;
     transition: opacity 0.15s;
 }
-.vid-progress-wrap.scrubbing .vid-progress-time { opacity: 1; }
+.vid-progress-wrap.scrubbing .vid-progress-time,
+.vid-progress-wrap.visible .vid-progress-time { opacity: 1; }
 
 /* Avatar in creator row */
 .video-creator-av-img {
@@ -1676,10 +1686,9 @@ body.comments-open #comments-mini-player {
     transform: translate(-50%, -60%) scale(0.85);
     width: 56px; height: 56px;
     border-radius: 50%;
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 2px solid rgba(255,255,255,0.25);
+    background: linear-gradient(135deg, #1a1a1a 0%, #3a3a3a 40%, #626262 70%, #a6a6a6 100%);
+    border: 1.5px solid rgba(255,255,255,0.18);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.7), 0 0 0 2px rgba(166,166,166,0.25), inset 0 1px 0 rgba(255,255,255,0.15);
     display: flex; align-items: center; justify-content: center;
     z-index: 22;
     opacity: 0;
@@ -2474,8 +2483,10 @@ async function setupVideoVisibility() {
             loadMediaElement(video);
         }
         const doPlay = () => {
-            video.muted = !window._userInteracted;
+            // Always try unmuted first — autoplay with sound like a professional platform
+            video.muted = false;
             video.play().catch(() => {
+                // Browser blocked unmuted — fall back to muted (still plays)
                 video.muted = true;
                 video.play().catch(() => {});
             });
@@ -3214,6 +3225,14 @@ function createPinElement(postData, postId) {
             if (_tapCount === 1) {
                 // SINGLE TAP — toggle mute/unmute, icon appears in CENTER
                 window._userInteracted = true;
+                // Show progress bar briefly then fade out
+                if (progWrap) {
+                    progWrap.classList.add('visible');
+                    clearTimeout(progWrap._hideTimer);
+                    progWrap._hideTimer = setTimeout(function() {
+                        progWrap.classList.remove('visible');
+                    }, 3000);
+                }
                 var isMuted = !window._globalMuted;
                 window._globalMuted = isMuted;
                 document.querySelectorAll('video').forEach(function(v) {
@@ -3945,9 +3964,14 @@ function loadComments(postId) {
             const c = d.data(); c.id = d.id;
             if (c.parentId) return; // replies handled below
             if (_renderedIds.has(c.id)) return;
-            // Swap out optimistic temp element if present
-            const opt = commentsList.querySelector('[data-comment-id^="temp_"]');
-            if (opt && c.text && opt.querySelector('.comment-text')?.textContent === c.text) opt.remove();
+            // Swap out optimistic temp element if present — match by text + userId + gif
+            const opts = commentsList.querySelectorAll('[data-comment-id^="temp_"]');
+            opts.forEach(function(opt) {
+                var sameText = (opt.dataset.optimisticText || '') === (c.text || '');
+                var sameGif  = (opt.dataset.optimisticGif  || '') === (c.gifUrl || '');
+                var sameUid  = (opt.dataset.optimisticUid  || '') === (c.userId || '');
+                if (sameUid && sameText && sameGif) opt.remove();
+            });
             _renderedIds.add(c.id);
             const el = createCommentElement(c, repliesMap[c.id] || []);
             if (!isFirstLoad) el.classList.add('new-live');
@@ -4285,53 +4309,7 @@ async function addComment() {
     submitComment.disabled = true;
     commentInput.value = '';
     
-    // Optimistically append the comment right away
-    const optimisticData = {
-        id: 'temp_' + Date.now(),
-        userId: currentUser.uid,
-        userName: currentUser.displayName || 'User',
-        userPhotoURL: currentUser.photoURL,
-        text: text,
-        timestamp: null,
-        likes: [],
-        country: currentUser.country
-    };
-    if (currentReplyTo) {
-        optimisticData.parentId = currentReplyTo.id;
-        optimisticData.parentUserName = currentReplyTo.name;
-    }
-    if (selectedGif) optimisticData.gifUrl = selectedGif;
-    
-    const optimisticEl = createCommentElement(optimisticData, []);
-    optimisticEl.classList.add('new-comment');
-    optimisticEl.style.opacity = '0.7';
-
-    // If replying, place it flat after the parent comment element
-    var placed = false;
-    if (currentReplyTo) {
-        var parentEl = commentsList.querySelector('[data-comment-id="' + currentReplyTo.id + '"]');
-        if (parentEl) {
-            // Insert right after the parent (or after any existing replies that follow it)
-            var insertAfter = parentEl;
-            var next = insertAfter.nextSibling;
-            while (next && next.dataset && next.dataset.parentId === currentReplyTo.id) {
-                insertAfter = next;
-                next = insertAfter.nextSibling;
-            }
-            if (insertAfter.nextSibling) {
-                commentsList.insertBefore(optimisticEl, insertAfter.nextSibling);
-            } else {
-                commentsList.appendChild(optimisticEl);
-            }
-            optimisticEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            placed = true;
-        }
-    }
-    if (!placed) {
-        commentsList.appendChild(optimisticEl);
-        commentsList.scrollTop = commentsList.scrollHeight;
-    }
-    
+    // Clear input state immediately — onSnapshot will render the comment in real-time
     const savedGif = selectedGif;
     selectedGif = null;
     const savedReply = currentReplyTo;
@@ -4373,8 +4351,6 @@ async function addComment() {
             }
         } catch(e) { /* non-critical */ }
         
-        // Confirm optimistic element
-        optimisticEl.style.opacity = '1';
         
         const postRef = doc(db, 'recence', currentPostId);
         const postDoc = await getDoc(postRef);
@@ -4383,8 +4359,7 @@ async function addComment() {
         }
     } catch (error) {
         console.error('Error adding comment:', error);
-        optimisticEl.remove(); // remove failed comment
-        commentInput.value = text; // restore text
+        commentInput.value = text; // restore text on failure
         alert('Failed to send. Please try again.');
     } finally {
         if (spinner) spinner.classList.remove('visible');
@@ -6831,7 +6806,7 @@ init();
         window._galleryCurrentPin = null;
 
         function playActive(v) {
-            v.muted = window._globalMuted !== false ? !window._userInteracted : window._globalMuted;
+            v.muted = false; // play with sound by default
             var p = v.play();
             if (p && p.catch) p.catch(function() {
                 // Browser blocked even muted — shouldn't happen, but handle gracefully
@@ -7105,116 +7080,61 @@ init();
                 var isOpen = commentSheet.classList.contains('open');
 
                 if (isOpen) {
-                    // ── OPEN: create a fresh clone video — no DOM fighting, no opacity wars ──
-                    var activePin = window._galleryCurrentPin
-                        || gallery.querySelector('.pin-container');
+                    // OPEN: move real video into mini-player (keeps sound + state, no reload)
+                    var activePin = window._galleryCurrentPin || gallery.querySelector('.pin-container');
                     var origVid = activePin ? activePin.querySelector('video') : null;
                     if (!origVid) { document.body.classList.add('comments-open'); return; }
 
-                    // Get the src from the original (may be in src or data-src)
-                    var vidSrc = origVid.src || origVid.dataset.src || '';
-
-                    // Create a brand new video element — clean slate, no class baggage
-                    var clone = document.createElement('video');
-                    clone.src         = vidSrc;
-                    clone.muted       = false;
-                    clone.playsInline = true;
-                    clone.loop        = true;
-                    clone.controls    = false;
-                    clone.autoplay    = false;
-                    clone.preload     = 'auto';
-                    clone.id          = 'cmp-clone-video';
-                    // Sync to same position as original
-                    clone.currentTime = origVid.currentTime || 0;
-                    // Fully bright, covers mini-player
-                    clone.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;' +
-                        'object-fit:cover;opacity:1;display:block;z-index:2;' +
-                        'visibility:visible;filter:none;background:#000;';
-
-                    // Pause the original behind the scenes
-                    origVid.pause();
-
-                    // Capture current frame as poster so mini-player shows video instantly (no black flash)
-                    try {
-                        var snapCanvas = document.createElement('canvas');
-                        snapCanvas.width  = origVid.videoWidth  || 640;
-                        snapCanvas.height = origVid.videoHeight || 1138;
-                        var snapCtx = snapCanvas.getContext('2d');
-                        if (snapCtx) {
-                            snapCtx.drawImage(origVid, 0, 0, snapCanvas.width, snapCanvas.height);
-                            clone.poster = snapCanvas.toDataURL('image/jpeg', 0.85);
-                        }
-                    } catch(e) { /* cross-origin frames will throw — safe to ignore */ }
-
-                    // Store ref so we can clean up on close
-                    _cmpVid = clone;
-                    _cmpParent = origVid.parentNode;
                     _cmpOrigVid = origVid;
+                    _cmpParent  = origVid.parentNode;
+                    _cmpNext    = origVid.nextSibling;
 
-                    // Insert clone into mini-player
-                    miniPlayer.insertBefore(clone, miniPlayer.firstChild);
+                    // Style to fill mini-player
+                    origVid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:1;display:block;z-index:2;visibility:visible;filter:none;';
+                    origVid.setAttribute('data-cmp-moved', '1');
 
-                    // Reset progress bar
-                    if (cmpProgressFill)  cmpProgressFill.style.width = '0%';
-                    if (cmpProgressThumb) cmpProgressThumb.style.left  = '0%';
-                    if (cmpTimeCurrent) cmpTimeCurrent.textContent = '0:00';
-                    if (cmpTimeTotal)   cmpTimeTotal.textContent   = '0:00';
-
+                    // Physically move video into mini-player — keeps playing with sound
+                    miniPlayer.insertBefore(origVid, miniPlayer.firstChild);
+                    _cmpVid    = origVid;
                     _cmpPaused = false;
                     if (pauseIcon) pauseIcon.classList.remove('show');
                     document.body.classList.add('comments-open');
 
-                    // Play clone
-                    clone.load();
-                    requestAnimationFrame(function() {
-                        setTimeout(function() {
-                            if (!_cmpVid) return;
-                            var playP = _cmpVid.play();
-                            if (playP && typeof playP.catch === 'function') {
-                                playP.catch(function() {
-                                    _cmpVid.muted = true;
-                                    _cmpVid.play().catch(function(){});
-                                });
-                            }
-                            _cmpStopRaf();
-                            _cmpStartRaf();
-                            if (_cmpVid.readyState >= 1 && cmpTimeTotal) {
-                                cmpTimeTotal.textContent = _fmtTime(_cmpVid.duration);
-                            } else {
-                                _cmpVid.addEventListener('loadedmetadata', function onMeta() {
-                                    if (cmpTimeTotal) cmpTimeTotal.textContent = _fmtTime(_cmpVid ? _cmpVid.duration : 0);
-                                    _cmpVid && _cmpVid.removeEventListener('loadedmetadata', onMeta);
-                                });
-                            }
-                        }, 60);
-                    });
+                    // Video is already playing — just ensure unmuted, don't restart it
+                    origVid.muted = false;
+                    if (origVid.paused) {
+                        origVid.play().catch(function() { origVid.muted = true; origVid.play().catch(function(){}); });
+                    }
+
+                    // Start progress bar
+                    _cmpStopRaf();
+                    _cmpStartRaf();
+                    if (origVid.duration && isFinite(origVid.duration) && cmpTimeTotal) {
+                        cmpTimeTotal.textContent = _fmtTime(origVid.duration);
+                    }
 
                 } else {
-                    // ── CLOSE: remove clone, resume original ──
+                    // CLOSE: move the real video back to its original pin
                     _cmpStopRaf();
                     document.body.classList.remove('comments-open');
                     _cmpPaused = false;
                     if (pauseIcon) pauseIcon.classList.remove('show');
 
                     setTimeout(function() {
-                        // Remove the clone video from mini-player
-                        var existingClone = document.getElementById('cmp-clone-video');
-                        if (existingClone) {
-                            existingClone.pause();
-                            existingClone.src = '';
-                            existingClone.remove();
-                        }
-
-                        // Resume the original video in the pin
-                        var orig = _cmpOrigVid;
-                        if (orig) {
-                            orig.muted = !window._userInteracted;
-                            var rp = orig.play();
-                            if (rp && typeof rp.catch === 'function') {
-                                rp.catch(function(){ orig.muted = true; orig.play().catch(function(){}); });
+                        var vid  = _cmpOrigVid;
+                        var par  = _cmpParent;
+                        var nxt  = _cmpNext;
+                        if (vid && par) {
+                            vid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+                            vid.removeAttribute('data-cmp-moved');
+                            if (nxt && nxt.parentNode === par) {
+                                par.insertBefore(vid, nxt);
+                            } else {
+                                par.appendChild(vid);
                             }
+                            vid.muted = !window._userInteracted;
+                            vid.play().catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
                         }
-
                         _cmpVid = null; _cmpParent = null; _cmpNext = null;
                         _cmpProgWrap = null; _cmpOrigVid = null;
                     }, 460);
