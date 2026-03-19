@@ -3077,57 +3077,68 @@ function createPinElement(postData, postId) {
         thumbBtn.classList.add('on');
     }
     // ── UNIFIED real-time listener — likes + superlikes + comment dot in ONE call ──
-    // Stored on the pin so the IntersectionObserver can detach it when off-screen
+    // All DOM updates go through requestAnimationFrame so they never cause jank
     var _prevLikeCount = initialLikes.length;
     var _unifiedUnsub = null;
+    var _pendingUpdate = null; // RAF handle — prevents update storms
+
+    function _applyUpdate(d) {
+        // ── Likes ──
+        var likes = d.likes || [];
+        thumbLbl.textContent = likes.length;
+        if (currentUser && likes.includes(currentUser.uid)) {
+            thumbBtn.classList.add('on');
+        } else {
+            thumbBtn.classList.remove('on');
+        }
+        // Float heart only if visible and count went up
+        if (likes.length > _prevLikeCount && pinContainer.isConnected) {
+            var heart2 = document.createElement('div');
+            heart2.className = 'float-heart';
+            heart2.innerHTML = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="hg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0f0f0f"/><stop offset="40%" stop-color="#626262"/><stop offset="100%" stop-color="#a6a6a6"/></linearGradient></defs><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="url(#hg2)" stroke="none"/></svg>';
+            var btnRect = thumbBtn.getBoundingClientRect();
+            var pinRect = pinContainer.getBoundingClientRect();
+            heart2.style.cssText = 'position:absolute;right:10px;bottom:' + (pinRect.bottom - btnRect.bottom + 30) + 'px;width:30px;height:30px;pointer-events:none;z-index:20;animation:floatHeart 0.9s ease-out forwards;';
+            pinContainer.appendChild(heart2);
+            thumbBtn.classList.remove('liked-pop'); void thumbBtn.offsetWidth; thumbBtn.classList.add('liked-pop');
+            setTimeout(function(){ heart2.remove(); }, 900);
+        }
+        _prevLikeCount = likes.length;
+
+        // ── Superlikes (same doc, no extra call) ──
+        var sl = d.superlikes || [];
+        _superlikeLbl.textContent = sl.length || '';
+        if (currentUser && sl.includes(currentUser.uid)) dislikeBtn.classList.add('on');
+        else dislikeBtn.classList.remove('on');
+        pinContainer.dataset.superlikeCount = sl.length;
+
+        // ── Comment dot (use commentCount field on post doc) ──
+        var cmtDot = cmtBtn ? cmtBtn.querySelector('.cmt-live-dot') : null;
+        if (cmtDot) {
+            var hasCmts = (d.commentCount && d.commentCount > 0) || false;
+            cmtDot.style.background  = hasCmts ? '#ff3b5c' : '#22c55e';
+            cmtDot.style.boxShadow   = hasCmts ? '0 0 7px rgba(255,59,92,0.95)' : '0 0 7px rgba(34,197,94,0.95)';
+        }
+    }
 
     function _attachUnified() {
         if (_unifiedUnsub) return; // already attached
         _unifiedUnsub = onSnapshot(doc(db, 'recence', postId), function(snap) {
             if (!snap.exists()) return;
             var d = snap.data();
-
-            // ── Likes ──
-            var likes = d.likes || [];
-            thumbLbl.textContent = likes.length;
-            if (currentUser && likes.includes(currentUser.uid)) {
-                thumbBtn.classList.add('on');
-            } else {
-                thumbBtn.classList.remove('on');
-            }
-            // Float heart for ALL viewers when like count goes up
-            if (likes.length > _prevLikeCount) {
-                var heart2 = document.createElement('div');
-                heart2.className = 'float-heart';
-                heart2.innerHTML = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="hg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0f0f0f"/><stop offset="40%" stop-color="#626262"/><stop offset="100%" stop-color="#a6a6a6"/></linearGradient></defs><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="url(#hg2)" stroke="none"/></svg>';
-                var btnRect = thumbBtn.getBoundingClientRect();
-                var pinRect = pinContainer.getBoundingClientRect();
-                heart2.style.cssText = 'position:absolute;right:10px;bottom:' + (pinRect.bottom - btnRect.bottom + 30) + 'px;width:30px;height:30px;pointer-events:none;z-index:20;animation:floatHeart 0.9s ease-out forwards;';
-                pinContainer.appendChild(heart2);
-                thumbBtn.classList.remove('liked-pop'); void thumbBtn.offsetWidth; thumbBtn.classList.add('liked-pop');
-                setTimeout(function(){ heart2.remove(); }, 900);
-            }
-            _prevLikeCount = likes.length;
-
-            // ── Superlikes (same doc, no extra call) ──
-            var sl = d.superlikes || [];
-            _superlikeLbl.textContent = sl.length || '';
-            if (currentUser && sl.includes(currentUser.uid)) dislikeBtn.classList.add('on');
-            else dislikeBtn.classList.remove('on');
-            pinContainer.dataset.superlikeCount = sl.length;
-
-            // ── Comment dot (use commentCount field if present, else skip) ──
-            var cmtDot = cmtBtn ? cmtBtn.querySelector('.cmt-live-dot') : null;
-            if (cmtDot) {
-                var hasCmts = (d.commentCount && d.commentCount > 0) || false;
-                cmtDot.style.background  = hasCmts ? '#ff3b5c' : '#22c55e';
-                cmtDot.style.boxShadow   = hasCmts ? '0 0 7px rgba(255,59,92,0.95)' : '0 0 7px rgba(34,197,94,0.95)';
-            }
+            // Throttle DOM writes via RAF — if multiple updates fire rapidly
+            // we only apply the latest one per frame, preventing jank
+            if (_pendingUpdate) cancelAnimationFrame(_pendingUpdate);
+            _pendingUpdate = requestAnimationFrame(function() {
+                _pendingUpdate = null;
+                _applyUpdate(d);
+            });
         });
         pinContainer._unifiedUnsub = _unifiedUnsub;
     }
 
     function _detachUnified() {
+        if (_pendingUpdate) { cancelAnimationFrame(_pendingUpdate); _pendingUpdate = null; }
         if (_unifiedUnsub) { _unifiedUnsub(); _unifiedUnsub = null; pinContainer._unifiedUnsub = null; }
     }
 
@@ -6623,6 +6634,33 @@ init();
             });
         }
 
+        // ── Video src cache — keeps loaded src in memory so browser never re-downloads ──
+        // Once a video is loaded we store its URL here. If the browser evicts v.src
+        // (rare but happens on low-memory devices) we restore from this map, not from
+        // data-src, so no network request happens again.
+        var _srcCache = new Map(); // postId → url
+
+        function _ensureSrc(v, pin) {
+            var pid = pin.dataset.postId;
+            // Already has src — nothing to do
+            if (v.src && v.src !== window.location.href) return false;
+            // Try cache first (no network hit)
+            var cached = _srcCache.get(pid);
+            if (!cached) cached = v.dataset.savedSrc || v.dataset.src || null;
+            if (!cached) return false;
+            v.src = cached;
+            v.preload = 'auto';
+            v.load();
+            return true; // needed reload
+        }
+
+        function _cacheSrc(v, pin) {
+            var pid = pin.dataset.postId;
+            if (pid && v.src && v.src !== window.location.href) {
+                _srcCache.set(pid, v.src);
+            }
+        }
+
         var obs = new IntersectionObserver(function(entries) {
             entries.forEach(function(entry) {
                 var pin = entry.target;
@@ -6631,23 +6669,42 @@ init();
 
                 if (entry.isIntersecting && entry.intersectionRatio >= 0.85) {
                     // ── This pin is now fully visible ──
+                    var isNewPin = window._galleryCurrentPin !== pin;
 
                     // Hard stop the previous pin — no ghost audio ever
                     var prev = window._galleryCurrentPin;
                     if (prev && prev !== pin) {
                         prev.classList.add('leaving');
                         var pv = prev.querySelector('video');
-                        if (pv) { pv.pause(); pv.muted = true; }
+                        if (pv) {
+                            pv.pause();
+                            pv.muted = true;
+                            // Cache src before anything can clear it
+                            _cacheSrc(pv, prev);
+                        }
                         var _p = prev;
                         setTimeout(function() { _p.classList.remove('leaving'); }, 380);
                     }
                     window._galleryCurrentPin = pin;
 
-                    // Restore src if needed
-                    if (!v.src && v.dataset.savedSrc) { v.src = v.dataset.savedSrc; v.load(); }
-                    // Only reset to start when switching to a NEW pin — not on re-entry of same pin
-                    if (window._galleryCurrentPin !== pin) { v.currentTime = 0; }
-                    playActive(v);
+                    // Restore src from cache if needed — avoids re-download
+                    var needed = _ensureSrc(v, pin);
+                    // Cache it immediately once confirmed loaded
+                    _cacheSrc(v, pin);
+
+                    // Only reset to beginning when genuinely switching to a new pin
+                    // NOT when returning to a pin already in view (e.g. closing comments)
+                    if (isNewPin) { v.currentTime = 0; }
+
+                    // If src had to reload, wait for it — otherwise play immediately
+                    if (needed) {
+                        v.addEventListener('canplay', function onCp() {
+                            v.removeEventListener('canplay', onCp);
+                            playActive(v);
+                        }, { once: true });
+                    } else {
+                        playActive(v);
+                    }
 
                     pin.classList.add('entering');
                     setTimeout(function() { pin.classList.remove('entering'); }, 350);
@@ -6659,26 +6716,36 @@ init();
                     var pid = pin.dataset.postId;
                     if (pid && typeof trackPresence === 'function') trackPresence(pid);
 
-                    // Preload neighbours
+                    // Preload neighbours — only load src, don't play
                     var all = Array.prototype.slice.call(gallery.querySelectorAll('.pin-container'));
                     var idx = all.indexOf(pin);
                     [-1, 1].forEach(function(d) {
                         var nb = all[idx + d];
                         if (!nb) return;
                         var nv = nb.querySelector('video');
-                        if (nv && !nv.src && nv.dataset.savedSrc) {
-                            nv.src = nv.dataset.savedSrc; nv.muted = true; nv.preload = 'auto'; nv.load();
+                        if (!nv) return;
+                        // Use cache first, then data-src
+                        var nbPid = nb.dataset.postId;
+                        var nbSrc = _srcCache.get(nbPid) || nv.dataset.savedSrc || nv.dataset.src;
+                        if (nbSrc && (!nv.src || nv.src === window.location.href)) {
+                            nv.src = nbSrc;
+                            nv.muted = true;
+                            nv.preload = 'auto';
+                            nv.load();
+                            _srcCache.set(nbPid, nbSrc);
                         }
                     });
 
                 } else if (!entry.isIntersecting) {
-                    // ── Fully out of view — hard stop ──
+                    // ── Fully out of view — pause only, KEEP src so no reload on return ──
+                    _cacheSrc(v, pin); // save before any possible eviction
                     v.pause();
                     v.muted = true;
-                    v.currentTime = 0;
+                    // DO NOT clear v.src or set currentTime=0 here —
+                    // keeping src means instant resume with zero network cost
                 }
-                // Note: isIntersecting=true but ratio<0.85 means mid-scroll — do nothing,
-                // let CSS snap finish before we act
+                // isIntersecting=true but ratio<0.85 = mid-scroll — do nothing,
+                // let CSS snap finish before acting
             });
         }, { root: gallery, threshold: [0, 0.85] });
 
