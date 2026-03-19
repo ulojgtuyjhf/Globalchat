@@ -2882,14 +2882,34 @@ function createPinElement(postData, postId) {
     }
 
     buildViewerBadge([]);
-    try {
-        const viewersRef = ref(rtdb, 'viewers/' + postId);
-        onValue(viewersRef, (snap) => {
-            var viewers = [];
-            if (snap.exists()) snap.forEach(function(child) { viewers.push(child.val()); });
-            buildViewerBadge(viewers);
-        });
-    } catch(e) { buildViewerBadge([]); }
+    var _viewersRef = ref(rtdb, 'viewers/' + postId);
+    var _viewersUnsub = null;
+
+    function _attachViewers() {
+        if (_viewersUnsub) return;
+        try {
+            _viewersUnsub = onValue(_viewersRef, (snap) => {
+                var viewers = [];
+                if (snap.exists()) snap.forEach(function(child) { viewers.push(child.val()); });
+                buildViewerBadge(viewers);
+            });
+            pinContainer._viewersUnsub = _viewersUnsub;
+        } catch(e) { buildViewerBadge([]); }
+    }
+
+    function _detachViewers() {
+        if (_viewersUnsub) {
+            // Firebase RTDB off() requires the ref and callback — use import { off }
+            try { _viewersUnsub(); } catch(e){}
+            _viewersUnsub = null;
+            pinContainer._viewersUnsub = null;
+        }
+    }
+
+    // Share the same IntersectionObserver already set up for unified listener
+    // The _pinVisObs below handles both attach/detach for viewers and unified
+    pinContainer._attachViewers = _attachViewers;
+    pinContainer._detachViewers = _detachViewers;
 
     pinContainer.appendChild(watchLeft);
     pinContainer.appendChild(viewerBadge);
@@ -3056,32 +3076,74 @@ function createPinElement(postData, postId) {
     if (currentUser && initialLikes.includes(currentUser.uid)) {
         thumbBtn.classList.add('on');
     }
-    // ── Real-time like count listener — updates ALL devices ──
+    // ── UNIFIED real-time listener — likes + superlikes + comment dot in ONE call ──
+    // Stored on the pin so the IntersectionObserver can detach it when off-screen
     var _prevLikeCount = initialLikes.length;
-    onSnapshot(doc(db, 'recence', postId), function(snap) {
-        if (!snap.exists()) return;
-        var d = snap.data();
-        var likes = d.likes || [];
-        thumbLbl.textContent = likes.length;
-        if (currentUser && likes.includes(currentUser.uid)) {
-            thumbBtn.classList.add('on');
-        } else {
-            thumbBtn.classList.remove('on');
-        }
-        // Fire float heart for ALL viewers when like count goes up
-        if (likes.length > _prevLikeCount) {
-            var heart2 = document.createElement('div');
-            heart2.className = 'float-heart';
-            heart2.innerHTML = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="hg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0f0f0f"/><stop offset="40%" stop-color="#626262"/><stop offset="100%" stop-color="#a6a6a6"/></linearGradient></defs><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="url(#hg2)" stroke="none"/></svg>';
-            var btnRect = thumbBtn.getBoundingClientRect();
-            var pinRect = pinContainer.getBoundingClientRect();
-            heart2.style.cssText = 'position:absolute;right:10px;bottom:' + (pinRect.bottom - btnRect.bottom + 30) + 'px;width:30px;height:30px;pointer-events:none;z-index:20;animation:floatHeart 0.9s ease-out forwards;';
-            pinContainer.appendChild(heart2);
-            thumbBtn.classList.remove('liked-pop'); void thumbBtn.offsetWidth; thumbBtn.classList.add('liked-pop');
-            setTimeout(function(){ heart2.remove(); }, 900);
-        }
-        _prevLikeCount = likes.length;
-    });
+    var _unifiedUnsub = null;
+
+    function _attachUnified() {
+        if (_unifiedUnsub) return; // already attached
+        _unifiedUnsub = onSnapshot(doc(db, 'recence', postId), function(snap) {
+            if (!snap.exists()) return;
+            var d = snap.data();
+
+            // ── Likes ──
+            var likes = d.likes || [];
+            thumbLbl.textContent = likes.length;
+            if (currentUser && likes.includes(currentUser.uid)) {
+                thumbBtn.classList.add('on');
+            } else {
+                thumbBtn.classList.remove('on');
+            }
+            // Float heart for ALL viewers when like count goes up
+            if (likes.length > _prevLikeCount) {
+                var heart2 = document.createElement('div');
+                heart2.className = 'float-heart';
+                heart2.innerHTML = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="hg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0f0f0f"/><stop offset="40%" stop-color="#626262"/><stop offset="100%" stop-color="#a6a6a6"/></linearGradient></defs><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="url(#hg2)" stroke="none"/></svg>';
+                var btnRect = thumbBtn.getBoundingClientRect();
+                var pinRect = pinContainer.getBoundingClientRect();
+                heart2.style.cssText = 'position:absolute;right:10px;bottom:' + (pinRect.bottom - btnRect.bottom + 30) + 'px;width:30px;height:30px;pointer-events:none;z-index:20;animation:floatHeart 0.9s ease-out forwards;';
+                pinContainer.appendChild(heart2);
+                thumbBtn.classList.remove('liked-pop'); void thumbBtn.offsetWidth; thumbBtn.classList.add('liked-pop');
+                setTimeout(function(){ heart2.remove(); }, 900);
+            }
+            _prevLikeCount = likes.length;
+
+            // ── Superlikes (same doc, no extra call) ──
+            var sl = d.superlikes || [];
+            _superlikeLbl.textContent = sl.length || '';
+            if (currentUser && sl.includes(currentUser.uid)) dislikeBtn.classList.add('on');
+            else dislikeBtn.classList.remove('on');
+            pinContainer.dataset.superlikeCount = sl.length;
+
+            // ── Comment dot (use commentCount field if present, else skip) ──
+            var cmtDot = cmtBtn ? cmtBtn.querySelector('.cmt-live-dot') : null;
+            if (cmtDot) {
+                var hasCmts = (d.commentCount && d.commentCount > 0) || false;
+                cmtDot.style.background  = hasCmts ? '#ff3b5c' : '#22c55e';
+                cmtDot.style.boxShadow   = hasCmts ? '0 0 7px rgba(255,59,92,0.95)' : '0 0 7px rgba(34,197,94,0.95)';
+            }
+        });
+        pinContainer._unifiedUnsub = _unifiedUnsub;
+    }
+
+    function _detachUnified() {
+        if (_unifiedUnsub) { _unifiedUnsub(); _unifiedUnsub = null; pinContainer._unifiedUnsub = null; }
+    }
+
+    // ── Attach/detach based on pin visibility ──
+    var _pinVisObs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+                _attachUnified();
+                if (typeof pinContainer._attachViewers === 'function') pinContainer._attachViewers();
+            } else {
+                _detachUnified();
+                if (typeof pinContainer._detachViewers === 'function') pinContainer._detachViewers();
+            }
+        });
+    }, { threshold: 0.2 });
+    _pinVisObs.observe(pinContainer);
     thumbBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
         if (!currentUser) return;
@@ -3135,15 +3197,7 @@ function createPinElement(postData, postId) {
     _superlikeLbl.textContent = _initialSuperlikes.length || '';
     if (currentUser && _initialSuperlikes.includes(currentUser.uid)) dislikeBtn.classList.add('on');
 
-    onSnapshot(doc(db, 'recence', postId), function(snap) {
-        if (!snap.exists()) return;
-        var sl = snap.data().superlikes || [];
-        _superlikeLbl.textContent = sl.length || '';
-        if (currentUser && sl.includes(currentUser.uid)) dislikeBtn.classList.add('on');
-        else dislikeBtn.classList.remove('on');
-        // keep dataset in sync for Top navigation
-        pinContainer.dataset.superlikeCount = sl.length;
-    });
+    // superlike real-time updates handled by _unifiedUnsub above
 
     dislikeBtn.addEventListener('click', async function(e) {
         e.stopPropagation();
@@ -3228,19 +3282,7 @@ function createPinElement(postData, postId) {
         e.stopPropagation();
         openModal(postData, postId);
     });
-    // Real-time live dot — turns red the moment ANY comment exists
-    (function(_pid, _btn){
-        try {
-            onSnapshot(collection(db, 'recence', _pid, 'comments'), function(snap) {
-                var hasAny = !snap.empty;
-                var dot = _btn.querySelector('.cmt-live-dot');
-                if (dot) {
-                    dot.style.background = hasAny ? '#ff3b5c' : '#22c55e';
-                    dot.style.boxShadow = hasAny ? '0 0 7px rgba(255,59,92,0.95)' : '0 0 7px rgba(34,197,94,0.95)';
-                }
-            });
-        } catch(e){}
-    })(postId, cmtBtn);
+    // Comment dot handled inside _unifiedUnsub above (uses commentCount field on post doc)
     slideActions.appendChild(cmtBtn);
 
     // Share button
@@ -6603,7 +6645,8 @@ init();
 
                     // Restore src if needed
                     if (!v.src && v.dataset.savedSrc) { v.src = v.dataset.savedSrc; v.load(); }
-                    v.currentTime = 0;
+                    // Only reset to start when switching to a NEW pin — not on re-entry of same pin
+                    if (window._galleryCurrentPin !== pin) { v.currentTime = 0; }
                     playActive(v);
 
                     pin.classList.add('entering');
