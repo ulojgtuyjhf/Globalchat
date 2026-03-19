@@ -173,6 +173,12 @@ html::-webkit-scrollbar { display: none; }
     );
     pointer-events: none;
 }
+/* When gallery-item is moved into mini-player — kill the dark overlay */
+.gallery-item.in-mini-player::after {
+    display: none !important;
+    opacity: 0 !important;
+    background: none !important;
+}
 
 /* ─── VIDEO UPLOAD DATE ─── */
 .video-upload-date {
@@ -1142,7 +1148,8 @@ body.paused-view #mob-feed-tabs {
    TIKTOK-STYLE LIVE COMMENT SHEET
 ═══════════════════════════════════════ */
 .cs-overlay {
-    position: fixed; inset: 0;
+    position: fixed;
+    top: 30dvh; left: 0; right: 0; bottom: 0;
     background: rgba(0,0,0,0.5);
     z-index: 10003; opacity: 0; pointer-events: none;
     transition: opacity 0.3s ease;
@@ -1534,6 +1541,170 @@ body.paused-view #mob-feed-tabs {
 #desktop-sidebar  { display: none !important; }
 #desktop-feed     { display: none !important; }
 #desktop-comments { display: none !important; }
+
+/* ═══════════════════════════════════════════════════
+   COMMENTS OPEN — YouTube-style isolated mini-player
+   ═══════════════════════════════════════════════════ */
+
+/* Black backdrop — covers entire screen */
+#comments-video-backdrop {
+    position: fixed;
+    top: 30dvh; left: 0; right: 0; bottom: 0;
+    background: #000;
+    z-index: 9990;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.36s cubic-bezier(0.22,1,0.36,1);
+}
+body.comments-open #comments-video-backdrop { opacity: 1; }
+
+/* ── Mini-player: bright, clean YouTube-style ── */
+#comments-mini-player {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 30dvh;
+    z-index: 9997;
+    background: #000;
+    overflow: hidden;
+    transform: translateY(-100%);
+    transition: transform 0.44s cubic-bezier(0.22,1,0.36,1);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+body.comments-open #comments-mini-player {
+    transform: translateY(0);
+}
+
+/* Video — fully bright, full coverage, NO filters */
+#comments-mini-player video,
+#comments-mini-player video.lazy-load,
+#comments-mini-player video.loaded {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    opacity: 1 !important;
+    display: block !important;
+    z-index: 2 !important;
+    visibility: visible !important;
+    pointer-events: none !important;
+    filter: none !important;
+    background: #000 !important;
+}
+
+/* KILL every pseudo-element overlay that darkens video — high specificity */
+#comments-mini-player *::after,
+#comments-mini-player *::before,
+#comments-mini-player .gallery-item::after,
+#comments-mini-player .gallery-item::before,
+#comments-mini-player .pin-container::after,
+#comments-mini-player .pin-container::before {
+    display: none !important;
+    background: none !important;
+    content: '' !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* ── Bottom controls strip — flush to bottom edge, YouTube style ── */
+#cmp-progress-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    z-index: 25;
+    padding: 4px 12px 6px;
+    background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.18) 80%, transparent 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    pointer-events: auto;
+}
+
+/* Time display */
+#cmp-time-display {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font, sans-serif);
+    color: #fff;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+    letter-spacing: 0.03em;
+    pointer-events: none;
+    line-height: 1;
+}
+#cmp-time-current { color: #fff; }
+#cmp-time-total   { color: rgba(255,255,255,0.55); }
+
+/* Progress track */
+#cmp-progress-track {
+    position: relative;
+    width: 100%;
+    height: 3px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 3px;
+    cursor: pointer;
+    touch-action: none;
+}
+#cmp-progress-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 0%;
+    background: linear-gradient(90deg, #0f0f0f 0%, #626262 50%, #a6a6a6 100%);
+    border-radius: 4px;
+    pointer-events: none;
+    transition: width 0.18s linear;
+}
+#cmp-progress-thumb {
+    position: absolute;
+    top: 50%;
+    left: 0%;
+    transform: translate(-50%, -50%);
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #a6a6a6;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.7);
+    pointer-events: none;
+    transition: left 0.18s linear;
+}
+
+/* ── Centre play/pause button — always visible when paused, fades when playing ── */
+#cmp-pause-icon {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -60%) scale(0.85);
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 2px solid rgba(255,255,255,0.25);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 22;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+#cmp-pause-icon.show {
+    opacity: 1;
+    transform: translate(-50%, -60%) scale(1);
+}
+#cmp-pause-icon svg { width: 24px; height: 24px; fill: #fff; }
+#cmp-pause-icon svg rect { margin-left: 0; }
+
+/* Comment sheet — 70dvh (leaves room for mini-player) */
+body.comments-open .comment-sheet {
+    height: 70dvh !important;
+}
+
+/* Hide bottom nav & feed tabs */
+body.comments-open #bottom-nav,
+body.comments-open #mob-feed-tabs {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.26s ease !important;
+}
 </style>
 </head>
 <body>
@@ -1686,6 +1857,31 @@ if (window === window.top && !window.matchMedia('(max-width: 899px)').matches) {
 
     <div class="gallery" id="gallery">
         <!-- Content will be loaded dynamically -->
+    </div>
+
+    <!-- Black backdrop covers everything when comments open -->
+    <div id="comments-video-backdrop"></div>
+    <!-- Mini-player: real video moved here when comments open -->
+    <div id="comments-mini-player">
+        <!-- Pause/play button — always visible in center -->
+        <div id="cmp-pause-icon">
+            <svg id="cmp-icon-svg" viewBox="0 0 24 24">
+                <rect x="5" y="3" width="4" height="18" rx="1"/>
+                <rect x="15" y="3" width="4" height="18" rx="1"/>
+            </svg>
+        </div>
+        <!-- Dedicated progress bar + time -->
+        <div id="cmp-progress-bar">
+            <div id="cmp-time-display">
+                <span id="cmp-time-current">0:00</span>
+                <span style="color:rgba(255,255,255,0.5)"> / </span>
+                <span id="cmp-time-total">0:00</span>
+            </div>
+            <div id="cmp-progress-track">
+                <div id="cmp-progress-fill"></div>
+                <div id="cmp-progress-thumb"></div>
+            </div>
+        </div>
     </div>
 
     <!-- Comment sheet overlay -->
@@ -3384,6 +3580,16 @@ function createMediaElement(mediaItem) {
         video.playsInline = true;
         video.loop = true;
         video.autoplay = false; // observer handles play after src is set
+
+        // Apply saved video position (object-position) — supports multiple field names
+        var _vidPos = mediaItem.objectPosition
+            || (mediaItem.x != null && mediaItem.y != null ? (mediaItem.x + '% ' + mediaItem.y + '%') : null)
+            || mediaItem.positionX != null ? (mediaItem.positionX + '% ' + (mediaItem.positionY || 50) + '%') : null
+            || null;
+        if (_vidPos) {
+            video.style.objectPosition = _vidPos;
+            video.dataset.objectPosition = _vidPos; // store so mini-player clone can copy it
+        }
 
         video.onerror = function() {
             if (this.parentNode && this.parentNode.parentNode) {
@@ -6779,12 +6985,240 @@ init();
             window._galleryCurrentPin = firstPin;
         }, 500);
 
-        // ── Comment sheet opens: float video up ──
+        // ── Comment sheet: YouTube-style mini-player (real video, no clone) ──
         var commentSheet = document.getElementById('commentSheet');
         if (commentSheet) {
+            var _cmpVid       = null;
+            var _cmpParent    = null;
+            var _cmpNext      = null;
+            var _cmpProgWrap  = null;
+            var _cmpOrigVid   = null;
+            var _cmpPaused    = false;
+
+            var miniPlayer = document.getElementById('comments-mini-player');
+            var pauseIcon  = document.getElementById('cmp-pause-icon');
+            var pauseSvg   = document.getElementById('cmp-icon-svg');
+
+            var PAUSE_BARS = '<rect x="5" y="3" width="4" height="18" rx="1"/><rect x="15" y="3" width="4" height="18" rx="1"/>';
+            var PLAY_TRI   = '<polygon points="6,3 20,12 6,21"/>';
+
+            function setCmpIcon(playing) {
+                if (pauseSvg) pauseSvg.innerHTML = playing ? PAUSE_BARS : PLAY_TRI;
+                if (pauseIcon) {
+                    pauseIcon.classList.add('show');
+                    clearTimeout(pauseIcon._t);
+                    if (playing) {
+                        // auto-hide after 1s when playing
+                        pauseIcon._t = setTimeout(function(){ pauseIcon.classList.remove('show'); }, 1000);
+                    }
+                }
+            }
+
+            // Tap mini-player = toggle pause/play
+            if (miniPlayer) {
+                miniPlayer.addEventListener('click', function(e) {
+                    // ignore taps on the progress bar area
+                    if (e.target && e.target.closest && e.target.closest('#cmp-progress-bar')) return;
+                    if (!_cmpVid) return;
+                    if (_cmpVid.paused) {
+                        _cmpVid.play().catch(function(){ _cmpVid.muted=true; _cmpVid.play().catch(function(){}); });
+                        _cmpPaused = false;
+                        setCmpIcon(true);
+                        _cmpStartRaf && _cmpStartRaf();
+                    } else {
+                        _cmpVid.pause();
+                        _cmpPaused = true;
+                        setCmpIcon(false);
+                        _cmpStopRaf && _cmpStopRaf();
+                    }
+                });
+            }
+
+            // ── Dedicated progress bar elements ──
+            var cmpProgressTrack = document.getElementById('cmp-progress-track');
+            var cmpProgressFill  = document.getElementById('cmp-progress-fill');
+            var cmpProgressThumb = document.getElementById('cmp-progress-thumb');
+            var cmpTimeCurrent   = document.getElementById('cmp-time-current');
+            var cmpTimeTotal     = document.getElementById('cmp-time-total');
+            var _cmpRafId        = null;
+            var _cmpScrubbing    = false;
+
+            function _fmtTime(s) {
+                if (!isFinite(s) || s < 0) return '0:00';
+                var m = Math.floor(s / 60);
+                var sec = Math.floor(s % 60);
+                return m + ':' + (sec < 10 ? '0' : '') + sec;
+            }
+
+            function _cmpUpdateBar() {
+                if (!_cmpVid || _cmpScrubbing) return;
+                var dur = _cmpVid.duration;
+                var cur = _cmpVid.currentTime;
+                var pct = (dur && isFinite(dur)) ? (cur / dur) * 100 : 0;
+                if (cmpProgressFill)  cmpProgressFill.style.width  = pct + '%';
+                if (cmpProgressThumb) cmpProgressThumb.style.left  = pct + '%';
+                if (cmpTimeCurrent) cmpTimeCurrent.textContent = _fmtTime(cur);
+                if (cmpTimeTotal && dur && isFinite(dur)) cmpTimeTotal.textContent = _fmtTime(dur);
+            }
+
+            function _cmpStartRaf() {
+                if (_cmpRafId) return;
+                function _tick() {
+                    _cmpUpdateBar();
+                    if (_cmpVid && !_cmpVid.paused && !_cmpVid.ended) {
+                        _cmpRafId = requestAnimationFrame(_tick);
+                    } else {
+                        _cmpRafId = null;
+                    }
+                }
+                _cmpRafId = requestAnimationFrame(_tick);
+            }
+
+            function _cmpStopRaf() {
+                if (_cmpRafId) { cancelAnimationFrame(_cmpRafId); _cmpRafId = null; }
+            }
+
+            // Scrub on progress track
+            if (cmpProgressTrack) {
+                function _cmpSeek(e) {
+                    if (!_cmpVid) return;
+                    var rect = cmpProgressTrack.getBoundingClientRect();
+                    var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    var ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+                    var dur = _cmpVid.duration;
+                    if (dur && isFinite(dur)) {
+                        _cmpVid.currentTime = ratio * dur;
+                        if (cmpProgressFill)  cmpProgressFill.style.width = (ratio * 100) + '%';
+                        if (cmpProgressThumb) cmpProgressThumb.style.left  = (ratio * 100) + '%';
+                        if (cmpTimeCurrent) cmpTimeCurrent.textContent = _fmtTime(_cmpVid.currentTime);
+                    }
+                }
+                cmpProgressTrack.addEventListener('mousedown',  function(e){ _cmpScrubbing=true; _cmpSeek(e); });
+                cmpProgressTrack.addEventListener('touchstart', function(e){ _cmpScrubbing=true; _cmpSeek(e); }, { passive: true });
+                document.addEventListener('mousemove',  function(e){ if(_cmpScrubbing) _cmpSeek(e); });
+                document.addEventListener('touchmove',  function(e){ if(_cmpScrubbing) _cmpSeek(e); }, { passive: true });
+                document.addEventListener('mouseup',  function(){ _cmpScrubbing=false; _cmpStartRaf(); });
+                document.addEventListener('touchend', function(){ _cmpScrubbing=false; _cmpStartRaf(); });
+            }
+
             new MutationObserver(function() {
-                gallery.style.transition = 'bottom 0.44s cubic-bezier(0.22,1,0.36,1)';
-                gallery.style.bottom = commentSheet.classList.contains('open') ? '74dvh' : '0';
+                var isOpen = commentSheet.classList.contains('open');
+
+                if (isOpen) {
+                    // ── OPEN: create a fresh clone video — no DOM fighting, no opacity wars ──
+                    var activePin = window._galleryCurrentPin
+                        || gallery.querySelector('.pin-container');
+                    var origVid = activePin ? activePin.querySelector('video') : null;
+                    if (!origVid) { document.body.classList.add('comments-open'); return; }
+
+                    // Get the src from the original (may be in src or data-src)
+                    var vidSrc = origVid.src || origVid.dataset.src || '';
+
+                    // Create a brand new video element — clean slate, no class baggage
+                    var clone = document.createElement('video');
+                    clone.src         = vidSrc;
+                    clone.muted       = false;
+                    clone.playsInline = true;
+                    clone.loop        = true;
+                    clone.controls    = false;
+                    clone.autoplay    = false;
+                    clone.preload     = 'auto';
+                    clone.id          = 'cmp-clone-video';
+                    // Sync to same position as original
+                    clone.currentTime = origVid.currentTime || 0;
+                    // Fully bright, covers mini-player
+                    clone.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;' +
+                        'object-fit:cover;opacity:1;display:block;z-index:2;' +
+                        'visibility:visible;filter:none;background:#000;';
+
+                    // Pause the original behind the scenes
+                    origVid.pause();
+
+                    // Capture current frame as poster so mini-player shows video instantly (no black flash)
+                    try {
+                        var snapCanvas = document.createElement('canvas');
+                        snapCanvas.width  = origVid.videoWidth  || 640;
+                        snapCanvas.height = origVid.videoHeight || 1138;
+                        var snapCtx = snapCanvas.getContext('2d');
+                        if (snapCtx) {
+                            snapCtx.drawImage(origVid, 0, 0, snapCanvas.width, snapCanvas.height);
+                            clone.poster = snapCanvas.toDataURL('image/jpeg', 0.85);
+                        }
+                    } catch(e) { /* cross-origin frames will throw — safe to ignore */ }
+
+                    // Store ref so we can clean up on close
+                    _cmpVid = clone;
+                    _cmpParent = origVid.parentNode;
+                    _cmpOrigVid = origVid;
+
+                    // Insert clone into mini-player
+                    miniPlayer.insertBefore(clone, miniPlayer.firstChild);
+
+                    // Reset progress bar
+                    if (cmpProgressFill)  cmpProgressFill.style.width = '0%';
+                    if (cmpProgressThumb) cmpProgressThumb.style.left  = '0%';
+                    if (cmpTimeCurrent) cmpTimeCurrent.textContent = '0:00';
+                    if (cmpTimeTotal)   cmpTimeTotal.textContent   = '0:00';
+
+                    _cmpPaused = false;
+                    if (pauseIcon) pauseIcon.classList.remove('show');
+                    document.body.classList.add('comments-open');
+
+                    // Play clone
+                    clone.load();
+                    requestAnimationFrame(function() {
+                        setTimeout(function() {
+                            if (!_cmpVid) return;
+                            var playP = _cmpVid.play();
+                            if (playP && typeof playP.catch === 'function') {
+                                playP.catch(function() {
+                                    _cmpVid.muted = true;
+                                    _cmpVid.play().catch(function(){});
+                                });
+                            }
+                            _cmpStopRaf();
+                            _cmpStartRaf();
+                            if (_cmpVid.readyState >= 1 && cmpTimeTotal) {
+                                cmpTimeTotal.textContent = _fmtTime(_cmpVid.duration);
+                            } else {
+                                _cmpVid.addEventListener('loadedmetadata', function onMeta() {
+                                    if (cmpTimeTotal) cmpTimeTotal.textContent = _fmtTime(_cmpVid ? _cmpVid.duration : 0);
+                                    _cmpVid && _cmpVid.removeEventListener('loadedmetadata', onMeta);
+                                });
+                            }
+                        }, 60);
+                    });
+
+                } else {
+                    // ── CLOSE: remove clone, resume original ──
+                    _cmpStopRaf();
+                    document.body.classList.remove('comments-open');
+                    _cmpPaused = false;
+                    if (pauseIcon) pauseIcon.classList.remove('show');
+
+                    setTimeout(function() {
+                        // Remove the clone video from mini-player
+                        var existingClone = document.getElementById('cmp-clone-video');
+                        if (existingClone) {
+                            existingClone.pause();
+                            existingClone.src = '';
+                            existingClone.remove();
+                        }
+
+                        // Resume the original video in the pin
+                        var orig = _cmpOrigVid;
+                        if (orig) {
+                            orig.muted = !window._userInteracted;
+                            var rp = orig.play();
+                            if (rp && typeof rp.catch === 'function') {
+                                rp.catch(function(){ orig.muted = true; orig.play().catch(function(){}); });
+                            }
+                        }
+
+                        _cmpVid = null; _cmpParent = null; _cmpNext = null;
+                        _cmpProgWrap = null; _cmpOrigVid = null;
+                    }, 460);
+                }
             }).observe(commentSheet, { attributes: true, attributeFilter: ['class'] });
         }
     })();
@@ -6799,6 +7233,7 @@ init();
         function close() {
             if (sh) sh.classList.remove('open');
             if (ov) ov.classList.remove('open');
+            // MutationObserver on commentSheet handles the restore + body class removal
         }
         if (btn) btn.addEventListener('click', close);
         if (ov)  ov.addEventListener('click', close);
