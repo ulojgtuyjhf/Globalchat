@@ -6587,7 +6587,359 @@ init();
     }
     if (section === 'Profile') {
       hideAll();
-      showDsIframePanel('profile.html');
+
+      var profPanel = document.getElementById('ds-profile-panel');
+      if (!profPanel) {
+        // ── Build panel once ──
+        profPanel = document.createElement('div');
+        profPanel.id = 'ds-profile-panel';
+        profPanel.style.cssText = 'flex:1;height:calc(100vh - 24px);display:flex;gap:12px;overflow:hidden;';
+
+        var profCol = document.createElement('div');
+        profCol.style.cssText = 'flex:1;background:#fff;border-radius:20px;box-shadow:0 2px 20px rgba(0,0,0,0.07);display:flex;flex-direction:column;overflow:hidden;';
+
+        // ── Header ──
+        var profHead = document.createElement('div');
+        profHead.id = 'dp-head';
+        profHead.style.cssText = 'padding:20px 20px 0;flex-shrink:0;';
+
+        // Top row: back + title
+        var profTopRow = document.createElement('div');
+        profTopRow.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:16px;';
+        var profBackBtn = document.createElement('button');
+        profBackBtn.style.cssText = 'background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;transition:background 0.15s;flex-shrink:0;';
+        profBackBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+        profBackBtn.addEventListener('mouseenter', function(){ profBackBtn.style.background='#f0f0f0'; });
+        profBackBtn.addEventListener('mouseleave', function(){ profBackBtn.style.background='none'; });
+        profBackBtn.addEventListener('click', function(){ showDesktopSection('Home'); });
+        var profTitleEl = document.createElement('span');
+        profTitleEl.style.cssText = 'font-size:20px;font-weight:900;color:#111;font-family:var(--font);letter-spacing:-0.03em;flex:1;';
+        profTitleEl.textContent = 'Profile';
+        profTopRow.appendChild(profBackBtn);
+        profTopRow.appendChild(profTitleEl);
+
+        // Avatar + info row
+        var profInfoRow = document.createElement('div');
+        profInfoRow.style.cssText = 'display:flex;align-items:center;gap:14px;margin-bottom:16px;';
+
+        var profAv = document.createElement('div');
+        profAv.id = 'dp-avatar';
+        profAv.style.cssText = 'width:56px;height:56px;border-radius:50%;background:#555;flex-shrink:0;border:2.5px solid #f0f0f0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff;';
+
+        var profMeta = document.createElement('div');
+        profMeta.style.cssText = 'flex:1;min-width:0;';
+
+        var profName = document.createElement('div');
+        profName.id = 'dp-name';
+        profName.style.cssText = 'font-size:16px;font-weight:900;color:#111;font-family:var(--font);letter-spacing:-0.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        profName.textContent = 'Loading...';
+
+        var profHandle = document.createElement('div');
+        profHandle.id = 'dp-handle';
+        profHandle.style.cssText = 'font-size:12px;color:#aaa;font-weight:600;font-family:var(--font);margin-top:1px;';
+
+        var profStats = document.createElement('div');
+        profStats.id = 'dp-stats';
+        profStats.style.cssText = 'display:flex;gap:16px;margin-top:8px;';
+
+        profMeta.appendChild(profName);
+        profMeta.appendChild(profHandle);
+        profMeta.appendChild(profStats);
+        profInfoRow.appendChild(profAv);
+        profInfoRow.appendChild(profMeta);
+
+        // Tabs
+        var profTabs = document.createElement('div');
+        profTabs.style.cssText = 'display:flex;border-bottom:1px solid #f0f0f0;gap:0;';
+        var _profTabDefs = [
+          { id:'dp-tab-uploaded', label:'Uploaded', key:'uploaded' },
+          { id:'dp-tab-liked',    label:'Liked',    key:'liked'    },
+          { id:'dp-tab-superliked', label:'Super Liked', key:'superliked' }
+        ];
+        _profTabDefs.forEach(function(td) {
+          var tb = document.createElement('button');
+          tb.id = td.id;
+          tb.dataset.key = td.key;
+          tb.style.cssText = 'flex:1;padding:10px 6px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:700;color:#aaa;font-family:var(--font);letter-spacing:0.01em;border-bottom:2.5px solid transparent;transition:all 0.15s;';
+          tb.textContent = td.label;
+          tb.addEventListener('click', function() {
+            profTabs.querySelectorAll('button').forEach(function(b){
+              b.style.borderBottomColor='transparent';
+              b.style.color='#aaa';
+            });
+            tb.style.borderBottomColor='#111';
+            tb.style.color='#111';
+            loadProfileTab(td.key);
+          });
+          profTabs.appendChild(tb);
+        });
+
+        profHead.appendChild(profTopRow);
+        profHead.appendChild(profInfoRow);
+        profHead.appendChild(profTabs);
+
+        // Grid scroll area
+        var profGrid = document.createElement('div');
+        profGrid.id = 'dp-grid';
+        profGrid.style.cssText = 'flex:1;overflow-y:auto;padding:8px 6px 20px;column-count:3;column-gap:5px;scrollbar-width:none;';
+
+        profCol.appendChild(profHead);
+        profCol.appendChild(profGrid);
+        profPanel.appendChild(profCol);
+        document.getElementById('ds-main-area').appendChild(profPanel);
+
+        // ── Profile viewer (reuses desktop-feed like Saved) ──
+        var _dpvObs = null;
+        var _dpvCards = [];
+        var _dpvPosts = [];
+
+        function closeDpViewer() {
+          if (_dpvObs) { _dpvObs.disconnect(); _dpvObs = null; }
+          _dpvCards = [];
+          var feed = document.getElementById('desktop-feed');
+          if (feed) {
+            feed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
+            feed.innerHTML = '';
+            if (window._allDesktopCards && window._allDesktopCards.length) {
+              window._allDesktopCards.forEach(function(c){ feed.appendChild(c); });
+            }
+          }
+          dpvBackBtn.style.display = 'none';
+          profPanel.style.display = 'flex';
+          var feedEl = document.getElementById('desktop-feed');
+          if (feedEl) feedEl.style.display = 'none';
+          var cmtEl = document.getElementById('desktop-comments');
+          if (cmtEl) cmtEl.style.display = 'none';
+        }
+
+        var dpvBackBtn = document.createElement('button');
+        dpvBackBtn.id = 'dpv-back';
+        dpvBackBtn.style.cssText = 'position:sticky;top:14px;left:14px;z-index:50;width:36px;height:36px;border-radius:50%;background:var(--brand-gradient);border:none;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.3);transition:transform 0.15s;margin:14px 0 0 14px;flex-shrink:0;';
+        dpvBackBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+        dpvBackBtn.onmouseenter = function(){ dpvBackBtn.style.transform='scale(1.1)'; };
+        dpvBackBtn.onmouseleave = function(){ dpvBackBtn.style.transform='scale(1)'; };
+        dpvBackBtn.addEventListener('click', closeDpViewer);
+        var _dpFeedEl = document.getElementById('desktop-feed');
+        if (_dpFeedEl) _dpFeedEl.appendChild(dpvBackBtn);
+
+        window._openDpVideo = function(clickedPost, postsArr) {
+          _dpvPosts = postsArr || [];
+          if (_dpvObs) { _dpvObs.disconnect(); _dpvObs = null; }
+          _dpvCards = [];
+          var feed = document.getElementById('desktop-feed');
+          var cmt  = document.getElementById('desktop-comments');
+          if (!feed) return;
+          feed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
+          feed.innerHTML = '';
+          var buildCard = window._buildDesktopCard;
+          if (!buildCard) return;
+
+          dpvBackBtn.style.display = 'flex';
+          feed.appendChild(dpvBackBtn);
+
+          _dpvPosts.forEach(function(p) {
+            if (!p.media || !p.media[0] || !p.media[0].url) return;
+            var card = buildCard(p, p._id || '');
+            if (!card) return;
+            card._postData = p;
+            _dpvCards.push(card);
+            feed.appendChild(card);
+          });
+          if (!_dpvCards.length) return;
+
+          profPanel.style.display = 'none';
+          feed.style.display = '';
+          if (cmt) { cmt.style.display = ''; }
+
+          var startIdx = Math.max(0, _dpvPosts
+            .filter(function(q){ return q.media&&q.media[0]&&q.media[0].url; })
+            .findIndex(function(q){ return q._id === (clickedPost._id||''); }));
+          var targetCard = _dpvCards[startIdx] || _dpvCards[0];
+          if (targetCard) feed.scrollTop = targetCard.offsetTop;
+
+          _dpvObs = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+              var card = entry.target;
+              var vid  = card._video || card.querySelector('video');
+              if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+                _dpvCards.forEach(function(c){ c.classList.remove('active'); });
+                card.classList.add('active');
+                if (vid) {
+                  vid.muted = false; vid.currentTime = 0;
+                  vid.play().catch(function(){ vid.muted=true; vid.play().catch(function(){}); });
+                }
+                var pid = card.dataset.postId;
+                if (pid && typeof trackPresence === 'function') trackPresence(pid);
+                if (pid && card._postData && typeof window._openDesktopComments === 'function') {
+                  window._openDesktopComments(card._postData, pid);
+                }
+              } else {
+                card.classList.remove('active');
+                if (vid) vid.pause();
+              }
+            });
+          }, { root: feed, threshold: 0.55 });
+          _dpvCards.forEach(function(c){ _dpvObs.observe(c); });
+
+          var _na = document.getElementById('desktopNavArrows');
+          if (!_na) { if (typeof injectDesktopNavArrows === 'function') injectDesktopNavArrows(); _na = document.getElementById('desktopNavArrows'); }
+          if (_na) _na.style.display = 'flex';
+          var _dnUp = document.getElementById('dnUp');
+          var _dnDown = document.getElementById('dnDown');
+          if (_dnUp)   _dnUp.onclick   = function(){ feed.scrollBy({ top: -window.innerHeight, behavior:'smooth' }); };
+          if (_dnDown) _dnDown.onclick = function(){ feed.scrollBy({ top:  window.innerHeight, behavior:'smooth' }); };
+        };
+
+        // ── Grid builder ──
+        var _dpRatios = [1, 1, 1.35, 0.75, 1.2, 0.85, 1, 1.1, 0.9, 1.25];
+        function buildProfileGrid(posts) {
+          var grid = document.getElementById('dp-grid');
+          if (!grid) return;
+          grid.innerHTML = '';
+          if (!posts.length) {
+            grid.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Nothing here yet</div>';
+            return;
+          }
+          posts.forEach(function(post, idx) {
+            var m = post.media && post.media[0];
+            if (!m || !m.url) return;
+            var ratio = _dpRatios[idx % _dpRatios.length];
+            var cell = document.createElement('div');
+            cell.className = 'liked-cell';
+            var vid2 = document.createElement('video');
+            vid2.src = m.url; vid2.muted=true; vid2.playsInline=true; vid2.preload='metadata';
+            vid2.style.cssText = 'width:100%;aspect-ratio:9/'+(16*ratio).toFixed(1)+';object-fit:cover;display:block;pointer-events:none;';
+            vid2.addEventListener('loadedmetadata', function(){ vid2.currentTime=0.01; }, {once:true});
+            vid2.addEventListener('loadedmetadata', function(){
+              var dur=Math.round(vid2.duration||0);
+              if(dur>0){var db3=document.createElement('div');db3.className='liked-cell-dur';db3.textContent=Math.floor(dur/60)+':'+(dur%60<10?'0':'')+(dur%60);cell.appendChild(db3);}
+            });
+            var ov = document.createElement('div'); ov.className='liked-cell-overlay';
+            var nd = document.createElement('div'); nd.className='liked-cell-name';
+            nd.textContent = '@'+(post.name||post.userName||'creator');
+            ov.appendChild(nd);
+            cell.appendChild(vid2); cell.appendChild(ov);
+            cell.addEventListener('mouseenter', function(){ cell.style.transform='scale(1.03)'; });
+            cell.addEventListener('mouseleave', function(){ cell.style.transform='scale(1)'; });
+            cell.addEventListener('click', function(){ window._openDpVideo(post, posts); });
+            cell.style.opacity='0'; cell.style.transform='translateY(12px) scale(0.97)';
+            grid.appendChild(cell);
+            setTimeout(function(){ cell.style.transition='opacity 0.3s ease,transform 0.3s cubic-bezier(0.34,1.56,0.64,1)'; cell.style.opacity='1'; cell.style.transform='translateY(0) scale(1)'; }, 40+idx*50);
+          });
+        }
+
+        // ── Load a tab ──
+        var _dpTabCache = {};
+        profPanel._dpTabCacheRef = _dpTabCache;
+        function loadProfileTab(key) {
+          var grid = document.getElementById('dp-grid');
+          if (!grid) return;
+          if (_dpTabCache[key]) { buildProfileGrid(_dpTabCache[key]); return; }
+          grid.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Loading...</div>';
+          var db6 = window._fbDb; var fns6 = window._fbFirestoreFns;
+          var user6 = window._currentUser;
+          if (!db6 || !fns6 || !user6) {
+            grid.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Sign in to view</div>';
+            return;
+          }
+          var q6;
+          if (key === 'uploaded') {
+            q6 = fns6.query(fns6.collection(db6,'recence'), fns6.where('userId','==',user6.uid), fns6.orderBy('timestamp','desc'), fns6.limit(60));
+          } else if (key === 'liked') {
+            q6 = fns6.query(fns6.collection(db6,'recence'), fns6.where('likes','array-contains',user6.uid), fns6.orderBy('timestamp','desc'), fns6.limit(60));
+          } else {
+            q6 = fns6.query(fns6.collection(db6,'recence'), fns6.where('superlikes','array-contains',user6.uid), fns6.orderBy('timestamp','desc'), fns6.limit(60));
+          }
+          fns6.getDocs(q6).then(function(snap) {
+            var posts = [];
+            snap.forEach(function(d){ var p=d.data(); p._id=d.id; posts.push(p); });
+            _dpTabCache[key] = posts;
+            buildProfileGrid(posts);
+          }).catch(function(e){
+            console.warn('profile tab fetch:', e);
+            grid.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Could not load — check Firestore index</div>';
+          });
+        }
+
+        // Store loadProfileTab on panel for re-use
+        profPanel._loadTab = loadProfileTab;
+
+        // Initial tab — Uploaded active
+        setTimeout(function() {
+          var firstTab = document.getElementById('dp-tab-uploaded');
+          if (firstTab) {
+            firstTab.style.borderBottomColor = '#111';
+            firstTab.style.color = '#111';
+          }
+          loadProfileTab('uploaded');
+        }, 0);
+      }
+
+      // ── Populate avatar + name from currentUser each time we open ──
+      var user7 = window._currentUser;
+      if (user7) {
+        var dpAv = document.getElementById('dp-avatar');
+        var dpNm = document.getElementById('dp-name');
+        var dpHd = document.getElementById('dp-handle');
+        var dpSt = document.getElementById('dp-stats');
+        if (dpNm) dpNm.textContent = user7.displayName || 'You';
+        if (dpHd) dpHd.textContent = '@' + (user7.displayName || '').toLowerCase().replace(/\s+/g,'_');
+        if (dpAv) {
+          dpAv.innerHTML = '';
+          var _hue = ((user7.displayName||'U')[0].toUpperCase().charCodeAt(0)*37)%360;
+          if (user7.photoURL && !user7.photoURL.includes('default_profile')) {
+            var _avImg = document.createElement('img');
+            _avImg.src = user7.photoURL;
+            _avImg.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
+            dpAv.appendChild(_avImg);
+          } else {
+            dpAv.textContent = (user7.displayName||'U')[0].toUpperCase();
+            dpAv.style.background = 'hsl('+_hue+',50%,42%)';
+          }
+        }
+        // Load counts async
+        if (dpSt) {
+          dpSt.innerHTML = '<span style="font-size:11px;color:#ccc;font-family:var(--font);">Loading stats...</span>';
+          var db7=window._fbDb; var fns7=window._fbFirestoreFns;
+          if (db7 && fns7) {
+            Promise.all([
+              fns7.getDocs(fns7.query(fns7.collection(db7,'recence'), fns7.where('userId','==',user7.uid), fns7.limit(60))),
+              fns7.getDocs(fns7.query(fns7.collection(db7,'follows'), fns7.where('followedUserId','==',user7.uid), fns7.limit(200))),
+              fns7.getDocs(fns7.query(fns7.collection(db7,'follows'), fns7.where('followerUserId','==',user7.uid), fns7.limit(200)))
+            ]).then(function(results) {
+              var uploadCount = results[0].size;
+              var followerCount = results[1].size;
+              var followingCount = results[2].size;
+              function statBlock(n, label) {
+                return '<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-size:15px;font-weight:900;color:#111;font-family:var(--font);">'+n+'</span><span style="font-size:10px;color:#aaa;font-weight:600;font-family:var(--font);">'+label+'</span></div>';
+              }
+              if (dpSt) dpSt.innerHTML = statBlock(uploadCount,'Videos') + statBlock(followerCount,'Followers') + statBlock(followingCount,'Following');
+            }).catch(function(){ if(dpSt) dpSt.innerHTML=''; });
+          }
+        }
+        // Reset tab cache so fresh data loads each visit
+        if (profPanel._dpTabCacheRef) {
+          Object.keys(profPanel._dpTabCacheRef).forEach(function(k){ delete profPanel._dpTabCacheRef[k]; });
+        }
+      }
+
+      // Force show panel, hide feed/comments
+      profPanel.style.display = 'flex';
+      var _dpFeed = document.getElementById('desktop-feed');
+      var _dpCmt  = document.getElementById('desktop-comments');
+      if (_dpFeed) _dpFeed.style.display = 'none';
+      if (_dpCmt)  _dpCmt.style.display  = 'none';
+
+      // Always reload first tab on open (fresh data)
+      var _firstTab = document.getElementById('dp-tab-uploaded');
+      if (_firstTab && profPanel._loadTab) {
+        profPanel.querySelectorAll('[data-key]').forEach(function(b){
+          b.style.borderBottomColor='transparent'; b.style.color='#aaa';
+        });
+        _firstTab.style.borderBottomColor='#111';
+        _firstTab.style.color='#111';
+        profPanel._loadTab('uploaded');
+      }
       return;
     }
   }
