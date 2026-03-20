@@ -7134,26 +7134,27 @@ init();
                     _cmpParent  = origVid.parentNode;
                     _cmpNext    = origVid.nextSibling;
 
+                    // Save play state BEFORE moving — browsers pause video on DOM move
+                    var _wasPlaying = !origVid.paused;
+
                     // Style to fill mini-player
                     origVid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:1;display:block;z-index:2;visibility:visible;filter:none;';
                     origVid.setAttribute('data-cmp-moved', '1');
 
-                    // Physically move video into mini-player — keeps playing with sound
+                    // Physically move video into mini-player
                     miniPlayer.insertBefore(origVid, miniPlayer.firstChild);
                     _cmpVid    = origVid;
                     _cmpPaused = false;
                     if (pauseIcon) pauseIcon.classList.remove('show');
                     document.body.classList.add('comments-open');
 
-                    // Preserve current sound state — don't change muted status
-                    // (user may have it muted or unmuted, we respect that)
-                    if (origVid.paused) {
+                    // If it was playing before, resume it — DOM move may have paused it
+                    if (_wasPlaying) {
                         origVid.play().catch(function() { origVid.muted = true; origVid.play().catch(function(){}); });
                     }
-                    // Also hide controls bar on open — user must tap to see them
-                    hideCmpControls();
+                    hideCmpControls(); // controls hidden until user taps
 
-                    // Start progress bar
+                    // Start progress bar RAF (tracks time even if playing)
                     _cmpStopRaf();
                     _cmpStartRaf();
                     if (origVid.duration && isFinite(origVid.duration) && cmpTimeTotal) {
