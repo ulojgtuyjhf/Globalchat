@@ -1724,6 +1724,15 @@ body.comments-open #mob-feed-tabs {
     pointer-events: none !important;
     transition: opacity 0.26s ease !important;
 }
+
+/* ─── COPY PROTECTION ─── */
+body, * {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+}
+
 </style>
 </head>
 <body>
@@ -2729,6 +2738,51 @@ function _setupScrollSentinel() {
     }
 }
 
+// ── Global super like burst — fires on ALL devices via onSnapshot ──
+function _fireSuperLikeBurst(anchorEl) {
+    var _rainbow = ['#ff0040','#ff6600','#ffcc00','#33dd55','#00aaff','#aa44ff','#ff44aa','#ff2255'];
+    var rect = anchorEl ? anchorEl.getBoundingClientRect() : { left: window.innerWidth/2, top: window.innerHeight/2, width: 0, height: 0 };
+    var _cx = rect.left + rect.width / 2;
+    var _cy = rect.top + rect.height / 2;
+    _rainbow.forEach(function(color, i) {
+        var p = document.createElement('div');
+        p.className = 'super-heart-particle';
+        var sz = 14 + Math.random() * 12;
+        var angle = (-110 + i * 28 + Math.random() * 14) * (Math.PI / 180);
+        var dist = 90 + Math.random() * 70;
+        var dx = Math.cos(angle) * dist * 0.45;
+        var dy = -Math.abs(Math.sin(angle) * dist) - 50;
+        var rot = (Math.random() * 50 - 25) + 'deg';
+        var dur = (0.75 + Math.random() * 0.45) + 's';
+        p.style.cssText = [
+            'left:' + (_cx - sz/2) + 'px',
+            'top:' + (_cy - sz/2) + 'px',
+            'width:' + sz + 'px',
+            'height:' + sz + 'px',
+            '--dx:' + dx + 'px',
+            '--dy:' + dy + 'px',
+            '--r:' + rot,
+            '--dur:' + dur
+        ].join(';');
+        p.innerHTML = '<svg viewBox="0 0 24 24" width="' + sz + '" height="' + sz + '" fill="' + color + '" stroke="none" style="filter:drop-shadow(0 1px 4px ' + color + '88)"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+        document.body.appendChild(p);
+        setTimeout(function() { if (p.parentNode) p.parentNode.removeChild(p); }, 1400);
+    });
+    try {
+        var _ac = new (window.AudioContext || window.webkitAudioContext)();
+        [523.25, 659.25, 783.99, 1046.50].forEach(function(freq, i) {
+            var osc = _ac.createOscillator(), gain = _ac.createGain();
+            osc.connect(gain); gain.connect(_ac.destination);
+            osc.type = 'sine'; osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0, _ac.currentTime + i * 0.08);
+            gain.gain.linearRampToValueAtTime(0.18, _ac.currentTime + i * 0.08 + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, _ac.currentTime + i * 0.08 + 0.25);
+            osc.start(_ac.currentTime + i * 0.08);
+            osc.stop(_ac.currentTime + i * 0.08 + 0.3);
+        });
+    } catch(e) {}
+}
+
 function createPinElement(postData, postId) {
     // Only create pin if there's media
     if (!postData.media || postData.media.length === 0) return null;
@@ -3332,6 +3386,16 @@ function createPinElement(postData, postId) {
         if (currentUser && sl.includes(currentUser.uid)) dislikeBtn.classList.add('on');
         else dislikeBtn.classList.remove('on');
         pinContainer.dataset.superlikeCount = sl.length;
+        // ── Real-time burst: fire on ALL devices when anyone super likes ──
+        var bts = d.superlike_burst_ts;
+        if (bts && bts !== pinContainer._lastBurstTs) {
+            pinContainer._lastBurstTs = bts;
+            dislikeBtn.classList.remove('dislike-pop');
+            void dislikeBtn.offsetWidth;
+            dislikeBtn.classList.add('dislike-pop');
+            if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
+            _fireSuperLikeBurst(dislikeBtn);
+        }
 
         // ── Comment dot (use commentCount field on post doc) ──
         var cmtDot = cmtBtn ? cmtBtn.querySelector('.cmt-live-dot') : null;
@@ -3492,7 +3556,10 @@ function createPinElement(postData, postId) {
             var postDoc2 = await getDoc(postRef2);
             if (!postDoc2.exists()) return;
             var sl2 = postDoc2.data().superlikes || [];
-            await updateDoc(postRef2, { superlikes: sl2.includes(currentUser.uid) ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
+            var isAddingSL = !sl2.includes(currentUser.uid);
+            var slUpdate = { superlikes: isAddingSL ? arrayUnion(currentUser.uid) : arrayRemove(currentUser.uid) };
+            if (isAddingSL) slUpdate.superlike_burst_ts = Date.now();
+            await updateDoc(postRef2, slUpdate);
         } catch(err) { console.error('Superlike error:', err); }
     });
 
@@ -4771,64 +4838,42 @@ init();
     _dDislikeLbl.textContent = _dInitSL.length || '';
     if (currentUser && _dInitSL.includes(currentUser.uid)) dDislikeBtn.classList.add('on');
 
+    var _dLastBurstTs = null;
     onSnapshot(doc(db, 'recence', postId), function(snap) {
       if (!snap.exists()) return;
-      var sl = snap.data().superlikes || [];
+      var d = snap.data();
+      var sl = d.superlikes || [];
       _dDislikeLbl.textContent = sl.length || '';
       if (currentUser && sl.includes(currentUser.uid)) dDislikeBtn.classList.add('on');
       else dDislikeBtn.classList.remove('on');
+      // ── Real-time burst: fire on ALL devices when anyone super likes ──
+      var bts = d.superlike_burst_ts;
+      if (bts && bts !== _dLastBurstTs) {
+        _dLastBurstTs = bts;
+        dDislikeBtn.classList.remove('d-sl-pop');
+        void dDislikeBtn.offsetWidth;
+        dDislikeBtn.classList.add('d-sl-pop');
+        if (navigator.vibrate) navigator.vibrate([30,20,30]);
+        _fireSuperLikeBurst(dDislikeBtn);
+      }
     });
     dDislikeBtn.addEventListener('click', async function(e) {
       e.stopPropagation();
       if (!currentUser) return;
-      if (navigator.vibrate) navigator.vibrate([30,20,30]);
-
-      // Pop animation
+      // Instant local pop for responsiveness (burst also fires via onSnapshot)
       dDislikeBtn.classList.remove('d-sl-pop');
       void dDislikeBtn.offsetWidth;
       dDislikeBtn.classList.add('d-sl-pop');
-
-      // Chime sound
-      try {
-        var _ac = new (window.AudioContext || window.webkitAudioContext)();
-        [523.25, 659.25, 783.99, 1046.50].forEach(function(freq, i) {
-          var osc = _ac.createOscillator(), gain = _ac.createGain();
-          osc.connect(gain); gain.connect(_ac.destination);
-          osc.type = 'sine'; osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0, _ac.currentTime + i*0.08);
-          gain.gain.linearRampToValueAtTime(0.18, _ac.currentTime + i*0.08 + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.001, _ac.currentTime + i*0.08 + 0.25);
-          osc.start(_ac.currentTime + i*0.08);
-          osc.stop(_ac.currentTime + i*0.08 + 0.3);
-        });
-      } catch(e) {}
-
-      // Rainbow heart burst
-      var _rainbow = ['#ff0040','#ff6600','#ffcc00','#33dd55','#00aaff','#aa44ff','#ff44aa','#ff2255'];
-      var _rect = dDislikeBtn.getBoundingClientRect();
-      var _cx = _rect.left + _rect.width / 2, _cy = _rect.top + _rect.height / 2;
-      _rainbow.forEach(function(color, i) {
-        var p = document.createElement('div');
-        p.className = 'super-heart-particle';
-        var sz = 14 + Math.random() * 12;
-        var angle = (-110 + i * 28 + Math.random() * 14) * (Math.PI / 180);
-        var dist = 90 + Math.random() * 70;
-        var dx = Math.cos(angle) * dist * 0.45;
-        var dy = -Math.abs(Math.sin(angle) * dist) - 50;
-        var rot = (Math.random() * 50 - 25) + 'deg';
-        var dur = (0.75 + Math.random() * 0.45) + 's';
-        p.style.cssText = 'left:'+(_cx-sz/2)+'px;top:'+(_cy-sz/2)+'px;width:'+sz+'px;height:'+sz+'px;--dx:'+dx+'px;--dy:'+dy+'px;--r:'+rot+';--dur:'+dur;
-        p.innerHTML = '<svg viewBox="0 0 24 24" width="'+sz+'" height="'+sz+'" fill="'+color+'" stroke="none" style="filter:drop-shadow(0 1px 4px '+color+'88)"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
-        document.body.appendChild(p);
-        setTimeout(function(){ p.parentNode && p.parentNode.removeChild(p); }, 1400);
-      });
 
       try {
         var _ddr = doc(db, 'recence', postId);
         var _ddd = await getDoc(_ddr);
         if (!_ddd.exists()) return;
         var _ddl = _ddd.data().superlikes || [];
-        await updateDoc(_ddr, { superlikes: _ddl.includes(currentUser.uid) ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
+        var isAddingDSL = !_ddl.includes(currentUser.uid);
+        var dslUpdate = { superlikes: isAddingDSL ? arrayUnion(currentUser.uid) : arrayRemove(currentUser.uid) };
+        if (isAddingDSL) dslUpdate.superlike_burst_ts = Date.now();
+        await updateDoc(_ddr, dslUpdate);
       } catch(e) {}
     });
     actions.appendChild(dDislikeBtn);
@@ -8271,5 +8316,21 @@ window.isPostFavourited = function(postId) {
 // dummy to avoid leftover event listener error
 document.addEventListener('loadLikedFeed', function() {});
 </script>
+
+<script>
+// ── Copy / Screenshot Protection ──
+document.addEventListener('copy', function(e){ e.preventDefault(); });
+document.addEventListener('cut', function(e){ e.preventDefault(); });
+document.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+document.addEventListener('selectstart', function(e){ e.preventDefault(); });
+document.addEventListener('keydown', function(e){
+    if (e.ctrlKey || e.metaKey) {
+        if (['c','x','a','u','s','p'].includes(e.key.toLowerCase())) {
+            e.preventDefault();
+        }
+    }
+});
+</script>
+
 </body>
 </html>
