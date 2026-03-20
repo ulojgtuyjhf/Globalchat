@@ -3699,6 +3699,18 @@ function openModal(postData, postId) {
     // The feed video stays playing in the background — no duplicate media shown
     const sheet = document.getElementById('commentSheet');
     const overlay = document.getElementById('csOverlay');
+
+    // ── Snapshot play state BEFORE adding 'open' class ──
+    // The MutationObserver fires synchronously on classList.add, and the browser
+    // may already have paused the video element by that point — so we capture
+    // the true playing state here (before any DOM change) and pass it via a flag.
+    (function() {
+        var activePin = window._galleryCurrentPin ||
+                        (document.getElementById('gallery') && document.getElementById('gallery').querySelector('.pin-container'));
+        var vid = activePin ? activePin.querySelector('video') : null;
+        window._cmpWasPlayingBeforeOpen = vid ? !vid.paused : false;
+    })();
+
     if (sheet) sheet.classList.add('open');
     if (overlay) overlay.classList.add('open');
     
@@ -7134,8 +7146,12 @@ init();
                     _cmpParent  = origVid.parentNode;
                     _cmpNext    = origVid.nextSibling;
 
-                    // Save play state BEFORE moving — browsers pause video on DOM move
-                    var _wasPlaying = !origVid.paused;
+                    // Use the play state captured BEFORE sheet.classList.add('open') was called.
+                    // By the time this MutationObserver fires, origVid.paused may already be true
+                    // (browser can pause during the classList mutation), so we rely on the flag
+                    // set in openModal() — default true so video always keeps playing.
+                    var _wasPlaying = (window._cmpWasPlayingBeforeOpen !== false);
+                    window._cmpWasPlayingBeforeOpen = undefined; // consume the flag
 
                     // Style to fill mini-player
                     origVid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:1;display:block;z-index:2;visibility:visible;filter:none;';
@@ -7147,12 +7163,18 @@ init();
                     _cmpPaused = false;
                     if (pauseIcon) pauseIcon.classList.remove('show');
                     document.body.classList.add('comments-open');
-
-                    // If it was playing before, resume it — DOM move may have paused it
-                    if (_wasPlaying) {
-                        origVid.play().catch(function() { origVid.muted = true; origVid.play().catch(function(){}); });
-                    }
                     hideCmpControls(); // controls hidden until user taps
+
+                    // Defer play() — browser needs one tick to settle after the DOM move.
+                    // Calling play() synchronously here is silently ignored on some browsers
+                    // because the element is mid-reparent. The setTimeout gives it a clean frame.
+                    setTimeout(function() {
+                        if (!_cmpVid) return;
+                        _cmpVid.play().catch(function() {
+                            _cmpVid.muted = true;
+                            _cmpVid.play().catch(function(){});
+                        });
+                    }, 50);
 
                     // Start progress bar RAF (tracks time even if playing)
                     _cmpStopRaf();
@@ -7181,9 +7203,11 @@ init();
                             } else {
                                 par.appendChild(vid);
                             }
-                            // Preserve exact muted state from when comments were opened
-                            // _cmpVid was the same video element — muted state is already correct on vid
-                            vid.play().catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
+                            // Defer play — same DOM-settle reason as on open
+                            setTimeout(function() {
+                                if (!vid) return;
+                                vid.play().catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
+                            }, 50);
                         }
                         _cmpVid = null; _cmpParent = null; _cmpNext = null;
                         _cmpProgWrap = null; _cmpOrigVid = null;
