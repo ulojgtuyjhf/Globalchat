@@ -81,6 +81,47 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--tx);min-heigh
   /* RIGHT: slide-in comment panel — starts at 0, opens to full width */
   #desktop-comments{width:0;min-width:0;flex-shrink:0;height:calc(100vh - 24px);display:flex;flex-direction:column;background:#fff;overflow:hidden;border-radius:20px;box-shadow:0 2px 20px rgba(0,0,0,.07);z-index:20;position:relative;opacity:0;pointer-events:none;transition:width .42s cubic-bezier(.22,1,.36,1),min-width .42s cubic-bezier(.22,1,.36,1),opacity .28s ease;}
   #desktop-comments.open{width:clamp(280px,24vw,360px);min-width:clamp(280px,24vw,360px);opacity:1;pointer-events:all;}
+
+  /* ── Desktop mini-video banner (shows inside comments panel when open) ── */
+  #dc-video-banner{
+    width:100%;height:0;overflow:hidden;flex-shrink:0;position:relative;background:#000;
+    transition:height .36s cubic-bezier(.22,1,.36,1);
+    border-radius:12px 12px 0 0;
+    cursor:pointer;
+  }
+  #dc-video-banner.show{height:200px;}
+  #dc-video-banner video{width:100%;height:100%;object-fit:cover;display:block;}
+  #dc-video-banner::after{
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,.55) 100%);
+    pointer-events:none;
+  }
+  /* Pause/play overlay on banner */
+  #dc-banner-pause{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(.7);
+    opacity:0;z-index:3;pointer-events:none;
+    transition:opacity .18s,transform .18s;
+    background:rgba(0,0,0,.5);border-radius:50%;width:42px;height:42px;
+    display:flex;align-items:center;justify-content:center;
+    backdrop-filter:blur(6px);
+  }
+  #dc-banner-pause.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+  #dc-banner-pause svg{width:16px;height:16px;fill:#fff;}
+  /* Mini creator info at bottom of banner */
+  #dc-banner-info{
+    position:absolute;bottom:8px;left:10px;right:10px;z-index:4;
+    display:flex;align-items:center;gap:6px;pointer-events:none;
+  }
+  #dc-banner-creator{font-size:11px;font-weight:800;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+  /* Banner progress bar */
+  #dc-banner-progress{position:absolute;bottom:0;left:0;right:0;height:2px;background:rgba(255,255,255,.2);z-index:5;}
+  #dc-banner-fill{height:100%;width:0%;background:linear-gradient(90deg,#fff,#a6a6a6);transition:none;}
+
+  /* When comments panel is open, shrink the center feed card slightly */
+  #desktop-feed:has(~ #desktop-comments.open) .desktop-card-video-wrap,
+  .comments-open #desktop-feed .desktop-card-video-wrap{
+    /* subtle visual integration */
+  }
   .dc-head{padding:16px 16px 12px;border-bottom:1px solid #f2f2f2;flex-shrink:0;}
   .dc-creator-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
   .dc-creator-avatar{width:34px;height:34px;border-radius:50%;flex-shrink:0;overflow:hidden;border:2px solid #f0f0f0;display:flex;align-items:center;justify-content:center;}
@@ -577,6 +618,17 @@ body,*{-webkit-user-select:none!important;-moz-user-select:none!important;-ms-us
 
     <!-- RIGHT: slide-in comments panel (starts hidden, opens when comment btn clicked) -->
     <aside id="desktop-comments">
+      <!-- Mini video banner (appears at top when comments open) -->
+      <div id="dc-video-banner">
+        <video id="dc-banner-vid" muted playsinline loop></video>
+        <div id="dc-banner-pause">
+          <svg viewBox="0 0 24 24"><polygon points="6,2 21,12 6,22"/></svg>
+        </div>
+        <div id="dc-banner-info">
+          <span id="dc-banner-creator"></span>
+        </div>
+        <div id="dc-banner-progress"><div id="dc-banner-fill"></div></div>
+      </div>
       <div class="dc-head">
         <div class="dc-creator-row">
           <div class="dc-creator-avatar" id="dc-avatar" style="font-size:14px;font-weight:900;color:#fff;background:#555;"></div>
@@ -584,6 +636,11 @@ body,*{-webkit-user-select:none!important;-moz-user-select:none!important;-ms-us
           <button class="dc-follow-btn" id="dc-follow-btn" style="display:none;">Follow</button>
           <button id="dc-close-btn" style="margin-left:auto;background:none;border:none;cursor:pointer;padding:4px;border-radius:50%;display:flex;align-items:center;justify-content:center;" title="Close">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <!-- Profile toggle: shows profile card, hides comments -->
+          <button id="dc-profile-toggle" style="margin-left:4px;background:none;border:1px solid #eee;cursor:pointer;padding:4px 8px;border-radius:8px;display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:#888;font-family:var(--font);" title="Back to Profile">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Profile
           </button>
         </div>
         <div class="dc-caption" id="dc-caption"></div>
@@ -1479,18 +1536,50 @@ var _dSbFollowers=document.getElementById('dSbSFollowers');
 var _dSbFollowing=document.getElementById('dSbSFollowing');
 var _dPcFollowers=document.getElementById('dPcSFollowers');
 var _dPcFollowing=document.getElementById('dPcSFollowing');
+var _dsNavProfile=document.getElementById('dsNavProfile');
 if(_dSbEdit)_dSbEdit.onclick=()=>openSh('epOv','epSheet');
 if(_dSbSettings)_dSbSettings.onclick=()=>openSh('setOv','setSheet');
 if(_dSbFollowers)_dSbFollowers.onclick=()=>openFP('followers');
 if(_dSbFollowing)_dSbFollowing.onclick=()=>openFP('following');
 if(_dPcFollowers)_dPcFollowers.onclick=()=>openFP('followers');
 if(_dPcFollowing)_dPcFollowing.onclick=()=>openFP('following');
+// Profile nav: close comments, show profile card
+if(_dsNavProfile)_dsNavProfile.onclick=function(){
+  var dc=document.getElementById('desktop-comments');
+  var pc=document.getElementById('desk-profile-col');
+  if(dc)dc.classList.remove('open');
+  if(pc)pc.classList.add('open');
+  var banner=document.getElementById('dc-video-banner');
+  var bannerVid=document.getElementById('dc-banner-vid');
+  if(banner)banner.classList.remove('show');
+  if(bannerVid){bannerVid.pause();bannerVid.src='';}
+};
 
 // ── Close comments button ──
 var _dcClose=document.getElementById('dc-close-btn');
 if(_dcClose)_dcClose.onclick=function(){
   var dc=document.getElementById('desktop-comments');
   if(dc)dc.classList.remove('open');
+  // Hide banner and stop banner video
+  var banner=document.getElementById('dc-video-banner');
+  var bannerVid=document.getElementById('dc-banner-vid');
+  if(banner)banner.classList.remove('show');
+  if(bannerVid){bannerVid.pause();bannerVid.src='';}
+};
+
+// ── Profile toggle inside comments panel ──
+var _dcProfToggle=document.getElementById('dc-profile-toggle');
+if(_dcProfToggle)_dcProfToggle.onclick=function(){
+  // Close comments, open profile card
+  var dc=document.getElementById('desktop-comments');
+  var pc=document.getElementById('desk-profile-col');
+  if(dc)dc.classList.remove('open');
+  if(pc)pc.classList.add('open');
+  // Stop banner video
+  var banner=document.getElementById('dc-video-banner');
+  var bannerVid=document.getElementById('dc-banner-vid');
+  if(banner)banner.classList.remove('show');
+  if(bannerVid){bannerVid.pause();bannerVid.src='';}
 };
 
 // ── Sync profile display when auth loads ──
@@ -1634,8 +1723,15 @@ function _dOpenViewer(list,startIdx){
   list.forEach(function(p){var card=_dBuildCard(p.data,p.id);if(card)feed.appendChild(card);});
   var cards=feed.querySelectorAll('.desktop-card');
   if(cards[startIdx])feed.scrollTop=cards[startIdx].offsetTop;
-  // Open comments for first card
-  if(list[startIdx])_dOpenComments(list[startIdx].data,list[startIdx].id);
+  // Auto-open comments for clicked card + show mini-banner
+  if(list[startIdx]){
+    _dOpenComments(list[startIdx].data,list[startIdx].id);
+    var dc=document.getElementById('desktop-comments');
+    if(dc)dc.classList.add('open');
+    // Close profile panel to make room for comments + feed
+    var pc=document.getElementById('desk-profile-col');
+    if(pc)pc.classList.remove('open');
+  }
   // Observer
   _dVObs=new IntersectionObserver(function(entries){
     entries.forEach(function(e){
@@ -1795,6 +1891,56 @@ function _dOpenComments(pd,pid){
   var fb=document.getElementById('dc-follow-btn');
   if(fb&&CU&&pd.userId!==CU.uid){fb.style.display='';fb.textContent=followed.has(pd.userId)?'Following':'Follow';fb.className='dc-follow-btn'+(followed.has(pd.userId)?' following':'');fb.onclick=async function(){var isF=followed.has(pd.userId);if(isF){var qs=await getDocs(query(collection(db,'follows'),where('followerUserId','==',CU.uid),where('followedUserId','==',pd.userId)));qs.forEach(function(d){deleteDoc(doc(db,'follows',d.id));});followed.delete(pd.userId);fb.textContent='Follow';fb.className='dc-follow-btn';}else{await addDoc(collection(db,'follows'),{followerUserId:CU.uid,followedUserId:pd.userId,createdAt:new Date().toISOString()});followed.add(pd.userId);fb.textContent='Following';fb.className='dc-follow-btn following';}};}
   else if(fb)fb.style.display='none';
+
+  // ── Mini video banner ──
+  var banner=document.getElementById('dc-video-banner');
+  var bannerVid=document.getElementById('dc-banner-vid');
+  var bannerPause=document.getElementById('dc-banner-pause');
+  var bannerCreator=document.getElementById('dc-banner-creator');
+  var bannerFill=document.getElementById('dc-banner-fill');
+  if(banner&&bannerVid&&pd.media&&pd.media[0]){
+    bannerCreator.textContent=(pd.name?'@'+pd.name:'');
+    // sync video with the center feed active video
+    var activeVid=null;
+    var cards=document.querySelectorAll('#desktop-feed .desktop-card.active video');
+    if(cards.length)activeVid=cards[0];
+    if(bannerVid.src!==pd.media[0].url){
+      bannerVid.src=pd.media[0].url;
+      bannerVid.load();
+    }
+    // Mirror play state from active card
+    if(activeVid){
+      bannerVid.currentTime=activeVid.currentTime||0;
+      if(!activeVid.paused){bannerVid.muted=true;bannerVid.play().catch(function(){});}
+      else{bannerVid.pause();bannerPause.classList.add('show');}
+      // Keep banner in sync
+      if(banner._syncHandler)activeVid.removeEventListener('timeupdate',banner._syncHandler);
+      banner._syncHandler=function(){
+        if(bannerFill&&bannerVid.duration)bannerFill.style.width=((bannerVid.currentTime/bannerVid.duration)*100)+'%';
+      };
+      bannerVid.addEventListener('timeupdate',banner._syncHandler,{passive:true});
+      if(banner._playHandler)activeVid.removeEventListener('play',banner._playHandler);
+      banner._playHandler=function(){bannerVid.currentTime=activeVid.currentTime;bannerVid.play().catch(function(){});bannerPause.classList.remove('show');};
+      activeVid.addEventListener('play',banner._playHandler);
+      if(banner._pauseHandler)activeVid.removeEventListener('pause',banner._pauseHandler);
+      banner._pauseHandler=function(){bannerVid.pause();bannerPause.classList.add('show');};
+      activeVid.addEventListener('pause',banner._pauseHandler);
+    }else{
+      bannerVid.muted=true;
+      bannerVid.play().catch(function(){});
+      bannerVid.addEventListener('timeupdate',function(){if(bannerFill&&bannerVid.duration)bannerFill.style.width=((bannerVid.currentTime/bannerVid.duration)*100)+'%';},{passive:true});
+    }
+    // Tap to play/pause
+    banner.onclick=function(){
+      var mainVid=document.querySelector('#desktop-feed .desktop-card.active video');
+      if(mainVid){
+        if(mainVid.paused){mainVid.play().catch(function(){});bannerPause.classList.remove('show');}
+        else{mainVid.pause();bannerPause.classList.add('show');}
+      }
+    };
+    banner.classList.add('show');
+  }
+
   // load comments
   _dLoadComments(pid);
 }
