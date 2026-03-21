@@ -770,6 +770,38 @@
         .fp-back svg { stroke: ${t.closeBtnIcon}; }
         .fp-empty-feed { color: ${t.fpEmpty}; }
 
+        /* ── mobile profile section ── */
+        #profile-section { background: ${t.surfaceSecondary} !important; }
+        #mob-prof-head { background: ${t.surfacePrimary} !important; border-bottom: 1px solid ${t.border} !important; }
+        #mob-prof-name { color: ${t.textPrimary} !important; }
+        #mob-prof-handle { color: ${t.textTertiary} !important; }
+        .mob-prof-stat-num { color: ${t.textPrimary} !important; }
+        .mob-prof-stat-label { color: ${t.textTertiary} !important; }
+        .mob-prof-stat.clickable:active { background: ${t.surfaceHover} !important; }
+        #mob-prof-tabs { background: ${t.surfacePrimary} !important; border-bottom: 1px solid ${t.border} !important; }
+        #mob-prof-tabs button { color: ${t.textTertiary} !important; background: transparent !important; }
+        #mob-prof-tabs button.active { color: ${t.textPrimary} !important; border-bottom-color: ${t.textPrimary} !important; }
+        #mob-prof-grid { background: ${t.surfaceSecondary} !important; }
+        #mob-prof-grid .liked-cell { background: ${t.surfaceHover} !important; box-shadow: 0 1px 6px rgba(0,0,0,0.12) !important; }
+        /* profile viewer is always fullscreen black video — keep dark */
+        #mob-prof-viewer { background: #000 !important; }
+        #mob-prof-viewer-back { background: var(--brand-gradient) !important; }
+        /* follow list panel */
+        #follow-list-overlay #follow-list-panel { background: ${t.surfacePrimary} !important; }
+        .flp-bar { background: ${t.sheetHandle} !important; }
+        .flp-title { color: ${t.textPrimary} !important; }
+        .flp-close { background: ${t.closeBtnBg} !important; }
+        .flp-close svg { stroke: ${t.closeBtnIcon} !important; }
+        .flp-name { color: ${t.textPrimary} !important; }
+        .flp-handle-text { color: ${t.textTertiary} !important; }
+        .flp-empty { color: ${t.textTertiary} !important; }
+        /* delete confirm sheet */
+        #delete-sheet { background: ${t.surfacePrimary} !important; }
+        .dsh-bar { background: ${t.sheetHandle} !important; }
+        .dsh-title { color: ${t.textPrimary} !important; }
+        .dsh-sub { color: ${t.textSecondary} !important; }
+        .dsh-cancel { background: ${t.surfaceHover} !important; color: ${t.textSecondary} !important; }
+
         /* ── slide-up panels: upload, profile, liked ── */
         #upload-panel, #profile-panel, #liked-panel {
           background: ${t.panelBg} !important;
