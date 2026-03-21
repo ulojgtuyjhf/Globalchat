@@ -529,6 +529,67 @@
       font-size: 14px !important;
       margin-bottom: 0 !important;
     }
+
+    /* ── Profile Photo Modal ── */
+    #photo-modal .photo-av-ring {
+      width: 96px; height: 96px; border-radius: 50%;
+      background: var(--brand-gradient);
+      padding: 3px;
+      margin: 0 auto 20px;
+      cursor: pointer;
+      position: relative;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #photo-modal .photo-av-inner {
+      width: 100%; height: 100%; border-radius: 50%;
+      background: var(--background);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+      font-size: 36px; font-weight: 900;
+      color: #626262;
+      position: relative;
+    }
+    #photo-modal .photo-av-inner img {
+      width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;
+    }
+    #photo-modal .photo-av-edit {
+      position: absolute; bottom: 2px; right: 2px;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--brand-gradient);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+    #photo-modal .photo-av-edit svg { width: 13px; height: 13px; stroke: #fff; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    #photo-modal .photo-tap-hint {
+      font-size: 13px; color: var(--text-light); text-align: center; margin-bottom: 22px;
+    }
+    #photo-upload-btn {
+      width: 100%; height: 50px; border: none; border-radius: 14px;
+      background: var(--brand-gradient); color: #fff;
+      font-size: 15px; font-weight: 800; cursor: pointer;
+      font-family: inherit; margin-bottom: 10px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative; overflow: hidden;
+    }
+    #photo-upload-btn:active { transform: scale(0.97); }
+    #photo-upload-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    #photo-skip-btn {
+      width: 100%; height: 44px; border: 1.5px solid var(--border);
+      border-radius: 14px; background: transparent;
+      color: var(--text-light); font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    #photo-skip-btn:hover { border-color: #626262; color: var(--text); }
+    .photo-upload-progress {
+      height: 3px; background: var(--border); border-radius: 2px;
+      margin: 10px 0 14px; overflow: hidden; display: none;
+    }
+    .photo-upload-progress-bar {
+      height: 100%; background: var(--brand-gradient);
+      border-radius: 2px; width: 0%;
+      transition: width 0.4s cubic-bezier(0.19,1,0.22,1);
+    }
   </style>
 </head>
 <body>
@@ -677,6 +738,30 @@
         <div class="loading-progress-bar" id="loading-progress-bar"></div>
       </div>
     </div>
+  </div>
+
+  <!-- Profile Photo Modal -->
+  <div class="modal" id="photo-modal">
+    <div class="modal-header">
+      <h3>Add a profile photo</h3>
+      <p>Let people know who you are</p>
+    </div>
+    <!-- Avatar ring -->
+    <div class="photo-av-ring" id="photo-av-ring">
+      <div class="photo-av-inner" id="photo-av-inner">
+        <span id="photo-av-letter">?</span>
+        <div class="photo-av-edit">
+          <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+      </div>
+    </div>
+    <p class="photo-tap-hint">Tap the circle above to choose a photo</p>
+    <div class="photo-upload-progress" id="photo-progress-wrap">
+      <div class="photo-upload-progress-bar" id="photo-progress-bar"></div>
+    </div>
+    <input type="file" id="photo-file-input" accept="image/*" style="display:none;">
+    <button id="photo-upload-btn" disabled>Save Photo</button>
+    <button id="photo-skip-btn">Skip for now</button>
   </div>
 
 </div>
@@ -830,6 +915,7 @@
   // Create company name with refined gradient
   const companyName = document.createElement('h1');
   companyName.textContent = 'nmedea';
+  companyName.className = 'splash-name-shimmer';
   companyName.style.cssText = `  
     font-size: 24px;  
     font-weight: 600;  
@@ -850,38 +936,65 @@
   contentWrapper.appendChild(companyInfoContainer);
   splashScreen.appendChild(contentWrapper);
   
-  // Full-screen shimmer sweep
+  // Shimmer on logo circle + company name only (not full screen)
   const shimmerStyle = document.createElement('style');
   shimmerStyle.textContent = `
-    @keyframes splashSweep {
-      0%   { transform: translateX(-120%) skewX(-15deg); }
-      100% { transform: translateX(250%)  skewX(-15deg); }
+    @keyframes logoShimmer {
+      0%   { transform: translateX(-200%) skewX(-18deg); }
+      100% { transform: translateX(400%)  skewX(-18deg); }
     }
-    #splash-shimmer {
+    @keyframes nameShimmer {
+      0%   { transform: translateX(-250%) skewX(-18deg); }
+      100% { transform: translateX(500%)  skewX(-18deg); }
+    }
+    .splash-logo-shimmer {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .splash-logo-shimmer::after {
+      content: '';
       position: absolute;
       top: 0; left: 0;
-      width: 55%; height: 100%;
+      width: 40%; height: 100%;
       background: linear-gradient(
         105deg,
-        transparent   0%,
-        transparent  35%,
-        rgba(255,255,255,0.07) 45%,
-        rgba(255,255,255,0.22) 50%,
-        rgba(255,255,255,0.07) 55%,
-        transparent  65%,
+        transparent 0%,
+        transparent 30%,
+        rgba(255,255,255,0.28) 50%,
+        transparent 70%,
         transparent 100%
       );
-      -webkit-mask-image: radial-gradient(ellipse 160px 280px at 50% 47%, black 60%, transparent 100%);
-      mask-image: radial-gradient(ellipse 160px 280px at 50% 47%, black 60%, transparent 100%);
-      animation: splashSweep 4.5s cubic-bezier(0.4,0,0.2,1) infinite;
-      pointer-events: none;
-      z-index: 10;
+      animation: logoShimmer 2.8s cubic-bezier(0.4,0,0.2,1) infinite;
+    }
+    .splash-name-shimmer {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+    }
+    .splash-name-shimmer::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 35%; height: 100%;
+      background: linear-gradient(
+        105deg,
+        transparent 0%,
+        rgba(255,255,255,0.35) 50%,
+        transparent 100%
+      );
+      animation: nameShimmer 2.8s cubic-bezier(0.4,0,0.2,1) infinite;
+      animation-delay: 0.4s;
     }
   `;
   document.head.appendChild(shimmerStyle);
+  // Add shimmer overlay inside logo circle
   const shimmerEl = document.createElement('div');
-  shimmerEl.id = 'splash-shimmer';
-  splashScreen.appendChild(shimmerEl);
+  shimmerEl.className = 'splash-logo-shimmer';
+  logoPlaceholder.appendChild(shimmerEl);
 
   // Add to body immediately  
   document.body.insertBefore(splashScreen, document.body.firstChild);
@@ -982,18 +1095,19 @@ const overlay      = document.getElementById('modal-overlay');
 const manualModal  = document.getElementById('manual-auth-modal');
 const loginModal   = document.getElementById('login-modal');
 const loadingModal = document.getElementById('loading-modal');
+const photoModal   = document.getElementById('photo-modal');
 const captcha      = document.getElementById('captcha-checkbox');
 const loginBtn     = document.getElementById('login-button');
 let captchaOk = false;
 
 function showModal(modal) {
-  [manualModal, loginModal, loadingModal].forEach(m => m.style.display = 'none');
+  [manualModal, loginModal, loadingModal, photoModal].forEach(m => m && (m.style.display = 'none'));
   modal.style.display = 'block';
   overlay.classList.add('active');
 }
 function closeAll() {
   overlay.classList.remove('active');
-  setTimeout(() => [manualModal, loginModal, loadingModal].forEach(m => m.style.display='none'), 300);
+  setTimeout(() => [manualModal, loginModal, loadingModal, photoModal].forEach(m => m && (m.style.display='none')), 300);
 }
 function showError(id, msg) { const el=document.getElementById(id); if(el){el.textContent=msg;el.style.display='block';} }
 function clearErrors() { document.querySelectorAll('.error-message').forEach(e=>{e.textContent='';e.style.display='none';}); }
@@ -1021,21 +1135,154 @@ function steps(arr, done) {
   let i=0; const iv=setInterval(()=>{ if(i>=arr.length){clearInterval(iv);done&&done();return;} progress(arr[i].p,arr[i].t,arr[i].s);i++; },800);
 }
 
+const photoFileInput = document.getElementById('photo-file-input');
+const photoUploadBtn = document.getElementById('photo-upload-btn');
+const photoSkipBtn   = document.getElementById('photo-skip-btn');
+const photoAvInner   = document.getElementById('photo-av-inner');
+const photoAvLetter  = document.getElementById('photo-av-letter');
+const photoProgressWrap = document.getElementById('photo-progress-wrap');
+const photoProgressBar  = document.getElementById('photo-progress-bar');
+let _photoFile = null;
+let _photoObjectURL = null;
+let _pendingUser = null;  // user waiting for photo step
+
+const R2_UPLOAD = 'https://r2-upload.katlegomashilwane0691.workers.dev/upload';
+
+function showPhotoModal(user, displayName) {
+  _pendingUser = user;
+  // Set initial letter
+  const letter = (displayName||user.email||'U')[0].toUpperCase();
+  photoAvLetter.textContent = letter;
+  photoAvInner.querySelector('img') && photoAvInner.querySelector('img').remove();
+  // Show existing photo if Google user has one
+  if (user.photoURL && !user.photoURL.includes('default_profile')) {
+    const img = document.createElement('img');
+    img.src = user.photoURL;
+    img.onerror = () => img.remove();
+    photoAvInner.appendChild(img);
+    photoUploadBtn.disabled = false;
+    photoUploadBtn.textContent = 'Keep this photo';
+  } else {
+    photoUploadBtn.disabled = true;
+    photoUploadBtn.textContent = 'Save Photo';
+  }
+  _photoFile = null; _photoObjectURL = null;
+  photoProgressWrap.style.display = 'none';
+  photoProgressBar.style.width = '0%';
+  [manualModal, loginModal, loadingModal].forEach(m => m.style.display='none');
+  photoModal.style.display = 'block';
+  overlay.classList.add('active');
+}
+
+// Tap ring to pick file
+document.getElementById('photo-av-ring').addEventListener('click', () => photoFileInput.click());
+
+photoFileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 8*1024*1024) { alert('Image must be under 8MB'); return; }
+  _photoFile = file;
+  if (_photoObjectURL) URL.revokeObjectURL(_photoObjectURL);
+  _photoObjectURL = URL.createObjectURL(file);
+  // Show preview
+  let img = photoAvInner.querySelector('img');
+  if (!img) { img = document.createElement('img'); photoAvInner.appendChild(img); }
+  img.src = _photoObjectURL;
+  photoAvLetter.style.display = 'none';
+  photoUploadBtn.disabled = false;
+  photoUploadBtn.textContent = 'Save Photo';
+});
+
+async function uploadPhotoAndFinish() {
+  if (!_pendingUser) { location.href = 'half.html'; return; }
+  // If no new file and Google already has photo, just go
+  if (!_photoFile && _pendingUser.photoURL && !_pendingUser.photoURL.includes('default_profile')) {
+    progress(100,'All set!','Taking you in...');
+    setTimeout(() => location.href='half.html', 900);
+    return;
+  }
+  if (!_photoFile) { location.href='half.html'; return; }
+
+  photoUploadBtn.disabled = true;
+  photoUploadBtn.textContent = 'Uploading...';
+  photoProgressWrap.style.display = 'block';
+  photoProgressBar.style.width = '20%';
+
+  try {
+    // Upload to R2
+    const ext = _photoFile.name.split('.').pop() || 'jpg';
+    const fname = 'avatars/' + _pendingUser.uid + '_' + Date.now() + '.' + ext;
+    const formData = new FormData();
+    formData.append('file', _photoFile, fname);
+
+    photoProgressBar.style.width = '50%';
+    const res = await fetch(R2_UPLOAD, { method:'POST', body: formData });
+    if (!res.ok) throw new Error('Upload failed');
+    const data = await res.json();
+    const photoURL = data.url || data.fileUrl || data.publicUrl || '';
+    photoProgressBar.style.width = '80%';
+
+    // Update Firebase Auth + Firestore
+    await updateProfile(_pendingUser, { photoURL });
+    await setDoc(doc(db,'users',_pendingUser.uid), { photoURL }, { merge: true });
+    photoProgressBar.style.width = '100%';
+
+    setTimeout(() => location.href='half.html', 600);
+  } catch(err) {
+    console.error('Photo upload failed:', err);
+    photoUploadBtn.disabled = false;
+    photoUploadBtn.textContent = 'Retry Upload';
+    photoProgressWrap.style.display = 'none';
+    alert('Photo upload failed. You can skip and add one later.');
+  }
+}
+
+photoUploadBtn.addEventListener('click', uploadPhotoAndFinish);
+photoSkipBtn.addEventListener('click', () => {
+  // Check every open if user hasn't uploaded — ask again on next app open via localStorage
+  if (_pendingUser) {
+    const skipped = JSON.parse(localStorage.getItem('photoSkipped')||'{}');
+    skipped[_pendingUser.uid] = Date.now();
+    localStorage.setItem('photoSkipped', JSON.stringify(skipped));
+  }
+  location.href = 'half.html';
+});
+
+function shouldAskForPhoto(user) {
+  // Always ask if no photo
+  if (!user.photoURL || user.photoURL.includes('default_profile')) return true;
+  // Ask again if they skipped more than 3 days ago
+  try {
+    const skipped = JSON.parse(localStorage.getItem('photoSkipped')||'{}');
+    const lastSkip = skipped[user.uid];
+    if (!lastSkip) return false; // has photo, never skipped
+    return (Date.now() - lastSkip) > 3 * 24 * 60 * 60 * 1000;
+  } catch(e) { return false; }
+}
+
 /* Google — both the main card and the one inside login modal */
 async function doGoogle() {
   try {
     showLoading('Connecting to Google...','Please wait'); progress(25);
     const r = await signInWithPopup(auth, new GoogleAuthProvider());
     progress(60,'Setting up profile...');
-    if (!(await getDoc(doc(db,'users',r.user.uid))).exists()) {
+    const isNew = !(await getDoc(doc(db,'users',r.user.uid))).exists();
+    if (isNew) {
       await setDoc(doc(db,'users',r.user.uid),{uid:r.user.uid,email:r.user.email,displayName:r.user.displayName||'',username:(r.user.displayName||'user').toLowerCase().replace(/\s+/g,'_'),photoURL:r.user.photoURL||'',provider:'google',createdAt:new Date().toISOString()});
     }
-    progress(100,'Success!','Redirecting...');
-    setTimeout(()=>location.href='half.html',900);
+    progress(90,'Almost there...');
+    // Google users: ask for photo if no photo or they skipped before
+    if (isNew || shouldAskForPhoto(r.user)) {
+      showPhotoModal(r.user, r.user.displayName);
+    } else {
+      progress(100,'Welcome back!','Taking you in...'); 
+      setTimeout(()=>location.href='half.html',900);
+    }
   } catch(e) { closeAll(); if(e.code!=='auth/popup-closed-by-user') alert('Google sign-in failed: '+(e.message||'Unknown')); }
 }
 document.getElementById('google-auth').addEventListener('click', doGoogle);
 document.getElementById('login-google-auth').addEventListener('click', doGoogle);
+
 /* Register */
 document.getElementById('manual-auth').addEventListener('click', ()=>{ clearErrors(); showModal(manualModal); });
 document.getElementById('manual-auth-form').addEventListener('submit', async(e)=>{
@@ -1055,7 +1302,8 @@ document.getElementById('manual-auth-form').addEventListener('submit', async(e)=
         const cred=await createUserWithEmailAndPassword(auth,email,pass);
         await updateProfile(cred.user,{displayName:uname});
         await setDoc(doc(db,'users',cred.user.uid),{uid:cred.user.uid,email,username:uname,displayName:uname,photoURL:'',provider:'email',createdAt:new Date().toISOString()});
-        steps([{p:90,t:'Finishing up...',s:'Almost there!'},{p:100,t:'Success!',s:'Redirecting...'}],()=>setTimeout(()=>location.href='half.html',900));
+        // Always show photo step for new email accounts
+        showPhotoModal(cred.user, uname);
       } catch(err) {
         closeAll(); showModal(manualModal);
         showError('manual-form-error', err.code==='auth/email-already-in-use'?'Email already registered.':err.message||'Registration failed.');
@@ -1086,9 +1334,14 @@ document.getElementById('login-form').addEventListener('submit', async(e)=>{
     showLoading('Signing in...','Verifying credentials');
     steps([{p:35,t:'Verifying email...',s:'Checking account'},{p:65,t:'Authenticating...',s:'Verifying identity'}], async()=>{
       try {
-        await signInWithEmailAndPassword(auth,email,pass);
-        progress(100,'Success!','Redirecting...');
-        setTimeout(()=>location.href='half.html',900);
+        const cred = await signInWithEmailAndPassword(auth,email,pass);
+        // Returning user — ask for photo if they never set one
+        if (shouldAskForPhoto(cred.user)) {
+          showPhotoModal(cred.user, cred.user.displayName);
+        } else {
+          progress(100,'Welcome back!','Taking you in...');
+          setTimeout(()=>location.href='half.html',900);
+        }
       } catch(err) {
         closeAll(); showModal(loginModal);
         captchaOk=false; captcha.classList.remove('checked'); loginBtn.disabled=true;
