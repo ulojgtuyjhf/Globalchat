@@ -8994,38 +8994,121 @@ document.addEventListener('keydown', function(e){
 </script>
 <script>
 // ══════════════════════════════════════════════════
-//  FIX 1: Hide scroll arrows when returning from
-//  profile video viewer (dpv-back button)
+//  FIX: Hide scroll arrows on dpv-back AND on any
+//  section switch — also fixes "stuck" state by
+//  force-resetting display when profile reopens
 // ══════════════════════════════════════════════════
 (function() {
+
+  function hideArrows() {
+    var na = document.getElementById('desktopNavArrows');
+    if (na) na.style.display = 'none';
+  }
+
+  // Patch dpv-back (profile video viewer back button)
   function patchDpvBack() {
     var btn = document.getElementById('dpv-back');
     if (!btn) { setTimeout(patchDpvBack, 400); return; }
-    btn.addEventListener('click', function() {
-      var na = document.getElementById('desktopNavArrows');
-      if (na) na.style.display = 'none';
-    }, true); // capture = fires before existing handler
+    btn.addEventListener('click', hideArrows, true);
   }
+
+  // Patch every sidebar nav button — catches switching sections
+  function patchNavBtns() {
+    document.querySelectorAll('.ds-nav-item').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        // If leaving profile, close settings panel too
+        if (btn.id !== 'dsNavProfile') {
+          var sp = document.getElementById('dp-settings-panel');
+          if (sp) sp.classList.remove('open');
+          updateGearIcon(false);
+        }
+        // Always hide arrows on any section switch
+        hideArrows();
+        // Fix "stuck" — force profile panel visible state reset
+        var profPanel = document.getElementById('ds-profile-panel');
+        if (profPanel && btn.id === 'dsNavProfile') {
+          // Small delay to let showDesktopSection() run first
+          setTimeout(function() {
+            profPanel.style.display = 'flex';
+            profPanel.style.opacity = '';
+            profPanel.style.pointerEvents = '';
+          }, 50);
+        }
+      });
+    });
+  }
+
+  function updateGearIcon(isOpen) {
+    var badge = document.getElementById('dp-settings-badge');
+    if (!badge) return;
+    if (isOpen) {
+      // Show X
+      badge.innerHTML =
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none"' +
+        ' stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+          '<line x1="18" y1="6" x2="6" y2="18"/>' +
+          '<line x1="6" y1="6" x2="18" y2="18"/>' +
+        '</svg>';
+      badge.style.background = 'var(--brand-gradient)';
+      badge.querySelector('svg').style.stroke = '#fff';
+    } else {
+      // Show gear
+      badge.innerHTML = _gearSVG;
+      badge.style.background = '';
+    }
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', patchDpvBack);
+    document.addEventListener('DOMContentLoaded', function() {
+      patchDpvBack();
+      patchNavBtns();
+    });
   } else {
     patchDpvBack();
+    patchNavBtns();
   }
+
+  // Also re-patch nav buttons if they're added late
+  setTimeout(patchNavBtns, 1200);
+
+  window._hideDesktopArrows = hideArrows;
+  window._dpUpdateGearIcon  = updateGearIcon;
+
 })();
 
 
 // ══════════════════════════════════════════════════
-//  SETTINGS PANEL — gear icon top-right of profile
-//  Opens chats.html by pushing content left (not
-//  overlaying black), slides in from the right.
+//  SETTINGS PANEL + EDIT ICON + INTERACTIVE UI
+//  - Gear top-right → toggles to X when open
+//  - Panel slides in pushing profile left
+//  - Edit pencil icon next to avatar
+//  - Interactive placeholder content (no DB needed)
 // ══════════════════════════════════════════════════
 (function() {
+
+  var _gearSVGStr =
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"' +
+    ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<circle cx="12" cy="12" r="3"/>' +
+      '<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06' +
+      'a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09' +
+      'A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83' +
+      'l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09' +
+      'A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83' +
+      'l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09' +
+      'a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83' +
+      'l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09' +
+      'a1.65 1.65 0 0 0-1.51 1z"/>' +
+    '</svg>';
+
+  // Make accessible to the fix block above
+  window._gearSVG = _gearSVGStr;
 
   // ── Styles ─────────────────────────────────────
   var s = document.createElement('style');
   s.textContent = `
 
-    /* Gear badge */
+    /* ── Gear toggle button ── */
     #dp-settings-badge {
       position: absolute;
       top: 14px; right: 14px;
@@ -9035,29 +9118,57 @@ document.addEventListener('keydown', function(e){
       border: none;
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      transition: transform 0.32s cubic-bezier(0.34,1.56,0.64,1),
-                  background 0.18s;
+      transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1), background 0.2s;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
-    #dp-settings-badge:hover  { transform: rotate(45deg) scale(1.12); }
-    #dp-settings-badge:active { transform: rotate(90deg) scale(0.92); }
-    #dp-settings-badge svg    { flex-shrink: 0; }
+    #dp-settings-badge:hover  { transform: rotate(40deg) scale(1.1); }
+    #dp-settings-badge:active { transform: scale(0.9); }
+    #dp-settings-badge svg { flex-shrink: 0; transition: stroke 0.2s; }
 
-    /* Theme-aware badge background */
     body.theme-light #dp-settings-badge { background: #f0f0f0; }
     body.theme-dim   #dp-settings-badge { background: #1e2732; }
     body.theme-dark  #dp-settings-badge { background: #111111; }
-    body.theme-light #dp-settings-badge svg { stroke: #333; }
+    body.theme-light #dp-settings-badge svg { stroke: #444; }
     body.theme-dim   #dp-settings-badge svg { stroke: #8899a6; }
     body.theme-dark  #dp-settings-badge svg { stroke: #a6a6a6; }
-
-    /* Wrapper that holds profile + panel side by side */
-    #ds-main-area {
-      transition: none;
+    /* When open — brand gradient bg, white X */
+    #dp-settings-badge.is-open {
+      background: var(--brand-gradient) !important;
+      transform: rotate(0deg) !important;
     }
+    #dp-settings-badge.is-open svg { stroke: #fff !important; }
+    #dp-settings-badge.is-open:hover { transform: scale(1.08) !important; }
 
-    /* Settings slide panel */
+    /* ── Edit pencil next to avatar ── */
+    #dp-edit-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center; justify-content: center;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      margin-left: -8px;
+      margin-bottom: -18px;
+      align-self: flex-end;
+      transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+      z-index: 5;
+    }
+    #dp-edit-btn:hover  { transform: scale(1.15); }
+    #dp-edit-btn:active { transform: scale(0.9); }
+    #dp-edit-btn svg { flex-shrink: 0; }
+
+    body.theme-light #dp-edit-btn { background: #e8e8e8; }
+    body.theme-dim   #dp-edit-btn { background: #253240; }
+    body.theme-dark  #dp-edit-btn { background: #1a1a1a; }
+    body.theme-light #dp-edit-btn svg { stroke: #555; }
+    body.theme-dim   #dp-edit-btn svg { stroke: #8899a6; }
+    body.theme-dark  #dp-edit-btn svg { stroke: #a6a6a6; }
+
+    /* ── Settings side panel ── */
     #dp-settings-panel {
       width: 0;
       min-width: 0;
@@ -9068,18 +9179,8 @@ document.addEventListener('keydown', function(e){
       display: flex;
       flex-direction: column;
     }
-    #dp-settings-panel.open {
-      width: 380px;
-    }
-    #dp-settings-panel iframe {
-      flex: 1;
-      border: none;
-      width: 380px;
-      height: 100%;
-      display: block;
-    }
+    #dp-settings-panel.open { width: 340px; }
 
-    /* Thin brand line at top of panel */
     #dp-settings-panel-bar {
       height: 3px;
       flex-shrink: 0;
@@ -9087,15 +9188,225 @@ document.addEventListener('keydown', function(e){
       border-radius: 20px 20px 0 0;
     }
 
-    /* Theme-aware panel background */
-    body.theme-light #dp-settings-panel { background: #ffffff; box-shadow: 0 2px 20px rgba(0,0,0,0.07); }
-    body.theme-dim   #dp-settings-panel { background: #15202b; box-shadow: 0 2px 20px rgba(0,0,0,0.18); }
-    body.theme-dark  #dp-settings-panel { background: #080808; box-shadow: 0 2px 20px rgba(0,0,0,0.28); }
+    body.theme-light #dp-settings-panel { background: #ffffff; box-shadow: 0 2px 20px rgba(0,0,0,0.08); }
+    body.theme-dim   #dp-settings-panel { background: #15202b; box-shadow: 0 2px 20px rgba(0,0,0,0.22); }
+    body.theme-dark  #dp-settings-panel { background: #080808; box-shadow: 0 2px 20px rgba(0,0,0,0.32); }
+
+    /* ── Settings panel inner content ── */
+    #dp-settings-inner {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      scrollbar-width: thin;
+    }
+    #dp-settings-inner::-webkit-scrollbar { width: 4px; }
+    #dp-settings-inner::-webkit-scrollbar-thumb { border-radius: 4px; background: #ccc; }
+
+    .dps-section-label {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin: 12px 0 4px;
+      font-family: var(--font, sans-serif);
+    }
+    body.theme-light .dps-section-label { color: #bbb; }
+    body.theme-dim   .dps-section-label { color: #536471; }
+    body.theme-dark  .dps-section-label { color: #444; }
+
+    .dps-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 11px 14px;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: background 0.14s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body.theme-light .dps-row:hover { background: #f5f5f5; }
+    body.theme-dim   .dps-row:hover { background: #1e2732; }
+    body.theme-dark  .dps-row:hover { background: #111; }
+    body.theme-light .dps-row:active { background: #ebebeb; }
+    body.theme-dim   .dps-row:active { background: #253240; }
+    body.theme-dark  .dps-row:active { background: #1a1a1a; }
+
+    .dps-row-left {
+      display: flex; align-items: center; gap: 11px;
+      min-width: 0;
+    }
+    .dps-icon {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .dps-icon svg { width: 17px; height: 17px; }
+
+    .dps-label {
+      font-size: 13px;
+      font-weight: 700;
+      font-family: var(--font, sans-serif);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    body.theme-light .dps-label { color: #111; }
+    body.theme-dim   .dps-label { color: #fff; }
+    body.theme-dark  .dps-label { color: #fff; }
+
+    .dps-sub {
+      font-size: 10px;
+      font-weight: 500;
+      font-family: var(--font, sans-serif);
+      margin-top: 1px;
+    }
+    body.theme-light .dps-sub { color: #aaa; }
+    body.theme-dim   .dps-sub { color: #536471; }
+    body.theme-dark  .dps-sub { color: #555; }
+
+    .dps-chevron svg {
+      width: 13px; height: 13px;
+      fill: none; stroke-width: 2.2;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
+    body.theme-light .dps-chevron svg { stroke: #ccc; }
+    body.theme-dim   .dps-chevron svg { stroke: #38444d; }
+    body.theme-dark  .dps-chevron svg { stroke: #333; }
+
+    /* Toggle switch */
+    .dps-toggle {
+      width: 36px; height: 20px;
+      border-radius: 99px;
+      border: none;
+      cursor: pointer;
+      flex-shrink: 0;
+      position: relative;
+      transition: background 0.22s;
+    }
+    .dps-toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    .dps-toggle.on { background: var(--brand-gradient); }
+    .dps-toggle.on::after { transform: translateX(16px); }
+    body.theme-light .dps-toggle:not(.on) { background: #e0e0e0; }
+    body.theme-dim   .dps-toggle:not(.on) { background: #38444d; }
+    body.theme-dark  .dps-toggle:not(.on) { background: #2f3336; }
+
+    /* Edit toast */
+    #dp-edit-toast {
+      position: fixed;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: var(--brand-gradient);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: var(--font, sans-serif);
+      padding: 9px 18px;
+      border-radius: 99px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.22);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 9999;
+      white-space: nowrap;
+    }
+    #dp-edit-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
 
   `;
   document.head.appendChild(s);
 
-  // ── Build the panel once and insert beside profile ──
+  // ── Build settings inner content (no DB, purely interactive) ──
+  function buildSettingsContent() {
+    var inner = document.createElement('div');
+    inner.id = 'dp-settings-inner';
+
+    function mkIcon(svgPath, bg) {
+      var ic = document.createElement('div');
+      ic.className = 'dps-icon';
+      ic.style.background = bg || 'var(--brand-gradient)';
+      ic.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + svgPath + '</svg>';
+      return ic;
+    }
+
+    function mkChevron() {
+      var ch = document.createElement('div');
+      ch.className = 'dps-chevron';
+      ch.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>';
+      return ch;
+    }
+
+    function mkToggle(defaultOn) {
+      var t = document.createElement('button');
+      t.className = 'dps-toggle' + (defaultOn ? ' on' : '');
+      t.addEventListener('click', function(e) {
+        e.stopPropagation();
+        t.classList.toggle('on');
+      });
+      return t;
+    }
+
+    function mkRow(iconSvg, iconBg, label, sub, right) {
+      var row = document.createElement('div');
+      row.className = 'dps-row';
+      var left = document.createElement('div');
+      left.className = 'dps-row-left';
+      left.appendChild(mkIcon(iconSvg, iconBg));
+      var text = document.createElement('div');
+      text.style.cssText = 'min-width:0;';
+      var lbl = document.createElement('div'); lbl.className = 'dps-label'; lbl.textContent = label;
+      text.appendChild(lbl);
+      if (sub) { var sb = document.createElement('div'); sb.className = 'dps-sub'; sb.textContent = sub; text.appendChild(sb); }
+      left.appendChild(text);
+      row.appendChild(left);
+      if (right) row.appendChild(right);
+      return row;
+    }
+
+    function mkLabel(text) {
+      var l = document.createElement('div');
+      l.className = 'dps-section-label';
+      l.textContent = text;
+      return l;
+    }
+
+    inner.appendChild(mkLabel('Account'));
+    inner.appendChild(mkRow('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', 'linear-gradient(135deg,#0f0f0f,#626262)', 'Edit Profile', 'Name, bio, avatar', mkChevron()));
+    inner.appendChild(mkRow('<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>', 'linear-gradient(135deg,#1a1a2e,#16213e)', 'Privacy', 'Who can see your videos', mkChevron()));
+    inner.appendChild(mkRow('<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>', 'linear-gradient(135deg,#2d1b69,#11998e)', 'Notifications', 'Likes, comments, follows', mkChevron()));
+
+    inner.appendChild(mkLabel('Preferences'));
+    var autoplayToggle = mkToggle(true);
+    inner.appendChild(mkRow('<polygon points="5 3 19 12 5 21 5 3"/>', 'linear-gradient(135deg,#0f0f0f,#a6a6a6)', 'Autoplay', 'Play videos automatically', autoplayToggle));
+    var soundToggle = mkToggle(false);
+    inner.appendChild(mkRow('<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="#fff" stroke="none"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>', 'linear-gradient(135deg,#3a3a3a,#626262)', 'Sound on scroll', 'Unmute as you scroll', soundToggle));
+    var qualityToggle = mkToggle(true);
+    inner.appendChild(mkRow('<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>', 'linear-gradient(135deg,#134e5e,#71b280)', 'HD Quality', 'Stream in high definition', qualityToggle));
+
+    inner.appendChild(mkLabel('Content'));
+    inner.appendChild(mkRow('<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>', 'linear-gradient(135deg,#373b44,#4286f4)', 'For You feed', 'Manage your interests', mkChevron()));
+    inner.appendChild(mkRow('<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>', 'linear-gradient(135deg,#0f0f0f,#3a3a3a)', 'Saved videos', 'Manage bookmarks', mkChevron()));
+
+    inner.appendChild(mkLabel('About'));
+    inner.appendChild(mkRow('<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>', '#888', 'Version', 'Recence v1.0', null));
+
+    return inner;
+  }
+
+  // ── Build the panel once ──
   function buildPanel() {
     if (document.getElementById('dp-settings-panel')) return;
 
@@ -9106,95 +9417,123 @@ document.addEventListener('keydown', function(e){
     bar.id = 'dp-settings-panel-bar';
     panel.appendChild(bar);
 
-    var iframe = document.createElement('iframe');
-    iframe.src = 'chats.html';
-    iframe.setAttribute('loading', 'lazy');
-    panel.appendChild(iframe);
+    panel.appendChild(buildSettingsContent());
 
-    // Insert panel right after ds-profile-panel inside ds-main-area
     var profPanel = document.getElementById('ds-profile-panel');
     if (profPanel && profPanel.parentNode) {
       profPanel.parentNode.insertBefore(panel, profPanel.nextSibling);
     } else {
-      var mainArea = document.getElementById('ds-main-area');
-      if (mainArea) mainArea.appendChild(panel);
+      var ma = document.getElementById('ds-main-area');
+      if (ma) ma.appendChild(panel);
     }
   }
+
+  var _isOpen = false;
 
   function openPanel() {
     buildPanel();
+    _isOpen = true;
     document.getElementById('dp-settings-panel').classList.add('open');
+    var badge = document.getElementById('dp-settings-badge');
+    if (badge) badge.classList.add('is-open');
+    // Show X icon
+    if (badge) badge.innerHTML =
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none"' +
+      ' stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+        '<line x1="18" y1="6" x2="6" y2="18"/>' +
+        '<line x1="6" y1="6" x2="18" y2="18"/>' +
+      '</svg>';
   }
 
   function closePanel() {
+    _isOpen = false;
     var p = document.getElementById('dp-settings-panel');
     if (p) p.classList.remove('open');
+    var badge = document.getElementById('dp-settings-badge');
+    if (badge) {
+      badge.classList.remove('is-open');
+      badge.innerHTML = _gearSVGStr;
+    }
   }
 
   function togglePanel() {
-    var p = document.getElementById('dp-settings-panel');
-    if (!p || !p.classList.contains('open')) {
-      openPanel();
-    } else {
-      closePanel();
-    }
+    if (_isOpen) closePanel(); else openPanel();
   }
 
-  // ── Inject gear badge once profile panel exists ──
-  function injectBadge() {
+  // ── Edit toast ──
+  function showEditToast() {
+    var t = document.getElementById('dp-edit-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'dp-edit-toast';
+      t.textContent = '✏️  Profile editing coming soon';
+      document.body.appendChild(t);
+    }
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function() { t.classList.remove('show'); }, 2400);
+  }
+
+  // ── Inject gear badge + edit pencil ──
+  function injectBadges() {
     var profPanel = document.getElementById('ds-profile-panel');
-    if (!profPanel) { setTimeout(injectBadge, 400); return; }
-    if (document.getElementById('dp-settings-badge')) return;
+    if (!profPanel) { setTimeout(injectBadges, 400); return; }
 
-    profPanel.style.position = 'relative';
+    // Gear badge
+    if (!document.getElementById('dp-settings-badge')) {
+      profPanel.style.position = 'relative';
+      var badge = document.createElement('button');
+      badge.id = 'dp-settings-badge';
+      badge.setAttribute('aria-label', 'Settings');
+      badge.innerHTML = _gearSVGStr;
+      badge.addEventListener('click', togglePanel);
+      profPanel.appendChild(badge);
+    }
 
-    var badge = document.createElement('button');
-    badge.id = 'dp-settings-badge';
-    badge.setAttribute('aria-label', 'Settings');
-    badge.innerHTML =
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"' +
-      ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-        '<circle cx="12" cy="12" r="3"/>' +
-        '<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06' +
-        'a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09' +
-        'A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83' +
-        'l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09' +
-        'A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83' +
-        'l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09' +
-        'a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83' +
-        'l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09' +
-        'a1.65 1.65 0 0 0-1.51 1z"/>' +
-      '</svg>';
-    badge.addEventListener('click', togglePanel);
-    profPanel.appendChild(badge);
+    // Edit pencil — inject next to avatar (dp-avatar)
+    if (!document.getElementById('dp-edit-btn')) {
+      function tryInjectEdit() {
+        var av = document.getElementById('dp-avatar');
+        if (!av) { setTimeout(tryInjectEdit, 300); return; }
+        var btn = document.createElement('button');
+        btn.id = 'dp-edit-btn';
+        btn.setAttribute('aria-label', 'Edit profile');
+        btn.innerHTML =
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none"' +
+          ' stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+            '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>' +
+            '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>' +
+          '</svg>';
+        btn.addEventListener('click', showEditToast);
+        // Insert right after avatar
+        av.parentNode.insertBefore(btn, av.nextSibling);
+      }
+      tryInjectEdit();
+    }
   }
 
-  // Close panel when leaving profile section
-  var _origShow = window.showDesktopSection;
-  // Patch via MutationObserver on nav clicks since showDesktopSection is local
+  // Close when switching away from profile via nav
   document.addEventListener('click', function(e) {
-    var navBtn = e.target.closest('.ds-nav-item');
-    if (navBtn && navBtn.id !== 'dsNavProfile') {
-      closePanel();
-    }
+    var nav = e.target.closest('.ds-nav-item');
+    if (nav && nav.id !== 'dsNavProfile' && _isOpen) closePanel();
   });
 
-  // Escape key closes
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closePanel();
+    if (e.key === 'Escape' && _isOpen) closePanel();
   });
 
   window._openSettingsPanel  = openPanel;
   window._closeSettingsPanel = closePanel;
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', injectBadge);
+    document.addEventListener('DOMContentLoaded', injectBadges);
   } else {
-    injectBadge();
+    injectBadges();
   }
 
 })();
 </script>
+
 
 </body>
 </html>
