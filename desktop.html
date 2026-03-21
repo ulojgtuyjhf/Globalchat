@@ -8992,6 +8992,163 @@ document.addEventListener('keydown', function(e){
   };
 })();
 </script>
+<script>
+// ══════════════════════════════════════════════════
+//  1. FIX: Hide nav arrows when closing profile viewer
+// ══════════════════════════════════════════════════
+(function _patchCloseDpViewer() {
+  function tryPatch() {
+    var btn = document.getElementById('dpv-back');
+    if (!btn) { setTimeout(tryPatch, 400); return; }
+    // Capture phase — fires before the existing handler
+    btn.addEventListener('click', function() {
+      var na = document.getElementById('desktopNavArrows');
+      if (na) na.style.display = 'none';
+    }, true);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryPatch);
+  } else {
+    tryPatch();
+  }
+})();
+
+
+// ══════════════════════════════════════════════════
+//  2. PROFILE CHAT BADGE + SLIDE-IN PANEL
+//  $3 badge top-right of profile → opens chats.html
+// ══════════════════════════════════════════════════
+(function _chatPanel() {
+
+  // ── Styles ─────────────────────────────────────
+  var style = document.createElement('style');
+  style.textContent = `
+    #dp-chat-badge {
+      position: absolute;
+      top: 14px; right: 14px;
+      z-index: 20;
+      background: var(--brand-gradient);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      font-family: var(--font, sans-serif);
+      letter-spacing: 0.01em;
+      padding: 5px 11px;
+      border-radius: 99px;
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 5px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+      transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.18s;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    #dp-chat-badge:hover  { transform: scale(1.07); box-shadow: 0 4px 18px rgba(0,0,0,0.22); }
+    #dp-chat-badge:active { transform: scale(0.94); }
+
+    #dp-chat-overlay {
+      position: fixed; inset: 0;
+      z-index: 9099;
+      background: rgba(0,0,0,0.32);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.32s ease;
+    }
+    #dp-chat-overlay.open { opacity: 1; pointer-events: all; }
+
+    #dp-chat-panel {
+      position: fixed;
+      top: 0; right: 0; bottom: 0;
+      width: 420px; max-width: 100vw;
+      z-index: 9100;
+      display: flex; flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.38s cubic-bezier(0.22,1,0.36,1);
+      box-shadow: -8px 0 48px rgba(0,0,0,0.18);
+      overflow: hidden;
+    }
+    #dp-chat-panel.open { transform: translateX(0); }
+    #dp-chat-panel iframe { flex: 1; border: none; width: 100%; height: 100%; display: block; }
+
+    #ds-profile-panel {
+      transition: transform 0.38s cubic-bezier(0.22,1,0.36,1), filter 0.38s ease;
+    }
+    body.chat-panel-open #ds-profile-panel {
+      transform: scale(0.96) translateX(-20px);
+      filter: brightness(0.82);
+      pointer-events: none;
+    }
+
+    body.theme-light #dp-chat-panel { background: #ffffff; }
+    body.theme-dim   #dp-chat-panel { background: #15202b; }
+    body.theme-dark  #dp-chat-panel { background: #080808; }
+  `;
+  document.head.appendChild(style);
+
+  function injectBadge() {
+    var profPanel = document.getElementById('ds-profile-panel');
+    if (!profPanel) { setTimeout(injectBadge, 400); return; }
+    if (document.getElementById('dp-chat-badge')) return;
+    profPanel.style.position = 'relative';
+    var badge = document.createElement('button');
+    badge.id = 'dp-chat-badge';
+    badge.setAttribute('aria-label', 'Open Chats');
+    badge.innerHTML =
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff"' +
+      ' stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' +
+      '</svg>$3';
+    badge.addEventListener('click', openPanel);
+    profPanel.appendChild(badge);
+  }
+
+  function buildPanel() {
+    if (document.getElementById('dp-chat-panel')) return;
+    var overlay = document.createElement('div');
+    overlay.id = 'dp-chat-overlay';
+    overlay.addEventListener('click', closePanel);
+    document.body.appendChild(overlay);
+    var panel = document.createElement('div');
+    panel.id = 'dp-chat-panel';
+    var bar = document.createElement('div');
+    bar.style.cssText = 'height:3px;flex-shrink:0;background:var(--brand-gradient);';
+    panel.appendChild(bar);
+    var iframe = document.createElement('iframe');
+    iframe.src = 'chats.html';
+    iframe.setAttribute('loading', 'lazy');
+    panel.appendChild(iframe);
+    document.body.appendChild(panel);
+  }
+
+  function openPanel() {
+    buildPanel();
+    document.getElementById('dp-chat-panel').classList.add('open');
+    document.getElementById('dp-chat-overlay').classList.add('open');
+    document.body.classList.add('chat-panel-open');
+  }
+
+  function closePanel() {
+    var p = document.getElementById('dp-chat-panel');
+    var o = document.getElementById('dp-chat-overlay');
+    if (p) p.classList.remove('open');
+    if (o) o.classList.remove('open');
+    document.body.classList.remove('chat-panel-open');
+  }
+
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closePanel(); });
+
+  window._openChatPanel  = openPanel;
+  window._closeChatPanel = closePanel;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', injectBadge);
+  } else {
+    injectBadge();
+  }
+
+})();
+</script>
 
 </body>
 </html>
