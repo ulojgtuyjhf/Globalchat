@@ -4110,47 +4110,67 @@ function createPinElement(postData, postId) {
     });
     slideActions.appendChild(shareBtn);
 
-    // Save/Favourite button
+    // Save/Favourite button — or Trash if this is the current user's own video
+    var _isOwnPost = currentUser && (postData.userId === currentUser.uid || postData.uid === currentUser.uid);
     const saveBtn = document.createElement('button');
-    var _isSaved = window.isPostFavourited && window.isPostFavourited(postId);
-    saveBtn.className = 'slide-action-btn' + (_isSaved ? ' saved-on' : '');
-    saveBtn.setAttribute('aria-label', 'Save');
-    saveBtn.innerHTML =
-        '<div class="slide-action-icon">' +
-            '<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
-              '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>' +
-            '</svg>' +
-        '</div>' +
-        '<span class="slide-action-label">' + (_isSaved ? 'Saved' : 'Save') + '</span>';
-
-    function _applyMobSaveState(sv) {
-        var svg = saveBtn.querySelector('svg');
-        var lbl = saveBtn.querySelector('.slide-action-label');
-        if (sv) {
-            saveBtn.classList.add('saved-on');
-            if (svg) { svg.setAttribute('fill', 'url(#brandBookmarkGrad)'); svg.setAttribute('stroke', '#626262'); }
-            if (lbl) lbl.textContent = 'Saved';
-        } else {
-            saveBtn.classList.remove('saved-on');
-            if (svg) { svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'rgba(255,255,255,0.95)'); }
-            if (lbl) lbl.textContent = 'Save';
+    if (_isOwnPost) {
+        // ── TRASH BUTTON for own videos ──
+        saveBtn.className = 'slide-action-btn';
+        saveBtn.setAttribute('aria-label', 'Delete');
+        saveBtn.innerHTML =
+            '<div class="slide-action-icon">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
+                  '<polyline points="3 6 5 6 21 6"/>' +
+                  '<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>' +
+                  '<path d="M10 11v6"/><path d="M14 11v6"/>' +
+                  '<path d="M9 6V4h6v2"/>' +
+                '</svg>' +
+            '</div>' +
+            '<span class="slide-action-label">Delete</span>';
+        saveBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            window._showDeleteConfirm && window._showDeleteConfirm(postId, postData);
+        });
+    } else {
+        // ── SAVE/BOOKMARK for others' videos ──
+        var _isSaved = window.isPostFavourited && window.isPostFavourited(postId);
+        saveBtn.className = 'slide-action-btn' + (_isSaved ? ' saved-on' : '');
+        saveBtn.setAttribute('aria-label', 'Save');
+        saveBtn.innerHTML =
+            '<div class="slide-action-icon">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
+                  '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>' +
+                '</svg>' +
+            '</div>' +
+            '<span class="slide-action-label">' + (_isSaved ? 'Saved' : 'Save') + '</span>';
+        function _applyMobSaveState(sv) {
+            var svg = saveBtn.querySelector('svg');
+            var lbl = saveBtn.querySelector('.slide-action-label');
+            if (sv) {
+                saveBtn.classList.add('saved-on');
+                if (svg) { svg.setAttribute('fill', 'url(#brandBookmarkGrad)'); svg.setAttribute('stroke', '#626262'); }
+                if (lbl) lbl.textContent = 'Saved';
+            } else {
+                saveBtn.classList.remove('saved-on');
+                if (svg) { svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'rgba(255,255,255,0.95)'); }
+                if (lbl) lbl.textContent = 'Save';
+            }
         }
+        if (_isSaved) _applyMobSaveState(true);
+        saveBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var saved = window.isPostFavourited && window.isPostFavourited(postId);
+            if (saved) {
+                window.removeFromFavourites && window.removeFromFavourites(postId);
+                _applyMobSaveState(false);
+            } else {
+                window.saveToFavourites && window.saveToFavourites(postData, postId);
+                _applyMobSaveState(true);
+                var icon = saveBtn.querySelector('.slide-action-icon');
+                if (icon) { icon.style.transform = 'scale(1.35)'; setTimeout(function(){ icon.style.transform = ''; }, 300); }
+            }
+        });
     }
-    if (_isSaved) _applyMobSaveState(true);
-
-    saveBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        var saved = window.isPostFavourited && window.isPostFavourited(postId);
-        if (saved) {
-            window.removeFromFavourites && window.removeFromFavourites(postId);
-            _applyMobSaveState(false);
-        } else {
-            window.saveToFavourites && window.saveToFavourites(postData, postId);
-            _applyMobSaveState(true);
-            var icon = saveBtn.querySelector('.slide-action-icon');
-            if (icon) { icon.style.transform = 'scale(1.35)'; setTimeout(function(){ icon.style.transform = ''; }, 300); }
-        }
-    });
     slideActions.appendChild(saveBtn);
 
     // Spinning disc — below save, above nothing, subtle brand touch
@@ -5172,33 +5192,35 @@ init();
     wrap.appendChild(videoEl);
     card._video = videoEl;
 
-    // ── For You / Top tabs — centered at top of video card ──
-    var _cardTabs = document.createElement('div');
-    _cardTabs.className = 'desk-card-tabs';
-    _cardTabs.innerHTML =
-        '<button class="mob-feed-tab active" data-tab="foryou">For You</button>' +
-        '<button class="mob-feed-tab" data-tab="top">Top</button>';
-    _cardTabs.querySelector('[data-tab="foryou"]').addEventListener('click', function(e) {
-        e.stopPropagation();
-        var feed = document.getElementById('desktop-feed');
-        if (feed) feed.scrollTo({ top: 0, behavior: 'smooth' });
-        document.querySelectorAll('.desk-card-tabs [data-tab="foryou"]').forEach(function(b){ b.classList.add('active'); });
-        document.querySelectorAll('.desk-card-tabs [data-tab="top"]').forEach(function(b){ b.classList.remove('active'); });
-    });
-    _cardTabs.querySelector('[data-tab="top"]').addEventListener('click', function(e) {
-        e.stopPropagation();
-        var cards = document.querySelectorAll('.desktop-card');
-        var best = null, bestN = -1;
-        cards.forEach(function(c){ var n=parseInt(c.dataset.superlikeCount||0); if(n>bestN){bestN=n;best=c;} });
-        if (best) { var feed=document.getElementById('desktop-feed'); if(feed) feed.scrollTo({top:best.offsetTop,behavior:'smooth'}); }
-        document.querySelectorAll('.desk-card-tabs [data-tab="top"]').forEach(function(b){ b.classList.add('active'); });
-        document.querySelectorAll('.desk-card-tabs [data-tab="foryou"]').forEach(function(b){ b.classList.remove('active'); });
-        setTimeout(function(){
+    // ── For You / Top tabs — only on home feed, NOT in saved/profile/liked viewers ──
+    if (!window._buildingForViewer && !window._buildingForDpViewer) {
+        var _cardTabs = document.createElement('div');
+        _cardTabs.className = 'desk-card-tabs';
+        _cardTabs.innerHTML =
+            '<button class="mob-feed-tab active" data-tab="foryou">For You</button>' +
+            '<button class="mob-feed-tab" data-tab="top">Top</button>';
+        _cardTabs.querySelector('[data-tab="foryou"]').addEventListener('click', function(e) {
+            e.stopPropagation();
+            var feed = document.getElementById('desktop-feed');
+            if (feed) feed.scrollTo({ top: 0, behavior: 'smooth' });
             document.querySelectorAll('.desk-card-tabs [data-tab="foryou"]').forEach(function(b){ b.classList.add('active'); });
             document.querySelectorAll('.desk-card-tabs [data-tab="top"]').forEach(function(b){ b.classList.remove('active'); });
-        }, 800);
-    });
-    wrap.appendChild(_cardTabs);
+        });
+        _cardTabs.querySelector('[data-tab="top"]').addEventListener('click', function(e) {
+            e.stopPropagation();
+            var cards = document.querySelectorAll('.desktop-card');
+            var best = null, bestN = -1;
+            cards.forEach(function(c){ var n=parseInt(c.dataset.superlikeCount||0); if(n>bestN){bestN=n;best=c;} });
+            if (best) { var feed=document.getElementById('desktop-feed'); if(feed) feed.scrollTo({top:best.offsetTop,behavior:'smooth'}); }
+            document.querySelectorAll('.desk-card-tabs [data-tab="top"]').forEach(function(b){ b.classList.add('active'); });
+            document.querySelectorAll('.desk-card-tabs [data-tab="foryou"]').forEach(function(b){ b.classList.remove('active'); });
+            setTimeout(function(){
+                document.querySelectorAll('.desk-card-tabs [data-tab="foryou"]').forEach(function(b){ b.classList.add('active'); });
+                document.querySelectorAll('.desk-card-tabs [data-tab="top"]').forEach(function(b){ b.classList.remove('active'); });
+            }, 800);
+        });
+        wrap.appendChild(_cardTabs);
+    }
     var dWatchLeft = document.createElement('div');
     dWatchLeft.className = 'desktop-watch-left';
 
@@ -5495,43 +5517,54 @@ init();
     });
     actions.appendChild(dShareBtn);
 
-    // Save/Bookmark btn (desktop)
+    // Save/Bookmark btn (desktop) — or Trash if own post
     var dSaveBtn = document.createElement('button');
-    var _dIsSaved = window.isPostFavourited && window.isPostFavourited(postId);
-    dSaveBtn.className = 'desktop-action-btn' + (_dIsSaved ? ' saved-on' : '');
-    dSaveBtn.setAttribute('aria-label', 'Save');
-    dSaveBtn.innerHTML = '<div class="desktop-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>'
-      + '<span class="desktop-action-label">' + (_dIsSaved ? 'Saved' : 'Save') + '</span>';
-
-    function _dApplySaveState(saved) {
-      var svg = dSaveBtn.querySelector('svg');
-      var lbl = dSaveBtn.querySelector('.desktop-action-label');
-      if (saved) {
-        dSaveBtn.classList.add('saved-on');
-        if (svg) { svg.setAttribute('fill', 'url(#brandBookmarkGrad)'); svg.setAttribute('stroke', '#626262'); }
-        if (lbl) lbl.textContent = 'Saved';
-      } else {
-        dSaveBtn.classList.remove('saved-on');
-        if (svg) { svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'rgba(255,255,255,0.9)'); }
-        if (lbl) lbl.textContent = 'Save';
+    var _dIsOwnPost = currentUser && (postData.userId === currentUser.uid || postData.uid === currentUser.uid);
+    if (_dIsOwnPost) {
+      // ── TRASH BUTTON ──
+      dSaveBtn.className = 'desktop-action-btn';
+      dSaveBtn.setAttribute('aria-label', 'Delete');
+      dSaveBtn.innerHTML = '<div class="desktop-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></div>'
+        + '<span class="desktop-action-label">Delete</span>';
+      dSaveBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        window._showDeleteConfirm && window._showDeleteConfirm(postId, postData);
+      });
+    } else {
+      // ── SAVE/BOOKMARK ──
+      var _dIsSaved = window.isPostFavourited && window.isPostFavourited(postId);
+      dSaveBtn.className = 'desktop-action-btn' + (_dIsSaved ? ' saved-on' : '');
+      dSaveBtn.setAttribute('aria-label', 'Save');
+      dSaveBtn.innerHTML = '<div class="desktop-action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>'
+        + '<span class="desktop-action-label">' + (_dIsSaved ? 'Saved' : 'Save') + '</span>';
+      function _dApplySaveState(saved) {
+        var svg = dSaveBtn.querySelector('svg');
+        var lbl = dSaveBtn.querySelector('.desktop-action-label');
+        if (saved) {
+          dSaveBtn.classList.add('saved-on');
+          if (svg) { svg.setAttribute('fill', 'url(#brandBookmarkGrad)'); svg.setAttribute('stroke', '#626262'); }
+          if (lbl) lbl.textContent = 'Saved';
+        } else {
+          dSaveBtn.classList.remove('saved-on');
+          if (svg) { svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'rgba(255,255,255,0.9)'); }
+          if (lbl) lbl.textContent = 'Save';
+        }
       }
+      if (_dIsSaved) _dApplySaveState(true);
+      dSaveBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var isSaved = window.isPostFavourited && window.isPostFavourited(postId);
+        if (isSaved) {
+          window.removeFromFavourites && window.removeFromFavourites(postId);
+          _dApplySaveState(false);
+        } else {
+          window.saveToFavourites && window.saveToFavourites(postData, postId);
+          _dApplySaveState(true);
+          var ic = dSaveBtn.querySelector('.desktop-action-icon');
+          if (ic) { ic.style.transform = 'scale(1.35)'; setTimeout(function(){ ic.style.transform=''; }, 300); }
+        }
+      });
     }
-    // Apply initial state
-    if (_dIsSaved) _dApplySaveState(true);
-
-    dSaveBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      var isSaved = window.isPostFavourited && window.isPostFavourited(postId);
-      if (isSaved) {
-        window.removeFromFavourites && window.removeFromFavourites(postId);
-        _dApplySaveState(false);
-      } else {
-        window.saveToFavourites && window.saveToFavourites(postData, postId);
-        _dApplySaveState(true);
-        var ic = dSaveBtn.querySelector('.desktop-action-icon');
-        if (ic) { ic.style.transform = 'scale(1.35)'; setTimeout(function(){ ic.style.transform=''; }, 300); }
-      }
-    });
     actions.appendChild(dSaveBtn);
 
     // Spinning disc — below save, matches mobile
@@ -6167,7 +6200,12 @@ init();
 
   // ── Desktop upload overlay (slides up over everything, sidebar stays) ──
   var dsUploadOverlay = null;
+  function _pauseAllVideos() {
+    document.querySelectorAll('video').forEach(function(v){ try{ v.pause(); }catch(e){} });
+  }
+
   function openDsUploadOverlay() {
+    _pauseAllVideos();
     if (!dsUploadOverlay) {
       dsUploadOverlay = document.createElement('div');
       dsUploadOverlay.id = 'ds-upload-overlay';
@@ -6255,8 +6293,8 @@ init();
       if (window._dsvObsRef) { window._dsvObsRef.disconnect(); window._dsvObsRef = null; }
       // Also disconnect via the local _dsvObs if accessible
       var _savedPanel = document.getElementById('ds-saved-panel');
-      // Pause ALL videos everywhere
-      document.querySelectorAll('video').forEach(function(v){ v.pause(); });
+      // Pause ALL videos + mute so no audio leaks
+      document.querySelectorAll('video').forEach(function(v){ try{ v.pause(); v.muted=true; }catch(e){} });
       // Hide every child of #ds-main-area
       var mainArea = document.getElementById('ds-main-area');
       if (mainArea) {
@@ -6430,6 +6468,7 @@ init();
         if (_dsvFeedEl) _dsvFeedEl.appendChild(dsvBack);
 
         window._openDsSavedVideo = function(clickedPost) {
+          window._buildingForDpViewer = true;
           if (_dsvObs) { _dsvObs.disconnect(); _dsvObs = null; }
           _dsvCards = [];
 
@@ -6459,6 +6498,7 @@ init();
             feed.appendChild(card);
           });
 
+          window._buildingForDpViewer = false;
           if (!_dsvCards.length) return;
 
           // Hide grid, show feed — same columns as home
@@ -6723,6 +6763,7 @@ init();
         if (_dpFeedEl) _dpFeedEl.appendChild(dpvBackBtn);
 
         window._openDpVideo = function(clickedPost, postsArr) {
+          window._buildingForDpViewer = true;
           _dpvPosts = postsArr || [];
           if (_dpvObs) { _dpvObs.disconnect(); _dpvObs = null; }
           _dpvCards = [];
@@ -6745,6 +6786,7 @@ init();
             _dpvCards.push(card);
             feed.appendChild(card);
           });
+          window._buildingForDpViewer = false;
           if (!_dpvCards.length) return;
 
           profPanel.style.display = 'none';
@@ -8169,6 +8211,191 @@ init();
         <iframe id="profile-panel-frame" src="" style="flex:1;border:none;width:100%;height:100%;display:block;" allow="camera; microphone"></iframe>
     </div>
 
+
+<style>
+/* ── Delete confirm modal ── */
+#delete-confirm-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 9500;
+    display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+#delete-confirm-overlay.open { display: flex; }
+#delete-confirm-modal {
+    background: #fff;
+    border-radius: 24px;
+    width: min(360px, 88vw);
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.25);
+    animation: dcmIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes dcmIn {
+    from { opacity:0; transform: scale(0.88) translateY(16px); }
+    to   { opacity:1; transform: scale(1) translateY(0); }
+}
+.dcm-top-bar {
+    height: 4px;
+    background: linear-gradient(135deg, #0f0f0f 0%, #626262 50%, #a6a6a6 100%);
+}
+.dcm-body {
+    padding: 24px 24px 20px;
+    text-align: center;
+}
+.dcm-icon {
+    width: 56px; height: 56px; border-radius: 18px;
+    background: linear-gradient(135deg, #0f0f0f 0%, #3a3a3a 100%);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+}
+.dcm-icon svg { width: 24px; height: 24px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.dcm-title {
+    font-size: 18px; font-weight: 900; color: #111;
+    font-family: var(--font); letter-spacing: -0.02em; margin-bottom: 8px;
+}
+.dcm-sub {
+    font-size: 13px; color: #888; font-family: var(--font);
+    line-height: 1.5; margin-bottom: 24px;
+}
+.dcm-actions {
+    display: flex; gap: 10px;
+}
+.dcm-cancel {
+    flex: 1; padding: 12px; border: 1.5px solid #ebebeb;
+    border-radius: 14px; background: #f7f7f7;
+    font-size: 14px; font-weight: 800; color: #555;
+    font-family: var(--font); cursor: pointer;
+    transition: all 0.15s;
+}
+.dcm-cancel:hover { background: #eee; }
+.dcm-cancel:active { transform: scale(0.96); }
+.dcm-delete {
+    flex: 1; padding: 12px; border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #0f0f0f 0%, #3a3a3a 50%, #626262 100%);
+    font-size: 14px; font-weight: 900; color: #fff;
+    font-family: var(--font); cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.22);
+    transition: all 0.15s cubic-bezier(0.34,1.56,0.64,1);
+}
+.dcm-delete:hover { opacity: 0.9; transform: scale(1.03); }
+.dcm-delete:active { transform: scale(0.96); }
+.dcm-delete.deleting { opacity: 0.6; pointer-events: none; }
+</style>
+
+<div id="delete-confirm-overlay">
+    <div id="delete-confirm-modal">
+        <div class="dcm-top-bar"></div>
+        <div class="dcm-body">
+            <div class="dcm-icon">
+                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            </div>
+            <div class="dcm-title">Delete this video?</div>
+            <div class="dcm-sub">This will permanently remove your video, all its comments, and likes. This cannot be undone.</div>
+            <div class="dcm-actions">
+                <button class="dcm-cancel" id="dcm-cancel-btn">Keep it</button>
+                <button class="dcm-delete" id="dcm-confirm-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var _deletePostId = null;
+    var _deletePostData = null;
+    var overlay = document.getElementById('delete-confirm-overlay');
+    var confirmBtn = document.getElementById('dcm-confirm-btn');
+    var cancelBtn  = document.getElementById('dcm-cancel-btn');
+
+    window._showDeleteConfirm = function(postId, postData) {
+        _deletePostId   = postId;
+        _deletePostData = postData;
+        overlay.classList.add('open');
+    };
+
+    cancelBtn.addEventListener('click', function() {
+        overlay.classList.remove('open');
+    });
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) overlay.classList.remove('open');
+    });
+
+    confirmBtn.addEventListener('click', async function() {
+        if (!_deletePostId) return;
+        confirmBtn.textContent = 'Deleting...';
+        confirmBtn.classList.add('deleting');
+
+        var db8   = window._fbDb;
+        var fns8  = window._fbFirestoreFns;
+        if (!db8 || !fns8) { confirmBtn.textContent = 'Delete'; confirmBtn.classList.remove('deleting'); return; }
+
+        try {
+            // 1. Delete comments subcollection
+            try {
+                var cmts = await fns8.getDocs(fns8.collection(db8, 'recence', _deletePostId, 'comments'));
+                await Promise.all(cmts.docs.map(function(c){ return fns8.deleteDoc(fns8.doc(db8,'recence',_deletePostId,'comments',c.id)); }));
+            } catch(e) {}
+
+            // 2. Delete replies subcollection
+            try {
+                var reps = await fns8.getDocs(fns8.collection(db8, 'recence', _deletePostId, 'replies'));
+                await Promise.all(reps.docs.map(function(r){ return fns8.deleteDoc(fns8.doc(db8,'recence',_deletePostId,'replies',r.id)); }));
+            } catch(e) {}
+
+            // 3. Delete R2 file via Cloudflare worker
+            try {
+                var media = (_deletePostData && _deletePostData.media) || [];
+                for (var i=0; i<media.length; i++) {
+                    var fid = media[i].fileId;
+                    if (!fid && media[i].url) {
+                        var parts = media[i].url.split('/');
+                        fid = decodeURIComponent(parts[parts.length-1]);
+                    }
+                    if (fid) {
+                        await fetch('https://r2-upload.katlegomashilwane0691.workers.dev/delete', {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ fileId: fid })
+                        });
+                    }
+                }
+            } catch(e) {}
+
+            // 4. Delete Firestore post doc
+            await fns8.deleteDoc(fns8.doc(db8, 'recence', _deletePostId));
+
+            // 5. Remove from page without reload
+            var cardEl = document.querySelector('[data-post-id="' + _deletePostId + '"]');
+            if (cardEl) {
+                cardEl.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                cardEl.style.opacity = '0';
+                cardEl.style.transform = 'scale(0.92)';
+                setTimeout(function(){ if (cardEl.parentNode) cardEl.parentNode.removeChild(cardEl); }, 320);
+            }
+            // Remove from profile grid cell too
+            document.querySelectorAll('.liked-cell').forEach(function(cell) {
+                if (cell._postId === _deletePostId) {
+                    cell.style.transition = 'opacity 0.3s ease';
+                    cell.style.opacity = '0';
+                    setTimeout(function(){ if(cell.parentNode) cell.parentNode.removeChild(cell); }, 320);
+                }
+            });
+
+            overlay.classList.remove('open');
+            confirmBtn.textContent = 'Delete';
+            confirmBtn.classList.remove('deleting');
+            _deletePostId = null; _deletePostData = null;
+
+        } catch(err) {
+            console.error('Delete failed:', err);
+            confirmBtn.textContent = 'Failed — retry';
+            confirmBtn.classList.remove('deleting');
+        }
+    });
+})();
+</script>
 
 <script src="chat.js"></script>
 <script>
