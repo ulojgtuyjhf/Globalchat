@@ -3088,7 +3088,7 @@ function createPinElement(postData, postId) {
 
     function buildViewerBadge(viewers) {
         var count = viewers.length;
-        var inLikedViewer = viewerBadge.closest('#liked-viewer-feed');
+        var inLikedViewer = viewerBadge.closest('#liked-viewer-feed') || viewerBadge.closest('#mob-prof-viewer-feed');
 
         // Left label (home feed only)
         var label = count > 999 ? (count/1000).toFixed(1)+'K watching' : count + ' watching';
@@ -3098,7 +3098,7 @@ function createPinElement(postData, postId) {
 
         if (count === 0) {
             if (inLikedViewer) {
-                // Liked viewer: hide pill entirely when nobody watching
+                // Liked/profile viewer: hide pill entirely when nobody watching
                 viewerBadge.style.display = 'none';
                 viewerBadge.innerHTML = '';
             } else {
@@ -3128,7 +3128,7 @@ function createPinElement(postData, postId) {
         if (extra > 0) stack += '<div class="live-vav live-vav-more">+' + extra + '</div>';
         stack += '</div>';
 
-        // Liked viewer only: add count label inside pill
+        // Liked/profile viewer only: add count label inside pill
         if (inLikedViewer) {
             var lbl = count > 999 ? (count/1000).toFixed(1)+'K' : count;
             stack += '<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.9);font-family:var(--font,sans-serif);letter-spacing:0.01em;">' + lbl + ' watching</span>';
@@ -3191,7 +3191,7 @@ function createPinElement(postData, postId) {
     // Register with visibility observer — desktop cards only
     if (mediaElement && mediaElement.tagName === 'VIDEO' && window._videoVisObs) {
         var inGallery = mediaElement.closest('#gallery');
-        var inLikedViewer = mediaElement.closest('#liked-viewer-feed');
+        var inLikedViewer = mediaElement.closest('#liked-viewer-feed') || mediaElement.closest('#mob-prof-viewer-feed');
         if (!inGallery && !inLikedViewer) window._videoVisObs.observe(mediaElement);
     }
 
@@ -6921,9 +6921,26 @@ init();
         position: fixed; top: calc(env(safe-area-inset-top,0px) + 12px); left: 14px;
         z-index: 1010; background: var(--brand-gradient); border: none; cursor: pointer;
         width: 36px; height: 36px; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
+        display: none; align-items: center; justify-content: center;
         box-shadow: 0 2px 12px rgba(0,0,0,0.3);
         -webkit-tap-highlight-color: transparent;
+    }
+    #mob-prof-viewer.open #mob-prof-viewer-back { display: flex; }
+    /* Profile viewer: same pill style as liked-viewer */
+    #mob-prof-viewer-feed .live-watch-left {
+        display: none;
+    }
+    #mob-prof-viewer-feed .live-viewer-badge {
+        top: 14px; left: 50%; right: auto;
+        transform: translateX(-50%);
+        gap: 6px;
+        background: rgba(255,255,255,0.12);
+        backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: saturate(180%) blur(16px);
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 99px;
+        padding: 4px 10px 4px 6px;
+        white-space: nowrap;
     }
     /* Loading skeleton shimmer */
     .mp-skel {
@@ -8758,38 +8775,98 @@ function _mobProfOpenViewer(clickedPost, posts) {
     _mobProfViewerPosts = posts;
     var viewer = document.getElementById('mob-prof-viewer');
     var feed   = document.getElementById('mob-prof-viewer-feed');
+    var back   = document.getElementById('mob-prof-viewer-back');
     if (!viewer || !feed) return;
     if (_mobProfViewerObs) { _mobProfViewerObs.disconnect(); _mobProfViewerObs = null; }
     feed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
     feed.innerHTML = '';
     var buildPin = window._createPinElement;
     if (!buildPin) return;
+
+    // Reset global ui-hidden so actions are visible
+    window._uiHidden = false;
+    document.body.classList.remove('paused-view');
+
     window._buildingForViewer = true;
+    var built = 0;
     posts.forEach(function(p) {
         if (!p.media || !p.media[0] || !p.media[0].url) return;
         var pinEl = buildPin(p, p._id);
         if (!pinEl) return;
+        pinEl.classList.remove('ui-hidden');
         var v = pinEl.querySelector('video');
-        if (v) { v.src = v.dataset.src||v.src; v.removeAttribute('data-src'); v.preload='auto'; v.classList.remove('lazy-load'); v.classList.add('loaded'); v.load(); }
+        if (v) {
+            var src = v.dataset.src || v.src;
+            if (src) { v.src = src; v.removeAttribute('data-src'); v.preload='auto'; v.classList.remove('lazy-load'); v.classList.add('loaded'); v.load(); }
+        }
         feed.appendChild(pinEl);
+        built++;
     });
     window._buildingForViewer = false;
+    if (built === 0) return;
+
+    // Hard stop home feed
+    document.querySelectorAll('#gallery video').forEach(function(v){ v.pause(); v.muted=true; });
+
     viewer.style.transform = 'translateY(0)';
+    viewer.classList.add('open');
+
     var startIdx = Math.max(0, posts.filter(function(q){ return q.media&&q.media[0]&&q.media[0].url; }).findIndex(function(q){ return q._id===clickedPost._id; }));
     var pins = feed.querySelectorAll('.pin-container');
     if (pins[startIdx]) feed.scrollTop = pins[startIdx].offsetTop;
+
+    var _mpvCurrentPin = null;
     _mobProfViewerObs = new IntersectionObserver(function(entries) {
         entries.forEach(function(entry) {
             var pin = entry.target;
             var v = pin.querySelector('video');
             if (!v) return;
-            if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
-                v.muted=false; v.currentTime=0;
+            if (entry.isIntersecting && entry.intersectionRatio >= 0.85) {
+                if (_mpvCurrentPin && _mpvCurrentPin !== pin) {
+                    var lv = _mpvCurrentPin.querySelector('video');
+                    if (lv) { lv.pause(); }
+                }
+                _mpvCurrentPin = pin;
+                if (!v.src && v.dataset.savedSrc) { v.src = v.dataset.savedSrc; v.load(); }
+                v.currentTime = 0; v.muted = false;
                 v.play().catch(function(){ v.muted=true; v.play().catch(function(){}); });
-            } else { v.pause(); }
+                pin.classList.remove('ui-hidden');
+                var pid = pin.dataset.postId;
+                if (pid && typeof trackPresence === 'function') trackPresence(pid);
+                // Preload adjacent
+                var allPins = Array.prototype.slice.call(feed.querySelectorAll('.pin-container'));
+                var ci = allPins.indexOf(pin);
+                [-1,1].forEach(function(off){
+                    var adj = allPins[ci+off]; if (!adj) return;
+                    var av = adj.querySelector('video');
+                    if (av && !av.src && av.dataset.savedSrc) { av.src=av.dataset.savedSrc; av.muted=true; av.preload='auto'; av.load(); }
+                });
+            } else if (!entry.isIntersecting) {
+                v.pause(); v.muted=true; v.currentTime=0;
+            }
         });
-    }, { root: feed, threshold: 0.55 });
+    }, { root: feed, threshold: [0, 0.85] });
     pins.forEach(function(p){ _mobProfViewerObs.observe(p); });
+
+    // Back button
+    if (back) {
+        back.onclick = function() {
+            if (_mobProfViewerObs) { _mobProfViewerObs.disconnect(); _mobProfViewerObs = null; }
+            _mpvCurrentPin = null;
+            document.querySelectorAll('video').forEach(function(v){ v.pause(); v.muted=true; v.currentTime=0; });
+            var galObs = window._galleryObs;
+            if (galObs) galObs.disconnect();
+            viewer.classList.remove('open');
+            viewer.style.transform = 'translateY(100%)';
+            setTimeout(function() {
+                document.querySelectorAll('video').forEach(function(v){ v.pause(); v.muted=true; });
+                var gal = document.getElementById('gallery');
+                if (gal && galObs) { gal.querySelectorAll('.pin-container').forEach(function(p){ galObs.observe(p); }); window._galleryObs = galObs; }
+                if (window._mobSection !== 'profile') return;
+                // stay on profile — nothing to resume
+            }, 450);
+        };
+    }
 }
 
 function _mobProfCloseViewer() {
@@ -8797,7 +8874,7 @@ function _mobProfCloseViewer() {
     var feed   = document.getElementById('mob-prof-viewer-feed');
     if (_mobProfViewerObs) { _mobProfViewerObs.disconnect(); _mobProfViewerObs = null; }
     if (feed) feed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
-    if (viewer) viewer.style.transform = 'translateY(100%)';
+    if (viewer) { viewer.classList.remove('open'); viewer.style.transform = 'translateY(100%)'; }
 }
 
 // Also save grid scroll when leaving profile section
