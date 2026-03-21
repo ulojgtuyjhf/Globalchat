@@ -6290,6 +6290,12 @@ init();
 
     // ── Always hide EVERYTHING in main area — blank slate ──
     function hideAll() {
+      // Save scroll positions before hiding
+      var _dpGridEl = document.getElementById('dp-grid');
+      var _ppanel = document.getElementById('ds-profile-panel');
+      if (_dpGridEl && _ppanel) _ppanel._gridScrollTop = _dpGridEl.scrollTop;
+      var _sgridEl = document.getElementById('ds-saved-grid');
+      if (_sgridEl) window._dsSavedScrollTop = _sgridEl.scrollTop;
       // Disconnect liked viewer observer first — stops autoplay
       if (window._dsvObsRef) { window._dsvObsRef.disconnect(); window._dsvObsRef = null; }
       // Also disconnect via the local _dsvObs if accessible
@@ -6414,7 +6420,7 @@ init();
 
         var gridScroll = document.createElement('div');
         gridScroll.id = 'ds-saved-grid';
-        gridScroll.style.cssText = 'flex:1;overflow-y:auto;padding:8px 6px 20px;column-count:3;column-gap:5px;scrollbar-width:none;';
+        gridScroll.style.cssText = 'flex:1;overflow-y:auto;padding:8px 6px 20px;column-count:3;column-gap:5px;scrollbar-width:thin;scrollbar-color:#e0e0e0 transparent;';
 
         gridCol.appendChild(gridHead);
         gridCol.appendChild(gridScroll);
@@ -6565,6 +6571,12 @@ init();
       // Show panel, hide feed
       panel.style.display = 'flex';
 
+      // Restore saved grid scroll position
+      if (window._dsSavedScrollTop) {
+        var _sgEl = document.getElementById('ds-saved-grid');
+        if (_sgEl) requestAnimationFrame(function(){ _sgEl.scrollTop = window._dsSavedScrollTop; });
+      }
+
       // Load grid if not yet
       if (!window._dsSavedLoaded) {
         window._dsSavedLoaded = true;
@@ -6576,7 +6588,7 @@ init();
           try {
             var db5=window._fbDb; var fns5=window._fbFirestoreFns;
             if (db5 && fns5 && window._currentUser) {
-              var snap5 = await fns5.getDocs(fns5.query(fns5.collection(db5,'recence'),fns5.where('likes','array-contains',window._currentUser.uid),fns5.orderBy('timestamp','desc'),fns5.limit(60)));
+              var snap5 = await fns5.getDocs(fns5.query(fns5.collection(db5,'recence'),fns5.where('likes','array-contains',window._currentUser.uid),fns5.limit(60)));
               snap5.forEach(function(d){ var p=d.data(); p._id=d.id; if (!saved.find(function(s){return s._id===d.id;})) saved.push(p); });
             }
           } catch(e) {}
@@ -6834,7 +6846,7 @@ init();
           if (_dnDown) _dnDown.onclick = function(){ feed.scrollBy({ top:  window.innerHeight, behavior:'smooth' }); };
         };
 
-        // ── Grid builder ──
+        // ── Grid builder — stored on profPanel so resume can call it outside this if-block ──
         var _dpRatios = [1, 1, 1.35, 0.75, 1.2, 0.85, 1, 1.1, 0.9, 1.25];
         function buildProfileGrid(posts) {
           var grid = document.getElementById('dp-grid');
@@ -6871,6 +6883,8 @@ init();
             setTimeout(function(){ cell.style.transition='opacity 0.3s ease,transform 0.3s cubic-bezier(0.34,1.56,0.64,1)'; cell.style.opacity='1'; cell.style.transform='translateY(0) scale(1)'; }, 40+idx*50);
           });
         }
+        // Expose on profPanel so resume block (outside this if-scope) can call it
+        profPanel._buildGrid = buildProfileGrid;
 
         // ── Load a tab ──
         var _dpTabCache = {};
@@ -6988,18 +7002,16 @@ init();
             }).catch(function(){ if(dpSt) dpSt.innerHTML=''; });
           }
         }
-        // Reset tab cache so fresh data loads each visit
-        if (profPanel._dpTabCacheRef) {
-          Object.keys(profPanel._dpTabCacheRef).forEach(function(k){ delete profPanel._dpTabCacheRef[k]; });
-        }
       }
 
-      // Force show panel, hide feed/comments
+      // Force show panel; hideAll() already hid everything, but ensure feed+comments are gone
       profPanel.style.display = 'flex';
       var _dpFeed = document.getElementById('desktop-feed');
       var _dpCmt  = document.getElementById('desktop-comments');
+      var _dpUpd  = document.getElementById('updates-column');
       if (_dpFeed) _dpFeed.style.display = 'none';
-      if (_dpCmt)  _dpCmt.style.display  = 'none';
+      if (_dpCmt)  { _dpCmt.style.display = 'none'; _dpCmt.classList.remove('open'); }
+      if (_dpUpd)  { _dpUpd.style.display = 'none'; _dpUpd.classList.remove('open'); }
 
       // Resume whichever tab was last active (or default to 'uploaded' on first open)
       if (profPanel._loadTab) {
@@ -7014,10 +7026,15 @@ init();
           profPanel._loadTab(_resumeKey);
         } else {
           // Rebuild grid from cache instantly — no loading flicker
-          if (typeof buildProfileGrid === 'function') {
-            buildProfileGrid(profPanel._dpTabCacheRef[_resumeKey]);
+          if (profPanel._buildGrid) {
+            profPanel._buildGrid(profPanel._dpTabCacheRef[_resumeKey]);
           } else {
             profPanel._loadTab(_resumeKey);
+          }
+          // Restore scroll position
+          var _dpGrid = document.getElementById('dp-grid');
+          if (_dpGrid && profPanel._gridScrollTop) {
+            requestAnimationFrame(function(){ _dpGrid.scrollTop = profPanel._gridScrollTop; });
           }
         }
       }
@@ -8104,9 +8121,10 @@ init();
         flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
         padding: 8px 6px calc(env(safe-area-inset-bottom,0px) + 80px) 6px;
         column-count: 3; column-gap: 5px;
-        scrollbar-width: none;
+        scrollbar-width: thin; scrollbar-color: #e0e0e0 transparent;
     }
-    #liked-grid::-webkit-scrollbar { display: none; }
+    #liked-grid::-webkit-scrollbar { width: 4px; }
+    #liked-grid::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 4px; }
     .liked-cell {
         break-inside: avoid;
         margin-bottom: 5px;
@@ -8776,4 +8794,199 @@ document.addEventListener('keydown', function(e){
     display: flex; align-items: center; justify-content: center;
     font-size: 16px; font-weight: 900; color: #fff;
 }
-.flp-av img { width: 100%; height: 100%; object-fit: cover; border-radius: 5
+.flp-av img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.flp-info { flex: 1; min-width: 0; }
+.flp-name {
+    font-size: 14px; font-weight: 800; color: #111;
+    font-family: var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.flp-handle {
+    font-size: 11px; color: #aaa; font-weight: 500;
+    font-family: var(--font); margin-top: 1px;
+}
+.flp-follow-btn {
+    flex-shrink: 0; font-size: 11px; font-weight: 800;
+    padding: 6px 14px; border-radius: 10px; border: none; cursor: pointer;
+    font-family: var(--font);
+    background: var(--brand-gradient); color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.14);
+    transition: all 0.15s cubic-bezier(0.34,1.56,0.64,1);
+}
+.flp-follow-btn:hover { transform: scale(1.06); }
+.flp-follow-btn:active { transform: scale(0.92); }
+.flp-follow-btn.following { background: #f2f2f2; color: #888; box-shadow: none; font-weight: 700; }
+.flp-empty {
+    padding: 48px 20px; text-align: center;
+    font-size: 14px; color: #bbb; font-family: var(--font);
+}
+.flp-loading {
+    padding: 48px 20px; text-align: center;
+    font-size: 13px; color: #ccc; font-family: var(--font);
+}
+/* Desktop: centered modal instead of bottom sheet */
+@media (min-width: 900px) {
+    #follow-list-overlay { align-items: center; }
+    #follow-list-panel {
+        border-radius: 24px;
+        max-height: 68vh;
+        animation: flpInD 0.3s cubic-bezier(0.22,1,0.36,1);
+    }
+    @keyframes flpInD {
+        from { opacity:0; transform: scale(0.92) translateY(12px); }
+        to   { opacity:1; transform: scale(1) translateY(0); }
+    }
+    .flp-handle { display: none; }
+}
+</style>
+
+<div id="follow-list-overlay">
+  <div id="follow-list-panel">
+    <div class="flp-handle"></div>
+    <div class="flp-head">
+      <span class="flp-title" id="flp-title">Followers</span>
+      <button class="flp-close" id="flp-close-btn">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="flp-list" id="flp-list">
+      <div class="flp-loading">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var overlay  = document.getElementById('follow-list-overlay');
+  var list     = document.getElementById('flp-list');
+  var titleEl  = document.getElementById('flp-title');
+  var closeBtn = document.getElementById('flp-close-btn');
+
+  function closePanel() { overlay.classList.remove('open'); }
+  closeBtn.addEventListener('click', closePanel);
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) closePanel(); });
+
+  window._showFollowList = function(type) {
+    // type = 'followers' or 'following'
+    titleEl.textContent = type === 'followers' ? 'Followers' : 'Following';
+    list.innerHTML = '<div class="flp-loading">Loading...</div>';
+    overlay.classList.add('open');
+
+    var db9  = window._fbDb;
+    var fns9 = window._fbFirestoreFns;
+    var user9 = window._currentUser;
+    if (!db9 || !fns9 || !user9) {
+      list.innerHTML = '<div class="flp-empty">Sign in to view</div>';
+      return;
+    }
+
+    var followQ;
+    if (type === 'followers') {
+      followQ = fns9.query(fns9.collection(db9,'follows'), fns9.where('followedUserId','==',user9.uid), fns9.limit(200));
+    } else {
+      followQ = fns9.query(fns9.collection(db9,'follows'), fns9.where('followerUserId','==',user9.uid), fns9.limit(200));
+    }
+
+    fns9.getDocs(followQ).then(function(snap) {
+      if (snap.empty) {
+        list.innerHTML = '<div class="flp-empty">No ' + type + ' yet</div>';
+        return;
+      }
+
+      // Collect the user IDs to fetch
+      var uids = [];
+      snap.forEach(function(d) {
+        var uid = type === 'followers' ? d.data().followerUserId : d.data().followedUserId;
+        if (uid) uids.push(uid);
+      });
+
+      // Fetch user docs
+      var fetches = uids.map(function(uid) {
+        return fns9.getDoc(fns9.doc(db9,'users',uid)).then(function(ud) {
+          return { uid: uid, data: ud.exists() ? ud.data() : null };
+        }).catch(function(){ return { uid: uid, data: null }; });
+      });
+
+      Promise.all(fetches).then(function(users) {
+        list.innerHTML = '';
+        if (!users.length) { list.innerHTML = '<div class="flp-empty">No ' + type + ' yet</div>'; return; }
+
+        users.forEach(function(u) {
+          var ud = u.data || {};
+          var name = ud.displayName || ud.name || 'User';
+          var photo = ud.photoURL || '';
+          var hue = (name[0]||'U').toUpperCase().charCodeAt(0)*37 % 360;
+          var isFollowedByMe = window._followedUsers ? window._followedUsers.has(u.uid) : false;
+          var isMe = user9.uid === u.uid;
+
+          var row = document.createElement('div');
+          row.className = 'flp-row';
+
+          var av = document.createElement('div');
+          av.className = 'flp-av';
+          if (photo && !photo.includes('default_profile')) {
+            var img = document.createElement('img');
+            img.src = photo;
+            img.onerror = function(){ av.removeChild(img); av.textContent = name[0].toUpperCase(); av.style.background='hsl('+hue+',50%,42%)'; };
+            av.appendChild(img);
+          } else {
+            av.textContent = name[0].toUpperCase();
+            av.style.background = 'hsl('+hue+',50%,42%)';
+          }
+
+          var info = document.createElement('div');
+          info.className = 'flp-info';
+          info.innerHTML = '<div class="flp-name">'+name+'</div><div class="flp-handle">@'+name.toLowerCase().replace(/\s+/g,'_')+'</div>';
+
+          row.appendChild(av);
+          row.appendChild(info);
+
+          if (!isMe) {
+            var fBtn = document.createElement('button');
+            fBtn.className = 'flp-follow-btn' + (isFollowedByMe ? ' following' : '');
+            fBtn.textContent = isFollowedByMe ? 'Following' : 'Follow';
+            fBtn.addEventListener('click', function() {
+              if (typeof window._toggleFollowById === 'function') {
+                window._toggleFollowById(u.uid, name, fBtn);
+              }
+            });
+            row.appendChild(fBtn);
+          }
+
+          list.appendChild(row);
+        });
+      });
+    }).catch(function(e) {
+      console.warn('follow list fetch:', e);
+      list.innerHTML = '<div class="flp-empty">Could not load</div>';
+    });
+  };
+
+  // Expose followedUsers set for the list
+  var _flpPoll = 0;
+  function _flpSyncFollowed() {
+    if (window._followedUsersSet) { window._followedUsers = window._followedUsersSet; return; }
+    if (_flpPoll++ < 20) setTimeout(_flpSyncFollowed, 500);
+  }
+  _flpSyncFollowed();
+
+  // toggleFollow by uid for the follow list buttons
+  window._toggleFollowById = function(uid, name, btn) {
+    var db10 = window._fbDb; var fns10 = window._fbFirestoreFns; var u10 = window._currentUser;
+    if (!db10 || !fns10 || !u10 || u10.uid === uid) return;
+    var isNowFollowing = !btn.classList.contains('following');
+    btn.textContent = isNowFollowing ? 'Following' : 'Follow';
+    btn.classList.toggle('following', isNowFollowing);
+    var fQuery = fns10.query(fns10.collection(db10,'follows'), fns10.where('followerUserId','==',u10.uid), fns10.where('followedUserId','==',uid));
+    fns10.getDocs(fQuery).then(function(snap) {
+      if (isNowFollowing && snap.empty) {
+        fns10.addDoc(fns10.collection(db10,'follows'), { followerUserId: u10.uid, followedUserId: uid, followedUserName: name, timestamp: { seconds: Math.floor(Date.now()/1000) } });
+      } else if (!isNowFollowing) {
+        snap.forEach(function(d){ fns10.deleteDoc(fns10.doc(db10,'follows',d.id)); });
+      }
+    });
+  };
+})();
+</script>
+
+</body>
+</html>
