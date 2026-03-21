@@ -6831,33 +6831,46 @@ init();
         // ── Load a tab ──
         var _dpTabCache = {};
         profPanel._dpTabCacheRef = _dpTabCache;
-        function loadProfileTab(key) {
+        function loadProfileTab(key, _attempt) {
           var grid = document.getElementById('dp-grid');
           if (!grid) return;
           if (_dpTabCache[key]) { buildProfileGrid(_dpTabCache[key]); return; }
-          grid.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Loading...</div>';
           var db6 = window._fbDb; var fns6 = window._fbFirestoreFns;
           var user6 = window._currentUser;
+          // Retry up to 10x — module script may still be initialising
           if (!db6 || !fns6 || !user6) {
-            grid.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Sign in to view</div>';
+            var attempt = (_attempt||0) + 1;
+            if (attempt > 10) {
+              grid.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Please sign in to view your profile</div>';
+              return;
+            }
+            grid.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Loading...</div>';
+            setTimeout(function(){ loadProfileTab(key, attempt); }, 600);
             return;
           }
+          grid.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Loading...</div>';
+          // No orderBy — avoids composite index requirement; sort client-side
           var q6;
           if (key === 'uploaded') {
-            q6 = fns6.query(fns6.collection(db6,'recence'), fns6.where('userId','==',user6.uid), fns6.orderBy('timestamp','desc'), fns6.limit(60));
+            q6 = fns6.query(fns6.collection(db6,'recence'), fns6.where('userId','==',user6.uid), fns6.limit(60));
           } else if (key === 'liked') {
-            q6 = fns6.query(fns6.collection(db6,'recence'), fns6.where('likes','array-contains',user6.uid), fns6.orderBy('timestamp','desc'), fns6.limit(60));
+            q6 = fns6.query(fns6.collection(db6,'recence'), fns6.where('likes','array-contains',user6.uid), fns6.limit(60));
           } else {
-            q6 = fns6.query(fns6.collection(db6,'recence'), fns6.where('superlikes','array-contains',user6.uid), fns6.orderBy('timestamp','desc'), fns6.limit(60));
+            q6 = fns6.query(fns6.collection(db6,'recence'), fns6.where('superlikes','array-contains',user6.uid), fns6.limit(60));
           }
           fns6.getDocs(q6).then(function(snap) {
             var posts = [];
             snap.forEach(function(d){ var p=d.data(); p._id=d.id; posts.push(p); });
+            posts.sort(function(a,b){
+              var at = a.timestamp ? (a.timestamp.seconds||0) : 0;
+              var bt = b.timestamp ? (b.timestamp.seconds||0) : 0;
+              return bt - at;
+            });
             _dpTabCache[key] = posts;
             buildProfileGrid(posts);
           }).catch(function(e){
-            console.warn('profile tab fetch:', e);
-            grid.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Could not load — check Firestore index</div>';
+            console.warn('profile tab fetch error:', e);
+            grid.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Failed to load. Try again.</div>';
           });
         }
 
@@ -6903,7 +6916,7 @@ init();
           var db7=window._fbDb; var fns7=window._fbFirestoreFns;
           if (db7 && fns7) {
             Promise.all([
-              fns7.getDocs(fns7.query(fns7.collection(db7,'recence'), fns7.where('userId','==',user7.uid), fns7.limit(60))),
+              fns7.getDocs(fns7.query(fns7.collection(db7,'recence'), fns7.where('userId','==',user7.uid), fns7.limit(200))),
               fns7.getDocs(fns7.query(fns7.collection(db7,'follows'), fns7.where('followedUserId','==',user7.uid), fns7.limit(200))),
               fns7.getDocs(fns7.query(fns7.collection(db7,'follows'), fns7.where('followerUserId','==',user7.uid), fns7.limit(200)))
             ]).then(function(results) {
@@ -6930,9 +6943,13 @@ init();
       if (_dpFeed) _dpFeed.style.display = 'none';
       if (_dpCmt)  _dpCmt.style.display  = 'none';
 
-      // Always reload first tab on open (fresh data)
+      // Always reload first tab on open (fresh data, clear cache)
       var _firstTab = document.getElementById('dp-tab-uploaded');
       if (_firstTab && profPanel._loadTab) {
+        // Clear cache so we fetch fresh
+        if (profPanel._dpTabCacheRef) {
+          Object.keys(profPanel._dpTabCacheRef).forEach(function(k){ delete profPanel._dpTabCacheRef[k]; });
+        }
         profPanel.querySelectorAll('[data-key]').forEach(function(b){
           b.style.borderBottomColor='transparent'; b.style.color='#aaa';
         });
