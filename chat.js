@@ -1150,6 +1150,45 @@
           #updates-empty span { color: ${t.updEmptyText} !important; }
           .upd-unread-dot { background: ${t.updDotColor} !important; box-shadow: 0 0 6px ${t.updDotColor}44 !important; }
           #updates-count-badge.show { background: var(--brand-gradient) !important; }
+
+          /* ── desktop profile panel ── */
+          #ds-profile-panel > div:first-child {
+            background: ${t.sidebarBg} !important;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.07) !important;
+          }
+          #dp-head {
+            background: ${t.sidebarBg} !important;
+            border-bottom: 1px solid ${t.dsDivider} !important;
+          }
+          #dp-name { color: ${t.textPrimary} !important; }
+          #dp-handle { color: ${t.textTertiary} !important; }
+          #dp-avatar { border-color: ${t.dsPersonAvBorder} !important; }
+          /* stat blocks: num + label */
+          #dp-stats [data-stat] span:first-child { color: ${t.textPrimary} !important; }
+          #dp-stats [data-stat] span:last-child  { color: ${t.textTertiary} !important; }
+          #dp-stats [data-stat]:hover { background: ${t.surfaceHover} !important; }
+          /* tabs */
+          #dp-tab-uploaded,
+          #dp-tab-liked,
+          #dp-tab-superliked {
+            color: ${t.textTertiary} !important;
+            background: transparent !important;
+            border-bottom-color: transparent !important;
+          }
+          #dp-tab-uploaded.active,
+          #dp-tab-liked.active,
+          #dp-tab-superliked.active {
+            color: ${t.textPrimary} !important;
+            border-bottom-color: ${t.textPrimary} !important;
+          }
+          /* grid */
+          #dp-grid { background: ${t.sidebarBg} !important; scrollbar-color: ${t.dcListScrollbar} transparent !important; }
+          #dp-grid::-webkit-scrollbar-thumb { background: ${t.dcListScrollbar} !important; }
+          #dp-grid .liked-cell { background: ${t.surfaceHover} !important; }
+          /* back button inside viewer */
+          #dpv-back { background: var(--brand-gradient) !important; }
+          /* profile panel title + back arrow */
+          #dp-head svg { stroke: ${t.textPrimary} !important; }
         }
       `;
 
