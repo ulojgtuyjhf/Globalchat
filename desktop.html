@@ -9008,21 +9008,18 @@ document.addEventListener('keydown', function(e){
   }
   function patchNavBtns() {
     var btns = document.querySelectorAll('.ds-nav-item');
-    if (!btns.length) { setTimeout(patchNavBtns, 400); return; }
+    if (!btns.length) { setTimeout(patchNavBtns, 500); return; }
     btns.forEach(function(btn) {
       btn.addEventListener('click', function() {
         hideArrows();
         if (btn.id !== 'dsNavProfile') {
-          var sp = document.getElementById('dp-settings-panel');
-          if (sp) sp.classList.remove('open');
-          var badge = document.getElementById('dp-settings-badge');
-          if (badge) { badge.classList.remove('is-open'); badge.innerHTML = window._gearSVG || ''; }
-          window._dpSettingsOpen = false;
+          _closeSettingsMenu();
+          _closeModal();
         }
         if (btn.id === 'dsNavProfile') {
           setTimeout(function() {
             var pp = document.getElementById('ds-profile-panel');
-            if (pp) { pp.style.display = 'flex'; pp.style.opacity = ''; pp.style.pointerEvents = ''; }
+            if (pp) { pp.style.display='flex'; pp.style.opacity=''; pp.style.pointerEvents=''; }
           }, 50);
         }
       });
@@ -9031,15 +9028,22 @@ document.addEventListener('keydown', function(e){
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() { patchDpvBack(); patchNavBtns(); });
   } else { patchDpvBack(); patchNavBtns(); }
-  setTimeout(patchNavBtns, 1000);
+  setTimeout(patchNavBtns, 1200);
 })();
 
 
 // ══════════════════════════════════════════════════
-//  SETTINGS PANEL (loads chats.html) + EDIT PENCIL
+//  PROFILE ENHANCEMENTS
+//  - Gear → settings menu (items open centered modal)
+//  - Edit pencil → edit.html in centered card
+//  - Stat dividers between Videos | Followers | Following
+//  - Pinterest masonry grid overlay on dp-grid
 // ══════════════════════════════════════════════════
 (function() {
 
+  // ─────────────────────────────────────────────
+  //  GEAR SVG
+  // ─────────────────────────────────────────────
   var GEAR =
     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff"' +
     ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
@@ -9055,31 +9059,165 @@ document.addEventListener('keydown', function(e){
       'a1.65 1.65 0 0 0-1.51 1z"/>' +
     '</svg>';
 
-  var XICON =
-    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff"' +
+  var XSVG =
+    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
     ' stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">' +
       '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>' +
     '</svg>';
 
   window._gearSVG = GEAR;
-  window._dpSettingsOpen = false;
 
+  // ─────────────────────────────────────────────
+  //  STYLES
+  // ─────────────────────────────────────────────
   var st = document.createElement('style');
   st.textContent = `
+
+    /* ── Gear button ── */
     #dp-settings-badge {
       position: absolute; top: 14px; right: 14px; z-index: 20;
       width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       background: var(--brand-gradient);
-      box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.22);
       transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.18s;
-      -webkit-tap-highlight-color: transparent; user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
     #dp-settings-badge:hover  { transform: rotate(38deg) scale(1.1); box-shadow: 0 4px 18px rgba(0,0,0,0.3); }
     #dp-settings-badge:active { transform: scale(0.9); }
     #dp-settings-badge.is-open { background: var(--brand-gradient) !important; }
-    #dp-settings-badge.is-open:hover { transform: scale(1.08) rotate(0deg) !important; }
+    #dp-settings-badge.is-open:hover { transform: rotate(0) scale(1.08) !important; }
 
+    /* ── Settings dropdown menu ── */
+    #dp-settings-menu {
+      position: absolute; top: 54px; right: 14px; z-index: 100;
+      width: 220px;
+      border-radius: 16px;
+      overflow: hidden;
+      opacity: 0; pointer-events: none;
+      transform: scale(0.92) translateY(-8px);
+      transform-origin: top right;
+      transition: opacity 0.2s ease, transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+    #dp-settings-menu.open { opacity: 1; pointer-events: all; transform: scale(1) translateY(0); }
+
+    body.theme-light #dp-settings-menu { background: #fff; border: 1px solid #efefef; }
+    body.theme-dim   #dp-settings-menu { background: #15202b; border: 1px solid #38444d; }
+    body.theme-dark  #dp-settings-menu { background: #0f0f0f; border: 1px solid #2f3336; }
+
+    .dpm-item {
+      display: flex; align-items: center; gap: 11px;
+      padding: 12px 16px; cursor: pointer;
+      transition: background 0.13s;
+      -webkit-tap-highlight-color: transparent;
+      border: none; width: 100%; text-align: left;
+      background: transparent;
+    }
+    .dpm-item:not(:last-child) { border-bottom: 1px solid; }
+    body.theme-light .dpm-item:not(:last-child) { border-color: #f2f2f2; }
+    body.theme-dim   .dpm-item:not(:last-child) { border-color: #1e2732; }
+    body.theme-dark  .dpm-item:not(:last-child) { border-color: #1a1a1a; }
+
+    body.theme-light .dpm-item:hover { background: #f7f7f7; }
+    body.theme-dim   .dpm-item:hover { background: #1e2732; }
+    body.theme-dark  .dpm-item:hover { background: #1a1a1a; }
+    body.theme-light .dpm-item:active { background: #f0f0f0; }
+    body.theme-dim   .dpm-item:active { background: #253240; }
+    body.theme-dark  .dpm-item:active { background: #222; }
+
+    .dpm-icon {
+      width: 32px; height: 32px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .dpm-icon svg { width: 15px; height: 15px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .dpm-text { flex: 1; min-width: 0; }
+    .dpm-label {
+      font-size: 13px; font-weight: 700;
+      font-family: var(--font, sans-serif);
+    }
+    .dpm-sub {
+      font-size: 10px; font-weight: 500; margin-top: 1px;
+      font-family: var(--font, sans-serif);
+    }
+    body.theme-light .dpm-label { color: #111; }
+    body.theme-dim   .dpm-label { color: #fff; }
+    body.theme-dark  .dpm-label { color: #fff; }
+    body.theme-light .dpm-sub { color: #aaa; }
+    body.theme-dim   .dpm-sub { color: #536471; }
+    body.theme-dark  .dpm-sub { color: #555; }
+
+    .dpm-arrow svg { width: 12px; height: 12px; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    body.theme-light .dpm-arrow svg { stroke: #ccc; }
+    body.theme-dim   .dpm-arrow svg { stroke: #38444d; }
+    body.theme-dark  .dpm-arrow svg { stroke: #333; }
+
+    /* ── Centered modal card ── */
+    #dp-modal-overlay {
+      position: fixed; inset: 0; z-index: 9200;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.26s ease;
+    }
+    #dp-modal-overlay.open { opacity: 1; pointer-events: all; }
+
+    #dp-modal-card {
+      width: 520px; max-width: calc(100vw - 40px);
+      height: 76vh; max-height: 700px;
+      border-radius: 24px; overflow: hidden;
+      display: flex; flex-direction: column;
+      transform: scale(0.93) translateY(16px);
+      transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.38);
+    }
+    #dp-modal-overlay.open #dp-modal-card { transform: scale(1) translateY(0); }
+
+    body.theme-light #dp-modal-card { background: #fff; }
+    body.theme-dim   #dp-modal-card { background: #15202b; }
+    body.theme-dark  #dp-modal-card { background: #0a0a0a; }
+
+    #dp-modal-topbar {
+      height: 3px; flex-shrink: 0;
+      background: var(--brand-gradient);
+    }
+    #dp-modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px 12px; flex-shrink: 0;
+      border-bottom: 1px solid;
+    }
+    body.theme-light #dp-modal-head { border-color: #f2f2f2; }
+    body.theme-dim   #dp-modal-head { border-color: #38444d; }
+    body.theme-dark  #dp-modal-head { border-color: #1e1e1e; }
+
+    #dp-modal-title {
+      font-size: 15px; font-weight: 800; letter-spacing: -0.02em;
+      font-family: var(--font, sans-serif);
+    }
+    body.theme-light #dp-modal-title { color: #111; }
+    body.theme-dim   #dp-modal-title { color: #fff; }
+    body.theme-dark  #dp-modal-title { color: #fff; }
+
+    #dp-modal-close {
+      width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, transform 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #dp-modal-close:hover { transform: scale(1.1); }
+    #dp-modal-close:active { transform: scale(0.9); }
+    body.theme-light #dp-modal-close { background: #f2f2f2; color: #555; }
+    body.theme-dim   #dp-modal-close { background: #253240; color: #8899a6; }
+    body.theme-dark  #dp-modal-close { background: #1a1a1a; color: #a6a6a6; }
+
+    #dp-modal-iframe {
+      flex: 1; border: none; width: 100%; height: 100%; display: block;
+    }
+
+    /* ── Edit pencil next to name ── */
     #dp-edit-btn {
       display: inline-flex; align-items: center; justify-content: center;
       width: 22px; height: 22px; border-radius: 50%; border: none; cursor: pointer;
@@ -9097,85 +9235,263 @@ document.addEventListener('keydown', function(e){
     body.theme-dim   #dp-edit-btn svg { stroke: #8899a6; }
     body.theme-dark  #dp-edit-btn svg { stroke: #a6a6a6; }
 
-    #dp-settings-panel {
-      width: 0; min-width: 0; flex-shrink: 0; overflow: hidden;
-      border-radius: 20px; display: flex; flex-direction: column;
-      transition: width 0.38s cubic-bezier(0.22,1,0.36,1);
+    /* ── Stat dividers ── */
+    .dp-stat-divider {
+      width: 1px; height: 28px; border-radius: 1px; flex-shrink: 0;
+      align-self: center;
     }
-    #dp-settings-panel.open { width: 360px; }
-    #dp-settings-panel iframe { flex: 1; border: none; width: 360px; height: 100%; display: block; }
-    #dp-settings-bar { height: 3px; flex-shrink: 0; background: var(--brand-gradient); border-radius: 20px 20px 0 0; }
-    body.theme-light #dp-settings-panel { background: #fff;    box-shadow: 0 2px 20px rgba(0,0,0,0.08); }
-    body.theme-dim   #dp-settings-panel { background: #15202b; box-shadow: 0 2px 20px rgba(0,0,0,0.22); }
-    body.theme-dark  #dp-settings-panel { background: #080808; box-shadow: 0 2px 20px rgba(0,0,0,0.32); }
+    body.theme-light .dp-stat-divider { background: #ebebeb; }
+    body.theme-dim   .dp-stat-divider { background: #38444d; }
+    body.theme-dark  .dp-stat-divider { background: #2f3336; }
 
-    #dp-edit-toast {
-      position: fixed; bottom: 24px; left: 50%;
-      transform: translateX(-50%) translateY(10px);
-      background: var(--brand-gradient); color: #fff;
-      font-size: 12px; font-weight: 700; font-family: var(--font, sans-serif);
-      padding: 9px 20px; border-radius: 99px;
-      box-shadow: 0 4px 18px rgba(0,0,0,0.22);
-      opacity: 0; pointer-events: none;
-      transition: opacity 0.22s, transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
-      z-index: 9999; white-space: nowrap;
+    /* ── Pinterest grid override ── */
+    #dp-grid {
+      column-count: 3 !important;
+      column-gap: 6px !important;
     }
-    #dp-edit-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #dp-grid .liked-cell {
+      break-inside: avoid;
+      border-radius: 12px !important;
+      overflow: hidden;
+      margin-bottom: 6px !important;
+      transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1),
+                  box-shadow 0.2s ease !important;
+      cursor: pointer;
+    }
+    #dp-grid .liked-cell:hover {
+      transform: scale(1.03) !important;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.18) !important;
+      z-index: 2; position: relative;
+    }
+    #dp-grid .liked-cell video {
+      border-radius: 0 !important;
+      display: block !important;
+      width: 100% !important;
+    }
   `;
   document.head.appendChild(st);
 
-  function buildPanel() {
-    if (document.getElementById('dp-settings-panel')) return;
-    var panel = document.createElement('div');
-    panel.id = 'dp-settings-panel';
-    var bar = document.createElement('div'); bar.id = 'dp-settings-bar';
-    panel.appendChild(bar);
+  // ─────────────────────────────────────────────
+  //  MODAL
+  // ─────────────────────────────────────────────
+  var _modalBuilt = false;
+
+  function buildModal() {
+    if (_modalBuilt) return;
+    _modalBuilt = true;
+
+    var overlay = document.createElement('div');
+    overlay.id = 'dp-modal-overlay';
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) _closeModal();
+    });
+
+    var card = document.createElement('div');
+    card.id = 'dp-modal-card';
+
+    var topbar = document.createElement('div');
+    topbar.id = 'dp-modal-topbar';
+
+    var head = document.createElement('div');
+    head.id = 'dp-modal-head';
+
+    var title = document.createElement('div');
+    title.id = 'dp-modal-title';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.id = 'dp-modal-close';
+    closeBtn.innerHTML = XSVG;
+    closeBtn.addEventListener('click', _closeModal);
+
+    head.appendChild(title);
+    head.appendChild(closeBtn);
+
     var iframe = document.createElement('iframe');
-    iframe.src = 'chats.html';
-    iframe.setAttribute('loading', 'lazy');
-    panel.appendChild(iframe);
-    var profPanel = document.getElementById('ds-profile-panel');
-    if (profPanel && profPanel.parentNode) {
-      profPanel.parentNode.insertBefore(panel, profPanel.nextSibling);
-    } else {
-      var ma = document.getElementById('ds-main-area');
-      if (ma) ma.appendChild(panel);
+    iframe.id = 'dp-modal-iframe';
+
+    card.appendChild(topbar);
+    card.appendChild(head);
+    card.appendChild(iframe);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+  }
+
+  function _openModal(titleText, src) {
+    buildModal();
+    document.getElementById('dp-modal-title').textContent = titleText;
+    document.getElementById('dp-modal-iframe').src = src;
+    document.getElementById('dp-modal-overlay').classList.add('open');
+    _closeSettingsMenu();
+  }
+
+  window._closeModal = function() {
+    var o = document.getElementById('dp-modal-overlay');
+    if (o) o.classList.remove('open');
+    // Blank iframe to stop any audio/video inside
+    setTimeout(function() {
+      var f = document.getElementById('dp-modal-iframe');
+      if (f) f.src = 'about:blank';
+    }, 300);
+  };
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') window._closeModal();
+  });
+
+  // ─────────────────────────────────────────────
+  //  SETTINGS MENU
+  // ─────────────────────────────────────────────
+  var _menuOpen = false;
+
+  /*
+    Settings menu items — each opens a file in the modal.
+    Files you need to create:
+      chats.html       — Messaging / Appearance
+      privacy.html     — Privacy & Safety
+      notifications.html — Notification preferences
+      help.html        — Help & Support
+      about.html       — About / Terms / Policy
+  */
+  var MENU_ITEMS = [
+    {
+      icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+      bg:   'linear-gradient(135deg,#0f0f0f,#626262)',
+      label: 'Chats & Appearance',
+      sub:   'Messages, theme',
+      file:  'chats.html'
+    },
+    {
+      icon: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+      bg:   'linear-gradient(135deg,#1a1a2e,#16213e)',
+      label: 'Privacy & Safety',
+      sub:   'Who sees your content',
+      file:  'privacy.html'
+    },
+    {
+      icon: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+      bg:   'linear-gradient(135deg,#2d1b69,#11998e)',
+      label: 'Notifications',
+      sub:   'Likes, comments, follows',
+      file:  'notifications.html'
+    },
+    {
+      icon: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+      bg:   'linear-gradient(135deg,#373b44,#4286f4)',
+      label: 'Help & Support',
+      sub:   'FAQs, contact us',
+      file:  'help.html'
+    },
+    {
+      icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+      bg:   'linear-gradient(135deg,#3a3a3a,#a6a6a6)',
+      label: 'About & Policies',
+      sub:   'Terms, privacy policy',
+      file:  'about.html'
     }
+  ];
+
+  function buildSettingsMenu(container) {
+    var menu = document.createElement('div');
+    menu.id = 'dp-settings-menu';
+
+    MENU_ITEMS.forEach(function(item) {
+      var row = document.createElement('button');
+      row.className = 'dpm-item';
+
+      var ic = document.createElement('div');
+      ic.className = 'dpm-icon';
+      ic.style.background = item.bg;
+      ic.innerHTML = '<svg viewBox="0 0 24 24">' + item.icon + '</svg>';
+
+      var txt = document.createElement('div');
+      txt.className = 'dpm-text';
+      txt.innerHTML =
+        '<div class="dpm-label">' + item.label + '</div>' +
+        '<div class="dpm-sub">'   + item.sub   + '</div>';
+
+      var arr = document.createElement('div');
+      arr.className = 'dpm-arrow';
+      arr.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>';
+
+      row.appendChild(ic);
+      row.appendChild(txt);
+      row.appendChild(arr);
+
+      row.addEventListener('click', function() {
+        _openModal(item.label, item.file);
+      });
+
+      menu.appendChild(row);
+    });
+
+    container.appendChild(menu);
+    return menu;
   }
 
-  function openPanel() {
-    buildPanel();
-    window._dpSettingsOpen = true;
-    document.getElementById('dp-settings-panel').classList.add('open');
-    var b = document.getElementById('dp-settings-badge');
-    if (b) { b.classList.add('is-open'); b.innerHTML = XICON; }
+  function _openSettingsMenu() {
+    _menuOpen = true;
+    var menu = document.getElementById('dp-settings-menu');
+    if (menu) menu.classList.add('open');
+    var badge = document.getElementById('dp-settings-badge');
+    if (badge) { badge.classList.add('is-open'); badge.innerHTML = XSVG.replace('currentColor','#fff'); }
   }
 
-  function closePanel() {
-    window._dpSettingsOpen = false;
-    var p = document.getElementById('dp-settings-panel');
-    if (p) p.classList.remove('open');
-    var b = document.getElementById('dp-settings-badge');
-    if (b) { b.classList.remove('is-open'); b.innerHTML = GEAR; }
+  window._closeSettingsMenu = function() {
+    _menuOpen = false;
+    var menu = document.getElementById('dp-settings-menu');
+    if (menu) menu.classList.remove('open');
+    var badge = document.getElementById('dp-settings-badge');
+    if (badge) { badge.classList.remove('is-open'); badge.innerHTML = GEAR; }
+  };
+
+  function toggleMenu() {
+    if (_menuOpen) window._closeSettingsMenu(); else _openSettingsMenu();
   }
 
-  function togglePanel() { if (window._dpSettingsOpen) closePanel(); else openPanel(); }
-
-  function showToast() {
-    var t = document.getElementById('dp-edit-toast');
-    if (!t) {
-      t = document.createElement('div'); t.id = 'dp-edit-toast';
-      t.textContent = '✏️  Profile editing coming soon';
-      document.body.appendChild(t);
+  // Close menu when clicking outside
+  document.addEventListener('click', function(e) {
+    if (_menuOpen &&
+        !e.target.closest('#dp-settings-menu') &&
+        !e.target.closest('#dp-settings-badge')) {
+      window._closeSettingsMenu();
     }
-    t.classList.add('show');
-    clearTimeout(t._tid);
-    t._tid = setTimeout(function() { t.classList.remove('show'); }, 2500);
+  });
+
+  // ─────────────────────────────────────────────
+  //  STAT DIVIDERS
+  // ─────────────────────────────────────────────
+  function injectStatDividers() {
+    var stats = document.getElementById('dp-stats');
+    if (!stats || stats.dataset.dividers) return;
+
+    // Wait until stats are populated (they load async)
+    var observer = new MutationObserver(function() {
+      var items = stats.querySelectorAll('[data-stat]');
+      if (items.length < 2) return;
+      observer.disconnect();
+      stats.dataset.dividers = '1';
+
+      // Re-insert children with dividers between them
+      var children = Array.prototype.slice.call(stats.children);
+      stats.innerHTML = '';
+      children.forEach(function(child, i) {
+        stats.appendChild(child);
+        if (i < children.length - 1) {
+          var div = document.createElement('div');
+          div.className = 'dp-stat-divider';
+          stats.appendChild(div);
+        }
+      });
+    });
+    observer.observe(stats, { childList: true, subtree: true });
   }
 
-  function injectBadges() {
+  // ─────────────────────────────────────────────
+  //  INJECT ALL BADGES
+  // ─────────────────────────────────────────────
+  function injectAll() {
     var profPanel = document.getElementById('ds-profile-panel');
-    if (!profPanel) { setTimeout(injectBadges, 400); return; }
+    if (!profPanel) { setTimeout(injectAll, 400); return; }
 
     // Gear button
     if (!document.getElementById('dp-settings-badge')) {
@@ -9184,8 +9500,11 @@ document.addEventListener('keydown', function(e){
       gear.id = 'dp-settings-badge';
       gear.setAttribute('aria-label', 'Settings');
       gear.innerHTML = GEAR;
-      gear.addEventListener('click', togglePanel);
+      gear.addEventListener('click', toggleMenu);
       profPanel.appendChild(gear);
+
+      // Build menu inside profPanel so it positions relative to gear
+      buildSettingsMenu(profPanel);
     }
 
     // Edit pencil next to name
@@ -9201,30 +9520,26 @@ document.addEventListener('keydown', function(e){
             '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>' +
             '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>' +
           '</svg>';
-        btn.addEventListener('click', showToast);
+        btn.addEventListener('click', function() {
+          _openModal('Edit Profile', 'edit.html');
+        });
         nameEl.style.display = 'inline-flex';
         nameEl.style.alignItems = 'center';
         nameEl.appendChild(btn);
       })();
     }
+
+    injectStatDividers();
   }
-
-  document.addEventListener('click', function(e) {
-    var nav = e.target.closest('.ds-nav-item');
-    if (nav && nav.id !== 'dsNavProfile' && window._dpSettingsOpen) closePanel();
-  });
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && window._dpSettingsOpen) closePanel();
-  });
-
-  window._openSettingsPanel  = openPanel;
-  window._closeSettingsPanel = closePanel;
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', injectBadges);
+    document.addEventListener('DOMContentLoaded', injectAll);
   } else {
-    injectBadges();
+    injectAll();
   }
+
+  window._openProfileModal   = _openModal;
+  window._closeProfileModal  = window._closeModal;
 
 })();
 </script>
