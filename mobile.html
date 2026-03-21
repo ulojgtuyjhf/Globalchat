@@ -1755,23 +1755,7 @@ if (window === window.top && !window.matchMedia('(max-width: 899px)').matches) {
         </button>
         <div id="section-overlay-title" style="position:absolute;top:calc(env(safe-area-inset-top,0px)+14px);left:60px;right:16px;font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.02em;z-index:10;"></div>
 
-        <!-- Profile panel -->
-        <div id="mob-profile-panel" style="display:none;flex-direction:column;flex:1;overflow-y:auto;padding-top:calc(env(safe-area-inset-top,0px)+60px);background:#f7f7f7;">
-            <!-- Header card -->
-            <div style="background:#fff;margin:12px;border-radius:20px;padding:24px 20px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);display:flex;flex-direction:column;align-items:center;">
-                <div id="mob-prof-av" style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#0f0f0f,#626262);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:900;color:#fff;flex-shrink:0;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 16px rgba(0,0,0,0.18);"></div>
-                <div id="mob-prof-name" style="font-size:20px;font-weight:900;color:#111;letter-spacing:-0.02em;margin-bottom:3px;text-align:center;"></div>
-                <div id="mob-prof-handle" style="font-size:13px;color:#999;font-weight:500;margin-bottom:18px;"></div>
-                <div id="mob-prof-stats" style="display:flex;gap:0;width:100%;border-top:1px solid #f0f0f0;padding-top:16px;justify-content:space-around;"></div>
-            </div>
-            <!-- Edit profile button -->
-            <div style="padding:0 12px 8px;">
-                <button onclick="window.location.href='profile.html'" style="width:100%;background:#111;color:#fff;border:none;padding:13px;border-radius:14px;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--font);letter-spacing:-0.01em;">Edit Profile</button>
-            </div>
-            <!-- Videos section -->
-            <div style="padding:14px 16px 8px;font-size:11px;font-weight:900;color:#bbb;letter-spacing:0.08em;text-transform:uppercase;">Your Videos</div>
-            <div id="mob-prof-feed" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:0 2px 100px;"></div>
-        </div>
+
 
         <!-- Upload panel -->
         <div id="mob-upload-panel" style="display:none;flex-direction:column;align-items:center;justify-content:center;flex:1;background:#fff;padding:40px 24px;text-align:center;">
@@ -2207,6 +2191,7 @@ function init() {
                 displayName: user.displayName || userData.displayName || 'User'
             };
             window._currentUser = currentUser; // expose for non-module scripts
+            window._followedUsersSet = followedUsers;
             
             await fetchFollowedUsers();
             fetchPosts();
@@ -3599,47 +3584,65 @@ function createPinElement(postData, postId) {
     });
     slideActions.appendChild(shareBtn);
 
-    // Save/Favourite button
+    // Save button OR Trash if own post
+    var _isOwnPost = window._currentUser && (postData.userId === window._currentUser.uid || postData.uid === window._currentUser.uid);
     const saveBtn = document.createElement('button');
-    var _isSaved = window.isPostFavourited && window.isPostFavourited(postId);
-    saveBtn.className = 'slide-action-btn' + (_isSaved ? ' saved-on' : '');
-    saveBtn.setAttribute('aria-label', 'Save');
-    saveBtn.innerHTML =
-        '<div class="slide-action-icon">' +
-            '<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
-              '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>' +
-            '</svg>' +
-        '</div>' +
-        '<span class="slide-action-label">' + (_isSaved ? 'Saved' : 'Save') + '</span>';
-
-    function _applyMobSaveState(sv) {
-        var svg = saveBtn.querySelector('svg');
-        var lbl = saveBtn.querySelector('.slide-action-label');
-        if (sv) {
-            saveBtn.classList.add('saved-on');
-            if (svg) { svg.setAttribute('fill', 'url(#brandBookmarkGrad)'); svg.setAttribute('stroke', '#626262'); }
-            if (lbl) lbl.textContent = 'Saved';
-        } else {
-            saveBtn.classList.remove('saved-on');
-            if (svg) { svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'rgba(255,255,255,0.95)'); }
-            if (lbl) lbl.textContent = 'Save';
+    if (_isOwnPost) {
+        saveBtn.className = 'slide-action-btn';
+        saveBtn.setAttribute('aria-label', 'Delete');
+        saveBtn.innerHTML =
+            '<div class="slide-action-icon">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
+                  '<polyline points="3 6 5 6 21 6"/>' +
+                  '<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>' +
+                  '<path d="M10 11v6"/><path d="M14 11v6"/>' +
+                  '<path d="M9 6V4h6v2"/>' +
+                '</svg>' +
+            '</div>' +
+            '<span class="slide-action-label">Delete</span>';
+        saveBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            window._showDeleteConfirm && window._showDeleteConfirm(postId, postData);
+        });
+    } else {
+        var _isSaved = window.isPostFavourited && window.isPostFavourited(postId);
+        saveBtn.className = 'slide-action-btn' + (_isSaved ? ' saved-on' : '');
+        saveBtn.setAttribute('aria-label', 'Save');
+        saveBtn.innerHTML =
+            '<div class="slide-action-icon">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
+                  '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>' +
+                '</svg>' +
+            '</div>' +
+            '<span class="slide-action-label">' + (_isSaved ? 'Saved' : 'Save') + '</span>';
+        function _applyMobSaveState(sv) {
+            var svg = saveBtn.querySelector('svg');
+            var lbl = saveBtn.querySelector('.slide-action-label');
+            if (sv) {
+                saveBtn.classList.add('saved-on');
+                if (svg) { svg.setAttribute('fill', 'url(#brandBookmarkGrad)'); svg.setAttribute('stroke', '#626262'); }
+                if (lbl) lbl.textContent = 'Saved';
+            } else {
+                saveBtn.classList.remove('saved-on');
+                if (svg) { svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'rgba(255,255,255,0.95)'); }
+                if (lbl) lbl.textContent = 'Save';
+            }
         }
+        if (_isSaved) _applyMobSaveState(true);
+        saveBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var saved = window.isPostFavourited && window.isPostFavourited(postId);
+            if (saved) {
+                window.removeFromFavourites && window.removeFromFavourites(postId);
+                _applyMobSaveState(false);
+            } else {
+                window.saveToFavourites && window.saveToFavourites(postData, postId);
+                _applyMobSaveState(true);
+                var icon = saveBtn.querySelector('.slide-action-icon');
+                if (icon) { icon.style.transform = 'scale(1.35)'; setTimeout(function(){ icon.style.transform = ''; }, 300); }
+            }
+        });
     }
-    if (_isSaved) _applyMobSaveState(true);
-
-    saveBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        var saved = window.isPostFavourited && window.isPostFavourited(postId);
-        if (saved) {
-            window.removeFromFavourites && window.removeFromFavourites(postId);
-            _applyMobSaveState(false);
-        } else {
-            window.saveToFavourites && window.saveToFavourites(postData, postId);
-            _applyMobSaveState(true);
-            var icon = saveBtn.querySelector('.slide-action-icon');
-            if (icon) { icon.style.transform = 'scale(1.35)'; setTimeout(function(){ icon.style.transform = ''; }, 300); }
-        }
-    });
     slideActions.appendChild(saveBtn);
 
     // Spinning disc — below save, above nothing, subtle brand touch
@@ -6822,14 +6825,158 @@ init();
         <iframe id="upload-panel-frame" src="post.html" style="flex:1;border:none;width:100%;display:block;" allow="camera; microphone; autoplay"></iframe>
     </div>
 
-    <!-- PROFILE SECTION — persistent tab, nav stays, profile.html fills the space -->
-    <div id="profile-section" style="position:fixed;inset:0;bottom:0;background:#000;z-index:200;display:none;flex-direction:column;overflow:hidden;opacity:0;transition:opacity 0.22s ease;">
-        <!-- Spinner overlay — shown ONLY on first load -->
-        <div id="profile-trans" style="position:absolute;inset:0;background:#000;z-index:99;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.28s ease;">
-            <div class="spinner"></div>
+    <!-- PROFILE SECTION — inline, polished, matches Saved style -->
+    <style>
+    #profile-section {
+        position: fixed; inset: 0; bottom: 0;
+        background: #fafafa;
+        z-index: 200; display: none; flex-direction: column; overflow: hidden;
+        opacity: 0; transition: opacity 0.22s ease;
+    }
+    #mob-prof-head {
+        padding: calc(env(safe-area-inset-top,0px) + 18px) 16px 0;
+        background: #fff;
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+        box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+        flex-shrink: 0;
+    }
+    .mob-prof-top-row {
+        display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+    }
+    #mob-prof-av {
+        width: 64px; height: 64px; border-radius: 50%;
+        background: #555; flex-shrink: 0;
+        border: 3px solid #f0f0f0; overflow: hidden;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 26px; font-weight: 900; color: #fff;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+    #mob-prof-av img { width:100%;height:100%;object-fit:cover;border-radius:50%;display:block; }
+    .mob-prof-meta { flex: 1; min-width: 0; }
+    #mob-prof-name {
+        font-size: 18px; font-weight: 900; color: #111;
+        font-family: var(--font); letter-spacing: -0.03em;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    #mob-prof-handle {
+        font-size: 12px; color: #aaa; font-weight: 600;
+        font-family: var(--font); margin-top: 2px;
+    }
+    #mob-prof-stats {
+        display: flex; gap: 0; margin-top: 12px;
+    }
+    .mob-prof-stat {
+        flex: 1; display: flex; flex-direction: column; align-items: center;
+        gap: 2px; padding: 8px 0;
+        border-right: 1px solid #f0f0f0;
+        cursor: default;
+    }
+    .mob-prof-stat:last-child { border-right: none; }
+    .mob-prof-stat.clickable { cursor: pointer; }
+    .mob-prof-stat.clickable:active { background: #f7f7f7; border-radius: 10px; }
+    .mob-prof-stat-num {
+        font-size: 17px; font-weight: 900; color: #111;
+        font-family: var(--font);
+    }
+    .mob-prof-stat-label {
+        font-size: 10px; font-weight: 600; color: #aaa;
+        font-family: var(--font); letter-spacing: 0.01em;
+    }
+    /* Tabs */
+    #mob-prof-tabs {
+        display: flex; border-bottom: none; margin-top: 4px;
+    }
+    #mob-prof-tabs button {
+        flex: 1; padding: 11px 4px; border: none; background: none;
+        font-size: 12px; font-weight: 700; color: #aaa;
+        font-family: var(--font); letter-spacing: 0.01em;
+        border-bottom: 2.5px solid transparent;
+        transition: all 0.15s; -webkit-tap-highlight-color: transparent;
+        cursor: pointer;
+    }
+    #mob-prof-tabs button.active { color: #111; border-bottom-color: #111; }
+    /* Grid */
+    #mob-prof-grid {
+        flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+        padding: 6px 5px calc(env(safe-area-inset-bottom,0px) + 80px) 5px;
+        column-count: 3; column-gap: 5px;
+        scrollbar-width: none;
+    }
+    #mob-prof-grid::-webkit-scrollbar { display: none; }
+    #mob-prof-grid .liked-cell { margin-bottom: 5px; }
+    /* Viewer */
+    #mob-prof-viewer {
+        position: fixed; inset: 0; background: #000; z-index: 1000;
+        transform: translateY(100%);
+        transition: transform 0.36s cubic-bezier(0.22,1,0.36,1);
+    }
+    #mob-prof-viewer-feed {
+        position: absolute; inset: 0;
+        overflow-y: scroll; scroll-snap-type: y mandatory;
+        scroll-snap-stop: always; overscroll-behavior-y: contain;
+        scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    }
+    #mob-prof-viewer-feed::-webkit-scrollbar { display: none; }
+    #mob-prof-viewer-back {
+        position: fixed; top: calc(env(safe-area-inset-top,0px) + 12px); left: 14px;
+        z-index: 1010; background: var(--brand-gradient); border: none; cursor: pointer;
+        width: 36px; height: 36px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+        -webkit-tap-highlight-color: transparent;
+    }
+    /* Loading skeleton shimmer */
+    .mp-skel {
+        height: 10px; border-radius: 6px;
+        background: linear-gradient(110deg,#f0f0f0 25%,#f8f8f8 50%,#f0f0f0 75%);
+        background-size: 200% 100%; animation: shimmer 1.4s infinite;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    </style>
+
+    <div id="profile-section">
+        <!-- Header -->
+        <div id="mob-prof-head">
+            <div class="mob-prof-top-row">
+                <div id="mob-prof-av"></div>
+                <div class="mob-prof-meta">
+                    <div id="mob-prof-name">
+                        <div class="mp-skel" style="width:120px;height:16px;margin-bottom:6px;"></div>
+                    </div>
+                    <div id="mob-prof-handle"></div>
+                </div>
+            </div>
+            <!-- Stats row -->
+            <div id="mob-prof-stats">
+                <div class="mob-prof-stat" id="mp-stat-videos">
+                    <span class="mob-prof-stat-num">—</span>
+                    <span class="mob-prof-stat-label">Videos</span>
+                </div>
+                <div class="mob-prof-stat clickable" id="mp-stat-followers">
+                    <span class="mob-prof-stat-num">—</span>
+                    <span class="mob-prof-stat-label">Followers</span>
+                </div>
+                <div class="mob-prof-stat clickable" id="mp-stat-following">
+                    <span class="mob-prof-stat-num">—</span>
+                    <span class="mob-prof-stat-label">Following</span>
+                </div>
+            </div>
+            <!-- Tabs -->
+            <div id="mob-prof-tabs">
+                <button data-tab="uploaded" class="active">Uploaded</button>
+                <button data-tab="liked">Liked</button>
+                <button data-tab="superliked">Super Liked</button>
+            </div>
         </div>
-        <!-- src set by JS when first opened so it loads in foreground -->
-        <iframe id="profile-panel-frame" src="" style="flex:1;border:none;width:100%;height:100%;display:block;" allow="camera; microphone"></iframe>
+        <!-- Grid -->
+        <div id="mob-prof-grid"></div>
+        <!-- Fullscreen viewer -->
+        <div id="mob-prof-viewer">
+            <div id="mob-prof-viewer-feed"></div>
+            <button id="mob-prof-viewer-back">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+        </div>
     </div>
 
 
@@ -7394,37 +7541,25 @@ init();
         }
 
         function goProfile() {
-            if (window._mobSection === 'profile') return;
             pauseAllVideos();
             setActive(profile);
-            // Hide other sections immediately
             var ls = document.getElementById('liked-section');
             if (ls) { ls.style.display='none'; }
             var ps = document.getElementById('profile-section');
             if (!ps) return;
-            var trans = document.getElementById('profile-trans');
-            var frame = document.getElementById('profile-panel-frame');
-
             ps.style.opacity = '0';
             ps.style.display = 'flex';
-
-            if (!window._profileSectionLoaded) {
-                // First visit — show spinner, load iframe
-                if (trans) { trans.style.opacity='1'; trans.style.pointerEvents='all'; }
-                frame.onload = function() {
-                    window._profileSectionLoaded = true;
-                    if (trans) { trans.style.opacity='0'; trans.style.pointerEvents='none'; }
-                    ps.style.transition = 'opacity 0.22s ease';
-                    ps.style.opacity = '1';
-                };
-                frame.src = 'profile.html';
+            requestAnimationFrame(function() {
+                ps.style.transition = 'opacity 0.22s ease';
+                ps.style.opacity = '1';
+            });
+            // Init profile data on first open
+            if (!window._mobProfileInited) {
+                window._mobProfileInited = true;
+                _initMobProfile();
             } else {
-                // Already loaded — just fade in instantly, no spinner
-                if (trans) { trans.style.opacity='0'; trans.style.pointerEvents='none'; }
-                requestAnimationFrame(function() {
-                    ps.style.transition = 'opacity 0.18s ease';
-                    ps.style.opacity = '1';
-                });
+                // Resume — restore scroll + rebuild grid from cache
+                _resumeMobProfile();
             }
             window._mobSection = 'profile';
         }
@@ -8330,6 +8465,493 @@ document.addEventListener('keydown', function(e){
         }
     }
 });
+</script>
+
+
+<style>
+/* ── Delete bottom sheet (draggable) ── */
+#delete-sheet-overlay {
+    position:fixed; inset:0; z-index:9500;
+    background:rgba(0,0,0,0.45);
+    display:none; align-items:flex-end;
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+}
+#delete-sheet-overlay.open { display:flex; }
+#delete-sheet {
+    background:#fff;
+    border-radius:28px 28px 0 0;
+    width:100%;
+    padding-bottom:env(safe-area-inset-bottom,16px);
+    box-shadow:0 -12px 60px rgba(0,0,0,0.18);
+    transform:translateY(100%);
+    transition:transform 0.42s cubic-bezier(0.22,1,0.36,1);
+    touch-action:none;
+    user-select:none;
+}
+#delete-sheet-overlay.open #delete-sheet { transform:translateY(0); }
+.dsh-bar { height:5px; background:var(--brand-gradient); border-radius:28px 28px 0 0; }
+.dsh-handle { width:40px; height:4px; background:#e0e0e0; border-radius:2px; margin:12px auto 8px; }
+.dsh-icon {
+    width:56px; height:56px; border-radius:18px;
+    background:var(--brand-gradient);
+    display:flex; align-items:center; justify-content:center;
+    margin:8px auto 14px;
+    box-shadow:0 6px 22px rgba(0,0,0,0.22);
+}
+.dsh-icon svg { width:24px; height:24px; stroke:#fff; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+.dsh-title { font-size:19px; font-weight:900; color:#111; font-family:var(--font); letter-spacing:-0.03em; text-align:center; margin-bottom:6px; }
+.dsh-sub { font-size:13px; color:#888; font-family:var(--font); line-height:1.55; text-align:center; margin:0 24px 24px; }
+.dsh-actions { display:flex; gap:10px; padding:0 20px 8px; }
+.dsh-cancel {
+    flex:1; padding:14px; border:1.5px solid #e0e0e0;
+    border-radius:16px; background:#f5f5f5;
+    font-size:14px; font-weight:800; color:#666;
+    font-family:var(--font); cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+}
+.dsh-cancel:active { background:#ebebeb; }
+.dsh-delete {
+    flex:1; padding:14px; border:none;
+    border-radius:16px;
+    background:var(--brand-gradient);
+    font-size:14px; font-weight:900; color:#fff;
+    font-family:var(--font); cursor:pointer;
+    box-shadow:0 4px 18px rgba(0,0,0,0.22);
+    -webkit-tap-highlight-color:transparent;
+}
+.dsh-delete:active { opacity:0.85; }
+.dsh-delete.deleting { opacity:0.5; pointer-events:none; }
+
+/* ── Follow List Panel ── */
+#follow-list-overlay {
+    position:fixed; inset:0; z-index:9600;
+    background:rgba(0,0,0,0.45);
+    display:none; align-items:flex-end;
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+}
+#follow-list-overlay.open { display:flex; }
+#follow-list-panel {
+    background:#fff;
+    border-radius:28px 28px 0 0;
+    width:100%;
+    max-height:75vh;
+    display:flex; flex-direction:column;
+    overflow:hidden;
+    transform:translateY(100%);
+    transition:transform 0.42s cubic-bezier(0.22,1,0.36,1);
+    box-shadow:0 -12px 60px rgba(0,0,0,0.18);
+    touch-action:none;
+}
+#follow-list-overlay.open #follow-list-panel { transform:translateY(0); }
+.flp-bar { height:5px; background:var(--brand-gradient); border-radius:28px 28px 0 0; }
+.flp-handle { width:40px; height:4px; background:#e0e0e0; border-radius:2px; margin:10px auto 0; flex-shrink:0; }
+.flp-head { display:flex; align-items:center; justify-content:space-between; padding:14px 20px 12px; border-bottom:1px solid #f0f0f0; flex-shrink:0; }
+.flp-title { font-size:17px; font-weight:900; color:#111; font-family:var(--font); letter-spacing:-0.02em; }
+.flp-close { background:#f2f2f2; border:none; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.flp-close svg { width:13px; height:13px; fill:none; stroke:#555; stroke-width:2.5; stroke-linecap:round; }
+.flp-list { flex:1; overflow-y:auto; padding:6px 0 env(safe-area-inset-bottom,16px); -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+.flp-list::-webkit-scrollbar { display:none; }
+.flp-row { display:flex; align-items:center; gap:12px; padding:10px 20px; -webkit-tap-highlight-color:transparent; }
+.flp-row:active { background:#fafafa; }
+.flp-av { width:42px; height:42px; border-radius:50%; flex-shrink:0; overflow:hidden; border:1.5px solid #f0f0f0; background:#eee; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:900; color:#fff; }
+.flp-av img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.flp-info { flex:1; min-width:0; }
+.flp-name { font-size:14px; font-weight:800; color:#111; font-family:var(--font); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.flp-handle-text { font-size:11px; color:#aaa; font-weight:500; font-family:var(--font); margin-top:1px; }
+.flp-follow-btn { flex-shrink:0; font-size:11px; font-weight:800; padding:7px 16px; border-radius:10px; border:none; cursor:pointer; font-family:var(--font); background:var(--brand-gradient); color:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.14); -webkit-tap-highlight-color:transparent; }
+.flp-follow-btn:active { opacity:0.8; }
+.flp-follow-btn.following { background:#f2f2f2; color:#888; box-shadow:none; font-weight:700; }
+.flp-empty { padding:48px 20px; text-align:center; font-size:14px; color:#bbb; font-family:var(--font); }
+</style>
+
+<!-- Delete bottom sheet -->
+<div id="delete-sheet-overlay">
+  <div id="delete-sheet">
+    <div class="dsh-bar"></div>
+    <div class="dsh-handle"></div>
+    <div class="dsh-icon">
+      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+    </div>
+    <div class="dsh-title">Delete this video?</div>
+    <div class="dsh-sub">This will permanently remove your video, all its comments and likes. This cannot be undone.</div>
+    <div class="dsh-actions">
+      <button class="dsh-cancel" id="dsh-cancel-btn">Keep it</button>
+      <button class="dsh-delete" id="dsh-confirm-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Follow list panel -->
+<div id="follow-list-overlay">
+  <div id="follow-list-panel">
+    <div class="flp-bar"></div>
+    <div class="flp-handle"></div>
+    <div class="flp-head">
+      <span class="flp-title" id="flp-title">Followers</span>
+      <button class="flp-close" id="flp-close-btn">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="flp-list" id="flp-list"><div class="flp-empty">Loading...</div></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// MOBILE PROFILE SECTION
+// ══════════════════════════════════════
+var _mobProfTabCache = {};
+var _mobProfActiveTab = 'uploaded';
+var _mobProfScrollTop = 0;
+var _mobProfViewerObs = null;
+var _mobProfViewerPosts = [];
+
+function _initMobProfile() {
+    _mobProfRefreshHeader();
+    // Tabs
+    var tabs = document.querySelectorAll('#mob-prof-tabs button');
+    tabs.forEach(function(tb) {
+        tb.addEventListener('click', function() {
+            tabs.forEach(function(b){ b.classList.remove('active'); });
+            tb.classList.add('active');
+            _mobProfActiveTab = tb.dataset.tab;
+            _mobProfLoadTab(_mobProfActiveTab);
+        });
+    });
+    // Stats clicks
+    var stFollowers = document.getElementById('mp-stat-followers');
+    var stFollowing = document.getElementById('mp-stat-following');
+    if (stFollowers) stFollowers.addEventListener('click', function(){ window._showFollowList && window._showFollowList('followers'); });
+    if (stFollowing) stFollowing.addEventListener('click', function(){ window._showFollowList && window._showFollowList('following'); });
+    // Viewer back
+    var backBtn = document.getElementById('mob-prof-viewer-back');
+    if (backBtn) backBtn.addEventListener('click', _mobProfCloseViewer);
+    // Load first tab
+    _mobProfLoadTab('uploaded');
+}
+
+function _resumeMobProfile() {
+    _mobProfRefreshHeader();
+    var tabs = document.querySelectorAll('#mob-prof-tabs button');
+    tabs.forEach(function(b){ b.classList.remove('active'); });
+    var activeTab = document.querySelector('#mob-prof-tabs button[data-tab="'+_mobProfActiveTab+'"]');
+    if (activeTab) activeTab.classList.add('active');
+    if (_mobProfTabCache[_mobProfActiveTab]) {
+        _mobProfBuildGrid(_mobProfTabCache[_mobProfActiveTab]);
+        var grid = document.getElementById('mob-prof-grid');
+        if (grid && _mobProfScrollTop) requestAnimationFrame(function(){ grid.scrollTop = _mobProfScrollTop; });
+    } else {
+        _mobProfLoadTab(_mobProfActiveTab);
+    }
+}
+
+function _mobProfRefreshHeader() {
+    var user = window._currentUser;
+    if (!user) {
+        // Retry if user not ready yet
+        setTimeout(_mobProfRefreshHeader, 600);
+        return;
+    }
+    var av = document.getElementById('mob-prof-av');
+    var nm = document.getElementById('mob-prof-name');
+    var hd = document.getElementById('mob-prof-handle');
+    if (nm) nm.textContent = user.displayName || 'You';
+    if (hd) hd.textContent = '@' + (user.displayName||'').toLowerCase().replace(/\s+/g,'_');
+    if (av) {
+        av.innerHTML = '';
+        var hue = ((user.displayName||'U')[0].toUpperCase().charCodeAt(0)*37)%360;
+        if (user.photoURL && !user.photoURL.includes('default_profile')) {
+            var img = document.createElement('img');
+            img.src = user.photoURL;
+            img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
+            av.appendChild(img);
+        } else {
+            av.textContent = (user.displayName||'U')[0].toUpperCase();
+            av.style.background = 'hsl('+hue+',50%,42%)';
+        }
+    }
+    // Stats
+    var svEl = document.getElementById('mp-stat-videos');
+    var sfEl = document.getElementById('mp-stat-followers');
+    var sgEl = document.getElementById('mp-stat-following');
+    var db = window._fbDb; var fns = window._fbFirestoreFns;
+    if (db && fns) {
+        Promise.all([
+            fns.getDocs(fns.query(fns.collection(db,'recence'), fns.where('userId','==',user.uid), fns.limit(200))),
+            fns.getDocs(fns.query(fns.collection(db,'follows'), fns.where('followedUserId','==',user.uid), fns.limit(200))),
+            fns.getDocs(fns.query(fns.collection(db,'follows'), fns.where('followerUserId','==',user.uid), fns.limit(200)))
+        ]).then(function(res) {
+            if (svEl) svEl.querySelector('.mob-prof-stat-num').textContent = res[0].size;
+            if (sfEl) sfEl.querySelector('.mob-prof-stat-num').textContent = res[1].size;
+            if (sgEl) sgEl.querySelector('.mob-prof-stat-num').textContent = res[2].size;
+        }).catch(function(){});
+    }
+}
+
+function _mobProfLoadTab(key, attempt) {
+    var grid = document.getElementById('mob-prof-grid');
+    if (!grid) return;
+    if (_mobProfTabCache[key]) { _mobProfBuildGrid(_mobProfTabCache[key]); return; }
+    var db = window._fbDb; var fns = window._fbFirestoreFns; var user = window._currentUser;
+    if (!db || !fns || !user) {
+        var att = (attempt||0)+1;
+        if (att > 12) { grid.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Sign in to view</div>'; return; }
+        grid.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Loading...</div>';
+        setTimeout(function(){ _mobProfLoadTab(key, att); }, 600);
+        return;
+    }
+    grid.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Loading...</div>';
+    var q;
+    if (key==='uploaded')     q = fns.query(fns.collection(db,'recence'), fns.where('userId','==',user.uid), fns.limit(60));
+    else if (key==='liked')   q = fns.query(fns.collection(db,'recence'), fns.where('likes','array-contains',user.uid), fns.limit(60));
+    else                      q = fns.query(fns.collection(db,'recence'), fns.where('superlikes','array-contains',user.uid), fns.limit(60));
+    fns.getDocs(q).then(function(snap) {
+        var posts = [];
+        snap.forEach(function(d){ var p=d.data(); p._id=d.id; posts.push(p); });
+        posts.sort(function(a,b){ return ((b.timestamp&&b.timestamp.seconds)||0) - ((a.timestamp&&a.timestamp.seconds)||0); });
+        _mobProfTabCache[key] = posts;
+        _mobProfBuildGrid(posts);
+    }).catch(function(e){ console.warn('mob prof tab:', e); grid.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Failed to load</div>'; });
+}
+
+var _mpRatios = [1, 1, 1.35, 0.75, 1.2, 0.85, 1, 1.1, 0.9, 1.25];
+function _mobProfBuildGrid(posts) {
+    var grid = document.getElementById('mob-prof-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    if (!posts || !posts.length) {
+        grid.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Nothing here yet</div>';
+        return;
+    }
+    posts.forEach(function(post, idx) {
+        var m = post.media && post.media[0];
+        if (!m || !m.url) return;
+        var ratio = _mpRatios[idx % _mpRatios.length];
+        var cell = document.createElement('div');
+        cell.className = 'liked-cell';
+        cell.style.cssText = 'break-inside:avoid;margin-bottom:4px;border-radius:10px;overflow:hidden;cursor:pointer;position:relative;background:#e8e8e8;display:block;-webkit-tap-highlight-color:transparent;transition:transform 0.18s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 1px 6px rgba(0,0,0,0.10);';
+        var vid = document.createElement('video');
+        vid.src = m.url; vid.muted=true; vid.playsInline=true; vid.preload='metadata';
+        vid.style.cssText = 'width:100%;aspect-ratio:9/'+(16*ratio).toFixed(1)+';object-fit:cover;display:block;pointer-events:none;';
+        vid.addEventListener('loadedmetadata', function(){ vid.currentTime=0.01; }, {once:true});
+        vid.addEventListener('loadedmetadata', function(){
+            var dur=Math.round(vid.duration||0);
+            if(dur>0){var db2=document.createElement('div');db2.style.cssText='position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.5);color:#fff;font-size:8px;font-weight:700;font-family:var(--font);padding:1px 4px;border-radius:4px;';db2.textContent=Math.floor(dur/60)+':'+(dur%60<10?'0':'')+(dur%60);cell.appendChild(db2);}
+        });
+        var ov = document.createElement('div');
+        ov.style.cssText = 'position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(0,0,0,0.65) 0%,transparent 100%);padding:14px 6px 6px;pointer-events:none;';
+        var nd = document.createElement('div');
+        nd.style.cssText = 'font-size:9px;font-weight:700;color:rgba(255,255,255,0.92);font-family:var(--font);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        nd.textContent = '@'+(post.name||post.userName||'creator');
+        ov.appendChild(nd);
+        cell.appendChild(vid); cell.appendChild(ov);
+        cell.addEventListener('click', function() { _mobProfOpenViewer(post, posts); });
+        cell.style.opacity='0'; cell.style.transform='translateY(12px) scale(0.97)';
+        grid.appendChild(cell);
+        setTimeout(function(){ cell.style.transition='opacity 0.3s ease,transform 0.3s cubic-bezier(0.34,1.56,0.64,1)'; cell.style.opacity='1'; cell.style.transform='translateY(0) scale(1)'; }, 40+idx*50);
+    });
+    // Save scroll on scroll
+    grid.onscroll = function(){ _mobProfScrollTop = grid.scrollTop; };
+}
+
+function _mobProfOpenViewer(clickedPost, posts) {
+    _mobProfViewerPosts = posts;
+    var viewer = document.getElementById('mob-prof-viewer');
+    var feed   = document.getElementById('mob-prof-viewer-feed');
+    if (!viewer || !feed) return;
+    if (_mobProfViewerObs) { _mobProfViewerObs.disconnect(); _mobProfViewerObs = null; }
+    feed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
+    feed.innerHTML = '';
+    var buildPin = window._createPinElement;
+    if (!buildPin) return;
+    window._buildingForViewer = true;
+    posts.forEach(function(p) {
+        if (!p.media || !p.media[0] || !p.media[0].url) return;
+        var pinEl = buildPin(p, p._id);
+        if (!pinEl) return;
+        var v = pinEl.querySelector('video');
+        if (v) { v.src = v.dataset.src||v.src; v.removeAttribute('data-src'); v.preload='auto'; v.classList.remove('lazy-load'); v.classList.add('loaded'); v.load(); }
+        feed.appendChild(pinEl);
+    });
+    window._buildingForViewer = false;
+    viewer.style.transform = 'translateY(0)';
+    var startIdx = Math.max(0, posts.filter(function(q){ return q.media&&q.media[0]&&q.media[0].url; }).findIndex(function(q){ return q._id===clickedPost._id; }));
+    var pins = feed.querySelectorAll('.pin-container');
+    if (pins[startIdx]) feed.scrollTop = pins[startIdx].offsetTop;
+    _mobProfViewerObs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+            var pin = entry.target;
+            var v = pin.querySelector('video');
+            if (!v) return;
+            if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+                v.muted=false; v.currentTime=0;
+                v.play().catch(function(){ v.muted=true; v.play().catch(function(){}); });
+            } else { v.pause(); }
+        });
+    }, { root: feed, threshold: 0.55 });
+    pins.forEach(function(p){ _mobProfViewerObs.observe(p); });
+}
+
+function _mobProfCloseViewer() {
+    var viewer = document.getElementById('mob-prof-viewer');
+    var feed   = document.getElementById('mob-prof-viewer-feed');
+    if (_mobProfViewerObs) { _mobProfViewerObs.disconnect(); _mobProfViewerObs = null; }
+    if (feed) feed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
+    if (viewer) viewer.style.transform = 'translateY(100%)';
+}
+
+// Also save grid scroll when leaving profile section
+var _origGoHome = window._goHome;
+window._goHome = function() {
+    var grid = document.getElementById('mob-prof-grid');
+    if (grid) _mobProfScrollTop = grid.scrollTop;
+    if (_origGoHome) _origGoHome();
+};
+
+// ══════════════════════════════════════
+// DELETE BOTTOM SHEET (draggable)
+// ══════════════════════════════════════
+(function() {
+    var _delId = null; var _delData = null;
+    var overlay    = document.getElementById('delete-sheet-overlay');
+    var sheet      = document.getElementById('delete-sheet');
+    var confirmBtn = document.getElementById('dsh-confirm-btn');
+    var cancelBtn  = document.getElementById('dsh-cancel-btn');
+    if (!overlay || !sheet) return;
+
+    function openSheet() { overlay.classList.add('open'); }
+    function closeSheet() {
+        sheet.style.transition = 'transform 0.32s cubic-bezier(0.22,1,0.36,1)';
+        sheet.style.transform = 'translateY(100%)';
+        setTimeout(function(){
+            overlay.classList.remove('open');
+            sheet.style.transform = '';
+            sheet.style.transition = '';
+        }, 340);
+    }
+
+    window._showDeleteConfirm = function(postId, postData) {
+        _delId = postId; _delData = postData;
+        openSheet();
+    };
+
+    cancelBtn.addEventListener('click', closeSheet);
+    overlay.addEventListener('click', function(e){ if(e.target===overlay) closeSheet(); });
+
+    // ── Drag-to-dismiss ──
+    var _startY = 0; var _curY = 0; var _dragging = false;
+    sheet.addEventListener('touchstart', function(e){ _startY = e.touches[0].clientY; _dragging = true; sheet.style.transition = 'none'; }, {passive:true});
+    sheet.addEventListener('touchmove', function(e){
+        if (!_dragging) return;
+        _curY = e.touches[0].clientY - _startY;
+        if (_curY > 0) sheet.style.transform = 'translateY('+_curY+'px)';
+    }, {passive:true});
+    sheet.addEventListener('touchend', function(){
+        _dragging = false;
+        sheet.style.transition = '';
+        if (_curY > 90) { closeSheet(); }
+        else { sheet.style.transform = ''; }
+        _curY = 0;
+    });
+
+    confirmBtn.addEventListener('click', async function() {
+        if (!_delId) return;
+        confirmBtn.textContent = 'Deleting...'; confirmBtn.classList.add('deleting');
+        var db = window._fbDb; var fns = window._fbFirestoreFns;
+        if (!db || !fns) { confirmBtn.textContent='Delete'; confirmBtn.classList.remove('deleting'); return; }
+        try {
+            try { var cmts=await fns.getDocs(fns.collection(db,'recence',_delId,'comments')); await Promise.all(cmts.docs.map(function(c){ return fns.deleteDoc(fns.doc(db,'recence',_delId,'comments',c.id)); })); } catch(e){}
+            try { var reps=await fns.getDocs(fns.collection(db,'recence',_delId,'replies')); await Promise.all(reps.docs.map(function(r){ return fns.deleteDoc(fns.doc(db,'recence',_delId,'replies',r.id)); })); } catch(e){}
+            try {
+                var media=(_delData&&_delData.media)||[];
+                for(var i=0;i<media.length;i++){
+                    var fid=media[i].fileId;
+                    if(!fid&&media[i].url){ var pts=media[i].url.split('/'); fid=decodeURIComponent(pts[pts.length-1]); }
+                    if(fid) await fetch('https://r2-upload.katlegomashilwane0691.workers.dev/delete',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileId:fid})});
+                }
+            } catch(e){}
+            await fns.deleteDoc(fns.doc(db,'recence',_delId));
+            var card = document.querySelector('[data-post-id="'+_delId+'"]');
+            if (card) { card.style.transition='opacity 0.3s,transform 0.3s'; card.style.opacity='0'; card.style.transform='scale(0.92)'; setTimeout(function(){ if(card.parentNode) card.parentNode.removeChild(card); },320); }
+            Object.keys(_mobProfTabCache).forEach(function(k){ _mobProfTabCache[k]=_mobProfTabCache[k].filter(function(p){ return p._id!==_delId; }); });
+            closeSheet();
+            confirmBtn.textContent='Delete'; confirmBtn.classList.remove('deleting');
+            _delId=null; _delData=null;
+        } catch(err) {
+            console.error('Delete failed:',err);
+            confirmBtn.textContent='Failed — retry'; confirmBtn.classList.remove('deleting');
+        }
+    });
+})();
+
+// ══════════════════════════════════════
+// FOLLOW LIST PANEL
+// ══════════════════════════════════════
+(function() {
+    var overlay  = document.getElementById('follow-list-overlay');
+    var list     = document.getElementById('flp-list');
+    var titleEl  = document.getElementById('flp-title');
+    var closeBtn = document.getElementById('flp-close-btn');
+    if (!overlay) return;
+
+    function closePanel() {
+        var panel = document.getElementById('follow-list-panel');
+        if (panel) { panel.style.transition='transform 0.32s cubic-bezier(0.22,1,0.36,1)'; panel.style.transform='translateY(100%)'; }
+        setTimeout(function(){ overlay.classList.remove('open'); if(panel){panel.style.transform='';panel.style.transition='';} }, 340);
+    }
+    closeBtn.addEventListener('click', closePanel);
+    overlay.addEventListener('click', function(e){ if(e.target===overlay) closePanel(); });
+    // Drag-to-dismiss on follow panel
+    var _fpPanel = document.getElementById('follow-list-panel');
+    var _fpSY=0, _fpCY=0, _fpDrag=false;
+    if(_fpPanel){
+        _fpPanel.addEventListener('touchstart',function(e){_fpSY=e.touches[0].clientY;_fpDrag=true;_fpPanel.style.transition='none';},{passive:true});
+        _fpPanel.addEventListener('touchmove',function(e){if(!_fpDrag)return;_fpCY=e.touches[0].clientY-_fpSY;if(_fpCY>0)_fpPanel.style.transform='translateY('+_fpCY+'px)';},{passive:true});
+        _fpPanel.addEventListener('touchend',function(){_fpDrag=false;_fpPanel.style.transition='';if(_fpCY>80)closePanel();else _fpPanel.style.transform='';_fpCY=0;});
+    }
+
+    window._showFollowList = function(type) {
+        titleEl.textContent = type==='followers' ? 'Followers' : 'Following';
+        list.innerHTML = '<div class="flp-empty">Loading...</div>';
+        overlay.classList.add('open');
+        var db=window._fbDb; var fns=window._fbFirestoreFns; var user=window._currentUser;
+        if (!db||!fns||!user) { list.innerHTML='<div class="flp-empty">Sign in to view</div>'; return; }
+        var q = type==='followers'
+            ? fns.query(fns.collection(db,'follows'), fns.where('followedUserId','==',user.uid), fns.limit(200))
+            : fns.query(fns.collection(db,'follows'), fns.where('followerUserId','==',user.uid), fns.limit(200));
+        fns.getDocs(q).then(function(snap) {
+            if (snap.empty) { list.innerHTML='<div class="flp-empty">No '+type+' yet</div>'; return; }
+            var uids=[];
+            snap.forEach(function(d){ var uid=type==='followers'?d.data().followerUserId:d.data().followedUserId; if(uid) uids.push(uid); });
+            Promise.all(uids.map(function(uid){ return fns.getDoc(fns.doc(db,'users',uid)).then(function(ud){ return {uid:uid,data:ud.exists()?ud.data():null}; }).catch(function(){ return {uid:uid,data:null}; }); })).then(function(users) {
+                list.innerHTML='';
+                users.forEach(function(u) {
+                    var ud=u.data||{}; var name=ud.displayName||ud.name||'User'; var photo=ud.photoURL||'';
+                    var hue=(name[0]||'U').toUpperCase().charCodeAt(0)*37%360;
+                    var isMe=user.uid===u.uid;
+                    var isFollowed=window._followedUsersSet?window._followedUsersSet.has(u.uid):false;
+                    var row=document.createElement('div'); row.className='flp-row';
+                    var av=document.createElement('div'); av.className='flp-av';
+                    if(photo&&!photo.includes('default_profile')){ var img=document.createElement('img'); img.src=photo; img.onerror=function(){ av.removeChild(img); av.textContent=name[0].toUpperCase(); av.style.background='hsl('+hue+',50%,42%)'; }; av.appendChild(img); }
+                    else { av.textContent=name[0].toUpperCase(); av.style.background='hsl('+hue+',50%,42%)'; }
+                    var info=document.createElement('div'); info.className='flp-info';
+                    info.innerHTML='<div class="flp-name">'+name+'</div><div class="flp-handle-text">@'+name.toLowerCase().replace(/\s+/g,'_')+'</div>';
+                    row.appendChild(av); row.appendChild(info);
+                    if(!isMe){
+                        var btn=document.createElement('button'); btn.className='flp-follow-btn'+(isFollowed?' following':''); btn.textContent=isFollowed?'Following':'Follow';
+                        btn.addEventListener('click',function(){
+                            var nowF=!btn.classList.contains('following'); btn.textContent=nowF?'Following':'Follow'; btn.classList.toggle('following',nowF);
+                            var fq=fns.query(fns.collection(db,'follows'),fns.where('followerUserId','==',user.uid),fns.where('followedUserId','==',u.uid));
+                            fns.getDocs(fq).then(function(s){ if(nowF&&s.empty){ fns.addDoc(fns.collection(db,'follows'),{followerUserId:user.uid,followedUserId:u.uid,followedUserName:name,timestamp:{seconds:Math.floor(Date.now()/1000)}}); } else if(!nowF){ s.forEach(function(d){ fns.deleteDoc(fns.doc(db,'follows',d.id)); }); } });
+                        });
+                        row.appendChild(btn);
+                    }
+                    list.appendChild(row);
+                });
+            });
+        }).catch(function(){ list.innerHTML='<div class="flp-empty">Could not load</div>'; });
+    };
+})();
 </script>
 
 </body>
