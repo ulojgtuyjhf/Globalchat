@@ -2896,6 +2896,7 @@ function init() {
                 displayName: user.displayName || userData.displayName || 'User'
             };
             window._currentUser = currentUser; // expose for non-module scripts
+            window._followedUsersSet = followedUsers; // expose for follow list panel
             
             await fetchFollowedUsers();
             fetchPosts();
@@ -6709,6 +6710,7 @@ init();
             });
             tb.style.borderBottomColor='#111';
             tb.style.color='#111';
+            profPanel._activeTabKey = td.key;
             loadProfileTab(td.key);
           });
           profTabs.appendChild(tb);
@@ -6721,7 +6723,7 @@ init();
         // Grid scroll area
         var profGrid = document.createElement('div');
         profGrid.id = 'dp-grid';
-        profGrid.style.cssText = 'flex:1;overflow-y:auto;padding:8px 6px 20px;column-count:3;column-gap:5px;scrollbar-width:none;';
+        profGrid.style.cssText = 'flex:1;overflow-y:auto;padding:8px 6px 20px;column-count:3;column-gap:5px;scrollbar-width:thin;scrollbar-color:#e0e0e0 transparent;';
 
         profCol.appendChild(profHead);
         profCol.appendChild(profGrid);
@@ -6965,10 +6967,24 @@ init();
               var uploadCount = results[0].size;
               var followerCount = results[1].size;
               var followingCount = results[2].size;
-              function statBlock(n, label) {
-                return '<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-size:15px;font-weight:900;color:#111;font-family:var(--font);">'+n+'</span><span style="font-size:10px;color:#aaa;font-weight:600;font-family:var(--font);">'+label+'</span></div>';
+              function statBlock(n, label, key) {
+                var cursor = (key === 'followers' || key === 'following') ? 'cursor:pointer;' : '';
+                return '<div data-stat="'+key+'" style="display:flex;flex-direction:column;align-items:center;gap:1px;'+cursor+'padding:4px 6px;border-radius:10px;transition:background 0.12s;">' +
+                  '<span style="font-size:16px;font-weight:900;color:#111;font-family:var(--font);">'+n+'</span>' +
+                  '<span style="font-size:10px;color:#aaa;font-weight:600;font-family:var(--font);">'+label+'</span>' +
+                '</div>';
               }
-              if (dpSt) dpSt.innerHTML = statBlock(uploadCount,'Videos') + statBlock(followerCount,'Followers') + statBlock(followingCount,'Following');
+              if (dpSt) {
+                dpSt.innerHTML = statBlock(uploadCount,'Videos','videos') + statBlock(followerCount,'Followers','followers') + statBlock(followingCount,'Following','following');
+                dpSt.querySelectorAll('[data-stat="followers"],[data-stat="following"]').forEach(function(el) {
+                  el.addEventListener('mouseenter', function(){ el.style.background='#f5f5f5'; });
+                  el.addEventListener('mouseleave', function(){ el.style.background=''; });
+                  el.addEventListener('click', function() {
+                    var isFollowers = el.dataset.stat === 'followers';
+                    window._showFollowList && window._showFollowList(isFollowers ? 'followers' : 'following');
+                  });
+                });
+              }
             }).catch(function(){ if(dpSt) dpSt.innerHTML=''; });
           }
         }
@@ -6985,19 +7001,25 @@ init();
       if (_dpFeed) _dpFeed.style.display = 'none';
       if (_dpCmt)  _dpCmt.style.display  = 'none';
 
-      // Always reload first tab on open (fresh data, clear cache)
-      var _firstTab = document.getElementById('dp-tab-uploaded');
-      if (_firstTab && profPanel._loadTab) {
-        // Clear cache so we fetch fresh
-        if (profPanel._dpTabCacheRef) {
-          Object.keys(profPanel._dpTabCacheRef).forEach(function(k){ delete profPanel._dpTabCacheRef[k]; });
-        }
+      // Resume whichever tab was last active (or default to 'uploaded' on first open)
+      if (profPanel._loadTab) {
+        var _resumeKey = profPanel._activeTabKey || 'uploaded';
+        var _resumeTab = document.getElementById('dp-tab-' + _resumeKey) || document.getElementById('dp-tab-uploaded');
         profPanel.querySelectorAll('[data-key]').forEach(function(b){
           b.style.borderBottomColor='transparent'; b.style.color='#aaa';
         });
-        _firstTab.style.borderBottomColor='#111';
-        _firstTab.style.color='#111';
-        profPanel._loadTab('uploaded');
+        if (_resumeTab) { _resumeTab.style.borderBottomColor='#111'; _resumeTab.style.color='#111'; }
+        // Only re-fetch if cache is empty for this tab
+        if (!profPanel._dpTabCacheRef || !profPanel._dpTabCacheRef[_resumeKey]) {
+          profPanel._loadTab(_resumeKey);
+        } else {
+          // Rebuild grid from cache instantly — no loading flicker
+          if (typeof buildProfileGrid === 'function') {
+            buildProfileGrid(profPanel._dpTabCacheRef[_resumeKey]);
+          } else {
+            profPanel._loadTab(_resumeKey);
+          }
+        }
       }
       return;
     }
@@ -8235,53 +8257,54 @@ init();
     to   { opacity:1; transform: scale(1) translateY(0); }
 }
 .dcm-top-bar {
-    height: 4px;
-    background: linear-gradient(135deg, #0f0f0f 0%, #626262 50%, #a6a6a6 100%);
+    height: 5px;
+    background: var(--brand-gradient);
 }
 .dcm-body {
-    padding: 24px 24px 20px;
+    padding: 24px 24px 22px;
     text-align: center;
 }
 .dcm-icon {
-    width: 56px; height: 56px; border-radius: 18px;
-    background: linear-gradient(135deg, #0f0f0f 0%, #3a3a3a 100%);
+    width: 60px; height: 60px; border-radius: 20px;
+    background: var(--brand-gradient);
     display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 16px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    margin: 0 auto 18px;
+    box-shadow: 0 6px 22px rgba(0,0,0,0.22);
 }
-.dcm-icon svg { width: 24px; height: 24px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.dcm-icon svg { width: 26px; height: 26px; stroke: #fff; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .dcm-title {
-    font-size: 18px; font-weight: 900; color: #111;
-    font-family: var(--font); letter-spacing: -0.02em; margin-bottom: 8px;
+    font-size: 19px; font-weight: 900; color: #111;
+    font-family: var(--font); letter-spacing: -0.03em; margin-bottom: 8px;
 }
 .dcm-sub {
     font-size: 13px; color: #888; font-family: var(--font);
-    line-height: 1.5; margin-bottom: 24px;
+    line-height: 1.55; margin-bottom: 24px;
 }
 .dcm-actions {
     display: flex; gap: 10px;
 }
 .dcm-cancel {
-    flex: 1; padding: 12px; border: 1.5px solid #ebebeb;
-    border-radius: 14px; background: #f7f7f7;
-    font-size: 14px; font-weight: 800; color: #555;
+    flex: 1; padding: 13px; border: 1.5px solid #e0e0e0;
+    border-radius: 14px; background: #f5f5f5;
+    font-size: 14px; font-weight: 800; color: #666;
     font-family: var(--font); cursor: pointer;
     transition: all 0.15s;
 }
-.dcm-cancel:hover { background: #eee; }
+.dcm-cancel:hover { background: #ebebeb; color: #333; }
 .dcm-cancel:active { transform: scale(0.96); }
 .dcm-delete {
-    flex: 1; padding: 12px; border: none;
+    flex: 1; padding: 13px; border: none;
     border-radius: 14px;
-    background: linear-gradient(135deg, #0f0f0f 0%, #3a3a3a 50%, #626262 100%);
+    background: var(--brand-gradient);
     font-size: 14px; font-weight: 900; color: #fff;
     font-family: var(--font); cursor: pointer;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.22);
-    transition: all 0.15s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.28);
+    transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    letter-spacing: 0.01em;
 }
-.dcm-delete:hover { opacity: 0.9; transform: scale(1.03); }
-.dcm-delete:active { transform: scale(0.96); }
-.dcm-delete.deleting { opacity: 0.6; pointer-events: none; }
+.dcm-delete:hover { transform: scale(1.04); box-shadow: 0 8px 28px rgba(0,0,0,0.32); }
+.dcm-delete:active { transform: scale(0.95); }
+.dcm-delete.deleting { opacity: 0.55; pointer-events: none; }
 </style>
 
 <div id="delete-confirm-overlay">
@@ -8689,5 +8712,68 @@ document.addEventListener('keydown', function(e){
 });
 </script>
 
-</body>
-</html>
+
+<style>
+/* ── Follow List Panel (Followers / Following) ── */
+#follow-list-overlay {
+    position: fixed; inset: 0; z-index: 9600;
+    background: rgba(0,0,0,0.45);
+    display: none; align-items: flex-end; justify-content: center;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+#follow-list-overlay.open { display: flex; }
+#follow-list-panel {
+    background: #fff;
+    border-radius: 28px 28px 0 0;
+    width: 100%; max-width: 480px;
+    max-height: 75vh;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 -12px 60px rgba(0,0,0,0.18);
+    animation: flpIn 0.38s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes flpIn {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+}
+.flp-handle {
+    width: 40px; height: 4px; background: #e0e0e0;
+    border-radius: 2px; margin: 12px auto 0;
+    flex-shrink: 0;
+}
+.flp-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px 12px; border-bottom: 1px solid #f0f0f0;
+    flex-shrink: 0;
+}
+.flp-title {
+    font-size: 17px; font-weight: 900; color: #111;
+    font-family: var(--font); letter-spacing: -0.02em;
+}
+.flp-close {
+    background: #f2f2f2; border: none; border-radius: 50%;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background 0.15s;
+    flex-shrink: 0;
+}
+.flp-close:hover { background: #e5e5e5; }
+.flp-close svg { width: 13px; height: 13px; fill: none; stroke: #555; stroke-width: 2.5; stroke-linecap: round; }
+.flp-list {
+    flex: 1; overflow-y: auto; padding: 6px 0 env(safe-area-inset-bottom,16px);
+    scrollbar-width: thin; scrollbar-color: #e0e0e0 transparent;
+}
+.flp-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 20px; transition: background 0.12s;
+    -webkit-tap-highlight-color: transparent;
+}
+.flp-row:hover { background: #fafafa; }
+.flp-av {
+    width: 42px; height: 42px; border-radius: 50%;
+    flex-shrink: 0; overflow: hidden;
+    border: 1.5px solid #f0f0f0;
+    background: #eee;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 900; color: #fff;
+}
+.flp-av img { width: 100%; height: 100%; object-fit: cover; border-radius: 5
