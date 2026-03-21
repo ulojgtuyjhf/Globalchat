@@ -1152,43 +1152,46 @@
           #updates-count-badge.show { background: var(--brand-gradient) !important; }
 
           /* ── desktop profile panel ── */
-          #ds-profile-panel > div:first-child {
+          #dp-col {
             background: ${t.sidebarBg} !important;
             box-shadow: 0 2px 20px rgba(0,0,0,0.07) !important;
           }
           #dp-head {
             background: ${t.sidebarBg} !important;
-            border-bottom: 1px solid ${t.dsDivider} !important;
+          }
+          #dp-tabs {
+            border-bottom-color: ${t.dsDivider} !important;
           }
           #dp-name { color: ${t.textPrimary} !important; }
           #dp-handle { color: ${t.textTertiary} !important; }
           #dp-avatar { border-color: ${t.dsPersonAvBorder} !important; }
-          /* stat blocks: num + label */
+          /* stat blocks: num + label + hover */
           #dp-stats [data-stat] span:first-child { color: ${t.textPrimary} !important; }
           #dp-stats [data-stat] span:last-child  { color: ${t.textTertiary} !important; }
           #dp-stats [data-stat]:hover { background: ${t.surfaceHover} !important; }
-          /* tabs */
+          /* tab text — inactive */
           #dp-tab-uploaded,
           #dp-tab-liked,
           #dp-tab-superliked {
             color: ${t.textTertiary} !important;
-            background: transparent !important;
-            border-bottom-color: transparent !important;
           }
-          #dp-tab-uploaded.active,
-          #dp-tab-liked.active,
-          #dp-tab-superliked.active {
+          /* active tab text color (border-image is set inline by JS as brand gradient — always correct) */
+          #dp-tab-uploaded[style*="border-image"],
+          #dp-tab-liked[style*="border-image"],
+          #dp-tab-superliked[style*="border-image"] {
             color: ${t.textPrimary} !important;
-            border-bottom-color: ${t.textPrimary} !important;
           }
           /* grid */
-          #dp-grid { background: ${t.sidebarBg} !important; scrollbar-color: ${t.dcListScrollbar} transparent !important; }
+          #dp-grid {
+            background: ${t.sidebarBg} !important;
+            scrollbar-color: ${t.dcListScrollbar} transparent !important;
+          }
           #dp-grid::-webkit-scrollbar-thumb { background: ${t.dcListScrollbar} !important; }
           #dp-grid .liked-cell { background: ${t.surfaceHover} !important; }
-          /* back button inside viewer */
+          /* back button + title arrow */
           #dpv-back { background: var(--brand-gradient) !important; }
-          /* profile panel title + back arrow */
           #dp-head svg { stroke: ${t.textPrimary} !important; }
+          #dp-head span { color: ${t.textPrimary} !important; }
         }
       `;
 
