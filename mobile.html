@@ -1078,9 +1078,12 @@ body.paused-view #mob-feed-tabs {
     border-radius: 28px 28px 0 0;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 -8px 40px rgba(0,0,0,0.18);
+    overflow-x: hidden;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.28);
     overscroll-behavior: contain;
     touch-action: pan-y;
+    box-sizing: border-box;
+    width: 100%;
 }
 .fp-drag-handle {
     width: 36px; height: 4px; border-radius: 2px;
@@ -1103,108 +1106,132 @@ body.paused-view #mob-feed-tabs {
 
 /* ── Profile card redesign ── */
 .fp-profile-card {
-    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     overscroll-behavior: contain;
+    background: #fff;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
 }
 .fp-profile-card::-webkit-scrollbar { display: none; }
 
-/* Cover */
+/* Cover — full width, no overflow */
 .fp-cover {
-    width: 100%; height: 110px;
+    width: 100%;
+    height: 120px;
     background: var(--brand-gradient);
-    position: relative; overflow: hidden; flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
 }
 .fp-cover img {
-    width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0.88;
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; object-fit: cover; display: block;
 }
 .fp-cover-overlay {
     position: absolute; inset: 0;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%);
+    background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 100%);
 }
 
-/* Avatar overlapping cover */
+/* Avatar row — sits below cover, overlaps it */
 .fp-avatar-wrap {
-    padding: 0 16px;
-    margin-top: -38px;
-    position: relative; z-index: 2;
+    width: 100%;
+    padding: 0 16px 0;
+    margin-top: -40px;
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    box-sizing: border-box;
 }
 .fp-avatar {
-    width: 76px; height: 76px; border-radius: 50%;
-    border: 3.5px solid #fff;
+    width: 78px; height: 78px;
+    border-radius: 50%;
+    border: 3px solid #fff;
     background: #555;
     display: flex; align-items: center; justify-content: center;
     overflow: hidden;
     font-size: 28px; font-weight: 900; color: #fff;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.22);
+    box-shadow: 0 2px 16px rgba(0,0,0,0.22);
+    flex-shrink: 0;
 }
 .fp-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
 
 /* Info block */
-.fp-info { padding: 10px 16px 32px; }
+.fp-info {
+    padding: 8px 16px 28px;
+    background: #fff;
+    width: 100%;
+    box-sizing: border-box;
+}
 .fp-user-name {
-    font-size: 20px; font-weight: 900; color: #111;
+    font-size: 19px; font-weight: 900; color: #111;
     font-family: var(--font); letter-spacing: -0.03em;
-    margin-top: 4px;
+    margin-top: 6px;
+    word-break: break-word;
 }
 .fp-user-handle {
     font-size: 13px; color: #aaa; font-weight: 600;
     font-family: var(--font); margin-top: 2px;
 }
 .fp-user-bio {
-    font-size: 14px; color: #444; font-weight: 500;
+    font-size: 13px; color: #444; font-weight: 500;
     font-family: var(--font); margin-top: 8px; line-height: 1.5;
+    word-break: break-word;
     display: none;
 }
-/* Clickable link pills */
+/* Link pills */
 .fp-user-links {
     display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
 }
 .fp-link-pill {
     display: inline-flex; align-items: center; gap: 5px;
-    padding: 5px 12px 5px 9px;
+    padding: 5px 11px 5px 8px;
     border-radius: 999px;
     background: #fff;
-    border: none;
     font-size: 12px; font-weight: 700; color: #111;
     font-family: var(--font);
     text-decoration: none; cursor: pointer;
     position: relative;
     -webkit-tap-highlight-color: transparent;
-    /* gradient border via pseudo */
+    border: 1.5px solid transparent;
     background-clip: padding-box;
-    box-shadow: inset 0 0 0 1.5px transparent;
 }
 .fp-link-pill::before {
     content: '';
-    position: absolute; inset: -2px;
+    position: absolute; inset: -1.5px;
     border-radius: 999px;
     background: var(--brand-gradient);
     z-index: -1;
 }
 .fp-link-pill:active { opacity: 0.7; }
-.fp-link-pill svg { width: 12px; height: 12px; stroke: #626262; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
-.fp-link-pill span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+.fp-link-pill svg { width: 11px; height: 11px; stroke: #626262; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.fp-link-pill span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
 
 /* Stats row */
 .fp-counts {
-    display: flex; gap: 0; margin-top: 16px;
-    background: #f8f8f8; border-radius: 14px;
-    overflow: hidden;
+    display: flex; margin-top: 14px;
+    background: #f5f5f5; border-radius: 14px;
+    overflow: hidden; width: 100%;
 }
 .fp-count-item {
     flex: 1; display: flex; flex-direction: column; align-items: center;
-    gap: 2px; padding: 12px 8px;
-    border-right: 1px solid #efefef;
+    gap: 2px; padding: 12px 4px;
+    border-right: 1px solid #ebebeb;
 }
 .fp-count-item:last-child { border-right: none; }
 .fp-count-num {
-    font-size: 18px; font-weight: 900; color: #111;
+    font-size: 17px; font-weight: 900; color: #111;
     font-family: var(--font); letter-spacing: -0.02em;
 }
 .fp-count-label {
-    font-size: 10px; font-weight: 600; color: #aaa;
-    font-family: var(--font); letter-spacing: 0.01em; text-transform: uppercase;
+    font-size: 9px; font-weight: 700; color: #aaa;
+    font-family: var(--font); letter-spacing: 0.04em; text-transform: uppercase;
 }
 
 /* ─── FEED TABS — For You left, Top right ─── */
@@ -1943,10 +1970,10 @@ if (window === window.top && !window.matchMedia('(max-width: 899px)').matches) {
     <!-- tabs removed -->
 
     <!-- Panel overlay -->
-    <div id="fpOverlay" style="display:none;pointer-events:none;"></div>
+    <div id="fpOverlay"></div>
 
     <!-- Profile / Following panel — slides UP from bottom -->
-    <div id="followingPanel" style="display:none;">
+    <div id="followingPanel">
         <div class="fp-drag-handle"></div>
         <div class="fp-head">
             <span class="fp-title" id="fpTitle">Profile</span>
@@ -3972,9 +3999,17 @@ function openModal(postData, postId) {
 function openPanel() {
     const panel = document.getElementById('followingPanel');
     const ov = document.getElementById('fpOverlay');
-    if (panel) panel.classList.add('open');
-    if (ov) ov.classList.add('open');
+    if (ov) {
+        ov.style.display = 'block';
+        ov.style.pointerEvents = 'auto';
+        ov.classList.add('open');
+    }
+    if (panel) {
+        panel.style.display = 'flex';
+        panel.classList.add('open');
+    }
     document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
 }
 
 function viewProfile(userId) {
@@ -4066,9 +4101,10 @@ function viewProfile(userId) {
 function closeProfileModal() {
     const panel = document.getElementById('followingPanel');
     const ov = document.getElementById('fpOverlay');
-    if (panel) panel.classList.remove('open');
-    if (ov) ov.classList.remove('open');
+    if (panel) { panel.classList.remove('open'); panel.style.display = 'none'; }
+    if (ov)    { ov.classList.remove('open'); ov.style.display = 'none'; ov.style.pointerEvents = 'none'; }
     document.body.style.overflow = '';
+    document.body.style.touchAction = '';
 }
 
 // ── Share sheet ──
@@ -7742,13 +7778,10 @@ init();
         function closeFpPanel() {
             var panel = document.getElementById('followingPanel');
             var ov    = document.getElementById('fpOverlay');
-            if (panel) panel.classList.remove('open');
-            if (ov)    ov.classList.remove('open');
+            if (panel) { panel.classList.remove('open'); panel.style.display = 'none'; }
+            if (ov)    { ov.classList.remove('open'); ov.style.display = 'none'; ov.style.pointerEvents = 'none'; }
             document.body.style.overflow = '';
-            var tabFY = document.getElementById('tabForYou');
-            var tabFL = document.getElementById('tabFollowing');
-            if (tabFY) tabFY.classList.add('active');
-            if (tabFL) tabFL.classList.remove('active');
+            document.body.style.touchAction = '';
         }
         // Use capture phase so it fires before any blocking handlers
         document.getElementById('fpBack').addEventListener('click', function(e) {
@@ -7756,6 +7789,7 @@ init();
             closeFpPanel();
         }, true);
         document.getElementById('fpOverlay').addEventListener('click', closeFpPanel);
+        document.getElementById('fpOverlay').addEventListener('touchmove', function(e){ e.preventDefault(); }, { passive: false });
         // Expose globally so IIFE closePanel can also call it
         window._closeFpPanel = closeFpPanel;
     })();
