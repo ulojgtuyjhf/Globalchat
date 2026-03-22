@@ -772,12 +772,21 @@
 
         /* ── mobile profile section ── */
         #profile-section { background: ${t.surfaceSecondary} !important; }
+        #mob-prof-cover { background: var(--brand-gradient); }
         #mob-prof-head { background: ${t.surfacePrimary} !important; border-bottom: 1px solid ${t.border} !important; }
         #mob-prof-name { color: ${t.textPrimary} !important; }
         #mob-prof-handle { color: ${t.textTertiary} !important; }
+        #mob-prof-bio { color: ${t.textSecondary} !important; }
+        #mob-prof-links .mob-prof-link-pill {
+          background: ${t.surfacePrimary} !important;
+          color: ${t.textPrimary} !important;
+          background-clip: padding-box !important;
+        }
         .mob-prof-stat-num { color: ${t.textPrimary} !important; }
         .mob-prof-stat-label { color: ${t.textTertiary} !important; }
         .mob-prof-stat.clickable:active { background: ${t.surfaceHover} !important; }
+        #mob-prof-stats { background: ${t.surfacePrimary} !important; border-top: 1px solid ${t.border} !important; }
+        .mob-prof-stat { border-right-color: ${t.border} !important; }
         #mob-prof-tabs { background: ${t.surfacePrimary} !important; border-bottom: 1px solid ${t.border} !important; }
         #mob-prof-tabs button { color: ${t.textTertiary} !important; background: transparent !important; }
         #mob-prof-tabs button.active { color: ${t.textPrimary} !important; border-bottom-color: ${t.textPrimary} !important; }
@@ -786,6 +795,28 @@
         /* profile viewer is always fullscreen black video — keep dark */
         #mob-prof-viewer { background: #000 !important; }
         #mob-prof-viewer-back { background: var(--brand-gradient) !important; }
+
+        /* ── other users' profile popup card (fp panel) ── */
+        #followingPanel { background: ${t.surfacePrimary} !important; }
+        .fp-profile-card { background: ${t.surfacePrimary} !important; }
+        .fp-head { background: ${t.surfacePrimary} !important; }
+        .fp-back { background: ${t.closeBtnBg} !important; }
+        .fp-back svg { stroke: ${t.closeBtnIcon} !important; }
+        .fp-avatar-wrap { background: ${t.surfacePrimary} !important; }
+        .fp-info { background: ${t.surfacePrimary} !important; }
+        .fp-user-name { color: ${t.textPrimary} !important; }
+        .fp-user-handle { color: ${t.textTertiary} !important; }
+        .fp-user-bio { color: ${t.textSecondary} !important; }
+        .fp-user-links .fp-link-pill {
+          background: ${t.surfacePrimary} !important;
+          color: ${t.textPrimary} !important;
+          background-clip: padding-box !important;
+        }
+        .fp-counts { background: ${t.surfaceSecondary} !important; }
+        .fp-count-item { border-right-color: ${t.border} !important; }
+        .fp-count-num { color: ${t.textPrimary} !important; }
+        .fp-count-label { color: ${t.textTertiary} !important; }
+
         /* follow list panel */
         #follow-list-overlay #follow-list-panel { background: ${t.surfacePrimary} !important; }
         .flp-bar { background: ${t.sheetHandle} !important; }
@@ -1158,24 +1189,32 @@
           }
           #dp-head {
             background: ${t.sidebarBg} !important;
-          }
-          #dp-tabs {
             border-bottom-color: ${t.dsDivider} !important;
+          }
+          #dp-cover { background: var(--brand-gradient); }
+          #dp-bio { color: ${t.textSecondary} !important; }
+          #dp-links a {
+            background: ${t.surfacePrimary} !important;
+            color: ${t.textPrimary} !important;
+          }
+          #dp-stats { background: ${t.surfaceSecondary} !important; }
+          #dp-stats > div { border-right-color: ${t.border} !important; }
+          #dp-stats > div span:first-child { color: ${t.textPrimary} !important; }
+          #dp-stats > div span:last-child  { color: ${t.textTertiary} !important; }
+          #dp-stats > div:hover { background: ${t.surfaceHover} !important; }
+          #dp-tabs {
+            border-top-color: ${t.dsDivider} !important;
           }
           #dp-name { color: ${t.textPrimary} !important; }
           #dp-handle { color: ${t.textTertiary} !important; }
           #dp-avatar { border-color: ${t.dsPersonAvBorder} !important; }
-          /* stat blocks: num + label + hover */
-          #dp-stats [data-stat] span:first-child { color: ${t.textPrimary} !important; }
-          #dp-stats [data-stat] span:last-child  { color: ${t.textTertiary} !important; }
-          #dp-stats [data-stat]:hover { background: ${t.surfaceHover} !important; }
           /* tab text — inactive */
           #dp-tab-uploaded,
           #dp-tab-liked,
           #dp-tab-superliked {
             color: ${t.textTertiary} !important;
           }
-          /* active tab text color (border-image is set inline by JS as brand gradient — always correct) */
+          /* active tab */
           #dp-tab-uploaded[style*="border-image"],
           #dp-tab-liked[style*="border-image"],
           #dp-tab-superliked[style*="border-image"] {
@@ -1188,10 +1227,31 @@
           }
           #dp-grid::-webkit-scrollbar-thumb { background: ${t.dcListScrollbar} !important; }
           #dp-grid .liked-cell { background: ${t.surfaceHover} !important; }
-          /* back button + title arrow */
           #dpv-back { background: var(--brand-gradient) !important; }
           #dp-head svg { stroke: ${t.textPrimary} !important; }
-          #dp-head span { color: ${t.textPrimary} !important; }
+
+          /* ── other users' fp panel on desktop ── */
+          #followingPanel.open {
+            background: ${t.sidebarBg} !important;
+          }
+          #followingPanel .fp-profile-card { background: ${t.sidebarBg} !important; }
+          #followingPanel .fp-head { background: ${t.sidebarBg} !important; }
+          #followingPanel .fp-info { background: ${t.sidebarBg} !important; }
+          #followingPanel .fp-avatar-wrap { background: ${t.sidebarBg} !important; }
+          #followingPanel .fp-user-name { color: ${t.textPrimary} !important; }
+          #followingPanel .fp-user-handle { color: ${t.textTertiary} !important; }
+          #followingPanel .fp-user-bio { color: ${t.textSecondary} !important; }
+          #followingPanel .fp-user-links .fp-link-pill {
+            background: ${t.surfacePrimary} !important;
+            color: ${t.textPrimary} !important;
+            background-clip: padding-box !important;
+          }
+          #followingPanel .fp-counts { background: ${t.surfaceSecondary} !important; }
+          #followingPanel .fp-count-item { border-right-color: ${t.border} !important; }
+          #followingPanel .fp-count-num { color: ${t.textPrimary} !important; }
+          #followingPanel .fp-count-label { color: ${t.textTertiary} !important; }
+          #followingPanel .fp-back { background: ${t.closeBtnBg} !important; }
+          #followingPanel .fp-back svg { stroke: ${t.closeBtnIcon} !important; }
         }
       `;
 
