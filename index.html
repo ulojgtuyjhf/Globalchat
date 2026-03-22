@@ -401,6 +401,28 @@
       padding: 30px 16px;
     }
 
+    /* Branded dots loader */
+    .dots-loader {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 22px;
+    }
+    .dots-loader span {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--brand-gradient);
+      display: inline-block;
+      animation: dotBounce 1.1s ease-in-out infinite;
+    }
+    .dots-loader span:nth-child(1) { animation-delay: 0s; }
+    .dots-loader span:nth-child(2) { animation-delay: 0.18s; }
+    .dots-loader span:nth-child(3) { animation-delay: 0.36s; }
+    @keyframes dotBounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40%            { transform: scale(1.15); opacity: 1; }
+    }
+
     .spinner {
       width: 38px;
       height: 38px;
@@ -409,6 +431,7 @@
       border-top-color: #626262;
       animation: spin 0.8s linear infinite;
       margin-bottom: 22px;
+      display: none; /* replaced by dots */
     }
 
     .loading-text {
@@ -442,6 +465,20 @@
       width: 0%;
       transition: width 0.5s cubic-bezier(0.19,1,0.22,1);
     }
+
+    /* ── Username live check ── */
+    .uname-check-row {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 700;
+      margin-top: 4px; padding-left: 2px;
+      min-height: 16px;
+      transition: opacity 0.2s;
+    }
+    .uname-check-row.hidden { opacity: 0; pointer-events: none; }
+    .uname-check-row.checking { color: var(--text-light); }
+    .uname-check-row.ok  { color: var(--success); }
+    .uname-check-row.bad { color: var(--error); }
+    .uname-check-row svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 
     /* ── Animations ── */
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -662,6 +699,10 @@
         <label for="manual-username">Username</label>
         <div class="error-message" id="manual-username-error"></div>
       </div>
+      <div class="uname-check-row hidden" id="reg-uname-status">
+        <svg id="reg-uname-icon" viewBox="0 0 24 24"></svg>
+        <span id="reg-uname-text"></span>
+      </div>
       <div class="input-group">
         <input type="email" id="manual-email" placeholder=" " required autocomplete="email">
         <label for="manual-email">Email</label>
@@ -731,7 +772,9 @@
   <!-- Loading Modal -->
   <div class="modal" id="loading-modal">
     <div class="loading">
-      <div class="spinner"></div>
+      <div class="dots-loader">
+        <span></span><span></span><span></span>
+      </div>
       <div class="loading-text" id="loading-text">Processing...</div>
       <div class="loading-subtext" id="loading-subtext"></div>
       <div class="loading-progress">
@@ -1085,7 +1128,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, setDoc, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const app  = initializeApp({ apiKey:"AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ", authDomain:"globalchat-2d669.firebaseapp.com", projectId:"globalchat-2d669", storageBucket:"globalchat-2d669.firebasestorage.app", messagingSenderId:"178714711978", appId:"1:178714711978:web:fb831188be23e62a4bbdd3" });
 const auth = getAuth(app);
@@ -1310,21 +1353,92 @@ document.getElementById('google-auth').addEventListener('click', doGoogle);
 document.getElementById('login-google-auth').addEventListener('click', doGoogle);
 
 /* Register */
-document.getElementById('manual-auth').addEventListener('click', ()=>{ clearErrors(); showModal(manualModal); });
+document.getElementById('manual-auth').addEventListener('click', ()=>{ clearErrors(); resetUnameStatus(); showModal(manualModal); });
+
+// ── Username live availability check ──
+let _regUnameTimer = null;
+let _regUnameValid = false; // starts false until checked
+
+const regUnameInput  = document.getElementById('manual-username');
+const regUnameStatus = document.getElementById('reg-uname-status');
+const regUnameIcon   = document.getElementById('reg-uname-icon');
+const regUnameText   = document.getElementById('reg-uname-text');
+
+function resetUnameStatus() {
+  regUnameStatus.className = 'uname-check-row hidden';
+  _regUnameValid = false;
+}
+function setRegUname(type, text) {
+  regUnameStatus.className = 'uname-check-row ' + type;
+  regUnameIcon.innerHTML = type === 'ok'
+    ? '<polyline points="20 6 9 17 4 12"/>'
+    : type === 'bad'
+    ? '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'
+    : '';
+  regUnameText.textContent = text;
+}
+
+regUnameInput.addEventListener('input', () => {
+  clearTimeout(_regUnameTimer);
+  const val = regUnameInput.value.trim();
+  document.getElementById('manual-username-error').style.display = 'none';
+
+  if (!val) { resetUnameStatus(); return; }
+
+  if (!/^[a-zA-Z0-9_]{3,20}$/.test(val)) {
+    setRegUname('bad', '3–20 chars: letters, numbers, _');
+    _regUnameValid = false;
+    return;
+  }
+
+  setRegUname('checking', 'Checking availability…');
+  _regUnameTimer = setTimeout(async () => {
+    try {
+      const snap = await getDocs(query(collection(db,'users'), where('username','==',val)));
+      if (!snap.empty) {
+        setRegUname('bad', '@' + val + ' is already taken');
+        showError('manual-username-error', '@' + val + ' is already taken');
+        _regUnameValid = false;
+      } else {
+        setRegUname('ok', '@' + val + ' is available');
+        document.getElementById('manual-username-error').style.display = 'none';
+        _regUnameValid = true;
+      }
+    } catch(e) { resetUnameStatus(); _regUnameValid = true; }
+  }, 600);
+});
+
 document.getElementById('manual-auth-form').addEventListener('submit', async(e)=>{
   e.preventDefault(); clearErrors();
   const btn=e.target.querySelector('button'), sp=btn.querySelector('.button-spinner');
   let ok=true;
   e.target.querySelectorAll('input').forEach(inp=>{ const err=validate(inp); if(err){showError(inp.id+'-error',err);ok=false;} });
   if(!ok) return;
+
+  // Block if username is taken or not yet verified
+  const uname = document.getElementById('manual-username').value.trim();
+  if (!_regUnameValid) {
+    showError('manual-username-error', _regUnameValid === false && uname ? '@' + uname + ' is already taken or invalid' : 'Check username availability first');
+    return;
+  }
+
   btn.disabled=true; sp.style.display='block';
   const email=document.getElementById('manual-email').value.trim();
   const pass=document.getElementById('manual-password').value;
-  const uname=document.getElementById('manual-username').value.trim();
   try {
     showLoading('Creating account...','Please wait');
     steps([{p:30,t:'Validating...',s:'Checking details'},{p:60,t:'Creating account...',s:'Setting up credentials'}], async()=>{
       try {
+        // Double-check username right before creating (race condition guard)
+        const snap = await getDocs(query(collection(db,'users'), where('username','==',uname)));
+        if (!snap.empty) {
+          closeAll(); showModal(manualModal);
+          showError('manual-username-error', '@' + uname + ' was just taken. Try another.');
+          btn.disabled=false; sp.style.display='none';
+          _regUnameValid = false;
+          setRegUname('bad', '@' + uname + ' is already taken');
+          return;
+        }
         const cred=await createUserWithEmailAndPassword(auth,email,pass);
         await updateProfile(cred.user,{displayName:uname});
         await setDoc(doc(db,'users',cred.user.uid),{uid:cred.user.uid,email,username:uname,displayName:uname,photoURL:'',provider:'email',createdAt:new Date().toISOString()});
