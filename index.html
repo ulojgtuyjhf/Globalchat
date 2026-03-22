@@ -1083,13 +1083,48 @@
 <!-- ══ Firebase ══ -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile }
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const app  = initializeApp({ apiKey:"AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ", authDomain:"globalchat-2d669.firebaseapp.com", projectId:"globalchat-2d669", storageBucket:"globalchat-2d669.firebasestorage.app", messagingSenderId:"178714711978", appId:"1:178714711978:web:fb831188be23e62a4bbdd3" });
 const auth = getAuth(app);
 const db   = getFirestore(app);
+
+function shouldAskForPhoto(user) {
+  if (!user) return false;
+  // No photo set at all — always ask
+  if (!user.photoURL || user.photoURL.includes('default_profile') || user.photoURL === '') return true;
+  // Has photo — check if they skipped within 3 days
+  try {
+    const skipped = JSON.parse(localStorage.getItem('photoSkipped') || '{}');
+    const lastSkip = skipped[user.uid];
+    if (!lastSkip) return false; // has photo, never skipped = fine
+    return (Date.now() - lastSkip) > 3 * 24 * 60 * 60 * 1000;
+  } catch(e) { return false; }
+}
+
+// ── Check if already signed in — if yes, handle photo step or go straight in ──
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    // Not signed in — show the login UI (remove splash faster)
+    document.documentElement.style.visibility = 'visible';
+    return;
+  }
+  // Already authenticated — check if photo step needed
+  if (shouldAskForPhoto(user)) {
+    // Remove splash, show photo modal
+    const splash = document.getElementById(splashScreen && splashScreen.id ? splashScreen.id : '__none__');
+    // Fade out splash quickly
+    const sp = document.querySelector('[style*="z-index: 9999"]');
+    if (sp) { sp.style.transition = 'opacity 0.4s'; sp.style.opacity = '0'; setTimeout(() => sp.remove(), 450); }
+    // Show photo modal after brief delay
+    setTimeout(() => showPhotoModal(user, user.displayName || user.email), 500);
+  } else {
+    // All good — redirect immediately, no login page shown
+    location.href = 'half.html';
+  }
+});
 
 const overlay      = document.getElementById('modal-overlay');
 const manualModal  = document.getElementById('manual-auth-modal');
@@ -1147,6 +1182,7 @@ let _photoObjectURL = null;
 let _pendingUser = null;  // user waiting for photo step
 
 const R2_UPLOAD = 'https://r2-upload.katlegomashilwane0691.workers.dev/upload';
+
 
 function showPhotoModal(user, displayName) {
   _pendingUser = user;
@@ -1248,17 +1284,7 @@ photoSkipBtn.addEventListener('click', () => {
   location.href = 'half.html';
 });
 
-function shouldAskForPhoto(user) {
-  // Always ask if no photo
-  if (!user.photoURL || user.photoURL.includes('default_profile')) return true;
-  // Ask again if they skipped more than 3 days ago
-  try {
-    const skipped = JSON.parse(localStorage.getItem('photoSkipped')||'{}');
-    const lastSkip = skipped[user.uid];
-    if (!lastSkip) return false; // has photo, never skipped
-    return (Date.now() - lastSkip) > 3 * 24 * 60 * 60 * 1000;
-  } catch(e) { return false; }
-}
+
 
 /* Google — both the main card and the one inside login modal */
 async function doGoogle() {
