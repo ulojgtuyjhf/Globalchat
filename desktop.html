@@ -444,6 +444,51 @@ html::-webkit-scrollbar { display: none; }
     text-shadow: 0 1px 6px rgba(0,0,0,0.9);
 }
 
+/* ── Branded guest login wall (desktop) ── */
+  .ds-guest-wall {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: #fff; text-align: center;
+    padding: 48px 32px;
+    border-radius: 20px;
+  }
+  .ds-guest-wall .glw-icon {
+    width: 80px; height: 80px; border-radius: 24px;
+    background: var(--brand-gradient);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  }
+  .ds-guest-wall h2 {
+    font-size: 26px; font-weight: 900; color: #111;
+    font-family: var(--font); letter-spacing: -0.03em;
+    margin-bottom: 10px; line-height: 1.2;
+  }
+  .ds-guest-wall p {
+    font-size: 15px; color: #888; font-weight: 500;
+    font-family: var(--font); line-height: 1.6;
+    margin-bottom: 32px; max-width: 340px;
+  }
+  .ds-guest-wall .glw-btn-primary {
+    display: inline-block; padding: 15px 48px;
+    border-radius: 14px; background: var(--brand-gradient);
+    border: none; color: #fff;
+    font-family: var(--font); font-size: 16px; font-weight: 900;
+    letter-spacing: 0.01em; cursor: pointer; margin-bottom: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  .ds-guest-wall .glw-btn-primary:hover { opacity: 0.9; transform: scale(1.02); }
+  .ds-guest-wall .glw-btn-secondary {
+    display: inline-block; padding: 13px 48px;
+    border-radius: 14px; background: transparent;
+    border: 1.5px solid #ddd; color: #444;
+    font-family: var(--font); font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: border-color 0.15s;
+  }
+  .ds-guest-wall .glw-btn-secondary:hover { border-color: #111; color: #111; }
+
 /* Scroll nav arrows — home feed + saved viewer, centered right side */
   .desktop-nav-arrows {
     position: fixed;
@@ -2456,11 +2501,10 @@ if (window === window.top && window.matchMedia('(max-width: 899px)').matches) {
         <button class="ds-nav-item" id="dsNavLiked">
           <div class="ds-nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
-              <polyline points="16 7 22 7 22 13"/>
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
             </svg>
           </div>
-          Liked
+          Saved
         </button>
         <button class="ds-nav-item" id="dsNavProfile">
           <div class="ds-nav-icon">
@@ -6528,6 +6572,9 @@ init();
 
     // ── Always hide EVERYTHING in main area — blank slate ──
     function hideAll() {
+      // Hide guest wall too
+      var _gw = document.getElementById('ds-guest-wall-panel');
+      if (_gw) _gw.style.display = 'none';
       // Save scroll positions before hiding
       var _dpGridEl = document.getElementById('dp-grid');
       var _ppanel = document.getElementById('ds-profile-panel');
@@ -7339,12 +7386,83 @@ init();
     }
   }
 
+  // ── Guest login wall for desktop sections ──
+  var _dsGuestWallEl = null;
+  var _gapGoLogin = window._gapGoLogin || function(mode) { window.location.href = 'login.html?mode=' + (mode||'login'); };
+
+  var _wallContent = {
+    upload: {
+      title: 'Log in to upload',
+      sub: 'Share your videos with the Nmedea community.<br>Create an account — it\'s free.',
+    },
+    saved: {
+      title: 'Log in to see your saved videos',
+      sub: 'Videos you bookmark will appear here,<br>ready to watch anytime.',
+    },
+    profile: {
+      title: 'Log in to view your profile',
+      sub: 'Your videos, stats and activity<br>will all be right here.',
+    },
+    updates: {
+      title: 'Log in to see your updates',
+      sub: 'Likes, comments and follows<br>will appear here.',
+    }
+  };
+
+  function showDsGuestWall(type) {
+    // Highlight the correct nav item
+    document.querySelectorAll('.ds-nav-item').forEach(function(b){ b.classList.remove('active'); });
+    var navMap = { upload: 'dsNavUpload', saved: 'dsNavLiked', profile: 'dsNavProfile', updates: 'dsNavTop' };
+    var nb = document.getElementById(navMap[type]);
+    if (nb) nb.classList.add('active');
+
+    // Hide everything in main area
+    var mainArea = document.getElementById('ds-main-area');
+    if (mainArea) Array.from(mainArea.children).forEach(function(el){ el.style.display = 'none'; });
+    document.querySelectorAll('video').forEach(function(v){ try{ v.pause(); v.muted=true; }catch(e){} });
+    document.body.classList.remove('comments-open','updates-open');
+
+    // Build or reuse the wall element
+    if (!_dsGuestWallEl) {
+      _dsGuestWallEl = document.createElement('div');
+      _dsGuestWallEl.id = 'ds-guest-wall-panel';
+      _dsGuestWallEl.style.cssText = 'flex:1;height:calc(100vh - 24px);display:flex;overflow:hidden;';
+      if (mainArea) mainArea.appendChild(_dsGuestWallEl);
+    }
+
+    var content = _wallContent[type] || _wallContent.profile;
+    _dsGuestWallEl.innerHTML =
+      '<div class="ds-guest-wall">' +
+        '<div class="glw-icon"><span style="font-family:var(--font);font-size:36px;font-weight:900;color:#fff;letter-spacing:-0.04em;">N</span></div>' +
+        '<h2>' + content.title + '</h2>' +
+        '<p>' + content.sub + '</p>' +
+        '<div style="display:flex;flex-direction:column;align-items:center;gap:10px;">' +
+          '<button class="glw-btn-primary" onclick="(window._gapGoLogin||function(m){window.location.href=\'login.html?mode=\'+m;})(' + "'signup'" + ')">Create free account</button>' +
+          '<button class="glw-btn-secondary" onclick="(window._gapGoLogin||function(m){window.location.href=\'login.html?mode=\'+m;})(' + "'login'" + ')">Log in</button>' +
+        '</div>' +
+      '</div>';
+    _dsGuestWallEl.style.display = 'flex';
+  }
+  window._showDsGuestWall = showDsGuestWall;
+
   // Nav listeners
   document.getElementById('dsNavHome').addEventListener('click',    function(){ showDesktopSection('Home'); });
-  document.getElementById('dsNavTop').addEventListener('click', function(){ window.openUpdatesPanel && window.openUpdatesPanel(); });
-  document.getElementById('dsNavUpload').addEventListener('click',  function(){ showDesktopSection('Upload'); });
-  document.getElementById('dsNavLiked').addEventListener('click',   function(){ showDesktopSection('Liked'); });
-  document.getElementById('dsNavProfile').addEventListener('click', function(){ showDesktopSection('Profile'); });
+  document.getElementById('dsNavTop').addEventListener('click', function(){
+    if (!window._currentUser) { showDsGuestWall('updates'); return; }
+    window.openUpdatesPanel && window.openUpdatesPanel();
+  });
+  document.getElementById('dsNavUpload').addEventListener('click',  function(){
+    if (!window._currentUser) { showDsGuestWall('upload'); return; }
+    showDesktopSection('Upload');
+  });
+  document.getElementById('dsNavLiked').addEventListener('click',   function(){
+    if (!window._currentUser) { showDsGuestWall('saved'); return; }
+    showDesktopSection('Liked');
+  });
+  document.getElementById('dsNavProfile').addEventListener('click', function(){
+    if (!window._currentUser) { showDsGuestWall('profile'); return; }
+    showDesktopSection('Profile');
+  });
 
   // Desktop feed tabs are now inside each video card (injected by _buildDesktopCard)
 
