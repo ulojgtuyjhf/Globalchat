@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Media Gallery</title>
+    <title>nmedea</title>
     <style>
 /* ═══════════════════════════════════════════════
    CHOOSE LIFE — Clean Bold Premium Stylesheet
@@ -2421,10 +2421,10 @@ if (window === window.top && window.matchMedia('(max-width: 899px)').matches) {
       <!-- Left Sidebar -->
       <aside id="desktop-sidebar">
         <div class="ds-logo">
-          <div class="ds-logo-mark">
-            <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          <div class="ds-logo-mark" style="background:var(--brand-gradient);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5l16 14V5"/></svg>
           </div>
-          <span class="ds-logo-name">Choose Life</span>
+          <span class="ds-logo-name">nmedea</span>
         </div>
 
         <!-- Nav items — mirrors mobile 5-section layout -->
@@ -2670,6 +2670,8 @@ if (window === window.top && window.matchMedia('(max-width: 899px)').matches) {
                 <div class="fp-user-handle" id="fpUserHandle"></div>
                 <div class="fp-user-bio" id="fpUserBio"></div>
                 <div class="fp-user-links" id="fpUserLinks"></div>
+                <!-- Follow button -->
+                <button id="fpFollowBtn" style="display:none;margin-top:12px;width:100%;padding:11px;border-radius:14px;border:none;background:var(--brand-gradient);color:#fff;font-size:14px;font-weight:900;font-family:var(--font);cursor:pointer;transition:all 0.18s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 4px 16px rgba(0,0,0,0.18);letter-spacing:0.01em;">Follow</button>
                 <div class="fp-counts" id="fpCounts"></div>
             </div>
         </div>
@@ -3827,11 +3829,21 @@ function createPinElement(postData, postId) {
     if (currentUser && postData.userId === currentUser.uid) _inlineFollow.style.display = 'none';
     creatorRow.appendChild(_inlineFollow);
 
-    // Tap avatar or creator name → open that user's profile card
+    // Tap avatar or creator name → open that user's profile card (guard against scroll drift)
     _cavEl.style.cursor = 'pointer';
-    _cavEl.addEventListener('click', function(e) { e.stopPropagation(); if (postData.userId) viewProfile(postData.userId); });
+    (function() {
+        var _touched = false, _moved = false;
+        _cavEl.addEventListener('touchstart', function(){ _touched=true; _moved=false; }, {passive:true});
+        _cavEl.addEventListener('touchmove',  function(){ _moved=true; }, {passive:true});
+        _cavEl.addEventListener('click', function(e) { e.stopPropagation(); if (_touched && _moved) { _touched=false; return; } _touched=false; if (postData.userId) viewProfile(postData.userId); });
+    })();
     creatorNameEl.style.cursor = 'pointer';
-    creatorNameEl.addEventListener('click', function(e) { e.stopPropagation(); if (postData.userId) viewProfile(postData.userId); });
+    (function() {
+        var _touched2 = false, _moved2 = false;
+        creatorNameEl.addEventListener('touchstart', function(){ _touched2=true; _moved2=false; }, {passive:true});
+        creatorNameEl.addEventListener('touchmove',  function(){ _moved2=true; }, {passive:true});
+        creatorNameEl.addEventListener('click', function(e) { e.stopPropagation(); if (_touched2 && _moved2) { _touched2=false; return; } _touched2=false; if (postData.userId) viewProfile(postData.userId); });
+    })();
 
     captionEl.appendChild(creatorRow);
     if (postData.text && postData.text.trim()) {
@@ -4520,6 +4532,31 @@ function viewProfile(userId) {
             '<div class="fp-count-item"><span class="fp-count-num">'+res[3].size+'</span><span class="fp-count-label">Videos</span></div>'+
             '<div class="fp-count-item"><span class="fp-count-num">'+res[1].size+'</span><span class="fp-count-label">Followers</span></div>'+
             '<div class="fp-count-item"><span class="fp-count-num">'+res[2].size+'</span><span class="fp-count-label">Following</span></div>';
+        // Follow / Unfollow button
+        var fpFollowBtn = document.getElementById('fpFollowBtn');
+        if (fpFollowBtn && currentUser && userId !== currentUser.uid) {
+            var _isFollowing = followedUsers.has(userId);
+            fpFollowBtn.style.display = 'block';
+            fpFollowBtn.textContent = _isFollowing ? 'Unfollow' : 'Follow';
+            fpFollowBtn.style.background = _isFollowing ? '#f0f0f0' : 'var(--brand-gradient)';
+            fpFollowBtn.style.color = _isFollowing ? '#888' : '#fff';
+            fpFollowBtn.style.boxShadow = _isFollowing ? 'none' : '0 4px 16px rgba(0,0,0,0.18)';
+            fpFollowBtn.onclick = async function() {
+                await toggleFollow(userId, u.displayName || u.name || 'User');
+                var nowF = followedUsers.has(userId);
+                fpFollowBtn.textContent = nowF ? 'Unfollow' : 'Follow';
+                fpFollowBtn.style.background = nowF ? '#f0f0f0' : 'var(--brand-gradient)';
+                fpFollowBtn.style.color = nowF ? '#888' : '#fff';
+                fpFollowBtn.style.boxShadow = nowF ? 'none' : '0 4px 16px rgba(0,0,0,0.18)';
+                // Refresh follower count
+                getDocs(query(collection(db,'follows'), where('followedUserId','==',userId))).then(function(s){
+                    var fc = fpCountsEl ? fpCountsEl.querySelector('.fp-count-item:nth-child(2) .fp-count-num') : null;
+                    if (fc) fc.textContent = s.size;
+                }).catch(function(){});
+            };
+        } else if (fpFollowBtn) {
+            fpFollowBtn.style.display = 'none';
+        }
     }).catch(function(){});
 }
 
@@ -4596,7 +4633,7 @@ function closeShareSheet() {
         btn.addEventListener('click', function() {
             var type = btn.dataset.share;
             var url = window.location.origin + window.location.pathname + '?v=' + (_sharePostId || '');
-            var title = (_sharePostData && _sharePostData.name) ? '@' + _sharePostData.name + ' on Choose Life' : 'Check this out on Choose Life';
+            var title = (_sharePostData && _sharePostData.name) ? '@' + _sharePostData.name + ' on nmedea' : 'Check this out on nmedea';
             var text  = (_sharePostData && _sharePostData.text) ? _sharePostData.text : title;
             if (type === 'native' && navigator.share) {
                 navigator.share({ title: title, text: text, url: url }).catch(function(){});
@@ -6426,7 +6463,7 @@ init();
       backBtn.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
       backBtn.addEventListener('click', closeDsUploadOverlay);
       var title = document.createElement('span');
-      title.textContent = 'Upload';
+      title.innerHTML = '<span style="display:flex;align-items:center;gap:8px;"><span style="width:26px;height:26px;border-radius:50%;background:var(--brand-gradient);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5l16 14V5"/></svg></span>Post to nmedea</span>';
       title.style.cssText = 'font-size:18px;font-weight:900;color:#111;font-family:var(--font);';
       hdr.appendChild(backBtn);
       hdr.appendChild(title);
@@ -6621,7 +6658,7 @@ init();
 
         var gridScroll = document.createElement('div');
         gridScroll.id = 'ds-saved-grid';
-        gridScroll.style.cssText = 'flex:1;overflow-y:auto;padding:8px 6px 20px;column-count:3;column-gap:5px;scrollbar-width:thin;scrollbar-color:#e0e0e0 transparent;';
+        gridScroll.style.cssText = 'padding:8px 6px 20px;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;';
 
         gridCol.appendChild(gridHead);
         gridCol.appendChild(gridScroll);
@@ -6851,12 +6888,12 @@ init();
 
         var profCol = document.createElement('div');
         profCol.id = 'dp-col';
-        profCol.style.cssText = 'flex:1;background:#fff;border-radius:20px;box-shadow:0 2px 20px rgba(0,0,0,0.07);display:flex;flex-direction:column;overflow:hidden;';
+        profCol.style.cssText = 'flex:1;background:#fff;border-radius:20px;box-shadow:0 2px 20px rgba(0,0,0,0.07);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#e0e0e0 transparent;';
 
         // ── Header ──
         var profHead = document.createElement('div');
         profHead.id = 'dp-head';
-        profHead.style.cssText = 'flex-shrink:0;background:#fff;border-bottom:1px solid rgba(0,0,0,0.06);';
+        profHead.style.cssText = 'background:#fff;border-bottom:1px solid rgba(0,0,0,0.06);';
 
         // Cover photo
         var profCover = document.createElement('div');
@@ -6949,7 +6986,7 @@ init();
         // Grid scroll area
         var profGrid = document.createElement('div');
         profGrid.id = 'dp-grid';
-        profGrid.style.cssText = 'flex:1;overflow-y:auto;padding:8px 6px 20px;column-count:3;column-gap:5px;scrollbar-width:thin;scrollbar-color:#e0e0e0 transparent;';
+        profGrid.style.cssText = 'padding:8px 6px 20px;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;';
 
         profCol.appendChild(profHead);
         profCol.appendChild(profGrid);
@@ -7061,24 +7098,24 @@ init();
         };
 
         // ── Grid builder — stored on profPanel so resume can call it outside this if-block ──
-        var _dpRatios = [1, 1, 1.35, 0.75, 1.2, 0.85, 1, 1.1, 0.9, 1.25];
+        var _dpRatios = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
         function buildProfileGrid(posts) {
           var grid = document.getElementById('dp-grid');
           if (!grid) return;
           grid.innerHTML = '';
           if (!posts.length) {
-            grid.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Nothing here yet</div>';
+            grid.innerHTML = '<div style="grid-column:1/-1;padding:60px 20px;text-align:center;color:#bbb;font-size:13px;font-family:var(--font);">Nothing here yet</div>';
             return;
           }
           posts.forEach(function(post, idx) {
             var m = post.media && post.media[0];
             if (!m || !m.url) return;
-            var ratio = _dpRatios[idx % _dpRatios.length];
             var cell = document.createElement('div');
             cell.className = 'liked-cell';
+            cell.style.cssText = 'break-inside:unset;margin-bottom:0;border-radius:8px;overflow:hidden;cursor:pointer;position:relative;background:#e8e8e8;display:block;';
             var vid2 = document.createElement('video');
             vid2.src = m.url; vid2.muted=true; vid2.playsInline=true; vid2.preload='metadata';
-            vid2.style.cssText = 'width:100%;aspect-ratio:9/'+(16*ratio).toFixed(1)+';object-fit:cover;display:block;pointer-events:none;';
+            vid2.style.cssText = 'width:100%;aspect-ratio:9/16;object-fit:cover;display:block;pointer-events:none;';
             vid2.addEventListener('loadedmetadata', function(){ vid2.currentTime=0.01; }, {once:true});
             vid2.addEventListener('loadedmetadata', function(){
               var dur=Math.round(vid2.duration||0);
@@ -7089,12 +7126,12 @@ init();
             nd.textContent = '@'+(post.name||post.userName||'creator');
             ov.appendChild(nd);
             cell.appendChild(vid2); cell.appendChild(ov);
-            cell.addEventListener('mouseenter', function(){ cell.style.transform='scale(1.03)'; });
-            cell.addEventListener('mouseleave', function(){ cell.style.transform='scale(1)'; });
+            cell.addEventListener('mouseenter', function(){ cell.style.transform='scale(1.04)'; cell.style.zIndex='2'; });
+            cell.addEventListener('mouseleave', function(){ cell.style.transform='scale(1)'; cell.style.zIndex=''; });
             cell.addEventListener('click', function(){ window._openDpVideo(post, posts); });
             cell.style.opacity='0'; cell.style.transform='translateY(12px) scale(0.97)';
             grid.appendChild(cell);
-            setTimeout(function(){ cell.style.transition='opacity 0.3s ease,transform 0.3s cubic-bezier(0.34,1.56,0.64,1)'; cell.style.opacity='1'; cell.style.transform='translateY(0) scale(1)'; }, 40+idx*50);
+            setTimeout(function(){ cell.style.transition='opacity 0.3s ease,transform 0.3s cubic-bezier(0.34,1.56,0.64,1)'; cell.style.opacity='1'; cell.style.transform='translateY(0) scale(1)'; }, 40+idx*30);
           });
         }
         // Expose on profPanel so resume block (outside this if-scope) can call it
@@ -8496,7 +8533,12 @@ init();
             <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             </div>
-            <span style="font-size:16px;font-weight:800;color:#fff;font-family:var(--font);letter-spacing:-0.01em;">Post</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:26px;height:26px;border-radius:50%;background:var(--brand-gradient);display:flex;align-items:center;justify-content:center;">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5l16 14V5"/></svg>
+              </div>
+              <span style="font-size:16px;font-weight:900;color:#fff;font-family:var(--font);letter-spacing:-0.01em;">Post to nmedea</span>
+            </div>
         </div>
         <iframe id="upload-panel-frame" src="post.html" style="flex:1;border:none;width:100%;display:block;" allow="camera; microphone; autoplay"></iframe>
     </div>
