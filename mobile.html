@@ -59,6 +59,95 @@ body {
     padding-top: 24px;
     transition: padding-top 0.5s ease-out, opacity 0.4s ease-out;
 }
+
+/* ─── GUEST AUTH PROMPT ─── */
+#guest-auth-prompt {
+    display: none;
+    position: fixed; inset: 0; z-index: 9998;
+    background: rgba(0,0,0,0.72);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    align-items: flex-end; justify-content: center;
+}
+#guest-auth-prompt.open { display: flex; }
+.gap-sheet {
+    background: #111;
+    border-top: 3px solid transparent;
+    border-image: linear-gradient(90deg, #0f0f0f 0%, #626262 50%, #a6a6a6 100%) 1;
+    border-radius: 28px 28px 0 0;
+    width: 100%; max-width: 480px;
+    padding: 0 24px calc(env(safe-area-inset-bottom, 24px) + 20px);
+    animation: gapSlideUp 0.38s cubic-bezier(0.16,1,0.3,1);
+}
+@keyframes gapSlideUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+}
+.gap-handle {
+    width: 36px; height: 4px; background: #2a2a2a; border-radius: 2px;
+    margin: 14px auto 20px;
+}
+.gap-logo {
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 6px;
+}
+.gap-logo-text {
+    font-family: var(--font); font-size: 32px; font-weight: 900;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #fff 0%, #a6a6a6 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.gap-subtitle {
+    text-align: center; font-size: 13px; color: #555; font-weight: 500;
+    margin-bottom: 24px; line-height: 1.5;
+}
+.gap-subtitle span { color: #a6a6a6; }
+.gap-btn-primary {
+    width: 100%; padding: 15px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #0f0f0f 0%, #3a3a3a 50%, #626262 100%);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff; font-family: var(--font); font-size: 15px; font-weight: 800;
+    letter-spacing: -0.01em; cursor: pointer;
+    transition: opacity 0.18s, transform 0.15s;
+    margin-bottom: 10px;
+    -webkit-tap-highlight-color: transparent;
+}
+.gap-btn-primary:active { opacity: 0.8; transform: scale(0.98); }
+.gap-btn-secondary {
+    width: 100%; padding: 14px;
+    border-radius: 14px;
+    background: transparent;
+    border: 1px solid #2a2a2a;
+    color: #888; font-family: var(--font); font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.18s, color 0.18s;
+    margin-bottom: 10px;
+    -webkit-tap-highlight-color: transparent;
+}
+.gap-btn-secondary:active { border-color: #444; color: #ccc; }
+.gap-dismiss {
+    width: 100%; padding: 12px;
+    background: none; border: none;
+    color: #333; font-family: var(--font); font-size: 12px; font-weight: 600;
+    cursor: pointer; letter-spacing: 0.02em;
+    -webkit-tap-highlight-color: transparent;
+}
+/* Desktop: centered card */
+@media (min-width: 900px) {
+    #guest-auth-prompt { align-items: center; }
+    .gap-sheet {
+        border-radius: 24px;
+        max-width: 360px;
+        padding: 0 28px 28px;
+        animation: gapFadeIn 0.3s ease;
+    }
+    @keyframes gapFadeIn {
+        from { opacity: 0; transform: scale(0.96) translateY(10px); }
+        to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+}
 @media (min-width: 768px) {
     .loading-container { align-items: center; justify-content: flex-start; padding-top: 24px; }
 }
@@ -1922,6 +2011,20 @@ if (window === window.top && !window.matchMedia('(max-width: 899px)').matches) {
         <div class="spinner"></div>
     </div>
 
+    <!-- Guest auth prompt (shown when unauthenticated user taps like/comment/save) -->
+    <div id="guest-auth-prompt">
+        <div class="gap-sheet">
+            <div class="gap-handle"></div>
+            <div class="gap-logo">
+                <span class="gap-logo-text">Recence</span>
+            </div>
+            <p class="gap-subtitle">Join free to <span>like</span>, <span>comment</span> &amp; <span>upload</span>.<br>Takes 30 seconds.</p>
+            <button class="gap-btn-primary" onclick="window._gapGoLogin('signup')">Create free account</button>
+            <button class="gap-btn-secondary" onclick="window._gapGoLogin('login')">I already have an account</button>
+            <button class="gap-dismiss" onclick="window._gapClose()">Maybe later</button>
+        </div>
+    </div>
+
     <!-- Fullscreen section overlay (Profile / Upload — mobile) -->
     <!-- Fullscreen section overlay (Profile / Upload — mobile) -->
     <div id="section-overlay">
@@ -2341,6 +2444,18 @@ let currentVideo = null;
 let currentReplyTo = null;
 const followedUsers = new Set();
 
+// ── Guest auth prompt ──
+window._gapClose = function() {
+    document.getElementById('guest-auth-prompt').classList.remove('open');
+};
+window._gapGoLogin = function(mode) {
+    // Change 'login.html' to whatever your login page URL is
+    window.location.href = 'login.html?mode=' + (mode || 'login');
+};
+window._showAuthPrompt = function() {
+    document.getElementById('guest-auth-prompt').classList.add('open');
+};
+
 // Initialize app
 function init() {
     onAuthStateChanged(auth, async (user) => {
@@ -2388,11 +2503,13 @@ function init() {
             if (typeof initSidebar === 'function') initSidebar();
             else window._sidebarReady = true;
         } else {
-            loadingContainer.classList.add('hidden');
-            setTimeout(() => {
-                loadingContainer.style.display = 'none';
-            }, 300);
-            gallery.innerHTML = '<div style="text-align: center; padding: 20px;">Please sign in to view content</div>';
+            // Guest mode — let them browse without signing in
+            currentUser = null;
+            window._currentUser = null;
+            fetchPosts();
+            setupEventListeners();
+            if (typeof initSidebar === 'function') initSidebar();
+            else window._sidebarReady = true;
         }
     });
 }
@@ -3181,7 +3298,8 @@ function createPinElement(postData, postId) {
     if (_isFollowedCreator) _inlineFollow.classList.add('following');
     _inlineFollow.addEventListener('click', async function(e) {
         e.stopPropagation();
-        if (!currentUser || postData.userId === currentUser.uid) return;
+        if (!currentUser) { window._showAuthPrompt(); return; }
+        if (postData.userId === currentUser.uid) return;
         if (navigator.vibrate) navigator.vibrate(20);
         var nowFollowing = !followedUsers.has(postData.userId);
         _inlineFollow.innerHTML = nowFollowing
@@ -3636,7 +3754,7 @@ function createPinElement(postData, postId) {
     _pinVisObs.observe(pinContainer);
     thumbBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (!currentUser) return;
+        if (!currentUser) { window._showAuthPrompt(); return; }
         // Vibration feedback
         if (navigator.vibrate) navigator.vibrate(30);
         // Pop animation
@@ -3691,7 +3809,7 @@ function createPinElement(postData, postId) {
 
     dislikeBtn.addEventListener('click', async function(e) {
         e.stopPropagation();
-        if (!currentUser) return;
+        if (!currentUser) { window._showAuthPrompt(); return; }
         if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
         dislikeBtn.classList.remove('dislike-pop');
         void dislikeBtn.offsetWidth;
@@ -3840,6 +3958,7 @@ function createPinElement(postData, postId) {
         if (_isSaved) _applyMobSaveState(true);
         saveBtn.addEventListener('click', function(e) {
             e.stopPropagation();
+            if (!window._currentUser) { window._showAuthPrompt(); return; }
             var saved = window.isPostFavourited && window.isPostFavourited(postId);
             if (saved) {
                 window.removeFromFavourites && window.removeFromFavourites(postId);
@@ -4572,7 +4691,7 @@ function createCommentElement(commentData, replies = []) {
 
     likeButton.addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (!currentUser) return;
+        if (!currentUser) { window._showAuthPrompt(); return; }
         if (navigator.vibrate) navigator.vibrate(20);
         const isLiked = likeButton.classList.contains('liked');
         likeButton.classList.remove('pop'); void likeButton.offsetWidth; likeButton.classList.add('pop');
@@ -4608,7 +4727,7 @@ function createCommentElement(commentData, replies = []) {
     }
     cmtDislikeBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (!currentUser) return;
+        if (!currentUser) { window._showAuthPrompt(); return; }
         if (navigator.vibrate) navigator.vibrate(15);
         cmtDislikeBtn.classList.remove('pop'); void cmtDislikeBtn.offsetWidth; cmtDislikeBtn.classList.add('pop');
         try {
@@ -4656,7 +4775,8 @@ function formatTimestamp(date) {
 }
 
 async function addComment() {
-    if (!currentUser || !currentPostId) return;
+    if (!currentUser) { window._showAuthPrompt(); return; }
+    if (!currentPostId) return;
     
     const text = commentInput.value.trim();
     if (text === '' && !selectedGif) return;
@@ -5132,7 +5252,7 @@ init();
     });
     dDislikeBtn.addEventListener('click', async function(e) {
       e.stopPropagation();
-      if (!currentUser) return;
+      if (!currentUser) { window._showAuthPrompt(); return; }
       // Instant local pop for responsiveness (burst also fires via onSnapshot)
       dDislikeBtn.classList.remove('d-sl-pop');
       void dDislikeBtn.offsetWidth;
@@ -5182,7 +5302,7 @@ init();
 
     likeBtn.addEventListener('click', function(e) {
       e.stopPropagation();
-      if (!currentUser) return;
+      if (!currentUser) { window._showAuthPrompt(); return; }
       if (navigator.vibrate) navigator.vibrate(20);
       var isOn = likeBtn.classList.contains('on');
       // Optimistic UI — onSnapshot confirms
@@ -7994,6 +8114,7 @@ init();
 
         // ── Upload: ONLY section that slides up hiding nav ──
         if (up) up.addEventListener('click', function() {
+            if (!window._currentUser) { window._showAuthPrompt(); return; }
             pauseAllVideos();
             openUploadPanel();
         });
@@ -8002,7 +8123,10 @@ init();
         if (liked) liked.addEventListener('click', function() { goLiked(); });
 
         // ── Profile: persistent iframe section ──
-        if (profile) profile.addEventListener('click', function() { goProfile(); });
+        if (profile) profile.addEventListener('click', function() {
+            if (!window._currentUser) { window._showAuthPrompt(); return; }
+            goProfile();
+        });
 
         // Back button for upload panel — handle bar tap closes it
         var uploadBack = document.getElementById('uploadPanelBack');
