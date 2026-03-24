@@ -20,6 +20,227 @@
 
 <iframe id="appFrame" src="" allowfullscreen allow="camera; microphone; autoplay"></iframe>
 
+<!-- ── Onboarding overlay (shows once) ── -->
+<style>
+  @keyframes nm-unlock {
+    0% { transform:scale(1); }
+    40% { transform:scale(1.04); }
+    70% { transform:scale(0.98); }
+    100% { transform:scale(1); }
+  }
+  @keyframes nm-shimmer {
+    0% { background-position:-200% center; }
+    100% { background-position:200% center; }
+  }
+  .nm-check-row { display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid #1e1e1e;cursor:pointer;user-select:none; }
+  .nm-check-row:last-of-type { border-bottom:none; }
+  .nm-checkbox {
+    width:22px;height:22px;border-radius:6px;flex-shrink:0;margin-top:1px;
+    border:2px solid #3a3a3a;background:#0e0e0e;
+    display:flex;align-items:center;justify-content:center;
+    transition:background 0.2s,border-color 0.2s;
+  }
+  .nm-checkbox.checked {
+    background:linear-gradient(135deg,#0f0f0f,#626262);
+    border-color:#626262;
+  }
+  .nm-checkbox svg { display:none;width:12px;height:12px;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round; }
+  .nm-checkbox.checked svg { display:block; }
+  .nm-check-label { font-size:13px;color:#999;line-height:1.7;font-family:-apple-system,BlinkMacSystemFont,sans-serif; }
+  .nm-check-label strong { display:block;font-size:14px;font-weight:700;color:#ddd;margin-bottom:3px; }
+  .nm-icon-row { display:flex;align-items:center;gap:10px;margin-bottom:6px; }
+  .nm-icon-row svg { width:18px;height:18px;stroke:#a6a6a6;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0; }
+  #onboarding-btn.nm-active {
+    background:linear-gradient(135deg,#0f0f0f 0%,#3a3a3a 40%,#626262 70%,#a6a6a6 100%) !important;
+    color:#fff !important;cursor:pointer !important;
+    animation:nm-unlock 0.45s cubic-bezier(0.22,1,0.36,1);
+  }
+  #onboarding-btn.nm-active:active { transform:scale(0.97); }
+</style>
+
+<div id="onboarding" style="
+  position:fixed;inset:0;z-index:99998;
+  background:rgba(0,0,0,0.80);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;transition:opacity 0.4s ease;pointer-events:none;
+">
+  <div id="onboarding-card" style="
+    background:#0e0e0e;border-radius:28px 28px 0 0;
+    width:100%;max-width:520px;
+    transform:translateY(60px);
+    transition:transform 0.45s cubic-bezier(0.22,1,0.36,1);
+    position:relative;overflow:hidden;
+    max-height:92vh;display:flex;flex-direction:column;
+    border-top:1px solid #2a2a2a;
+  ">
+    <!-- brand top bar -->
+    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0f0f0f,#3a3a3a,#626262,#a6a6a6);"></div>
+
+    <!-- Scrollable area -->
+    <div id="onboarding-scroll" style="overflow-y:auto;padding:28px 22px 20px;flex:1;">
+
+      <!-- Handle -->
+      <div style="width:36px;height:4px;background:#2a2a2a;border-radius:4px;margin:0 auto 24px;"></div>
+
+      <!-- Header -->
+      <div style="margin-bottom:22px;">
+        <div style="font-size:11px;font-weight:700;color:#626262;letter-spacing:0.1em;text-transform:uppercase;font-family:-apple-system,BlinkMacSystemFont,sans-serif;margin-bottom:8px;">Getting started</div>
+        <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.04em;font-family:-apple-system,BlinkMacSystemFont,sans-serif;line-height:1.2;margin-bottom:10px;">Welcome to nmedea.</div>
+        <p style="font-size:14px;color:#777;line-height:1.75;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">nmedea is built differently. Before you dive in, take a moment to understand what makes this platform unlike anything else you have used.</p>
+      </div>
+
+      <!-- Divider -->
+      <div style="height:1px;background:#1e1e1e;margin-bottom:20px;"></div>
+
+      <!-- Checkboxes -->
+      <div id="nm-checks">
+
+        <div class="nm-check-row" data-idx="0">
+          <div class="nm-checkbox" id="nmchk-0"><svg viewBox="0 0 14 14"><polyline points="2 7 6 11 12 3"/></svg></div>
+          <div class="nm-check-label">
+            <div class="nm-icon-row">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+              <strong>Live viewing on uploaded videos</strong>
+            </div>
+            When you open any video on nmedea — uploaded an hour ago or a day ago — you enter a live session. You can see the exact number of people watching that same video at that very moment. It is not a view count. It is a live headcount, updating in real time.
+          </div>
+        </div>
+
+        <div class="nm-check-row" data-idx="1">
+          <div class="nm-checkbox" id="nmchk-1"><svg viewBox="0 0 14 14"><polyline points="2 7 6 11 12 3"/></svg></div>
+          <div class="nm-check-label">
+            <div class="nm-icon-row">
+              <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <strong>Live comments — understand this before you type</strong>
+            </div>
+            Every comment on nmedea is live. The moment you send a message, it appears instantly for every person watching that video — no delay, no buffer, no chance to take it back.<br><br>
+            <span style="color:#ddd;font-weight:600;">How comments work:</span><br>
+            Every comment displays the country it was sent from. You can like or dislike any comment and those reactions update live. You can reply directly to other users and those replies are visible in real time. Every 10 comments, the oldest ones automatically disappear — keeping the room in the present moment.<br><br>
+            <span style="color:#ddd;font-weight:600;">Moderated and regulated:</span><br>
+            The comment section is actively regulated. Only one comment can be sent per second per user — flooding is not possible. This keeps conversations meaningful and prevents the section from becoming noise.<br><br>
+            <span style="color:#ddd;font-weight:600;">Language is not a barrier:</span><br>
+            nmedea has a built-in language integration system. Anyone from anywhere in the world can join the same conversation and be understood. A person in South Africa and a person in South Korea can interact in the same comment section, in real time, without confusion. The world is the room.<br><br>
+            <span style="color:#ddd;font-weight:600;">This is a global public space:</span><br>
+            Discrimination of any kind — based on race, nationality, language, religion or gender — is not tolerated. Violations can result in your account being permanently removed without notice. nmedea is built for connection, not division.<br><br>
+            <span style="color:#a6a6a6;font-weight:600;">What you type is what the world sees — the moment you press send. Be thoughtful. Be respectful.</span>
+          </div>
+        </div>
+
+        <div class="nm-check-row" data-idx="2">
+          <div class="nm-checkbox" id="nmchk-2"><svg viewBox="0 0 14 14"><polyline points="2 7 6 11 12 3"/></svg></div>
+          <div class="nm-check-label">
+            <div class="nm-icon-row">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <strong>All posts expire in 24 hours</strong>
+            </div>
+            Content on nmedea does not stay forever. Every post is automatically removed 24 hours after it is uploaded. The platform is designed to live in the present — what you see now will not be here tomorrow. There are no archives. There is only now.
+          </div>
+        </div>
+
+        <div class="nm-check-row" data-idx="3">
+          <div class="nm-checkbox" id="nmchk-3"><svg viewBox="0 0 14 14"><polyline points="2 7 6 11 12 3"/></svg></div>
+          <div class="nm-check-label">
+            <div class="nm-icon-row">
+              <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              <strong>Built on infrastructure unlike any other platform</strong>
+            </div>
+            nmedea runs on a real-time database architecture that processes every single interaction — every view count, comment, like, reply, presence signal and live indicator — simultaneously across the entire platform, for every user, at the same time.<br><br>
+            Nothing is cached and served later. Nothing is approximate. Every number you see and every action you take is happening live in the database at that exact moment.<br><br>
+            <span style="color:#ddd;font-weight:600;">What this costs:</span><br>
+            This level of real-time infrastructure is significantly more demanding than conventional social media. Running it is expensive by design — because the experience it creates cannot be replicated any other way. You are not using a standard social platform. The architecture beneath what you see is built for something different.<br><br>
+            <span style="color:#ddd;font-weight:600;">Guest access and sessions:</span><br>
+            You can browse nmedea and watch videos without an account. However, after a period of time the platform will prompt you to sign in or create an account to continue interacting. Commenting, liking, uploading and following all require an account. It is free and takes under a minute.<br><br>
+            <span style="color:#a6a6a6;font-weight:600;">nmedea is not trying to be like anything else. It is its own thing — and you are seeing it from the very beginning.</span>
+          </div>
+        </div>
+
+        <div class="nm-check-row" data-idx="4" style="border-bottom:none;">
+          <div class="nm-checkbox" id="nmchk-4"><svg viewBox="0 0 14 14"><polyline points="2 7 6 11 12 3"/></svg></div>
+          <div class="nm-check-label">
+            <div class="nm-icon-row">
+              <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <strong>You are early — and that matters more than you think</strong>
+            </div>
+            nmedea is new. You may open the app and find that not many videos have been posted yet, or that the comment sections are quiet. That is not a flaw — it is where every great platform begins. Every community that exists today was once exactly this: a small number of people who showed up before everyone else did.<br><br>
+            The platform is still being refined. Some things may not work perfectly yet. If something feels off, or you have a thought on what nmedea should become, that feedback is taken seriously and acted on.<br><br>
+            <span style="color:#a6a6a6;font-weight:600;">The people who join now are the ones who will shape what this becomes. You are one of them.</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="height:8px;"></div>
+    </div>
+
+    <!-- Button area -->
+    <div style="padding:14px 22px 40px;background:#0e0e0e;border-top:1px solid #1a1a1a;">
+      <div style="font-size:12px;color:#3a3a3a;text-align:center;margin-bottom:10px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-weight:500;" id="nm-hint">Check all boxes above to continue</div>
+      <button id="onboarding-btn" disabled style="
+        width:100%;height:54px;border:none;border-radius:18px;
+        background:#1c1c1c;color:#3a3a3a;
+        font-size:15px;font-weight:800;
+        font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+        cursor:not-allowed;letter-spacing:0.02em;
+        transition:background 0.35s,color 0.35s,transform 0.15s;
+      ">I understand — take me in</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function() {
+  var KEY = 'nm_onboarded_v3';
+  if (localStorage.getItem(KEY)) return;
+
+  var overlay  = document.getElementById('onboarding');
+  var card     = document.getElementById('onboarding-card');
+  var btn      = document.getElementById('onboarding-btn');
+  var hint     = document.getElementById('nm-hint');
+  var checked  = [false, false, false, false, false];
+
+  setTimeout(function() {
+    overlay.style.pointerEvents = 'auto';
+    overlay.style.opacity = '1';
+    card.style.transform = 'translateY(0)';
+  }, 3200);
+
+  document.querySelectorAll('.nm-check-row').forEach(function(row) {
+    row.addEventListener('click', function() {
+      var idx = parseInt(row.getAttribute('data-idx'));
+      checked[idx] = !checked[idx];
+      var box = document.getElementById('nmchk-' + idx);
+      box.classList.toggle('checked', checked[idx]);
+
+      var all = checked.every(Boolean);
+      if (all) {
+        btn.disabled = false;
+        btn.classList.add('nm-active');
+        hint.style.color = '#626262';
+        hint.textContent = 'You are all set.';
+      } else {
+        btn.disabled = true;
+        btn.classList.remove('nm-active');
+        hint.style.color = '#3a3a3a';
+        hint.textContent = 'Check all boxes above to continue';
+      }
+    });
+  });
+
+  function dismiss() {
+    if (btn.disabled) return;
+    localStorage.setItem(KEY, '1');
+    overlay.style.opacity = '0';
+    card.style.transform = 'translateY(60px)';
+    setTimeout(function() { overlay.style.display = 'none'; }, 450);
+  }
+
+  btn.addEventListener('click', dismiss);
+  btn.addEventListener('touchend', function(e) { e.preventDefault(); dismiss(); });
+})();
+</script>
+
 <script>
 (function () {
     var MOBILE_SRC  = 'mobile.html';
