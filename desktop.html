@@ -3036,7 +3036,14 @@ const followedUsers = new Set();
 
 // Initialize app
 function init() {
+    // Safety: hide spinner and load feed if auth takes too long
+    var _initFallback = setTimeout(function() {
+        if (loadingContainer) { loadingContainer.classList.add('hidden'); setTimeout(function(){ loadingContainer.style.display='none'; }, 300); }
+        if (!_fetchPostsRunning) { fetchPosts(); setupEventListeners(); }
+    }, 4000);
+
     onAuthStateChanged(auth, async (user) => {
+        clearTimeout(_initFallback);
         if (user) {
             currentUser = user;
             if (window.innerWidth <= 767) {
@@ -3081,11 +3088,13 @@ function init() {
             if (typeof initSidebar === 'function') initSidebar();
             else window._sidebarReady = true;
         } else {
-            loadingContainer.classList.add('hidden');
-            setTimeout(() => {
-                loadingContainer.style.display = 'none';
-            }, 300);
-            gallery.innerHTML = '<div style="text-align: center; padding: 20px;">Please sign in to view content</div>';
+            // Guest — load the feed normally, no login required to browse
+            currentUser = null;
+            window._currentUser = null;
+            fetchPosts();
+            setupEventListeners();
+            if (typeof initSidebar === 'function') initSidebar();
+            else window._sidebarReady = true;
         }
     });
 }
@@ -3474,7 +3483,8 @@ async function fetchPosts(loadMore) {
     _fetchPostsRunning = true;
     try {
         if (!loadMore) {
-            await deleteOldPosts();
+            // Run cleanup in background only for logged-in users — never block the feed
+            if (currentUser) deleteOldPosts().catch(function(e){ console.warn('bg cleanup error', e); });
             if (gallery) gallery.innerHTML = '';
             _lastVisible = null;
             _allPostsLoaded = false;
