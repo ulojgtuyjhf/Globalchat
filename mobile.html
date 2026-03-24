@@ -281,6 +281,14 @@ html::-webkit-scrollbar { display: none; }
     background: #000;
     background: #000;
     -webkit-tap-highlight-color: transparent;
+    transform-origin: top center;
+    transition: transform 0.46s cubic-bezier(0.22,1,0.36,1),
+                border-radius 0.46s cubic-bezier(0.22,1,0.36,1);
+}
+/* JS adds this class — shrinks video like Instagram */
+.pin-container.comments-shrunk {
+    transform: scale(0.88) translateY(-16px);
+    border-radius: 20px;
 }
 .pin-container.leaving  { opacity: 0.5; transform: scale(0.97); transition: all 0.3s ease; }
 .pin-container.entering { animation: videoEnter 0.35s ease-out; }
@@ -1212,20 +1220,68 @@ body.paused-view #mob-feed-tabs {
     display: none;
 }
 .nav-badge.show { display: block; }
-/* Upload pill — center, elevated */
+/* Upload pill — center, elevated — PREMIUM REDESIGN */
 .nav-upload-wrap { flex: 1; display: flex; align-items: center; justify-content: center; }
 .nav-upload-pill {
-    width: 54px; height: 54px; border-radius: 20px;
-    background: var(--brand-gradient);
+    position: relative;
+    width: 58px; height: 58px; border-radius: 22px;
+    background: #000;
     border: none; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.32), 0 2px 6px rgba(0,0,0,0.1);
-    transform: translateY(-12px);
-    transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s;
+    transform: translateY(-14px);
+    transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s;
     -webkit-tap-highlight-color: transparent;
+    overflow: visible;
+    /* Layered glow shadow */
+    box-shadow:
+        0 0 0 2.5px #fff,
+        0 0 0 4px #111,
+        0 10px 30px rgba(0,0,0,0.45),
+        0 4px 10px rgba(0,0,0,0.25);
 }
-.nav-upload-pill svg { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; }
-.nav-upload-pill:active { transform: translateY(-12px) scale(0.87); box-shadow: 0 3px 12px rgba(0,0,0,0.2); }
+/* Animated gradient ring that rotates */
+.nav-upload-pill::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 25px;
+    background: conic-gradient(from var(--angle, 0deg), #0f0f0f, #626262, #a6a6a6, #fff, #626262, #0f0f0f);
+    z-index: -1;
+    animation: uploadRingSpin 3s linear infinite;
+    opacity: 0.9;
+}
+@property --angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+@keyframes uploadRingSpin { to { --angle: 360deg; } }
+/* Spark dot that orbits */
+.nav-upload-pill::after {
+    content: '';
+    position: absolute;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 8px 2px rgba(255,255,255,0.9);
+    top: -3px; left: 50%; transform: translateX(-50%);
+    animation: uploadSparkOrbit 3s linear infinite;
+    z-index: 2;
+}
+@keyframes uploadSparkOrbit {
+    0%   { transform: rotate(0deg) translateY(-28px) translateX(0); }
+    100% { transform: rotate(360deg) translateY(-28px) translateX(0); }
+}
+.nav-upload-pill svg {
+    width: 26px; height: 26px; fill: none; stroke: #fff;
+    stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round;
+    position: relative; z-index: 3;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+.nav-upload-pill:active {
+    transform: translateY(-14px) scale(0.88);
+    box-shadow: 0 0 0 2.5px #fff, 0 0 0 4px #111, 0 4px 12px rgba(0,0,0,0.3);
+}
+.nav-upload-pill:active svg { transform: scale(1.18) rotate(45deg); }
 
 /* Tabs — hidden */
 #feed-tabs { display: none !important; }
@@ -1520,41 +1576,103 @@ body.paused-view #mob-feed-tabs {
 .comment-sheet {
     position: fixed; left: 0; right: 0; bottom: 0;
     height: 76dvh;
-    background: #fff;
-    border-radius: 28px 28px 0 0;
+    background: #fafafa;
+    border-radius: 32px 32px 0 0;
     z-index: 10005;
     display: flex; flex-direction: column;
     transform: translateY(100%);
-    transition: transform 0.44s cubic-bezier(0.22,1,0.36,1);
+    transition: transform 0.46s cubic-bezier(0.22,1,0.36,1);
     overflow: hidden;
-    box-shadow: 0 -12px 60px rgba(0,0,0,0.22), 0 -2px 0 rgba(0,0,0,0.04);
+    /* Soft shadow only — no harsh border */
+    box-shadow: 0 -6px 40px rgba(0,0,0,0.13), 0 -1px 0 rgba(0,0,0,0.04);
     will-change: transform;
 }
 .comment-sheet.open { transform: translateY(0); }
-/* Dragging state — no transition so it follows finger exactly */
 .comment-sheet.dragging { transition: none !important; }
 
+/* Frosted pill handle */
 .cs-handle-wrap {
-    padding: 10px 0 4px; flex-shrink: 0; cursor: grab;
+    padding: 12px 0 6px; flex-shrink: 0; cursor: grab;
     display: flex; align-items: center; justify-content: center;
     -webkit-tap-highlight-color: transparent;
     touch-action: none;
 }
 .cs-handle-wrap:active { cursor: grabbing; }
 .cs-handle {
-    width: 40px; height: 4px; border-radius: 2px;
-    background: var(--brand-gradient);
-    opacity: 0.35;
-    transition: opacity 0.15s, width 0.15s;
+    width: 36px; height: 4px; border-radius: 99px;
+    background: #d8d8d8;
+    transition: width 0.18s ease, background 0.18s ease;
     pointer-events: none;
 }
-.cs-handle-wrap:active .cs-handle { opacity: 0.7; width: 50px; }
+.cs-handle-wrap:active .cs-handle { width: 52px; background: #bbb; }
 
 /* ── Header ── */
 .cs-head {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 16px; flex-shrink: 0; background: #fff;
-    border-bottom: 1px solid #f2f2f2;
+    padding: 4px 18px 12px; flex-shrink: 0;
+    background: #fafafa;
+}
+.cs-head-left { display: flex; align-items: center; gap: 8px; }
+.cs-live-indicator {
+    display: flex; align-items: center; gap: 5px;
+    background: #22c55e;
+    border-radius: 99px;
+    padding: 3px 10px 3px 8px;
+    animation: livePillBreath 2s ease-in-out infinite;
+    cursor: default;
+}
+.cs-head-title {
+    font-size: 16px; font-weight: 800; color: #111;
+    letter-spacing: -0.02em;
+}
+.cs-close {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: #ededed; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+}
+.cs-close:active { background: #e0e0e0; }
+.cs-close svg { width: 12px; height: 12px; fill: none; stroke: #666; stroke-width: 2.5; stroke-linecap: round; pointer-events: none; }
+
+/* ── Comment list ── */
+#commentsList {
+    flex: 1; overflow-y: auto; padding: 0 0 8px;
+    background: #fafafa; position: relative;
+    -webkit-overflow-scrolling: touch;
+}
+#commentsList::-webkit-scrollbar { display: none; }
+
+/* ── Comment item ── */
+.comment {
+    display: flex; padding: 10px 18px 6px; gap: 11px; position: relative;
+    transition: background 0.12s; -webkit-tap-highlight-color: transparent;
+    border-radius: 0; background: transparent;
+}
+.comment:active { background: rgba(0,0,0,0.025); }
+
+/* ── Comment form — softer ── */
+.comment-form {
+    background: #fff;
+    border-top: 1px solid #efefef;
+    padding: 8px 14px calc(10px + env(safe-area-inset-bottom, 0px)) 14px;
+    flex-shrink: 0; display: flex; flex-direction: column; gap: 0;
+    min-height: 58px;
+}
+.cf-input-pill {
+    flex:1; display:flex; align-items:center; gap:6px;
+    background:#f2f2f2; border-radius:24px;
+    padding:9px 8px 9px 16px; border:1.5px solid transparent;
+    transition:all 0.2s; position:relative; overflow:visible;
+}
+.cf-input-pill:focus-within {
+    background:#fff; border-color:#e8e8e8;
+    box-shadow:0 2px 14px rgba(0,0,0,0.07);
+}
+
+/* ── Header ── */
+.cs-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; flex-shrink: 0; background: #fafafa;
 }
 .cs-head-left { display: flex; align-items: center; gap: 8px; }
 .cs-live-indicator {
@@ -1598,7 +1716,7 @@ body.paused-view #mob-feed-tabs {
     padding: 3px 16px; font-size: 11px; color: #aaa;
     font-style: italic; min-height: 18px; flex-shrink: 0;
     display: flex; align-items: center; gap: 6px;
-    opacity: 0; transition: opacity 0.3s; background: #fff;
+    opacity: 0; transition: opacity 0.3s; background: #fafafa;
 }
 .typing-indicator.visible { opacity: 1; }
 .typing-dots { display: flex; gap: 3px; }
@@ -1637,7 +1755,7 @@ body.paused-view #mob-feed-tabs {
 /* ── Comment list ── */
 #commentsList {
     flex: 1; overflow-y: auto; padding: 4px 0 8px;
-    background: #fff; position: relative;
+    background: #fafafa; position: relative;
     -webkit-overflow-scrolling: touch;
 }
 #commentsList::-webkit-scrollbar { display: none; }
@@ -1818,8 +1936,8 @@ body.paused-view #mob-feed-tabs {
 
 /* ── Comment form — locked height to prevent layout shift ── */
 .comment-form {
-    background: #fff; border-top: 1px solid #f0f0f0;
-    padding: 8px 14px calc(8px + env(safe-area-inset-bottom, 0px)) 14px;
+    background: #fff; border-top: 1px solid #efefef;
+    padding: 8px 14px calc(10px + env(safe-area-inset-bottom, 0px)) 14px;
     flex-shrink: 0; display: flex; flex-direction: column; gap: 0;
     min-height: 58px;
 }
@@ -4513,10 +4631,17 @@ function closeModal() {
 /* ── Drag-to-dismiss comment sheet ── */
 (function() {
     var _sheet, _handle, _startY, _curY, _isDragging, _sheetH;
+
+    function _getActivePin() {
+        return window._galleryCurrentPin ||
+            (document.getElementById('gallery') && document.getElementById('gallery').querySelector('.pin-container'));
+    }
+
     function init() {
         _sheet  = document.getElementById('commentSheet');
         _handle = document.getElementById('csDragHandle');
         if (!_sheet || !_handle) { setTimeout(init, 400); return; }
+
         // Touch start on handle
         _handle.addEventListener('touchstart', function(e) {
             _startY = e.touches[0].clientY;
@@ -4525,25 +4650,8 @@ function closeModal() {
             _sheetH = _sheet.getBoundingClientRect().height;
             _sheet.classList.add('dragging');
         }, { passive: true });
-        document.addEventListener('touchmove', function(e) {
-            if (!_isDragging) return;
-            var dy = e.touches[0].clientY - _startY;
-            if (dy < 0) dy = 0; // no pulling up
-            _curY = dy;
-            _sheet.style.transform = 'translateY(' + dy + 'px)';
-        }, { passive: true });
-        document.addEventListener('touchend', function() {
-            if (!_isDragging) return;
-            _isDragging = false;
-            _sheet.classList.remove('dragging');
-            _sheet.style.transform = '';
-            // If dragged more than 30% of sheet height → dismiss
-            if (_curY > _sheetH * 0.30) {
-                closeModal();
-            }
-            _curY = 0;
-        });
-        // Also allow dragging anywhere on the sheet header area
+
+        // Also allow dragging from header area
         var head = _sheet.querySelector('.cs-head');
         if (head) {
             head.addEventListener('touchstart', function(e) {
@@ -4553,10 +4661,81 @@ function closeModal() {
                 _sheet.classList.add('dragging');
             }, { passive: true });
         }
+
+        document.addEventListener('touchmove', function(e) {
+            if (!_isDragging) return;
+            var dy = e.touches[0].clientY - _startY;
+            if (dy < 0) dy = 0;
+            _curY = dy;
+            _sheet.style.transform = 'translateY(' + dy + 'px)';
+
+            // Animate pin back toward full-size as user drags down
+            var progress = Math.min(dy / (_sheetH * 0.5), 1); // 0→1
+            var pin = _getActivePin();
+            if (pin) {
+                var sc = 0.88 + (0.12 * progress); // 0.88 → 1.0
+                var ty = -16 * (1 - progress);     // -16px → 0
+                var br = 20 * (1 - progress);       // 20px → 0
+                pin.style.transition = 'none';
+                pin.style.transform = 'scale(' + sc + ') translateY(' + ty + 'px)';
+                pin.style.borderRadius = br + 'px';
+            }
+        }, { passive: true });
+
+        document.addEventListener('touchend', function() {
+            if (!_isDragging) return;
+            _isDragging = false;
+            _sheet.classList.remove('dragging');
+            _sheet.style.transform = '';
+
+            var pin = _getActivePin();
+            if (_curY > _sheetH * 0.30) {
+                // Dismiss — snap pin back to full size
+                if (pin) {
+                    pin.style.transition = '';
+                    pin.classList.remove('comments-shrunk');
+                    pin.style.transform = '';
+                    pin.style.borderRadius = '';
+                }
+                closeModal();
+            } else {
+                // Snap back to shrunk state
+                if (pin) {
+                    pin.style.transition = '';
+                    pin.classList.add('comments-shrunk');
+                    pin.style.transform = '';
+                    pin.style.borderRadius = '';
+                }
+            }
+            _curY = 0;
+        });
     }
+
+    // Hook into openModal / closeModal to add/remove shrunk class
+    var _origOpen  = window.openModal;
+    var _origClose = window.closeModal;
+
+    // Watch for comments-open body class to add shrunk to pin
+    var _bodyObs = new MutationObserver(function() {
+        var pin = _getActivePin();
+        if (!pin) return;
+        if (document.body.classList.contains('comments-open')) {
+            pin.classList.add('comments-shrunk');
+        } else {
+            pin.classList.remove('comments-shrunk');
+            pin.style.transform = '';
+            pin.style.borderRadius = '';
+        }
+    });
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else { init(); }
+        document.addEventListener('DOMContentLoaded', function() {
+            _bodyObs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+            init();
+        });
+    } else {
+        _bodyObs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        init();
+    }
 })();
 
 function loadComments(postId) {
@@ -7277,9 +7456,9 @@ init();
         <!-- Upload: center elevated pill -->
         <div class="nav-upload-wrap">
             <button class="nav-upload-pill" id="navUpload" aria-label="Upload">
-                <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"/>
-                    <line x1="5" y1="12" x2="19" y2="12"/>
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 16V8M8 12h8" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+                    <path d="M4 7h2.5l1.5-2h8l1.5 2H20a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </button>
         </div>
