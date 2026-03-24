@@ -2889,6 +2889,44 @@ window._fbFirestoreFns = { getDocs, query, collection, where, orderBy, limit, ge
 
 // currentUser exposed for non-module scripts via window._currentUser (set in init())
 
+// ── Guest auth wall — context-aware branded modal ──
+(function() {
+    var _wall = null;
+    var _COPY = {
+        comment:   { title: 'Log in to comment',       sub: 'Join Nmedea to share your thoughts on this video.' },
+        like:      { title: 'Log in to like videos',   sub: 'Create a free account to like and react to videos.' },
+        superlike: { title: 'Log in to Super Like',    sub: 'Create a free account to super like your favourite videos.' },
+        save:      { title: 'Log in to save videos',   sub: 'Save videos to watch them again anytime.' },
+        follow:    { title: 'Log in to follow',        sub: 'Follow creators to see their videos on your feed.' },
+        upload:    { title: 'Log in to upload',        sub: 'Share your videos with the Nmedea community.' },
+        share:     { title: 'Log in to share',         sub: 'Sign up free to share this video with others.' },
+        default:   { title: 'Log in to continue',      sub: 'Create a free Nmedea account to interact with videos.' }
+    };
+    function _build() {
+        if (_wall) return;
+        var s = document.createElement('style');
+        s.textContent = '#aw-ov{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.28s ease;}#aw-ov.open{opacity:1;pointer-events:all;}#aw-card{background:#fff;border-radius:24px;padding:32px 28px 28px;width:92%;max-width:380px;text-align:center;position:relative;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,0.22);transform:scale(0.94) translateY(12px);transition:transform 0.32s cubic-bezier(0.22,1,0.36,1);}#aw-ov.open #aw-card{transform:scale(1) translateY(0);}#aw-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(135deg,#0f0f0f 0%,#3a3a3a 40%,#626262 70%,#a6a6a6 100%);}';
+        document.head.appendChild(s);
+        _wall = document.createElement('div');
+        _wall.id = 'aw-ov';
+        _wall.innerHTML = '<div id="aw-card"><div style="width:64px;height:64px;border-radius:20px;background:linear-gradient(135deg,#0f0f0f,#626262,#a6a6a6);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 6px 24px rgba(0,0,0,0.18);"><span style="font-family:\'Outfit\',sans-serif;font-size:30px;font-weight:900;color:#fff;">N</span></div><div id="aw-t" style="font-size:22px;font-weight:900;color:#111;letter-spacing:-0.03em;margin-bottom:8px;font-family:\'Outfit\',sans-serif;line-height:1.15;"></div><div id="aw-s" style="font-size:14px;color:#888;font-weight:500;font-family:\'Outfit\',sans-serif;line-height:1.55;margin-bottom:24px;"></div><button onclick="window.location.href=\'login.html?mode=signup\'" style="display:block;width:100%;padding:15px;border-radius:14px;background:linear-gradient(135deg,#0f0f0f,#3a3a3a,#626262,#a6a6a6);border:none;color:#fff;font-family:\'Outfit\',sans-serif;font-size:15px;font-weight:900;cursor:pointer;margin-bottom:10px;box-shadow:0 4px 18px rgba(0,0,0,0.2);letter-spacing:0.01em;">Create free account</button><button onclick="window.location.href=\'login.html?mode=login\'" style="display:block;width:100%;padding:13px;border-radius:14px;background:transparent;border:1.5px solid #ddd;color:#444;font-family:\'Outfit\',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px;">Log in</button><button id="aw-x" style="display:block;width:100%;padding:8px;background:none;border:none;color:#bbb;font-family:\'Outfit\',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">Not now</button></div>';
+        document.body.appendChild(_wall);
+        _wall.addEventListener('click', function(e){ if(e.target===_wall) _close(); });
+        document.getElementById('aw-x').addEventListener('click', _close);
+        document.addEventListener('keydown', function(e){ if(e.key==='Escape') _close(); });
+    }
+    function _close() { if(_wall) _wall.classList.remove('open'); }
+    window._showAuthPrompt = function(action) {
+        _build();
+        var c = _COPY[action] || _COPY.default;
+        document.getElementById('aw-t').textContent = c.title;
+        document.getElementById('aw-s').textContent = c.sub;
+        requestAnimationFrame(function(){ _wall.classList.add('open'); });
+    };
+    window._gapGoLogin = function(mode){ window.location.href='login.html?mode='+(mode||'login'); };
+    window._gapClose   = _close;
+})();
+
 // ── Avatar helper: set any element (img or div) to photo or letter ──
 function setAv(el, name, photoURL) {
     if (!el) return;
@@ -3122,7 +3160,7 @@ async function fetchFollowedUsers() {
 }
 
 async function toggleFollow(userId, userName) {
-    if (!currentUser) return;
+    if (!currentUser) { window._showAuthPrompt('follow'); return; }
     
     try {
         const followQuery = query(
@@ -4122,7 +4160,7 @@ function createPinElement(postData, postId) {
     });
     thumbBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (!currentUser) return;
+        if (!currentUser) { window._showAuthPrompt('like'); return; }
         // Vibration feedback
         if (navigator.vibrate) navigator.vibrate(30);
         // Pop animation
@@ -4197,7 +4235,7 @@ function createPinElement(postData, postId) {
 
     dislikeBtn.addEventListener('click', async function(e) {
         e.stopPropagation();
-        if (!currentUser) return;
+        if (!currentUser) { window._showAuthPrompt('superlike'); return; }
         // Animation + sound now handled by onSnapshot burst above (fires on all devices)
         // Still add pop class locally for instant feedback before Firestore round-trip
         dislikeBtn.classList.remove('dislike-pop');
@@ -5096,7 +5134,7 @@ function createCommentElement(commentData, replies = []) {
 
     likeButton.addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (!currentUser) return;
+        if (!currentUser) { window._showAuthPrompt('like'); return; }
         if (navigator.vibrate) navigator.vibrate(20);
         const isLiked = likeButton.classList.contains('liked');
         likeButton.classList.remove('pop'); void likeButton.offsetWidth; likeButton.classList.add('pop');
@@ -5132,7 +5170,7 @@ function createCommentElement(commentData, replies = []) {
     }
     cmtDislikeBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (!currentUser) return;
+        if (!currentUser) { window._showAuthPrompt('like'); return; }
         if (navigator.vibrate) navigator.vibrate(15);
         cmtDislikeBtn.classList.remove('pop'); void cmtDislikeBtn.offsetWidth; cmtDislikeBtn.classList.add('pop');
         try {
@@ -5707,7 +5745,7 @@ init();
     });
     dDislikeBtn.addEventListener('click', async function(e) {
       e.stopPropagation();
-      if (!currentUser) return;
+      if (!currentUser) { window._showAuthPrompt('superlike'); return; }
       // Instant local pop for responsiveness (burst will also fire via onSnapshot)
       dDislikeBtn.classList.remove('d-sl-pop');
       void dDislikeBtn.offsetWidth;
@@ -5758,7 +5796,7 @@ init();
 
     likeBtn.addEventListener('click', function(e) {
       e.stopPropagation();
-      if (!currentUser) return;
+      if (!currentUser) { window._showAuthPrompt('like'); return; }
       if (navigator.vibrate) navigator.vibrate(20);
       var isOn = likeBtn.classList.contains('on');
       // Optimistic UI — onSnapshot confirms
@@ -5794,6 +5832,7 @@ init();
     })(postId, cmtBtn);
     cmtBtn.addEventListener('click', function(e) {
       e.stopPropagation();
+      if (!currentUser) { window._showAuthPrompt('comment'); return; }
       openDesktopComments(postData, postId, true);
     });
     actions.appendChild(cmtBtn);
@@ -5806,6 +5845,7 @@ init();
       + '<span class="desktop-action-label">Share</span>';
     dShareBtn.addEventListener('click', function(e) {
       e.stopPropagation();
+      if (!currentUser) { window._showAuthPrompt('share'); return; }
       openShareSheet(postData, postId);
     });
     actions.appendChild(dShareBtn);
@@ -6387,7 +6427,8 @@ init();
 
   async function submitDcComment() {
     var text = dcInput ? dcInput.value.trim() : '';
-    if (!currentUser || !dcCurrentPostId || (!text && !dcSelectedGif)) return;
+    if (!dcCurrentPostId || (!text && !dcSelectedGif)) return;
+    if (!currentUser) { window._showAuthPrompt('comment'); return; }
     if (dcInput) dcInput.value = '';
     var savedGif = dcSelectedGif; dcSelectedGif = null;
     if (dcGifPreview) dcGifPreview.classList.remove('show');
