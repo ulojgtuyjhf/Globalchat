@@ -11,6 +11,8 @@
             position: fixed; inset: 0;
             width: 100%; height: 100%;
             border: none; display: block;
+            opacity: 0;
+            transition: opacity 0.4s ease;
         }
     </style>
 </head>
@@ -116,14 +118,18 @@
             setTimeout(function() {
                 notification.style.opacity = '1';
                 notification.style.transform = 'translateX(-50%) translateY(0)';
-            }, 1200);
+            }, 600);
 
-            setTimeout(hide, 12000);
+            setTimeout(hide, 20000);
         }
         if (document.readyState === 'complete') {
-            createDownloadNotification();
+            var delay = Math.floor(Math.random() * 60000) + 30000; // 30–90 seconds
+            setTimeout(createDownloadNotification, delay);
         } else {
-            window.addEventListener('load', createDownloadNotification, { once: true });
+            window.addEventListener('load', function() {
+                var delay = Math.floor(Math.random() * 60000) + 30000;
+                setTimeout(createDownloadNotification, delay);
+            }, { once: true });
         }
     })();
     </script>
@@ -400,8 +406,12 @@
     }, 500);
   };
   
-  // Remove after 11 seconds  
-  setTimeout(removeSplashScreen, 11000);
+  // Remove after 2.5 seconds then reveal the app
+  setTimeout(removeSplashScreen, 2500);
+  setTimeout(function() {
+    var frame = document.getElementById('appFrame');
+    if (frame) frame.style.opacity = '1';
+  }, 3100);
   
   // Expose a method to easily replace the logo  
   window.replaceSplashScreenLogo = (logoUrl) => {
