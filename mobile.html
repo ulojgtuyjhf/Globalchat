@@ -558,20 +558,56 @@ html::-webkit-scrollbar { display: none; }
 /* Emoji quick-row inside comment sheet */
 .cs-emoji-row {
     display: flex; align-items: center;
-    padding: 5px 8px 3px; gap: 0;
+    padding: 8px 10px 8px; gap: 5px;
     overflow-x: auto; scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
-    border-bottom: 1px solid #f2f2f2; flex-shrink: 0;
+    border-bottom: 1px solid #f0f0f0; flex-shrink: 0;
+    background: #fff;
 }
 .cs-emoji-row::-webkit-scrollbar { display: none; }
 .cs-emoji-btn {
-    background: none; border: none; cursor: pointer;
-    font-size: 22px; padding: 3px 5px; border-radius: 8px;
-    line-height: 1; flex-shrink: 0;
+    flex-shrink: 0;
+    background: #f5f5f5;
+    border: 1.5px solid transparent;
+    border-radius: 22px;
+    padding: 5px 10px;
+    cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    transition: transform 0.14s cubic-bezier(0.34,1.56,0.64,1);
+    transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1),
+                background 0.12s ease,
+                border-color 0.12s ease,
+                box-shadow 0.12s ease;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
 }
-.cs-emoji-btn:active { transform: scale(1.45); }
+.cs-emoji-inner {
+    font-size: 20px; line-height: 1;
+    display: block;
+    transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    pointer-events: none;
+}
+.cs-emoji-btn:active {
+    transform: scale(0.9);
+    background: #ececec;
+    border-color: #d8d8d8;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+.cs-emoji-btn:active .cs-emoji-inner {
+    transform: scale(1.4);
+}
+/* Brand ring pop after tap — added via JS */
+.cs-emoji-btn.popped {
+    border-color: transparent;
+    background: linear-gradient(#fff,#fff) padding-box,
+                var(--brand-gradient) border-box;
+    box-shadow: 0 0 0 0px rgba(98,98,98,0.2);
+    animation: emojiPop 0.38s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+@keyframes emojiPop {
+    0%   { transform: scale(0.88); }
+    55%  { transform: scale(1.18); }
+    100% { transform: scale(1); }
+}
 .video-creator-name {
     font-size: 15px; font-weight: 900;
     letter-spacing: -0.01em;
@@ -1485,20 +1521,34 @@ body.paused-view #mob-feed-tabs {
     position: fixed; left: 0; right: 0; bottom: 0;
     height: 76dvh;
     background: #fff;
-    border-radius: 20px 20px 0 0;
+    border-radius: 28px 28px 0 0;
     z-index: 10005;
     display: flex; flex-direction: column;
     transform: translateY(100%);
-    transition: transform 0.42s cubic-bezier(0.22,1,0.36,1);
+    transition: transform 0.44s cubic-bezier(0.22,1,0.36,1);
     overflow: hidden;
-    box-shadow: 0 -8px 40px rgba(0,0,0,0.18);
+    box-shadow: 0 -12px 60px rgba(0,0,0,0.22), 0 -2px 0 rgba(0,0,0,0.04);
+    will-change: transform;
 }
 .comment-sheet.open { transform: translateY(0); }
+/* Dragging state — no transition so it follows finger exactly */
+.comment-sheet.dragging { transition: none !important; }
 
-.cs-handle {
-    width: 36px; height: 4px; border-radius: 2px;
-    background: #e8e8e8; margin: 10px auto 0; flex-shrink: 0;
+.cs-handle-wrap {
+    padding: 10px 0 4px; flex-shrink: 0; cursor: grab;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
 }
+.cs-handle-wrap:active { cursor: grabbing; }
+.cs-handle {
+    width: 40px; height: 4px; border-radius: 2px;
+    background: var(--brand-gradient);
+    opacity: 0.35;
+    transition: opacity 0.15s, width 0.15s;
+    pointer-events: none;
+}
+.cs-handle-wrap:active .cs-handle { opacity: 0.7; width: 50px; }
 
 /* ── Header ── */
 .cs-head {
@@ -1817,11 +1867,34 @@ body.paused-view #mob-feed-tabs {
 /* GIF selector */
 .gif-selector { background:#fff; border-top:1px solid #f2f2f2; padding:10px; flex-shrink:0; display:none; }
 .gif-selector.active, .gif-selector.open { display:flex; flex-direction:column; gap:8px; }
-.gif-search { width:100%; border:1.5px solid #eee; border-radius:14px; padding:9px 14px; font-family:var(--font); font-size:13px; outline:none; background:#f8f8f8; }
+.gif-search {
+    width:100%; border:1.5px solid #eee; border-radius:20px;
+    padding:9px 16px; font-family:var(--font); font-size:13px; outline:none;
+    background:#f7f7f7; transition: border-color 0.2s, background 0.2s;
+}
 .gif-search:focus { border-color:#bbb; background:#fff; }
-.gif-results { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; max-height:160px; overflow-y:auto; }
-.gif-item { width:100%; aspect-ratio:1; object-fit:cover; border-radius:10px; cursor:pointer; transition:opacity 0.15s; }
-.gif-item:active { opacity: 0.75; }
+.gif-results {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:5px;
+    max-height:180px; overflow-y:auto;
+    -webkit-overflow-scrolling: touch;
+}
+.gif-results::-webkit-scrollbar { display:none; }
+.gif-item {
+    width:100%; aspect-ratio:1; object-fit:cover;
+    border-radius:12px; cursor:pointer;
+    transition:opacity 0.12s, transform 0.12s;
+    background: linear-gradient(110deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.3s infinite;
+}
+.gif-item.loaded { animation: none; background: none; }
+.gif-item:active { opacity:0.78; transform:scale(0.96); }
+/* Shimmer placeholder tiles while GIFs load */
+.gif-skel {
+    aspect-ratio:1; border-radius:12px;
+    background: linear-gradient(110deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%);
+    background-size: 200% 100%; animation: shimmer 1.3s infinite;
+}
 
 /* GIF preview */
 .gif-preview {
@@ -1838,8 +1911,35 @@ body.paused-view #mob-feed-tabs {
     font-size: 13px; line-height: 1;
 }
 
-/* GIF in comment */
-.comment-gif { max-width: 180px; border-radius: 10px; display: block; margin-top: 6px; }
+/* Brand spinner for GIF loading inside comments */
+.gif-brand-loader {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 18px 0; gap: 10px; grid-column: 1 / -1;
+}
+.gif-brand-dots {
+    width: 36px; height: 36px; position: relative;
+    display: flex; align-items: center; justify-content: center;
+}
+.gif-brand-dots::before, .gif-brand-dots::after {
+    content: ''; position: absolute;
+    width: 11px; height: 11px; border-radius: 50%;
+    animation: spinPulse 1s ease-in-out infinite;
+}
+.gif-brand-dots::before { background: #0f0f0f; animation-delay: 0s; }
+.gif-brand-dots::after  { background: #888;    animation-delay: 0.5s; }
+.gif-brand-label {
+    font-size: 11px; font-weight: 700; color: #bbb;
+    font-family: var(--font); letter-spacing: 0.06em; text-transform: uppercase;
+}
+
+/* GIF in comment — brand styled */
+.comment-gif {
+    max-width: 200px; border-radius: 14px; display: block; margin-top: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+    background: linear-gradient(110deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%);
+    background-size: 200% 100%; animation: shimmer 1.3s infinite;
+}
+.comment-gif.loaded { animation: none; background: none; }
 
 /* Empty comments */
 .comments-empty {
@@ -2252,7 +2352,9 @@ if (window === window.top && !window.matchMedia('(max-width: 899px)').matches) {
 
     <!-- Comment sheet (slides up) — keeps all original IDs your JS uses -->
     <div class="comment-sheet" id="commentSheet">
-        <div class="cs-handle"></div>
+        <div class="cs-handle-wrap" id="csDragHandle">
+            <div class="cs-handle"></div>
+        </div>
         <div class="cs-head">
             <div class="cs-head-left">
                 <div class="cs-live-indicator">
@@ -2286,21 +2388,21 @@ if (window === window.top && !window.matchMedia('(max-width: 899px)').matches) {
         <div class="comment-form" id="commentForm">
             <!-- Quick emoji strip -->
             <div class="cs-emoji-row" id="mobileEmojiRow">
-                <button class="cs-emoji-btn">❤️</button>
-                <button class="cs-emoji-btn">🔥</button>
-                <button class="cs-emoji-btn">😂</button>
-                <button class="cs-emoji-btn">😍</button>
-                <button class="cs-emoji-btn">🙌</button>
-                <button class="cs-emoji-btn">💯</button>
-                <button class="cs-emoji-btn">😮</button>
-                <button class="cs-emoji-btn">👏</button>
-                <button class="cs-emoji-btn">🎉</button>
-                <button class="cs-emoji-btn">✨</button>
-                <button class="cs-emoji-btn">💪</button>
-                <button class="cs-emoji-btn">😢</button>
-                <button class="cs-emoji-btn">🤩</button>
-                <button class="cs-emoji-btn">🥺</button>
-                <button class="cs-emoji-btn">😎</button>
+                <button class="cs-emoji-btn" data-emoji="❤️"><span class="cs-emoji-inner">❤️</span></button>
+                <button class="cs-emoji-btn" data-emoji="🔥"><span class="cs-emoji-inner">🔥</span></button>
+                <button class="cs-emoji-btn" data-emoji="😂"><span class="cs-emoji-inner">😂</span></button>
+                <button class="cs-emoji-btn" data-emoji="😍"><span class="cs-emoji-inner">😍</span></button>
+                <button class="cs-emoji-btn" data-emoji="🙌"><span class="cs-emoji-inner">🙌</span></button>
+                <button class="cs-emoji-btn" data-emoji="💯"><span class="cs-emoji-inner">💯</span></button>
+                <button class="cs-emoji-btn" data-emoji="😮"><span class="cs-emoji-inner">😮</span></button>
+                <button class="cs-emoji-btn" data-emoji="👏"><span class="cs-emoji-inner">👏</span></button>
+                <button class="cs-emoji-btn" data-emoji="🎉"><span class="cs-emoji-inner">🎉</span></button>
+                <button class="cs-emoji-btn" data-emoji="✨"><span class="cs-emoji-inner">✨</span></button>
+                <button class="cs-emoji-btn" data-emoji="💪"><span class="cs-emoji-inner">💪</span></button>
+                <button class="cs-emoji-btn" data-emoji="😢"><span class="cs-emoji-inner">😢</span></button>
+                <button class="cs-emoji-btn" data-emoji="🤩"><span class="cs-emoji-inner">🤩</span></button>
+                <button class="cs-emoji-btn" data-emoji="🥺"><span class="cs-emoji-inner">🥺</span></button>
+                <button class="cs-emoji-btn" data-emoji="😎"><span class="cs-emoji-inner">😎</span></button>
             </div>
             <div class="reply-preview" id="replyPreview" style="display:none;">
                 <span class="reply-preview-icon">↩</span>
@@ -2651,11 +2753,17 @@ function setupEventListeners() {
         emojiRow.addEventListener('click', function(e) {
             var btn = e.target.closest('.cs-emoji-btn');
             if (!btn) return;
+            var emoji = btn.dataset.emoji || btn.textContent.trim();
             var pos = commentInput.selectionStart || commentInput.value.length;
-            commentInput.value = commentInput.value.slice(0, pos) + btn.textContent + commentInput.value.slice(pos);
-            commentInput.selectionStart = commentInput.selectionEnd = pos + btn.textContent.length;
+            commentInput.value = commentInput.value.slice(0, pos) + emoji + commentInput.value.slice(pos);
+            commentInput.selectionStart = commentInput.selectionEnd = pos + emoji.length;
             commentInput.focus();
             submitComment.disabled = commentInput.value.trim() === '' && !selectedGif;
+            // Brand pop animation
+            btn.classList.remove('popped');
+            void btn.offsetWidth; // reflow to restart animation
+            btn.classList.add('popped');
+            setTimeout(function() { btn.classList.remove('popped'); }, 420);
         });
     }
     
@@ -2758,7 +2866,8 @@ function debounce(func, wait) {
 
 async function loadGifs(searchTerm = '') {
     try {
-        gifResults.innerHTML = '<div style="text-align: center; padding: 10px;">Loading GIFs...</div>';
+        // Show brand loader while fetching
+        gifResults.innerHTML = '<div class="gif-brand-loader"><div class="gif-brand-dots"></div><span class="gif-brand-label">Loading</span></div>';
         
         const apiKey = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L65';
         const endpoint = searchTerm 
@@ -2771,15 +2880,22 @@ async function loadGifs(searchTerm = '') {
         gifResults.innerHTML = '';
         
         if (data.data.length === 0) {
-            gifResults.innerHTML = '<div style="text-align: center; padding: 10px;">No GIFs found</div>';
+            gifResults.innerHTML = '<div style="text-align:center;padding:16px;font-size:13px;color:#bbb;font-weight:600;grid-column:1/-1;">No GIFs found</div>';
             return;
         }
         
         data.data.forEach(gif => {
             const gifItem = document.createElement('img');
-            gifItem.src = gif.images.fixed_height_small.url;
+            // Start shimmer, reveal when loaded
             gifItem.className = 'gif-item';
+            gifItem.style.opacity = '0';
+            gifItem.style.transition = 'opacity 0.22s ease';
             gifItem.dataset.originalUrl = gif.images.fixed_height.url;
+            gifItem.onload = function() {
+                this.classList.add('loaded');
+                this.style.opacity = '1';
+            };
+            gifItem.src = gif.images.fixed_height_small.url;
             
             gifItem.addEventListener('click', () => {
                 selectedGif = gif.images.fixed_height.url;
@@ -2800,7 +2916,7 @@ async function loadGifs(searchTerm = '') {
         });
     } catch (error) {
         console.error('Error loading GIFs:', error);
-        gifResults.innerHTML = '<div style="text-align: center; padding: 10px;">Error loading GIFs</div>';
+        gifResults.innerHTML = '<div style="text-align:center;padding:16px;font-size:13px;color:#bbb;font-weight:600;grid-column:1/-1;">Error loading GIFs</div>';
     }
 }
 
@@ -4394,6 +4510,55 @@ function closeModal() {
     }
 }
 
+/* ── Drag-to-dismiss comment sheet ── */
+(function() {
+    var _sheet, _handle, _startY, _curY, _isDragging, _sheetH;
+    function init() {
+        _sheet  = document.getElementById('commentSheet');
+        _handle = document.getElementById('csDragHandle');
+        if (!_sheet || !_handle) { setTimeout(init, 400); return; }
+        // Touch start on handle
+        _handle.addEventListener('touchstart', function(e) {
+            _startY = e.touches[0].clientY;
+            _curY   = 0;
+            _isDragging = true;
+            _sheetH = _sheet.getBoundingClientRect().height;
+            _sheet.classList.add('dragging');
+        }, { passive: true });
+        document.addEventListener('touchmove', function(e) {
+            if (!_isDragging) return;
+            var dy = e.touches[0].clientY - _startY;
+            if (dy < 0) dy = 0; // no pulling up
+            _curY = dy;
+            _sheet.style.transform = 'translateY(' + dy + 'px)';
+        }, { passive: true });
+        document.addEventListener('touchend', function() {
+            if (!_isDragging) return;
+            _isDragging = false;
+            _sheet.classList.remove('dragging');
+            _sheet.style.transform = '';
+            // If dragged more than 30% of sheet height → dismiss
+            if (_curY > _sheetH * 0.30) {
+                closeModal();
+            }
+            _curY = 0;
+        });
+        // Also allow dragging anywhere on the sheet header area
+        var head = _sheet.querySelector('.cs-head');
+        if (head) {
+            head.addEventListener('touchstart', function(e) {
+                _startY = e.touches[0].clientY;
+                _curY = 0; _isDragging = true;
+                _sheetH = _sheet.getBoundingClientRect().height;
+                _sheet.classList.add('dragging');
+            }, { passive: true });
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else { init(); }
+})();
+
 function loadComments(postId) {
     const cfAv = document.getElementById('cfAvatar');
     if (cfAv && currentUser) setAv(cfAv, currentUser.displayName || currentUser.email || 'U', currentUser.photoURL);
@@ -4684,8 +4849,14 @@ function createCommentElement(commentData, replies = []) {
     if (commentData.gifUrl) {
         const gif = document.createElement('img');
         gif.className = 'comment-gif';
-        gif.src = commentData.gifUrl;
         gif.loading = 'lazy';
+        gif.style.opacity = '0';
+        gif.style.transition = 'opacity 0.25s ease';
+        gif.onload = function() {
+            this.classList.add('loaded');
+            this.style.opacity = '1';
+        };
+        gif.src = commentData.gifUrl;
         bubble.appendChild(gif);
     }
 
