@@ -279,16 +279,11 @@ html::-webkit-scrollbar { display: none; }
     scroll-snap-stop: always;
     overflow: hidden;
     background: #000;
-    background: #000;
     -webkit-tap-highlight-color: transparent;
     transform-origin: top center;
-    transition: transform 0.46s cubic-bezier(0.22,1,0.36,1),
-                border-radius 0.46s cubic-bezier(0.22,1,0.36,1);
-}
-/* JS adds this class — shrinks video like Instagram */
-.pin-container.comments-shrunk {
-    transform: scale(0.88) translateY(-16px);
-    border-radius: 20px;
+    /* Push content up so bottom nav doesn't cover the video */
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
 }
 .pin-container.leaving  { opacity: 0.5; transform: scale(0.97); transition: all 0.3s ease; }
 .pin-container.entering { animation: videoEnter 0.35s ease-out; }
@@ -563,58 +558,42 @@ html::-webkit-scrollbar { display: none; }
     flex-shrink: 0; opacity: 0.85;
 }
 .inline-cmt-pill-icon svg { width: 10px; height: 10px; fill: #fff; }
-/* Emoji quick-row inside comment sheet */
+/* Emoji quick-row — clean floating emojis, no boxes */
 .cs-emoji-row {
     display: flex; align-items: center;
-    padding: 8px 10px 8px; gap: 5px;
+    padding: 6px 14px 8px; gap: 0;
     overflow-x: auto; scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
-    border-bottom: 1px solid #f0f0f0; flex-shrink: 0;
-    background: #fff;
+    flex-shrink: 0;
+    background: #fafafa;
+    border-bottom: 1px solid #f0f0f0;
 }
 .cs-emoji-row::-webkit-scrollbar { display: none; }
 .cs-emoji-btn {
     flex-shrink: 0;
-    background: #f5f5f5;
-    border: 1.5px solid transparent;
-    border-radius: 22px;
-    padding: 5px 10px;
+    background: none;
+    border: none;
+    padding: 4px 7px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1),
-                background 0.12s ease,
-                border-color 0.12s ease,
-                box-shadow 0.12s ease;
     display: flex; align-items: center; justify-content: center;
-    position: relative; overflow: hidden;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
 }
 .cs-emoji-inner {
-    font-size: 20px; line-height: 1;
+    font-size: 26px; line-height: 1;
     display: block;
-    transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
     pointer-events: none;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.08));
 }
-.cs-emoji-btn:active {
-    transform: scale(0.9);
-    background: #ececec;
-    border-color: #d8d8d8;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+.cs-emoji-btn:active .cs-emoji-inner { transform: scale(1.5); }
+.cs-emoji-btn.popped .cs-emoji-inner {
+    animation: emojiFloat 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards;
 }
-.cs-emoji-btn:active .cs-emoji-inner {
-    transform: scale(1.4);
-}
-/* Brand ring pop after tap — added via JS */
-.cs-emoji-btn.popped {
-    border-color: transparent;
-    background: linear-gradient(#fff,#fff) padding-box,
-                var(--brand-gradient) border-box;
-    box-shadow: 0 0 0 0px rgba(98,98,98,0.2);
-    animation: emojiPop 0.38s cubic-bezier(0.34,1.56,0.64,1) forwards;
-}
-@keyframes emojiPop {
-    0%   { transform: scale(0.88); }
-    55%  { transform: scale(1.18); }
-    100% { transform: scale(1); }
+@keyframes emojiFloat {
+    0%   { transform: scale(1) translateY(0); }
+    45%  { transform: scale(1.55) translateY(-6px); }
+    100% { transform: scale(1) translateY(0); }
 }
 .video-creator-name {
     font-size: 15px; font-weight: 900;
@@ -1220,68 +1199,39 @@ body.paused-view #mob-feed-tabs {
     display: none;
 }
 .nav-badge.show { display: block; }
-/* Upload pill — center, elevated — PREMIUM REDESIGN */
+/* Upload button — square pill, brand gradient */
 .nav-upload-wrap { flex: 1; display: flex; align-items: center; justify-content: center; }
 .nav-upload-pill {
     position: relative;
-    width: 58px; height: 58px; border-radius: 22px;
-    background: #000;
+    width: 52px; height: 52px;
+    border-radius: 16px;
+    background: var(--brand-gradient);
     border: none; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    transform: translateY(-14px);
-    transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s;
+    transform: translateY(-6px);
+    transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1),
+                box-shadow 0.2s ease,
+                opacity 0.15s;
     -webkit-tap-highlight-color: transparent;
-    overflow: visible;
-    /* Layered glow shadow */
-    box-shadow:
-        0 0 0 2.5px #fff,
-        0 0 0 4px #111,
-        0 10px 30px rgba(0,0,0,0.45),
-        0 4px 10px rgba(0,0,0,0.25);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.14);
+    overflow: hidden;
 }
-/* Animated gradient ring that rotates */
 .nav-upload-pill::before {
     content: '';
-    position: absolute;
-    inset: -3px;
-    border-radius: 25px;
-    background: conic-gradient(from var(--angle, 0deg), #0f0f0f, #626262, #a6a6a6, #fff, #626262, #0f0f0f);
-    z-index: -1;
-    animation: uploadRingSpin 3s linear infinite;
-    opacity: 0.9;
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.14), transparent);
+    border-radius: 16px;
+    pointer-events: none;
 }
-@property --angle {
-    syntax: '<angle>';
-    initial-value: 0deg;
-    inherits: false;
-}
-@keyframes uploadRingSpin { to { --angle: 360deg; } }
-/* Spark dot that orbits */
-.nav-upload-pill::after {
-    content: '';
-    position: absolute;
-    width: 7px; height: 7px; border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 0 8px 2px rgba(255,255,255,0.9);
-    top: -3px; left: 50%; transform: translateX(-50%);
-    animation: uploadSparkOrbit 3s linear infinite;
-    z-index: 2;
-}
-@keyframes uploadSparkOrbit {
-    0%   { transform: rotate(0deg) translateY(-28px) translateX(0); }
-    100% { transform: rotate(360deg) translateY(-28px) translateX(0); }
-}
+.nav-upload-pill::after { display: none; }
 .nav-upload-pill svg {
-    width: 26px; height: 26px; fill: none; stroke: #fff;
-    stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round;
-    position: relative; z-index: 3;
-    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    position: relative; z-index: 1;
 }
 .nav-upload-pill:active {
-    transform: translateY(-14px) scale(0.88);
-    box-shadow: 0 0 0 2.5px #fff, 0 0 0 4px #111, 0 4px 12px rgba(0,0,0,0.3);
+    transform: translateY(-6px) scale(0.91);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.16);
+    opacity: 0.88;
 }
-.nav-upload-pill:active svg { transform: scale(1.18) rotate(45deg); }
 
 /* Tabs — hidden */
 #feed-tabs { display: none !important; }
@@ -2089,33 +2039,45 @@ body.paused-view #mob-feed-tabs {
    COMMENTS OPEN — YouTube-style isolated mini-player
    ═══════════════════════════════════════════════════ */
 
-/* Black backdrop — covers entire screen */
+/* Black backdrop — covers screen */
 #comments-video-backdrop {
     position: fixed;
-    top: 30dvh; left: 0; right: 0; bottom: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background: #000;
     z-index: 9990;
     opacity: 0; pointer-events: none;
-    transition: opacity 0.36s cubic-bezier(0.22,1,0.36,1);
+    transition: opacity 0.4s cubic-bezier(0.22,1,0.36,1);
 }
 body.comments-open #comments-video-backdrop { opacity: 1; }
 
-/* ── Mini-player: bright, clean YouTube-style ── */
+/* ── Mini-player: shrinks from fullscreen → floating card, TikTok style ── */
 #comments-mini-player {
     position: fixed;
-    top: 0; left: 0; right: 0;
-    height: 30dvh;
+    left: 50%;
+    top: 0;
+    width: calc(38dvh * 9 / 16);
+    height: 38dvh;
     z-index: 9997;
     background: #000;
     overflow: hidden;
-    transform: translateY(-100%);
-    transition: transform 0.44s cubic-bezier(0.22,1,0.36,1);
+    border-radius: 18px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+    /* Start: scaled up to fill the full screen */
+    transform: translateX(-50%) translateY(0px) scale(calc(100vw / (38dvh * 9 / 16)));
+    transform-origin: top center;
+    opacity: 0;
+    transition: transform 0.48s cubic-bezier(0.22,1,0.36,1),
+                border-radius 0.48s ease,
+                opacity 0.3s ease;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    pointer-events: none;
 }
 body.comments-open #comments-mini-player {
-    transform: translateY(0);
+    transform: translateX(-50%) translateY(12px) scale(1);
+    border-radius: 18px;
+    opacity: 1;
+    pointer-events: auto;
 }
 
 /* Video — fully bright, full coverage, NO filters */
@@ -2126,7 +2088,7 @@ body.comments-open #comments-mini-player {
     inset: 0 !important;
     width: 100% !important;
     height: 100% !important;
-    object-fit: cover !important;
+    object-fit: contain !important;
     opacity: 1 !important;
     display: block !important;
     z-index: 2 !important;
@@ -2245,9 +2207,11 @@ body.comments-open #comments-mini-player {
 #cmp-pause-icon svg { width: 24px; height: 24px; fill: #fff; }
 #cmp-pause-icon svg rect { margin-left: 0; }
 
-/* Comment sheet — 70dvh (leaves room for mini-player) */
+/* Comment sheet — slides up from bottom, leaves room for floating mini-player */
 body.comments-open .comment-sheet {
-    height: 70dvh !important;
+    height: 58dvh !important;
+    top: auto !important;
+    bottom: 0 !important;
 }
 
 /* Hide bottom nav & feed tabs */
@@ -4669,16 +4633,25 @@ function closeModal() {
             _curY = dy;
             _sheet.style.transform = 'translateY(' + dy + 'px)';
 
-            // Animate pin back toward full-size as user drags down
-            var progress = Math.min(dy / (_sheetH * 0.5), 1); // 0→1
-            var pin = _getActivePin();
-            if (pin) {
-                var sc = 0.88 + (0.12 * progress); // 0.88 → 1.0
-                var ty = -16 * (1 - progress);     // -16px → 0
-                var br = 20 * (1 - progress);       // 20px → 0
-                pin.style.transition = 'none';
-                pin.style.transform = 'scale(' + sc + ') translateY(' + ty + 'px)';
-                pin.style.borderRadius = br + 'px';
+            // As user drags sheet down, mini-player grows back toward fullscreen
+            var progress = Math.min(dy / (_sheetH * 0.55), 1);
+            var miniPlayer = document.getElementById('comments-mini-player');
+            if (miniPlayer) {
+                var miniW = miniPlayer.offsetWidth || (window.innerHeight * 0.38 * 9 / 16);
+                var targetScale = Math.max(window.innerWidth / miniW, 1);
+                var currentScale = 1 + (targetScale - 1) * progress;
+                var targetTranslateY = -12;
+                var currentTranslateY = 12 + targetTranslateY * progress;
+                miniPlayer.style.transition = 'none';
+                miniPlayer.style.transform = 'translateX(-50%) translateY(' + currentTranslateY + 'px) scale(' + currentScale + ')';
+                miniPlayer.style.borderRadius = (18 - 18 * progress) + 'px';
+            }
+
+            // Fade gallery back in as user drags sheet down
+            var gallery = document.getElementById('gallery');
+            if (gallery) {
+                gallery.style.transition = 'none';
+                gallery.style.opacity = String(progress);
             }
         }, { passive: true });
 
@@ -4688,43 +4661,51 @@ function closeModal() {
             _sheet.classList.remove('dragging');
             _sheet.style.transform = '';
 
-            var pin = _getActivePin();
+            var gallery = document.getElementById('gallery');
+            var miniPlayer = document.getElementById('comments-mini-player');
             if (_curY > _sheetH * 0.30) {
-                // Dismiss — snap pin back to full size
-                if (pin) {
-                    pin.style.transition = '';
-                    pin.classList.remove('comments-shrunk');
-                    pin.style.transform = '';
-                    pin.style.borderRadius = '';
+                // Dismissed — restore gallery, close comments
+                if (gallery) {
+                    gallery.style.transition = 'opacity 0.3s ease';
+                    gallery.style.opacity = '';
+                    gallery.style.pointerEvents = '';
+                }
+                if (miniPlayer) {
+                    miniPlayer.style.transition = '';
+                    miniPlayer.style.transform = '';
+                    miniPlayer.style.borderRadius = '';
                 }
                 closeModal();
             } else {
-                // Snap back to shrunk state
-                if (pin) {
-                    pin.style.transition = '';
-                    pin.classList.add('comments-shrunk');
-                    pin.style.transform = '';
-                    pin.style.borderRadius = '';
+                // Snap back — hide gallery, restore mini-player
+                if (gallery) {
+                    gallery.style.transition = 'opacity 0.3s ease';
+                    gallery.style.opacity = '0';
+                    gallery.style.pointerEvents = 'none';
+                }
+                if (miniPlayer) {
+                    miniPlayer.style.transition = 'transform 0.44s cubic-bezier(0.22,1,0.36,1), border-radius 0.44s ease';
+                    miniPlayer.style.transform = 'translateX(-50%) translateY(12px) scale(1)';
+                    miniPlayer.style.borderRadius = '18px';
                 }
             }
             _curY = 0;
         });
     }
 
-    // Hook into openModal / closeModal to add/remove shrunk class
-    var _origOpen  = window.openModal;
-    var _origClose = window.closeModal;
-
-    // Watch for comments-open body class to add shrunk to pin
+    // Watch for comments-open body class — gallery stays fixed, mini-player handles shrink
     var _bodyObs = new MutationObserver(function() {
-        var pin = _getActivePin();
-        if (!pin) return;
+        var gallery = document.getElementById('gallery');
+        if (!gallery) return;
         if (document.body.classList.contains('comments-open')) {
-            pin.classList.add('comments-shrunk');
+            // Hide the gallery scroll container so only mini-player shows the video
+            gallery.style.transition = 'opacity 0.3s ease';
+            gallery.style.opacity = '0';
+            gallery.style.pointerEvents = 'none';
         } else {
-            pin.classList.remove('comments-shrunk');
-            pin.style.transform = '';
-            pin.style.borderRadius = '';
+            gallery.style.transition = 'opacity 0.3s ease';
+            gallery.style.opacity = '';
+            gallery.style.pointerEvents = '';
         }
     });
     if (document.readyState === 'loading') {
@@ -7453,12 +7434,15 @@ init();
             </div>
             <span>Updates</span>
         </button>
-        <!-- Upload: center elevated pill -->
+        <!-- Upload: wide soft rectangle with lines + plus -->
         <div class="nav-upload-wrap">
             <button class="nav-upload-pill" id="navUpload" aria-label="Upload">
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 16V8M8 12h8" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
-                    <path d="M4 7h2.5l1.5-2h8l1.5 2H20a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:44px;height:44px;position:relative;z-index:1;">
+                    <!-- Upload arrow up -->
+                    <line x1="22" y1="27" x2="22" y2="11" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+                    <polyline points="15,18 22,11 29,18" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Bottom tray line -->
+                    <line x1="13" y1="32" x2="31" y2="32" stroke="rgba(255,255,255,0.55)" stroke-width="2.2" stroke-linecap="round"/>
                 </svg>
             </button>
         </div>
@@ -7651,8 +7635,7 @@ init();
             </div>
             <h2>Log in to upload</h2>
             <p>Share your videos with the community.<br>Create an account — it's free.</p>
-            <button class="glw-btn-primary" onclick="window._gapGoLogin('signup')">Create free account</button>
-            <button class="glw-btn-secondary" onclick="window._gapGoLogin('login')">Log in</button>
+            <button class="glw-btn-primary" onclick="window._gapGoLogin('signup')">Get started</button>
         </div>
     </div>
 
@@ -8317,7 +8300,7 @@ init();
                     window._cmpWasPlayingBeforeOpen = undefined; // consume the flag
 
                     // Style to fill mini-player
-                    origVid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:1;display:block;z-index:2;visibility:visible;filter:none;';
+                    origVid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:1;display:block;z-index:2;visibility:visible;filter:none;background:#000;';
                     origVid.setAttribute('data-cmp-moved', '1');
 
                     // Physically move video into mini-player
