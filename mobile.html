@@ -1849,17 +1849,72 @@ body.paused-view #mob-feed-tabs {
 .view-replies-btn::before { content:''; display:block; width:22px; height:1px; background:#e0e0e0; border-radius:1px; flex-shrink:0; }
 .view-replies-btn:active { color: #333; }
 
-/* Reply preview */
-.reply-preview { display:none; align-items:center; gap:6px; padding:6px 14px 4px; flex-shrink:0; }
-.reply-preview.show { display: flex; }
-.reply-preview-icon { font-size:14px; color:#888; flex-shrink:0; }
-.reply-preview-text { font-size:12px; color:#888; font-weight:600; flex:1; }
-.reply-preview-close {
-    background:#eee; border:none; cursor:pointer; color:#888;
-    border-radius:50%; width:20px; height:20px; flex-shrink:0;
-    font-size:14px; display:flex; align-items:center; justify-content:center; line-height:1;
+/* ── WhatsApp-style reply quote bubble (inside comment) ── */
+.reply-quote-bubble {
+    display: flex; flex-direction: column;
+    background: #f0f0f0;
+    border-left: 3px solid #626262;
+    border-radius: 0 10px 10px 0;
+    padding: 5px 10px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
 }
-.reply-preview-close:active { background:#ddd; }
+.reply-quote-bubble:active { background: #e8e8e8; }
+.reply-quote-av {
+    width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 900; color: #fff; overflow: hidden;
+    margin-right: 5px; float: left; margin-top: 1px;
+}
+.reply-quote-av img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.reply-quote-name { font-size: 11.5px; font-weight: 800; color: #626262; margin-bottom: 1px; }
+.reply-quote-text { font-size: 12px; color: #666; font-weight: 400; line-height: 1.3;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reply-quote-time { font-size: 10px; color: #bbb; margin-top: 2px; }
+
+/* ── Rich reply preview bar above input (WhatsApp style) ── */
+.reply-preview {
+    display: none; align-items: center; gap: 8px;
+    padding: 0; flex-shrink: 0;
+    border-top: 1px solid #f0f0f0;
+    background: #fff;
+    position: relative; overflow: hidden;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: background 0.12s;
+}
+.reply-preview:active { background: #fafafa; }
+.reply-preview.show { display: flex; }
+.rp-accent {
+    width: 3px; align-self: stretch; flex-shrink: 0;
+    background: linear-gradient(180deg, #0f0f0f 0%, #626262 50%, #a6a6a6 100%);
+    border-radius: 0 2px 2px 0;
+}
+.rp-avatar {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 900; color: #fff;
+    background: #555; overflow: hidden;
+    border: 1.5px solid #efefef;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+.rp-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; display:block; }
+.rp-body { flex: 1; min-width: 0; padding: 8px 0; }
+.rp-name { font-size: 11.5px; font-weight: 800; color: #111; margin-bottom: 1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rp-text { font-size: 12px; color: #888; font-weight: 400;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rp-time { font-size: 10px; color: #ccc; white-space: nowrap; flex-shrink: 0; padding-right: 6px; }
+.reply-preview-close {
+    background: #f0f0f0; border: none; cursor: pointer; color: #888;
+    border-radius: 50%; width: 22px; height: 22px; flex-shrink: 0;
+    font-size: 15px; display: flex; align-items: center; justify-content: center;
+    line-height: 1; margin-right: 10px; transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+.reply-preview-close:active { background: #ddd; }
 
 /* Empty */
 .comments-empty { display:flex; flex-direction:column; align-items:center; padding:40px 20px; gap:10px; color:#ccc; }
@@ -2711,8 +2766,13 @@ body, * {
                 <button class="cs-emoji-btn" data-emoji="😎"><span class="cs-emoji-inner">😎</span></button>
             </div>
             <div class="reply-preview" id="replyPreview" style="display:none;">
-                <span class="reply-preview-icon">↩</span>
-                <div class="reply-preview-text" id="replyPreviewText"></div>
+                <div class="rp-accent"></div>
+                <div class="rp-avatar" id="rpAvatar"></div>
+                <div class="rp-body">
+                    <div class="rp-name" id="rpName"></div>
+                    <div class="rp-text" id="replyPreviewText"></div>
+                    <div class="rp-time" id="rpTime"></div>
+                </div>
                 <button class="reply-preview-close" id="replyPreviewClose">&#215;</button>
             </div>
             <div class="cf-row">
@@ -6120,12 +6180,54 @@ function createCommentElement(commentData, replies = []) {
         bubble.appendChild(gif);
     }
 
-    // If this is a reply, show "Replying to @name" tag
+    // If this is a reply — WhatsApp-style quote bubble, clickable to scroll to parent
     if (commentData.parentId && commentData.parentUserName) {
-        const replyTag = document.createElement('div');
-        replyTag.style.cssText = 'font-size:11.5px;color:#aaa;font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:4px;';
-        replyTag.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg><span>Replying to <strong style="color:#888;">@' + commentData.parentUserName + '</strong></span>';
-        bubble.insertBefore(replyTag, bubble.firstChild);
+        const qb = document.createElement('div');
+        qb.className = 'reply-quote-bubble';
+        qb.dataset.parentId = commentData.parentId;
+
+        // Mini avatar
+        const qav = document.createElement('div');
+        qav.className = 'reply-quote-av';
+        const _ql = (commentData.parentUserName[0]||'U').toUpperCase();
+        const _qh = (_ql.charCodeAt(0)*37)%360;
+        if (commentData.parentPhotoURL && !commentData.parentPhotoURL.includes('default_profile')) {
+            const _qi = document.createElement('img');
+            _qi.src = commentData.parentPhotoURL;
+            _qi.onerror = function(){ qav.textContent=_ql; qav.style.background='hsl('+_qh+',50%,44%)'; };
+            qav.appendChild(_qi);
+        } else { qav.textContent = _ql; qav.style.background = 'hsl('+_qh+',50%,44%)'; }
+
+        const qname = document.createElement('div');
+        qname.className = 'reply-quote-name';
+        qname.textContent = '@' + commentData.parentUserName;
+
+        const qtext = document.createElement('div');
+        qtext.className = 'reply-quote-text';
+        qtext.textContent = commentData.parentText || '📎 Original comment';
+
+        const qtime = document.createElement('div');
+        qtime.className = 'reply-quote-time';
+        qtime.textContent = commentData.parentTimestamp ? formatTimestamp(new Date(commentData.parentTimestamp)) : '';
+
+        qb.appendChild(qav);
+        qb.appendChild(qname);
+        qb.appendChild(qtext);
+        if (qtime.textContent) qb.appendChild(qtime);
+
+        // Click scrolls to parent comment + flash highlight
+        qb.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var container = qb.closest('#commentsList, #dc-list');
+            var target = container ? container.querySelector('[data-comment-id="'+commentData.parentId+'"]') : null;
+            if (target) {
+                target.scrollIntoView({ behavior:'smooth', block:'center' });
+                target.style.transition = 'background 0.15s';
+                target.style.background = 'rgba(98,98,98,0.09)';
+                setTimeout(function(){ target.style.background = ''; }, 850);
+            }
+        });
+        bubble.insertBefore(qb, bubble.firstChild);
     }
 
     // Actions row — reply btn left, like button RIGHT
@@ -6145,10 +6247,54 @@ function createCommentElement(commentData, replies = []) {
                 _commentId: commentData.id, _userName: commentData.userName
             }));
         } else {
-            currentReplyTo = { id: commentData.id, name: commentData.userName };
-            replyPreviewText.textContent = `Replying to ${commentData.userName}`;
+            currentReplyTo = { id: commentData.id, name: commentData.userName, text: commentData.text || '',
+                photoURL: commentData.userPhotoURL, timestamp: commentData.timestamp };
+
+            // Populate rich reply preview bar
+            var _rpName = document.getElementById('rpName');
+            var _rpText = document.getElementById('replyPreviewText');
+            var _rpAv   = document.getElementById('rpAvatar');
+            var _rpTime = document.getElementById('rpTime');
+
+            if (_rpName) _rpName.textContent = commentData.userName || 'User';
+            if (_rpText) _rpText.textContent = commentData.text || '📎 Attachment';
+            if (_rpTime) {
+                _rpTime.textContent = (commentData.timestamp && commentData.timestamp.toDate)
+                    ? formatTimestamp(commentData.timestamp.toDate()) : '';
+            }
+            if (_rpAv) {
+                _rpAv.innerHTML = '';
+                var _rL = (commentData.userName||'U')[0].toUpperCase();
+                var _rH = (_rL.charCodeAt(0)*37)%360;
+                if (commentData.userPhotoURL && !commentData.userPhotoURL.includes('default_profile')) {
+                    var _ri = document.createElement('img');
+                    _ri.src = commentData.userPhotoURL;
+                    _ri.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
+                    _ri.onerror = function(){ _rpAv.textContent=_rL; _rpAv.style.background='hsl('+_rH+',50%,44%)'; };
+                    _rpAv.appendChild(_ri);
+                } else {
+                    _rpAv.textContent = _rL;
+                    _rpAv.style.background = 'hsl('+_rH+',50%,44%)';
+                }
+            }
+
             replyPreview.classList.add('show');
             replyPreview.style.display = 'flex';
+
+            // Clicking the preview bar scrolls to the parent comment
+            replyPreview._scrollHandler && replyPreview.removeEventListener('click', replyPreview._scrollHandler);
+            replyPreview._scrollHandler = function(ev) {
+                if (ev.target.closest('#replyPreviewClose')) return;
+                var target = document.querySelector('[data-comment-id="'+commentData.id+'"]');
+                if (target) {
+                    target.scrollIntoView({ behavior:'smooth', block:'center' });
+                    target.style.transition = 'background 0.15s';
+                    target.style.background = 'rgba(98,98,98,0.09)';
+                    setTimeout(function(){ target.style.background = ''; }, 850);
+                }
+            };
+            replyPreview.addEventListener('click', replyPreview._scrollHandler);
+
             commentInput.focus();
         }
     });
@@ -6161,45 +6307,10 @@ function createCommentElement(commentData, replies = []) {
     const likeButton = document.createElement('button');
     likeButton.className = 'like-button' + (commentData.likes && commentData.likes.includes(currentUser?.uid) ? ' liked' : '');
     likeButton.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`;
-
     const likeCount = document.createElement('span');
     likeCount.className = 'like-count';
     likeCount.textContent = commentData.likes ? commentData.likes.length : 0;
 
-    // ── Real-time comment like listener ──
-    var _postIdForCmt = currentPostId || window._dcCurrentPostId;
-    if (_postIdForCmt && commentData.id && !commentData.id.startsWith('temp_')) {
-        onSnapshot(doc(db, 'recence', _postIdForCmt, 'comments', commentData.id), function(snap) {
-            if (!snap.exists()) return;
-            var likes = snap.data().likes || [];
-            likeCount.textContent = likes.length;
-            if (currentUser && likes.includes(currentUser.uid)) {
-                likeButton.classList.add('liked');
-            } else {
-                likeButton.classList.remove('liked');
-            }
-        });
-    }
-
-    likeButton.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        if (!currentUser) { window._showAuthPrompt(); return; }
-        if (navigator.vibrate) navigator.vibrate(20);
-        const isLiked = likeButton.classList.contains('liked');
-        likeButton.classList.remove('pop'); void likeButton.offsetWidth; likeButton.classList.add('pop');
-        try {
-            var _postId = currentPostId || window._dcCurrentPostId;
-            const commentRef = doc(db, 'recence', _postId, 'comments', commentData.id);
-            await updateDoc(commentRef, { likes: isLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
-            // UI updated by onSnapshot above
-        } catch (err) {
-            console.error('Comment like error:', err);
-        }
-    });
-    likeGroup.appendChild(likeButton);
-    likeGroup.appendChild(likeCount);
-
-    // Dislike button on comment
     const cmtDislikeBtn = document.createElement('button');
     cmtDislikeBtn.className = 'like-button' + (commentData.dislikes && commentData.dislikes.includes(currentUser?.uid) ? ' liked' : '');
     cmtDislikeBtn.style.cssText = 'margin-left:6px;';
@@ -6208,15 +6319,41 @@ function createCommentElement(commentData, replies = []) {
     cmtDislikeCount.className = 'like-count';
     cmtDislikeCount.textContent = commentData.dislikes ? commentData.dislikes.length : 0;
 
+    // ── Single combined real-time listener for likes + dislikes ──
+    var _postIdForCmt = currentPostId || window._dcCurrentPostId;
     if (_postIdForCmt && commentData.id && !commentData.id.startsWith('temp_')) {
         onSnapshot(doc(db, 'recence', _postIdForCmt, 'comments', commentData.id), function(snap) {
             if (!snap.exists()) return;
-            var dlikes = snap.data().dislikes || [];
-            cmtDislikeCount.textContent = dlikes.length || 0;
-            if (currentUser && dlikes.includes(currentUser.uid)) cmtDislikeBtn.classList.add('liked');
+            var d = snap.data();
+            var lks = d.likes || [];
+            var dlks = d.dislikes || [];
+            likeCount.textContent = lks.length;
+            cmtDislikeCount.textContent = dlks.length || 0;
+            if (currentUser && lks.includes(currentUser.uid)) likeButton.classList.add('liked');
+            else likeButton.classList.remove('liked');
+            if (currentUser && dlks.includes(currentUser.uid)) cmtDislikeBtn.classList.add('liked');
             else cmtDislikeBtn.classList.remove('liked');
         });
     }
+
+    // Like — removes dislike if present (YouTube-style mutual exclusion)
+    likeButton.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!currentUser) { window._showAuthPrompt(); return; }
+        if (navigator.vibrate) navigator.vibrate(20);
+        likeButton.classList.remove('pop'); void likeButton.offsetWidth; likeButton.classList.add('pop');
+        try {
+            var _pid = currentPostId || window._dcCurrentPostId;
+            const ref2 = doc(db, 'recence', _pid, 'comments', commentData.id);
+            if (likeButton.classList.contains('liked')) {
+                await updateDoc(ref2, { likes: arrayRemove(currentUser.uid) });
+            } else {
+                await updateDoc(ref2, { likes: arrayUnion(currentUser.uid), dislikes: arrayRemove(currentUser.uid) });
+            }
+        } catch (err) { console.error('Comment like error:', err); }
+    });
+
+    // Dislike — removes like if present (YouTube-style mutual exclusion)
     cmtDislikeBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
         if (!currentUser) { window._showAuthPrompt(); return; }
@@ -6224,13 +6361,17 @@ function createCommentElement(commentData, replies = []) {
         cmtDislikeBtn.classList.remove('pop'); void cmtDislikeBtn.offsetWidth; cmtDislikeBtn.classList.add('pop');
         try {
             var _pid2 = currentPostId || window._dcCurrentPostId;
-            const cRef2 = doc(db, 'recence', _pid2, 'comments', commentData.id);
-            const cSnap2 = await getDoc(cRef2);
-            if (!cSnap2.exists()) return;
-            var dl2 = cSnap2.data().dislikes || [];
-            await updateDoc(cRef2, { dislikes: dl2.includes(currentUser.uid) ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
+            const ref3 = doc(db, 'recence', _pid2, 'comments', commentData.id);
+            if (cmtDislikeBtn.classList.contains('liked')) {
+                await updateDoc(ref3, { dislikes: arrayRemove(currentUser.uid) });
+            } else {
+                await updateDoc(ref3, { dislikes: arrayUnion(currentUser.uid), likes: arrayRemove(currentUser.uid) });
+            }
         } catch(err) { console.error('Comment dislike error:', err); }
     });
+
+    likeGroup.appendChild(likeButton);
+    likeGroup.appendChild(likeCount);
     likeGroup.appendChild(cmtDislikeBtn);
     likeGroup.appendChild(cmtDislikeCount);
 
@@ -6301,6 +6442,11 @@ async function addComment() {
         if (savedReply) {
             commentData.parentId = savedReply.id;
             commentData.parentUserName = savedReply.name;
+            commentData.parentText = savedReply.text || '';
+            commentData.parentPhotoURL = savedReply.photoURL || '';
+            if (savedReply.timestamp && savedReply.timestamp.toDate) {
+                commentData.parentTimestamp = savedReply.timestamp.toDate().getTime();
+            }
         }
         if (savedGif) commentData.gifUrl = savedGif;
         
