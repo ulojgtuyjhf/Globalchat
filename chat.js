@@ -45,7 +45,7 @@
         inputPh:              '#c0c0c0',
         // comment items
         commentText:          '#1c1c1c',
-        commentAuthor:        '#111111',
+        commentAuthor:        '#444444',
         commentDate:          '#bbbbbb',
         commentTime:          '#cccccc',
         commentLike:          '#d0d0d0',
@@ -220,6 +220,13 @@
         updEmptyIcon:         '#bbbbbb',
         updEmptyText:         '#bbbbbb',
         updDotColor:          '#111111',
+        replyQuoteBg:         '#f0f0f0',
+        replyQuoteBarGrad:    'linear-gradient(180deg,#0f0f0f 0%,#3a3a3a 40%,#626262 70%,#a6a6a6 100%)',
+        replyQuoteNameGrad:   'linear-gradient(135deg,#0f0f0f 0%,#626262 60%,#a6a6a6 100%)',
+        replyQuoteText:       '#888888',
+        replyQuoteTime:       '#aaaaaa',
+        replyPreviewBg:       '#f5f5f5',
+        gifBadgeGrad:         'linear-gradient(105deg,#0f0f0f 0%,#3a3a3a 30%,rgba(255,255,255,0.33) 50%,#3a3a3a 70%,#0f0f0f 100%)',
       },
 
       // ── DIM ───────────────────────────────────────────────────
@@ -418,6 +425,13 @@
         updEmptyIcon:         '#536471',
         updEmptyText:         '#536471',
         updDotColor:          '#f7f9f9',
+        replyQuoteBg:         '#1e2732',
+        replyQuoteBarGrad:    'linear-gradient(180deg,#8899a6 0%,#536471 60%,#38444d 100%)',
+        replyQuoteNameGrad:   'linear-gradient(135deg,#ffffff 0%,#8899a6 60%,#536471 100%)',
+        replyQuoteText:       '#8899a6',
+        replyQuoteTime:       '#536471',
+        replyPreviewBg:       '#15202b',
+        gifBadgeGrad:         'linear-gradient(105deg,#15202b 0%,#253240 30%,rgba(255,255,255,0.18) 50%,#253240 70%,#15202b 100%)',
       },
 
       // ── DARK ──────────────────────────────────────────────────
@@ -619,6 +633,13 @@
         updEmptyIcon:         '#555555',
         updEmptyText:         '#555555',
         updDotColor:          '#ffffff',
+        replyQuoteBg:         '#111111',
+        replyQuoteBarGrad:    'linear-gradient(180deg,#a6a6a6 0%,#626262 50%,#3a3a3a 100%)',
+        replyQuoteNameGrad:   'linear-gradient(135deg,#ffffff 0%,#a6a6a6 60%,#626262 100%)',
+        replyQuoteText:       '#a6a6a6',
+        replyQuoteTime:       '#555555',
+        replyPreviewBg:       '#0d0d0d',
+        gifBadgeGrad:         'linear-gradient(105deg,#111111 0%,#2a2a2a 30%,rgba(255,255,255,0.15) 50%,#2a2a2a 70%,#111111 100%)',
       }
     },
 
@@ -729,6 +750,40 @@
         .gif-selector { background: ${t.sheetBg}; border-top: 1px solid ${t.sheetBorder}; }
         .gif-search { background: ${t.surfaceSecondary}; border-color: ${t.border}; color: ${t.textPrimary}; }
         .gif-search:focus { border-color: ${t.borderFocus}; background: ${t.surfacePrimary}; }
+
+        /* ── reply quote bubble (inside comments) ── */
+        .reply-quote-bubble { background: ${t.replyQuoteBg} !important; }
+        .reply-quote-bubble:active { background: ${t.replyQuoteBg} !important; filter: brightness(0.95); }
+        .reply-quote-bar { background: ${t.replyQuoteBarGrad} !important; }
+        .reply-quote-tilde {
+          background: ${t.replyQuoteBarGrad} !important;
+          -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important;
+          background-clip: text !important;
+        }
+        .reply-quote-name {
+          background: ${t.replyQuoteNameGrad} !important;
+          -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important;
+          background-clip: text !important;
+        }
+        .reply-quote-time { color: ${t.replyQuoteTime} !important; }
+        .reply-quote-text { color: ${t.replyQuoteText} !important; }
+        /* ── reply preview bar (above input) ── */
+        .reply-preview { background: ${t.replyPreviewBg} !important; }
+        .rp-accent { background: ${t.replyQuoteBarGrad} !important; }
+        .rp-tilde {
+          background: ${t.replyQuoteBarGrad} !important;
+          -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important;
+          background-clip: text !important;
+        }
+        .rp-name {
+          background: ${t.replyQuoteNameGrad} !important;
+          -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important;
+          background-clip: text !important;
+        }
+        .rp-time { color: ${t.replyQuoteTime} !important; }
+        .rp-text { color: ${t.replyQuoteText} !important; }
+        /* ── GIF badge shimmer ── */
+        .gif-badge-icon { background: ${t.gifBadgeGrad} !important; background-size: 250% auto !important; }
 
         /* share sheet */
         .share-sheet { background: ${t.sheetBg} !important; }
