@@ -3098,16 +3098,15 @@ body, * {
             </div>
             <span>Home</span>
         </button>
-        <!-- Updates: bell icon -->
+        <!-- Explore: compass/search icon -->
         <button class="nav-btn" id="navTop">
             <div class="nav-icon-wrap" style="position:relative;">
                 <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" fill="none">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
-                <span class="nav-badge" id="updatesBadge"></span>
             </div>
-            <span>Updates</span>
+            <span>Explore</span>
         </button>
         <!-- Upload: wide soft rectangle with lines + plus -->
         <div class="nav-upload-wrap">
@@ -3118,14 +3117,16 @@ body, * {
                 </svg>
             </button>
         </div>
-        <!-- Saved: bookmark icon -->
+        <!-- Updates: bell icon -->
         <button class="nav-btn" id="navLiked">
-            <div class="nav-icon-wrap">
+            <div class="nav-icon-wrap" style="position:relative;">
                 <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" fill="none">
-                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
+                <span class="nav-badge" id="updatesBadge"></span>
             </div>
-            <span>Saved</span>
+            <span>Updates</span>
         </button>
         <!-- Profile: embeds profile.html iframe -->
         <button class="nav-btn" id="navProfile">
@@ -3252,41 +3253,268 @@ body, * {
     #liked-viewer-feed::-webkit-scrollbar { display: none; }
     </style>
 
-    <div id="liked-section">
-        <!-- Transition overlay -->
-        <div id="liked-trans"><div class="spinner"></div></div>
+    <!-- ══════════════════════════════════════════════
+         EXPLORE SECTION (replaces Saved)
+         ══════════════════════════════════════════════ -->
+    <style>
+    #explore-section {
+        position: fixed; inset: 0; bottom: 0;
+        background: #fafafa;
+        z-index: 200; display: none; flex-direction: column; overflow: hidden;
+    }
+    #explore-header {
+        padding: calc(env(safe-area-inset-top,0px) + 14px) 16px 10px;
+        display: flex; align-items: center; gap: 10px;
+        flex-shrink: 0;
+        background: #fff;
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    #explore-header-title {
+        font-size: 22px; font-weight: 900; color: #111;
+        font-family: var(--font); letter-spacing: -0.03em; flex: 1;
+    }
+    /* Search bar */
+    #explore-search-wrap {
+        display: flex; align-items: center; gap: 8px;
+        padding: 10px 14px;
+        background: #fff;
+        border-bottom: 1px solid #f0f0f0;
+        flex-shrink: 0;
+    }
+    #explore-search-bar {
+        flex: 1; display: flex; align-items: center; gap: 8px;
+        background: #f2f2f2; border-radius: 14px;
+        padding: 9px 14px; border: 1.5px solid transparent;
+        transition: border-color 0.2s, background 0.2s;
+    }
+    #explore-search-bar:focus-within {
+        background: #fff; border-color: #e0e0e0;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    #explore-search-bar svg { width: 16px; height: 16px; stroke: #aaa; fill: none; flex-shrink: 0; }
+    #explore-search-input {
+        flex: 1; border: none; background: none; outline: none;
+        font-size: 14px; font-weight: 500; color: #111; font-family: var(--font);
+    }
+    #explore-search-input::placeholder { color: #bbb; }
+    /* Video grid */
+    #explore-grid {
+        flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+        padding: 8px 8px calc(env(safe-area-inset-bottom,0px) + 80px) 8px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        scrollbar-width: none;
+        background: #f5f5f5;
+        overscroll-behavior: contain;
+    }
+    #explore-grid::-webkit-scrollbar { display: none; }
+    /* Loading/empty states */
+    #explore-empty {
+        display: none; position: absolute;
+        inset: 0; flex-direction: column; align-items: center; justify-content: center;
+        gap: 14px; pointer-events: none;
+    }
+    #explore-empty-icon {
+        width: 64px; height: 64px; border-radius: 20px;
+        background: #f0f0f0;
+        display: flex; align-items: center; justify-content: center;
+    }
+    /* Fullscreen viewer */
+    #explore-viewer {
+        position: fixed; inset: 0; background: #000; z-index: 1000;
+        transform: translateY(100%);
+        transition: transform 0.36s cubic-bezier(0.22,1,0.36,1);
+    }
+    #explore-viewer-feed {
+        position: absolute; inset: 0;
+        overflow-y: scroll; scroll-snap-type: y mandatory;
+        scroll-snap-stop: always; overscroll-behavior-y: contain;
+        scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    }
+    #explore-viewer-feed::-webkit-scrollbar { display: none; }
+    #explore-viewer-back {
+        position: fixed; top: calc(env(safe-area-inset-top,0px) + 12px); left: 14px;
+        z-index: 1010; background: var(--brand-gradient); border: none; cursor: pointer;
+        width: 36px; height: 36px; border-radius: 50%;
+        display: none; align-items: center; justify-content: center;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+        -webkit-tap-highlight-color: transparent;
+    }
+    #explore-viewer.open #explore-viewer-back { display: flex; }
+    </style>
+
+    <div id="explore-section">
         <!-- Header -->
-        <div id="liked-header">
-            <span id="liked-header-title">Saved</span>
-            <span id="liked-count-badge">0</span>
+        <div id="explore-header">
+            <span id="explore-header-title">Explore</span>
         </div>
-        <!-- Pinterest masonry grid -->
-        <div id="liked-grid"></div>
-        <!-- Empty state -->
-        <div id="liked-empty">
-            <div id="liked-empty-icon">
-                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        <!-- Search bar -->
+        <div id="explore-search-wrap">
+            <div id="explore-search-bar">
+                <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input id="explore-search-input" type="search" placeholder="Search videos..." autocomplete="off" autocorrect="off" spellcheck="false">
             </div>
-            <span style="font-size:16px;font-weight:800;color:#888;font-family:var(--font);">Nothing saved yet</span>
-            <span style="font-size:13px;color:#bbb;font-family:var(--font);">Tap the bookmark icon on any video</span>
         </div>
-        <!-- Fullscreen viewer — same structure as #gallery -->
-        <div id="liked-viewer">
-            <div id="liked-viewer-feed"></div>
-            <button id="liked-viewer-back">
+        <!-- 3-col masonry video grid -->
+        <div id="explore-grid"></div>
+        <!-- Empty state -->
+        <div id="explore-empty">
+            <div id="explore-empty-icon">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <span style="font-size:16px;font-weight:800;color:#888;font-family:var(--font);">No videos found</span>
+            <span style="font-size:13px;color:#bbb;font-family:var(--font);">Try a different search</span>
+        </div>
+        <!-- Fullscreen viewer -->
+        <div id="explore-viewer">
+            <div id="explore-viewer-feed"></div>
+            <button id="explore-viewer-back">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
         </div>
-        <!-- Guest login wall for saved -->
-        <div class="guest-login-wall" id="liked-guest-wall" style="display:none;">
+    </div>
+
+    <!-- UPDATES SECTION (replaces Saved slot, shown when navLiked tapped) -->
+    <style>
+    #updates-section {
+        position: fixed; inset: 0; bottom: 0;
+        background: #fafafa;
+        z-index: 200; display: none; flex-direction: column; overflow: hidden;
+    }
+    #updates-section-header {
+        padding: calc(env(safe-area-inset-top,0px) + 14px) 16px 10px;
+        display: flex; align-items: center; gap: 10px;
+        flex-shrink: 0; background: #fff;
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    #updates-section-title {
+        font-size: 22px; font-weight: 900; color: #111;
+        font-family: var(--font); letter-spacing: -0.03em; flex: 1;
+    }
+    #updates-section-list {
+        flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: calc(env(safe-area-inset-bottom,0px) + 80px);
+    }
+    #updates-section-list::-webkit-scrollbar { display: none; }
+    .upd-notif-row {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px 16px;
+        border-bottom: 1px solid #f5f5f5;
+        -webkit-tap-highlight-color: transparent;
+        cursor: pointer; transition: background 0.12s;
+    }
+    .upd-notif-row:active { background: #fafafa; }
+    .upd-notif-av {
+        width: 44px; height: 44px; border-radius: 50%;
+        background: #e0e0e0; flex-shrink: 0; overflow: hidden;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 17px; font-weight: 900; color: #fff;
+        border: 2px solid #f5f5f5;
+    }
+    .upd-notif-av img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+    .upd-notif-body { flex: 1; min-width: 0; }
+    .upd-notif-text {
+        font-size: 13px; font-weight: 600; color: #111;
+        font-family: var(--font); line-height: 1.4;
+    }
+    .upd-notif-text strong { font-weight: 900; }
+    .upd-notif-time {
+        font-size: 11px; color: #bbb; font-weight: 500;
+        font-family: var(--font); margin-top: 2px;
+    }
+    .upd-notif-icon {
+        width: 32px; height: 32px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+    }
+    .upd-notif-icon.reply { background: #f0f0ff; }
+    .upd-notif-icon.follow { background: #f0fff4; }
+    .upd-notif-icon.like { background: #fff0f3; }
+    .upd-notif-icon svg { width: 14px; height: 14px; }
+    .upd-section-empty {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        padding: 64px 24px; gap: 12px;
+    }
+    .upd-section-empty-icon {
+        width: 64px; height: 64px; border-radius: 20px;
+        background: #f0f0f0;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .upd-section-tabs {
+        display: flex; gap: 5px; padding: 10px 14px;
+        border-bottom: 1px solid #f0f0f0; flex-shrink: 0;
+        overflow-x: auto; scrollbar-width: none;
+        background: #fff;
+    }
+    .upd-section-tabs::-webkit-scrollbar { display: none; }
+    .upd-section-tab {
+        flex-shrink: 0; display: flex; align-items: center; gap: 5px;
+        padding: 6px 13px; border-radius: 99px;
+        font-size: 11px; font-weight: 800; font-family: var(--font);
+        border: 1.5px solid #e8e8e8; background: #f8f8f8;
+        color: #777; cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+        -webkit-tap-highlight-color: transparent;
+    }
+    .upd-section-tab.active {
+        background: #111; color: #fff; border-color: #111;
+    }
+    .upd-section-tab:active { transform: scale(0.93); }
+    /* Guest wall */
+    #updates-section-guest-wall {
+        display: none; flex: 1;
+        flex-direction: column; align-items: center; justify-content: center;
+        gap: 16px; padding: 32px 24px;
+    }
+    </style>
+
+    <div id="updates-section">
+        <div id="updates-section-header">
+            <span id="updates-section-title">Updates</span>
+            <span id="updates-section-badge" style="display:none;background:var(--brand-gradient);color:#fff;font-size:10px;font-weight:900;padding:3px 10px;border-radius:99px;font-family:var(--font);"></span>
+        </div>
+        <!-- Filter tabs -->
+        <div class="upd-section-tabs">
+            <button class="upd-section-tab active" data-filter="all">All</button>
+            <button class="upd-section-tab" data-filter="replies">Replies</button>
+            <button class="upd-section-tab" data-filter="follows">Follows</button>
+            <button class="upd-section-tab" data-filter="likes">Likes</button>
+        </div>
+        <!-- Notifications list -->
+        <div id="updates-section-list">
+            <div class="upd-section-empty" id="updates-section-empty">
+                <div class="upd-section-empty-icon">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                </div>
+                <span style="font-size:16px;font-weight:800;color:#888;font-family:var(--font);">No updates yet</span>
+                <span style="font-size:13px;color:#bbb;font-family:var(--font);text-align:center;">When someone replies or follows you, it'll show up here</span>
+            </div>
+        </div>
+        <!-- Guest login wall -->
+        <div class="guest-login-wall" id="updates-section-guest-wall">
             <div class="glw-icon">
                 <span style="font-family:var(--font);font-size:32px;font-weight:900;color:#fff;letter-spacing:-0.04em;">N</span>
             </div>
-            <h2>Log in to see<br>your saved videos</h2>
-            <p>Videos you save will appear here,<br>ready to watch anytime.</p>
+            <h2>Log in to see<br>your updates</h2>
+            <p>Replies, follows and likes<br>will all appear here.</p>
             <button class="glw-btn-primary" onclick="window._gapGoLogin('signup')">Create free account</button>
             <button class="glw-btn-secondary" onclick="window._gapGoLogin('login')">Log in</button>
         </div>
+    </div>
+
+    <!-- Keep liked-section in DOM for viewer compatibility but hidden -->
+    <div id="liked-section" style="display:none!important;">
+        <div id="liked-trans" style="display:none;"></div>
+        <div id="liked-header" style="display:none;"><span id="liked-header-title">Saved</span><span id="liked-count-badge">0</span></div>
+        <div id="liked-grid" style="display:none;"></div>
+        <div id="liked-empty" style="display:none;"></div>
+        <div id="liked-viewer"><div id="liked-viewer-feed"></div><button id="liked-viewer-back" style="display:none!important;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button></div>
+        <div id="liked-guest-wall" style="display:none;"></div>
     </div>
 
     <!-- Upload Panel (slides up like liked-videos panel, loads upload.html in iframe) -->
@@ -3581,6 +3809,7 @@ body, * {
             <div id="mob-prof-tabs">
                 <button data-tab="uploaded" class="active">Uploaded</button>
                 <button data-tab="liked">Liked</button>
+                <button data-tab="saved">Saved</button>
                 <button data-tab="superliked">Super Liked</button>
             </div>
         </div>
@@ -3605,6 +3834,96 @@ body, * {
         </div>
     </div>
 
+
+    <!-- ══════════════════════════════════════════════
+         OTHER USER PROFILE VIEWER (fullscreen, replaces old followingPanel for avatar taps)
+         ══════════════════════════════════════════════ -->
+    <style>
+    #user-profile-overlay {
+        position: fixed; inset: 0; z-index: 9000;
+        background: #fff;
+        transform: translateY(100%);
+        transition: transform 0.38s cubic-bezier(0.22,1,0.36,1);
+        display: flex; flex-direction: column;
+        overflow: hidden;
+    }
+    #user-profile-overlay.open { transform: translateY(0); }
+    /* Cover */
+    #up-cover {
+        width: 100%; height: 140px;
+        background: var(--brand-gradient);
+        flex-shrink: 0; position: relative; overflow: hidden;
+        padding-top: env(safe-area-inset-top, 0px);
+    }
+    #up-cover img { position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block; }
+    #up-cover-overlay { position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.1) 0%,rgba(0,0,0,0.45) 100%); }
+    /* Back button on cover */
+    #up-back {
+        position: absolute; top: calc(env(safe-area-inset-top,0px) + 10px); left: 14px;
+        z-index: 10; background: rgba(0,0,0,0.45); border: none; cursor: pointer;
+        width: 34px; height: 34px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        -webkit-tap-highlight-color: transparent;
+    }
+    #up-back svg { width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round; }
+    /* Head */
+    #up-head {
+        padding: 0 16px 12px; background: #fff;
+        border-bottom: 1px solid rgba(0,0,0,0.06); flex-shrink: 0;
+    }
+    .up-top-row { display:flex;align-items:flex-end;gap:14px;margin-top:-38px;margin-bottom:10px; }
+    #up-av {
+        width:72px;height:72px;border-radius:50%;background:#555;flex-shrink:0;
+        border:3px solid #fff;overflow:hidden;display:flex;align-items:center;justify-content:center;
+        font-size:28px;font-weight:900;color:#fff;box-shadow:0 4px 20px rgba(0,0,0,0.25);position:relative;z-index:2;
+    }
+    #up-av img {width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
+    .up-meta { flex:1;min-width:0;padding-bottom:4px; }
+    #up-name { font-size:18px;font-weight:900;color:#111;font-family:var(--font);letter-spacing:-0.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+    #up-handle { font-size:12px;color:#aaa;font-weight:600;font-family:var(--font);margin-top:2px; }
+    /* Follow button on profile */
+    #up-follow-btn {
+        padding: 8px 20px; border-radius: 12px; border: none; cursor: pointer;
+        font-size: 13px; font-weight: 800; font-family: var(--font);
+        background: var(--brand-gradient); color: #fff;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+        -webkit-tap-highlight-color: transparent;
+        transition: opacity 0.15s, transform 0.15s;
+        align-self: flex-end; margin-bottom: 4px; flex-shrink: 0;
+    }
+    #up-follow-btn:active { opacity:0.8; transform:scale(0.94); }
+    #up-follow-btn.following { background:#f2f2f2;color:#888;box-shadow:none; }
+    #up-bio { font-size:13px;color:#555;font-weight:500;font-family:var(--font);margin:6px 0 0;line-height:1.45;display:none; }
+    #up-links { display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0; }
+    /* Stats */
+    #up-stats { display:flex;gap:0;margin-top:14px;background:#f5f5f5;border-radius:14px;overflow:hidden; }
+    .up-stat { flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border-right:1px solid #ebebeb; }
+    .up-stat:last-child { border-right:none; }
+    .up-stat-num { font-size:17px;font-weight:900;color:#111;font-family:var(--font);letter-spacing:-0.02em; }
+    .up-stat-label { font-size:9px;font-weight:700;color:#aaa;font-family:var(--font);letter-spacing:0.04em;text-transform:uppercase; }
+    /* Grid */
+    #up-grid {
+        flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+        padding:6px 5px calc(env(safe-area-inset-bottom,0px)+16px) 5px;
+        column-count:3;column-gap:5px;scrollbar-width:none;background:#fafafa;overscroll-behavior:contain;
+    }
+    #up-grid::-webkit-scrollbar { display:none; }
+    #up-grid .liked-cell { margin-bottom:5px; }
+    /* Video viewer inside user profile */
+    #up-viewer {
+        position:fixed;inset:0;background:#000;z-index:9100;
+        transform:translateY(100%);transition:transform 0.36s cubic-bezier(0.22,1,0.36,1);
+    }
+    #up-viewer-feed { position:absolute;inset:0;overflow-y:scroll;scroll-snap-type:y mandatory;scroll-snap-stop:always;overscroll-behavior-y:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch; }
+    #up-viewer-feed::-webkit-scrollbar { display:none; }
+    #up-viewer-back {
+        position:fixed;top:calc(env(safe-area-inset-top,0px)+12px);left:14px;z-index:9110;
+        background:var(--brand-gradient);border:none;cursor:pointer;width:36px;height:36px;border-radius:50%;
+        display:none;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.3);-webkit-tap-highlight-color:transparent;
+    }
+    #up-viewer.open #up-viewer-back { display:flex; }
+    </style>
 
     
 <script src="chat.js"></script>
