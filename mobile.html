@@ -3257,58 +3257,153 @@ body, * {
          EXPLORE SECTION (replaces Saved)
          ══════════════════════════════════════════════ -->
     <style>
+    /* ── EXPLORE SECTION — Upgraded ── */
     #explore-section {
         position: fixed; inset: 0; bottom: 0;
-        background: #fafafa;
+        background: #f5f5f7;
         z-index: 200; display: none; flex-direction: column; overflow: hidden;
     }
+
+    /* Header — compact brand gradient bar */
     #explore-header {
-        padding: calc(env(safe-area-inset-top,0px) + 14px) 16px 10px;
-        display: flex; align-items: center; gap: 10px;
+        padding: 12px 14px 0;
+        display: flex; flex-direction: column; gap: 8px;
         flex-shrink: 0;
-        background: #fff;
-        border-bottom: 1px solid rgba(0,0,0,0.06);
+        background: var(--brand-gradient);
+        position: relative; overflow: hidden;
+    }
+    #explore-header::after {
+        content: '';
+        position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
+        animation: headerShimmer 3s ease-in-out infinite;
+        pointer-events: none;
+    }
+    @keyframes headerShimmer {
+        0%   { left: -60%; }
+        100% { left: 120%; }
     }
     #explore-header-title {
-        font-size: 22px; font-weight: 900; color: #111;
-        font-family: var(--font); letter-spacing: -0.03em; flex: 1;
+        font-size: 18px; font-weight: 900; color: #fff;
+        font-family: var(--font); letter-spacing: -0.01em;
+        display: flex; align-items: center; gap: 7px; line-height: 1;
     }
-    /* Search bar */
+    #explore-header-title::before {
+        content: ''; display: inline-block;
+        width: 7px; height: 7px; border-radius: 50%;
+        background: var(--red);
+        box-shadow: 0 0 6px var(--red); flex-shrink: 0;
+    }
+
+    /* Search bar — inside the header, fused look */
     #explore-search-wrap {
-        display: flex; align-items: center; gap: 8px;
-        padding: 10px 14px;
-        background: #fff;
-        border-bottom: 1px solid #f0f0f0;
-        flex-shrink: 0;
+        padding: 0 0 10px 0;
     }
     #explore-search-bar {
-        flex: 1; display: flex; align-items: center; gap: 8px;
-        background: #f2f2f2; border-radius: 14px;
-        padding: 9px 14px; border: 1.5px solid transparent;
-        transition: border-color 0.2s, background 0.2s;
+        display: flex; align-items: center; gap: 8px;
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        border-radius: 10px;
+        padding: 8px 12px;
+        border: 1px solid rgba(255,255,255,0.2);
+        transition: background 0.2s;
     }
     #explore-search-bar:focus-within {
-        background: #fff; border-color: #e0e0e0;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        background: rgba(255,255,255,0.22);
     }
-    #explore-search-bar svg { width: 16px; height: 16px; stroke: #aaa; fill: none; flex-shrink: 0; }
+    #explore-search-bar svg { width: 14px; height: 14px; stroke: rgba(255,255,255,0.7); fill: none; flex-shrink: 0; }
     #explore-search-input {
         flex: 1; border: none; background: none; outline: none;
-        font-size: 14px; font-weight: 500; color: #111; font-family: var(--font);
+        font-size: 13px; font-weight: 500; color: #fff; font-family: var(--font);
     }
-    #explore-search-input::placeholder { color: #bbb; }
-    /* Video grid */
+    #explore-search-input::placeholder { color: rgba(255,255,255,0.5); }
+
+    /* ── Pinterest-style masonry grid ── */
     #explore-grid {
         flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
-        padding: 8px 8px calc(env(safe-area-inset-bottom,0px) + 80px) 8px;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
+        padding: 6px 6px calc(env(safe-area-inset-bottom,0px) + 84px) 6px;
+        columns: 2;
+        column-gap: 6px;
         scrollbar-width: none;
-        background: #f5f5f5;
+        background: #f2f2f4;
         overscroll-behavior: contain;
     }
     #explore-grid::-webkit-scrollbar { display: none; }
+
+    /* Outer wrapper */
+    .exp-item {
+        break-inside: avoid;
+        display: block;
+        margin-bottom: 8px;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .exp-item:active .exp-card { transform: scale(0.97); }
+
+    /* ── Meta row ABOVE card ── */
+    .exp-card-meta {
+        display: flex; align-items: center; gap: 4px;
+        padding: 0 2px 4px 2px;
+        min-width: 0;
+    }
+    .exp-card-avatar {
+        width: 22px; height: 22px; border-radius: 50%;
+        background: var(--brand-gradient);
+        flex-shrink: 0; overflow: hidden;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 8px; font-weight: 900; color: #fff;
+        border: 1.5px solid #e0e0e0;
+    }
+    .exp-card-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+    .exp-card-username {
+        font-size: 10.5px; font-weight: 700; color: #111;
+        font-family: var(--font); flex: 1; min-width: 0;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .exp-card-flag-img {
+        width: 16px; height: 12px; border-radius: 2px;
+        object-fit: cover; flex-shrink: 0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .exp-card-flag {
+        width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+        background: var(--red); box-shadow: 0 0 4px rgba(255,59,92,0.7);
+    }
+    .exp-card-time {
+        font-size: 9px; font-weight: 500; color: #bbb;
+        font-family: var(--font); flex-shrink: 0;
+    }
+
+    /* ── Video tile ── */
+    .exp-card {
+        display: block; width: 100%;
+        border-radius: 10px; overflow: hidden;
+        background: #111;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        position: relative; transition: transform 0.18s;
+    }
+    .exp-card video {
+        width: 100%; height: 100%; object-fit: cover;
+        display: block; pointer-events: none;
+    }
+    .exp-card-duration {
+        position: absolute; bottom: 6px; right: 6px;
+        background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+        color: #fff; font-size: 9.5px; font-weight: 700;
+        padding: 2px 5px; border-radius: 4px; font-family: var(--font);
+    }
+    .exp-card-desc {
+        position: absolute; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.25) 60%, transparent 100%);
+        padding: 22px 7px 7px; pointer-events: none;
+    }
+    .exp-card-desc span {
+        font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.93);
+        font-family: var(--font); line-height: 1.3;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
     /* Loading/empty states */
     #explore-empty {
         display: none; position: absolute;
@@ -3320,6 +3415,7 @@ body, * {
         background: #f0f0f0;
         display: flex; align-items: center; justify-content: center;
     }
+
     /* Fullscreen viewer */
     #explore-viewer {
         position: fixed; inset: 0; background: #000; z-index: 1000;
@@ -3333,28 +3429,67 @@ body, * {
         scrollbar-width: none; -webkit-overflow-scrolling: touch;
     }
     #explore-viewer-feed::-webkit-scrollbar { display: none; }
+    /* Back button — top LEFT (does not overlap watching badge) */
     #explore-viewer-back {
         position: fixed; top: calc(env(safe-area-inset-top,0px) + 12px); left: 14px;
-        z-index: 1010; background: var(--brand-gradient); border: none; cursor: pointer;
+        z-index: 1010; background: rgba(0,0,0,0.45); backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.18);
+        border: none; cursor: pointer;
         width: 36px; height: 36px; border-radius: 50%;
         display: none; align-items: center; justify-content: center;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+        box-shadow: 0 2px 12px rgba(0,0,0,0.4);
         -webkit-tap-highlight-color: transparent;
     }
     #explore-viewer.open #explore-viewer-back { display: flex; }
+    /* Watching badge in explore viewer — centered at top, like liked-viewer */
+    #explore-viewer-feed .live-viewer-badge {
+        top: calc(env(safe-area-inset-top,0px) + 14px);
+        left: 50%; right: auto;
+        transform: translateX(-50%);
+        gap: 6px;
+        background: rgba(255,255,255,0.12);
+        backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 99px;
+        padding: 4px 10px 4px 6px;
+        white-space: nowrap;
+    }
+    /* Filter tabs */
+    #explore-tabs {
+        display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+        padding: 8px 12px 12px; flex-shrink: 0;
+        background: var(--brand-gradient);
+    }
+    #explore-tabs::-webkit-scrollbar { display: none; }
+    .exp-tab {
+        flex-shrink: 0; padding: 5px 12px; border-radius: 20px;
+        font-size: 11.5px; font-weight: 700; font-family: var(--font);
+        cursor: pointer; border: 1.5px solid rgba(255,255,255,0.3);
+        background: transparent; color: rgba(255,255,255,0.7);
+        -webkit-tap-highlight-color: transparent;
+        transition: all 0.18s;
+    }
+    .exp-tab.active { background: #fff; color: #111; border-color: #fff; }
+    #explore-viewer-feed .live-watch-left { display: none; }
     </style>
 
     <div id="explore-section">
-        <!-- Header -->
+        <!-- Header with search fused inside -->
         <div id="explore-header">
             <span id="explore-header-title">Explore</span>
-        </div>
-        <!-- Search bar -->
-        <div id="explore-search-wrap">
-            <div id="explore-search-bar">
-                <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input id="explore-search-input" type="search" placeholder="Search videos..." autocomplete="off" autocorrect="off" spellcheck="false">
+            <div id="explore-search-wrap">
+                <div id="explore-search-bar">
+                    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input id="explore-search-input" type="search" placeholder="Search videos..." autocomplete="off" autocorrect="off" spellcheck="false">
+                </div>
             </div>
+        </div>
+        <!-- Filter tabs -->
+        <div id="explore-tabs">
+            <button class="exp-tab active" data-tab="recent">For You</button>
+            <button class="exp-tab" data-tab="trending">Trending</button>
+            <button class="exp-tab" data-tab="superlikes">Super Likes</button>
+            <button class="exp-tab" data-tab="following">Following</button>
         </div>
         <!-- 3-col masonry video grid -->
         <div id="explore-grid"></div>
@@ -8890,6 +9025,281 @@ init();
   document.getElementById('dc-list').addEventListener('_reply', function(e) {
     setDcReply(e._commentId, e._userName);
   });
+
+})();
+</script>
+<!-- ── Explore: self-populating grid with real data ── -->
+<script>
+(function(){
+  var grid    = document.getElementById('explore-grid');
+  var viewer  = document.getElementById('explore-viewer');
+  var vFeed   = document.getElementById('explore-viewer-feed');
+  var backBtn = document.getElementById('explore-viewer-back');
+  var tabs    = document.querySelectorAll('.exp-tab');
+  var searchInput = document.getElementById('explore-search-input');
+  if (!grid) return;
+
+  var _allPosts   = [];   // [{id, data}]
+  var _curTab     = 'recent';
+  var _searchQ    = '';
+  var _loaded     = false;
+
+  // ── Helpers ──
+  function relTime(ts) {
+    if (!ts) return '';
+    var d = (ts && ts.toDate) ? ts.toDate() : new Date(ts);
+    var s = Math.floor((Date.now() - d) / 1000);
+    if (s < 60) return 'just now';
+    var m = Math.floor(s/60); if (m < 60) return m+'m';
+    var h = Math.floor(m/60); if (h < 24) return h+'h';
+    var dy = Math.floor(h/24); if (dy < 7) return dy+'d';
+    var w = Math.floor(dy/7); if (w < 5) return w+'w';
+    var mo = Math.floor(dy/30); if (mo < 12) return mo+'mo';
+    return Math.floor(dy/365)+'y';
+  }
+  function fmtDur(sec) {
+    if (!sec || isNaN(sec)) return '';
+    var m = Math.floor(sec/60), s = Math.floor(sec%60);
+    return m+':'+(s<10?'0':'')+s;
+  }
+  function flagUrl(country) {
+    if (!country) return '';
+    var c = country.trim().toLowerCase().replace(/[^a-z]/g,'');
+    if (!c || c === 'unknown') return '';
+    return 'https://flagcdn.com/16x12/'+c+'.png';
+  }
+
+  // ── Sort posts by tab ──
+  function _sorted(posts) {
+    var p = posts.slice();
+    if (_curTab === 'trending') {
+      p.sort(function(a,b){ return ((b.data.likes||[]).length+(b.data.superlikes||[]).length) - ((a.data.likes||[]).length+(a.data.superlikes||[]).length); });
+    } else if (_curTab === 'superlikes') {
+      p.sort(function(a,b){ return (b.data.superlikes||[]).length - (a.data.superlikes||[]).length; });
+    } else if (_curTab === 'following') {
+      var fids = window._followingIds || [];
+      p = p.filter(function(x){ return fids.indexOf(x.data.userId) > -1; });
+    } else {
+      // recent — already ordered by timestamp desc from Firestore
+    }
+    if (_searchQ) {
+      var q = _searchQ.toLowerCase();
+      p = p.filter(function(x){
+        var d = x.data;
+        return (d.text||'').toLowerCase().includes(q) || (d.name||'').toLowerCase().includes(q) || (d.userName||'').toLowerCase().includes(q);
+      });
+    }
+    return p;
+  }
+
+  // ── Render grid ──
+  var _heights = [160, 195, 145, 180, 210, 155, 175, 200];
+  var _hIdx = 0;
+  function _render(posts) {
+    grid.innerHTML = '';
+    _hIdx = 0;
+    if (!posts.length) {
+      grid.innerHTML = '<div style="grid-column:1/-1;padding:40px 16px;text-align:center;color:#bbb;font-size:13px;font-weight:600;font-family:var(--font);">No videos found</div>';
+      return;
+    }
+    posts.forEach(function(item) { _addCard(item.data, item.id); });
+  }
+
+  function _addCard(p, postId) {
+    var media = p.media && p.media[0];
+    if (!media || !media.url) return;
+
+    var h = _heights[_hIdx++ % _heights.length];
+    var name = p.name || p.displayName || p.userName || 'User';
+    var letter = (name[0]||'U').toUpperCase();
+    var hue = (letter.charCodeAt(0)*37)%360;
+    var country = p.country || '';
+    var flagSrc = flagUrl(country);
+    var desc = (p.text||'').trim();
+    var time = relTime(p.timestamp);
+
+    // ── .exp-item wrapper ──
+    var item = document.createElement('div');
+    item.className = 'exp-item';
+    item.dataset.postId = postId;
+
+    // ── Meta row ABOVE card: avatar | name | flag | time ──
+    var meta = document.createElement('div');
+    meta.className = 'exp-card-meta';
+
+    // Avatar
+    var av = document.createElement('div');
+    av.className = 'exp-card-avatar';
+    if (p.photoURL && !p.photoURL.includes('default_profile')) {
+      var avImg = document.createElement('img');
+      avImg.src = p.photoURL;
+      avImg.onerror = function(){ av.textContent=letter; av.style.background='hsl('+hue+',50%,44%)'; };
+      av.appendChild(avImg);
+    } else {
+      av.textContent = letter;
+      av.style.background = 'hsl('+hue+',50%,44%)';
+    }
+
+    // Name
+    var nameEl = document.createElement('span');
+    nameEl.className = 'exp-card-username';
+    nameEl.textContent = name;
+
+    // Flag image (real country flag)
+    if (flagSrc) {
+      var flagImg = document.createElement('img');
+      flagImg.src = flagSrc;
+      flagImg.className = 'exp-card-flag-img';
+      flagImg.alt = country;
+      flagImg.onerror = function(){ this.style.display='none'; };
+      meta.appendChild(av);
+      meta.appendChild(nameEl);
+      meta.appendChild(flagImg);
+    } else {
+      // fallback dot
+      var dot = document.createElement('span');
+      dot.className = 'exp-card-flag';
+      meta.appendChild(av);
+      meta.appendChild(nameEl);
+      meta.appendChild(dot);
+    }
+
+    // Time
+    var timeEl = document.createElement('span');
+    timeEl.className = 'exp-card-time';
+    timeEl.textContent = time;
+    meta.appendChild(timeEl);
+
+    // ── Video card ──
+    var card = document.createElement('div');
+    card.className = 'exp-card';
+    card.style.height = h + 'px';
+
+    var vid = document.createElement('video');
+    vid.src = media.url; vid.muted = true; vid.preload = 'metadata'; vid.playsInline = true;
+    card.appendChild(vid);
+
+    vid.addEventListener('loadedmetadata', function(){
+      vid.currentTime = 0.5;
+      var dur = fmtDur(vid.duration);
+      if (dur) {
+        var durEl = document.createElement('div');
+        durEl.className = 'exp-card-duration';
+        durEl.textContent = dur;
+        card.appendChild(durEl);
+      }
+    }, {once:true});
+
+    // Description overlay inside card
+    if (desc) {
+      var descEl = document.createElement('div');
+      descEl.className = 'exp-card-desc';
+      var sp = document.createElement('span');
+      sp.textContent = desc;
+      descEl.appendChild(sp);
+      card.appendChild(descEl);
+    }
+
+    item.appendChild(meta);
+    item.appendChild(card);
+
+    // Click → open viewer at exact post
+    item.addEventListener('click', function(e){
+      e.stopPropagation();
+      _openViewerAt(postId, item);
+    });
+
+    grid.appendChild(item);
+  }
+
+  // ── Open viewer at exact postId ──
+  function _openViewerAt(postId, itemEl) {
+    if (typeof window.openExploreViewer === 'function') { window.openExploreViewer(postId); return; }
+    if (!viewer || !vFeed) return;
+    viewer.classList.add('open');
+    viewer.style.transform = 'translateY(0)';
+    setTimeout(function(){
+      var slot = postId ? vFeed.querySelector('[data-post-id="'+postId+'"]') : null;
+      if (!slot && itemEl) {
+        var all = Array.from(grid.querySelectorAll('.exp-item'));
+        var idx = all.indexOf(itemEl);
+        slot = vFeed.children[idx] || null;
+      }
+      if (slot) slot.scrollIntoView({behavior:'instant', block:'start'});
+    }, 50);
+  }
+
+  // Back button
+  if (backBtn) backBtn.addEventListener('click', function(){
+    viewer.classList.remove('open');
+    viewer.style.transform = 'translateY(100%)';
+  });
+
+  // ── Load from Firestore ──
+  function _load() {
+    var db  = window._fbDb;
+    var fns = window._fbFirestoreFns;
+    if (!db || !fns) { setTimeout(_load, 300); return; }
+    var q = fns.query(fns.collection(db,'recence'), fns.orderBy('timestamp','desc'), fns.limit(80));
+    fns.getDocs(q).then(function(snap){
+      _allPosts = [];
+      snap.forEach(function(d){ if (d.data().media && d.data().media[0]) _allPosts.push({id:d.id, data:d.data()}); });
+      _loaded = true;
+      _render(_sorted(_allPosts));
+    }).catch(function(e){ console.warn('Explore load error',e); });
+  }
+
+  // ── Tabs ──
+  tabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      tabs.forEach(function(t){ t.classList.remove('active'); });
+      tab.classList.add('active');
+      _curTab = tab.dataset.tab;
+      if (_loaded) _render(_sorted(_allPosts));
+    });
+  });
+
+  // ── Search ──
+  if (searchInput) {
+    var _st;
+    searchInput.addEventListener('input', function(){
+      clearTimeout(_st);
+      _st = setTimeout(function(){
+        _searchQ = searchInput.value.trim();
+        if (_loaded) _render(_sorted(_allPosts));
+      }, 280);
+    });
+  }
+
+  // ── Trigger load when explore section becomes visible ──
+  var navSearch = document.getElementById('navSearch');
+  if (navSearch) {
+    navSearch.addEventListener('click', function(){
+      if (!_loaded) _load();
+    });
+  }
+  // Also load on DOMContentLoaded as fallback
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(_load, 1200); });
+  } else {
+    setTimeout(_load, 1200);
+  }
+
+  // ── Expose so index.js can still call if needed ──
+  window._buildExploreCard = function(post, postId) {
+    _allPosts.push({id:postId, data:post});
+    _addCard(post, postId);
+    return null; // we handle DOM directly
+  };
+
+  // Block index.js from adding its own raw cards (it may try)
+  var _origAppend = grid.appendChild.bind(grid);
+  grid.appendChild = function(node){
+    if (!node || node.nodeType !== 1) return _origAppend(node);
+    if (node.classList && node.classList.contains('exp-item')) return _origAppend(node);
+    // Raw card from old index.js — ignore since we self-populate
+    return node;
+  };
 
 })();
 </script>
