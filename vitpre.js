@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, where, orderBy, getDocs, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -312,10 +311,10 @@ function handleMediaSelection(e) {
     }
 
     // Check file size (12MB limit)
-if (file.size > 12 * 1024 * 1024) {
-  alert('File size exceeds 12MB limit');
-  continue;
-}
+    if (file.size > 12 * 1024 * 1024) {
+      alert('File size exceeds 12MB limit');
+      continue;
+    }
 
     // Create preview with better video handling
     if (fileType === 'image' || fileType === 'video') {
