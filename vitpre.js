@@ -311,11 +311,11 @@ function handleMediaSelection(e) {
       break;
     }
 
-    // Check file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File size exceeds 10MB limit');
-      continue;
-    }
+    // Check file size (12MB limit)
+if (file.size > 12 * 1024 * 1024) {
+  alert('File size exceeds 12MB limit');
+  continue;
+}
 
     // Create preview with better video handling
     if (fileType === 'image' || fileType === 'video') {
