@@ -311,8 +311,8 @@ function handleMediaSelection(e) {
     }
 
     // Check file size (12MB limit)
-    if (file.size > 12 * 1024 * 1024) {
-      alert('File size exceeds 12MB limit');
+    if (file.size > 50 * 1024 * 1024) {
+      alert('File size exceeds 50MB limit');
       continue;
     }
 
