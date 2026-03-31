@@ -8915,65 +8915,41 @@ init();
         cell.style.position = 'relative';
         cell.appendChild(shimmer);
 
-        // Canvas thumbnail — reliable on Android WebView
-        var canvas = document.createElement('canvas');
-        canvas.style.cssText = 'width:100%;display:block;object-fit:cover;pointer-events:none;aspect-ratio:9/16;opacity:0;transition:opacity 0.3s;border-radius:0;';
-        cell.appendChild(canvas);
+        // Video thumbnail — same simple approach as desktop saved grid (works on Android)
+        var thumbVid2 = document.createElement('video');
+        thumbVid2.muted = true;
+        thumbVid2.playsInline = true;
+        thumbVid2.preload = 'none';
+        thumbVid2.style.cssText = 'width:100%;display:block;object-fit:cover;pointer-events:none;aspect-ratio:9/16;opacity:0;transition:opacity 0.3s;';
+        cell.appendChild(thumbVid2);
 
         // Lazy load: only load src when the cell enters viewport
         var _cellLoaded = false;
         function _loadCellThumb() {
           if (_cellLoaded) return;
           _cellLoaded = true;
-
-          var tv = document.createElement('video');
-          tv.muted = true; tv.playsInline = true; tv.preload = 'metadata';
-          tv.crossOrigin = 'anonymous';
-          tv.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
-          document.body.appendChild(tv);
-
-          var _revealed = false;
-          function _revealFrame() {
-            if (_revealed) return; _revealed = true;
-            try {
-              canvas.width  = tv.videoWidth  || 320;
-              canvas.height = tv.videoHeight || 568;
-              var ctx = canvas.getContext('2d');
-              ctx.drawImage(tv, 0, 0, canvas.width, canvas.height);
-              canvas.style.opacity = '1';
+          thumbVid2.preload = 'metadata';
+          thumbVid2.src = media.url;
+          thumbVid2.addEventListener('loadedmetadata', function() {
+            thumbVid2.currentTime = 0.01;
+          }, {once: true});
+          thumbVid2.addEventListener('timeupdate', function() {
+            if (thumbVid2.currentTime > 0) {
+              thumbVid2.style.opacity = '1';
               shimmer.style.display = 'none';
-            } catch(e) {
-              canvas.style.background = '#1a1a1a';
-              canvas.style.opacity = '1';
-              shimmer.style.display = 'none';
+              if (thumbVid2.duration && !isNaN(thumbVid2.duration) && !cell.querySelector('.liked-cell-dur')) {
+                var dur = Math.floor(thumbVid2.duration);
+                var durEl = document.createElement('div');
+                durEl.className = 'liked-cell-dur';
+                durEl.textContent = Math.floor(dur/60) + ':' + (dur%60 < 10 ? '0' : '') + (dur%60);
+                cell.appendChild(durEl);
+              }
             }
-            if (tv.duration && !isNaN(tv.duration)) {
-              var dur = Math.floor(tv.duration);
-              var durEl = document.createElement('div');
-              durEl.className = 'liked-cell-dur';
-              durEl.textContent = Math.floor(dur/60) + ':' + (dur%60 < 10 ? '0' : '') + (dur%60);
-              cell.appendChild(durEl);
-            }
-            try { tv.pause(); tv.src = ''; } catch(e2){}
-            if (tv.parentNode) tv.parentNode.removeChild(tv);
-          }
-
-          tv.addEventListener('loadedmetadata', function() {
-            tv.currentTime = Math.min(1, (tv.duration||2)*0.1);
-          }, {once:true});
-          tv.addEventListener('seeked', _revealFrame, {once:true});
-          tv.addEventListener('loadeddata', function() {
-            setTimeout(function(){ if (!_revealed) _revealFrame(); }, 120);
-          }, {once:true});
-          setTimeout(function(){
-            if (!_revealed) {
-              canvas.style.background='#1a1a1a'; canvas.style.opacity='1'; shimmer.style.display='none'; _revealed=true;
-              try { tv.pause(); tv.src=''; } catch(e){}
-              if (tv.parentNode) tv.parentNode.removeChild(tv);
-            }
-          }, 4000);
-
-          tv.src = media.url; tv.load();
+          }, {once: true});
+          setTimeout(function() {
+            thumbVid2.style.opacity = '1';
+            shimmer.style.display = 'none';
+          }, 3000);
         }
 
         if (!window._profGridObs) {
@@ -9363,86 +9339,45 @@ init();
     shimmer.className = 'exp-card-shimmer';
     card.appendChild(shimmer);
 
-    // Canvas-based thumbnail: reliable on all Android WebViews
-    var canvas = document.createElement('canvas');
-    canvas.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity 0.35s;position:absolute;inset:0;border-radius:12px;';
-    card.appendChild(canvas);
+    // Video thumbnail — same approach as the working desktop saved grid
+    var thumbVid = document.createElement('video');
+    thumbVid.muted = true;
+    thumbVid.playsInline = true;
+    thumbVid.preload = 'none'; // will be set to metadata when intersecting
+    thumbVid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity 0.3s;position:absolute;inset:0;';
+    card.appendChild(thumbVid);
 
     var _vidLoaded = false;
     function _loadVidThumb() {
       if (_vidLoaded) return;
       _vidLoaded = true;
-
-      // Create an off-screen video just to grab a frame
-      var tv = document.createElement('video');
-      tv.muted = true;
-      tv.playsInline = true;
-      tv.preload = 'metadata';
-      tv.crossOrigin = 'anonymous';
-      tv.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
-      document.body.appendChild(tv);
-
-      var _revealed = false;
-      function _revealThumb() {
-        if (_revealed) return;
-        _revealed = true;
-        try {
-          canvas.width  = tv.videoWidth  || 320;
-          canvas.height = tv.videoHeight || 568;
-          var ctx = canvas.getContext('2d');
-          ctx.drawImage(tv, 0, 0, canvas.width, canvas.height);
-          canvas.style.opacity = '1';
+      thumbVid.preload = 'metadata';
+      thumbVid.src = media.url;
+      thumbVid.addEventListener('loadedmetadata', function() {
+        thumbVid.currentTime = 0.01;
+      }, {once: true});
+      thumbVid.addEventListener('timeupdate', function() {
+        if (thumbVid.currentTime > 0) {
+          thumbVid.style.opacity = '1';
           shimmer.style.display = 'none';
-        } catch(e) {
-          // drawImage failed (CORS/security) — just show shimmer-free placeholder
-          canvas.style.background = '#1a1a1a';
-          canvas.style.opacity = '1';
-          shimmer.style.display = 'none';
-        }
-        // Show duration badge
-        if (tv.duration && !isNaN(tv.duration)) {
-          var dur = fmtDur(tv.duration);
-          if (dur) {
+          // duration badge
+          var dur = fmtDur(thumbVid.duration);
+          if (dur && !card.querySelector('.exp-card-duration')) {
             var durEl = document.createElement('div');
             durEl.className = 'exp-card-duration';
             durEl.textContent = dur;
             card.appendChild(durEl);
           }
         }
-        // Clean up the off-screen video
-        try { tv.pause(); tv.src = ''; } catch(e2){}
-        if (tv.parentNode) tv.parentNode.removeChild(tv);
-      }
-
-      // Try to seek to a good frame — use multiple fallback events
-      function _onCanSeek() {
-        tv.currentTime = Math.min(1, (tv.duration || 2) * 0.1);
-      }
-      tv.addEventListener('loadedmetadata', _onCanSeek, {once:true});
-      tv.addEventListener('seeked', _revealThumb, {once:true});
-      tv.addEventListener('loadeddata', function() {
-        // Some Android versions fire loadeddata but not seeked — grab frame immediately
-        setTimeout(function(){
-          if (!_revealed) _revealThumb();
-        }, 120);
-      }, {once:true});
-      // Hard fallback: 4s
-      setTimeout(function(){
-        if (!_revealed) {
-          canvas.style.background = '#1a1a1a';
-          canvas.style.opacity = '1';
-          shimmer.style.display = 'none';
-          _revealed = true;
-          try { tv.pause(); tv.src = ''; } catch(e){}
-          if (tv.parentNode) tv.parentNode.removeChild(tv);
-        }
-      }, 4000);
-
-      tv.src = media.url;
-      tv.load();
+      }, {once: true});
+      // Fallback: show after 3s
+      setTimeout(function() {
+        thumbVid.style.opacity = '1';
+        shimmer.style.display = 'none';
+      }, 3000);
     }
 
-    // Shared IntersectionObserver — load thumbs as cards scroll into view
+    // IntersectionObserver — load thumb as card scrolls into view
     if (!window._expThumbObs) {
       window._expThumbObs = new IntersectionObserver(function(entries) {
         entries.forEach(function(e) {
@@ -9532,7 +9467,7 @@ init();
     // Video element — src set directly, no lazy load
     var vid = document.createElement('video');
     vid.src = media.url;
-    vid.muted = true; // start muted, observer will apply global mute state
+    vid.muted = true;
     vid.loop = true;
     vid.playsInline = true;
     vid.controls = false;
@@ -9547,49 +9482,29 @@ init();
     info.style.cssText = 'position:absolute;bottom:80px;left:12px;right:70px;z-index:2;pointer-events:none;';
 
     var name = postData.name || postData.displayName || postData.userName || 'User';
-    var nameEl = document.createElement('div');
-    nameEl.style.cssText = 'font-size:15px;font-weight:900;color:#fff;letter-spacing:-0.01em;text-shadow:0 1px 8px rgba(0,0,0,0.9);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
-    nameEl.textContent = '@' + name;
+    var nameEl2 = document.createElement('div');
+    nameEl2.style.cssText = 'font-size:15px;font-weight:900;color:#fff;letter-spacing:-0.01em;text-shadow:0 1px 8px rgba(0,0,0,0.9);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+    nameEl2.textContent = '@' + name;
+    info.appendChild(nameEl2);
 
     var desc = (postData.text || '').trim();
     if (desc) {
-      var descEl = document.createElement('div');
-      descEl.style.cssText = 'font-size:13px;font-weight:500;color:rgba(255,255,255,0.88);text-shadow:0 1px 8px rgba(0,0,0,0.9);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;';
-      descEl.textContent = desc;
-      info.appendChild(nameEl);
-      info.appendChild(descEl);
-    } else {
-      info.appendChild(nameEl);
+      var descEl2 = document.createElement('div');
+      descEl2.style.cssText = 'font-size:13px;font-weight:500;color:rgba(255,255,255,0.88);text-shadow:0 1px 8px rgba(0,0,0,0.9);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;';
+      descEl2.textContent = desc;
+      info.appendChild(descEl2);
     }
 
     // Watching badge — centered top, glass pill (same as profile viewer)
     var watchBadge = document.createElement('div');
     watchBadge.className = 'live-viewer-badge';
-    watchBadge.style.cssText = 'position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);backdrop-filter:blur(16px);-webkit-backdrop-filter:saturate(180%) blur(16px);border:1px solid rgba(255,255,255,0.18);border-radius:99px;padding:4px 10px 4px 6px;white-space:nowrap;';
     var watchDot = document.createElement('div');
     watchDot.className = 'live-dot';
     var watchNum = document.createElement('span');
-    watchNum.style.cssText = 'font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);';
+    watchNum.className = 'live-watch-label';
     watchNum.textContent = '0 watching';
     watchBadge.appendChild(watchDot);
     watchBadge.appendChild(watchNum);
-
-    // Update watch count from RTDB if available
-    (function(_pid, _numEl) {
-      try {
-        var _rtdb = window._fbRtdb || (window.firebase && window.firebase.database && window.firebase.database());
-        if (!_rtdb && window._fbDb) {
-          // try to get rtdb from the global exposed by the module
-          var _db = window._fbDb;
-        }
-        // Use the onValue already exposed via index.js / the module
-        if (typeof window._trackViewerCount === 'function') {
-          window._trackViewerCount(_pid, function(count) {
-            _numEl.textContent = count + ' watching';
-          });
-        }
-      } catch(e) {}
-    })(postId, watchNum);
 
     pin.appendChild(vid);
     pin.appendChild(grad);
@@ -9599,54 +9514,27 @@ init();
     return pin;
   }
 
-  // Build the explore viewer feed from current sorted posts, open at the right one
+  // ── Open explore viewer — exact same logic as profile viewer ──
+  var _expViewerObs = null;
+
   function _openViewerAt(postId) {
     if (!viewer || !vFeed) return;
 
-    var sortedPosts = _sorted(_allPosts);
-
-    // Always rebuild — ensures videos have direct src and no lazy-load issues
+    // Rebuild feed (same as profile viewer)
     vFeed.innerHTML = '';
-    vFeed._builtFor = _curTab + _searchQ;
-
-    // Disconnect old observer
-    if (_expViewerObs) { _expViewerObs.disconnect(); _expViewerObs = null; }
-
-    sortedPosts.forEach(function(item) {
-      var pin = _buildExpViewerPin(item.data, item.id);
+    window._buildingForViewer = true;
+    _sorted(_allPosts).forEach(function(item) {
+      var pin = typeof window._createPinElement === 'function'
+        ? window._createPinElement(item.data, item.id) : null;
       if (!pin) return;
+      pin.dataset.postId = item.id;
+      pin.style.height = '100dvh';
+      pin.style.scrollSnapAlign = 'start';
       vFeed.appendChild(pin);
     });
+    window._buildingForViewer = false;
 
-    // Open viewer
-    viewer.classList.add('open');
-
-    // Setup autoplay/pause observer on the new pins
-    _setupExploreViewerObs();
-    if (_expViewerObs) {
-      vFeed.querySelectorAll('.pin-container').forEach(function(pin) {
-        _expViewerObs.observe(pin);
-      });
-    }
-
-    // Scroll to the tapped post
-    requestAnimationFrame(function() {
-      var target = vFeed.querySelector('[data-post-id="' + postId + '"]');
-      if (target) {
-        target.scrollIntoView({ behavior: 'instant', block: 'start' });
-      }
-    });
-  }
-
-  if (backBtn) backBtn.addEventListener('click', function(){
-    viewer.classList.remove('open');
-    // pause any playing videos
-    if (vFeed) vFeed.querySelectorAll('video').forEach(function(v){ v.pause(); });
-  });
-
-  // ── Explore viewer: autoplay/pause videos on scroll ──
-  var _expViewerObs = null;
-  function _setupExploreViewerObs() {
+    // Setup autoplay observer (same as profile viewer)
     if (_expViewerObs) { _expViewerObs.disconnect(); _expViewerObs = null; }
     _expViewerObs = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
@@ -9655,16 +9543,15 @@ init();
         if (!vid) return;
         if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
           pin.classList.add('is-active');
-          // Apply global mute state (matches home feed and profile viewer behaviour)
+          if (!vid.src && vid.dataset && vid.dataset.src) {
+            vid.src = vid.dataset.src;
+            delete vid.dataset.src;
+            vid.load();
+          }
           var wantMuted = (typeof window._globalMuted !== 'undefined') ? window._globalMuted : false;
           vid.muted = wantMuted;
           var pl = vid.play();
-          if (pl && pl.catch) {
-            pl.catch(function() {
-              vid.muted = true;
-              vid.play().catch(function(){});
-            });
-          }
+          if (pl && pl.catch) pl.catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
           var pid = pin.dataset.postId;
           if (pid && typeof window.trackPresence === 'function') window.trackPresence(pid);
         } else {
@@ -9673,6 +9560,43 @@ init();
         }
       });
     }, { root: vFeed, threshold: [0, 0.55, 1.0] });
+
+    vFeed.querySelectorAll('.pin-container').forEach(function(pin) {
+      _expViewerObs.observe(pin);
+    });
+
+    // Open viewer (same as profile viewer)
+    viewer.classList.add('open');
+    viewer.style.transform = 'translateY(0)';
+
+    // Wire back button once (same as profile viewer)
+    if (backBtn && !backBtn._wired) {
+      backBtn._wired = true;
+      backBtn.addEventListener('click', function() {
+        viewer.classList.remove('open');
+        viewer.style.transform = '';
+        vFeed.querySelectorAll('video').forEach(function(v){ v.pause(); });
+        if (_expViewerObs) { _expViewerObs.disconnect(); _expViewerObs = null; }
+      });
+    }
+
+    // Scroll to tapped post + eagerly load nearby videos (same as profile viewer)
+    requestAnimationFrame(function() {
+      var target = vFeed.querySelector('[data-post-id="' + postId + '"]');
+      if (target) {
+        target.scrollIntoView({ behavior: 'instant', block: 'start' });
+        var pins2 = Array.from(vFeed.querySelectorAll('.pin-container'));
+        var idx2 = pins2.indexOf(target);
+        pins2.slice(Math.max(0, idx2 - 1), idx2 + 3).forEach(function(p) {
+          var v = p.querySelector('video');
+          if (v && !v.src && v.dataset && v.dataset.src) {
+            v.src = v.dataset.src;
+            delete v.dataset.src;
+            v.load();
+          }
+        });
+      }
+    });
   }
 
   // When tab or search changes, mark viewer as stale so it rebuilds next open
