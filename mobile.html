@@ -65,8 +65,8 @@ body {
     display: none;
     position: fixed; inset: 0; z-index: 9998;
     background: rgba(0,0,0,0.82);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     align-items: flex-end; justify-content: center;
 }
 #guest-auth-prompt.open { display: flex; }
@@ -284,6 +284,18 @@ html::-webkit-scrollbar { display: none; }
     /* Push content up so bottom nav doesn't cover the video */
     padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
+    /* Perf: isolate paint to this card */
+    contain: layout style;
+    /* Perf: promote to its own GPU layer during scroll */
+    will-change: transform;
+}
+/* Pause ALL CSS animations on cards that are not currently visible */
+.pin-container:not(.is-active) .music-disc,
+.pin-container:not(.is-active) .live-dot,
+.pin-container:not(.is-active) .cmt-live-dot,
+.pin-container:not(.is-active) .gap-orb,
+.pin-container:not(.is-active) .music-ticker-inner {
+    animation-play-state: paused;
 }
 .pin-container.leaving  { opacity: 0.5; transform: scale(0.97); transition: all 0.3s ease; }
 .pin-container.entering { animation: videoEnter 0.35s ease-out; }
@@ -300,7 +312,6 @@ html::-webkit-scrollbar { display: none; }
     object-fit: cover; display: block;
     -webkit-tap-highlight-color: transparent;
     outline: none; user-select: none;
-    will-change: transform;
 }
 /* Cinematic gradient — strong bottom fade */
 .gallery-item::after {
@@ -343,8 +354,8 @@ html::-webkit-scrollbar { display: none; }
     background: rgba(0,0,0,0.45);
     z-index: 3500; opacity: 0; pointer-events: none;
     transition: opacity 0.28s ease;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
 }
 .share-sheet-overlay.open { opacity: 1; pointer-events: all; }
 .share-sheet {
@@ -4509,19 +4520,16 @@ function setupEventListeners() {
         }
         try {
             const postRef = doc(db, 'recence', currentPostId);
-            const postDoc = await getDoc(postRef);
-            if (postDoc.exists()) {
-                const postData = postDoc.data();
-                const isLiked = postData.likes && postData.likes.includes(currentUser.uid);
-                if (isLiked) {
-                    await updateDoc(postRef, { likes: arrayRemove(currentUser.uid) });
-                    likePostButton.classList.remove('liked');
-                    likePostCount.textContent = (postData.likes ? postData.likes.length - 1 : 0).toString();
-                } else {
-                    await updateDoc(postRef, { likes: arrayUnion(currentUser.uid) });
-                    likePostButton.classList.add('liked');
-                    likePostCount.textContent = (postData.likes ? postData.likes.length + 1 : 1).toString();
-                }
+            // Optimistic: check current DOM state instead of doing a getDoc round-trip
+            const isLiked = likePostButton.classList.contains('liked');
+            if (isLiked) {
+                await updateDoc(postRef, { likes: arrayRemove(currentUser.uid) });
+                likePostButton.classList.remove('liked');
+                likePostCount.textContent = Math.max(0, parseInt(likePostCount.textContent || '0') - 1).toString();
+            } else {
+                await updateDoc(postRef, { likes: arrayUnion(currentUser.uid) });
+                likePostButton.classList.add('liked');
+                likePostCount.textContent = (parseInt(likePostCount.textContent || '0') + 1).toString();
             }
         } catch (error) {
             console.error('Error toggling post like:', error);
@@ -4676,9 +4684,12 @@ async function setupVideoVisibility() {
     const visObs = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             const video = entry.target;
+            const pinEl = video.closest('.pin-container');
             if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+                if (pinEl) pinEl.classList.add('is-active');
                 playVideo(video);
             } else {
+                if (pinEl) pinEl.classList.remove('is-active');
                 video.pause();
             }
         });
@@ -5140,11 +5151,21 @@ function createPinElement(postData, postId) {
     if (_uploadMs) {
         var _expireMs = _uploadMs + 24*60*60*1000;
         creatorDateEl.textContent = '· ' + _fmtLeft(_expireMs - Date.now());
-        var _cdTimer = setInterval(function() {
-            var left = _expireMs - Date.now();
-            creatorDateEl.textContent = '· ' + _fmtLeft(left);
-            if (left <= 0) clearInterval(_cdTimer);
-        }, 60000);
+        // Register with shared global ticker instead of creating a setInterval per card
+        if (!window._expiryTickers) window._expiryTickers = [];
+        var _tickerEntry = { el: creatorDateEl, expireMs: _expireMs };
+        window._expiryTickers.push(_tickerEntry);
+        if (!window._expiryTickerInterval) {
+            window._expiryTickerInterval = setInterval(function() {
+                var now = Date.now();
+                window._expiryTickers = window._expiryTickers.filter(function(t) {
+                    if (!t.el.isConnected) return false; // discard detached elements
+                    var left = t.expireMs - now;
+                    t.el.textContent = '· ' + _fmtLeft(left);
+                    return left > 0;
+                });
+            }, 60000);
+        }
     } else {
         creatorDateEl.textContent = '· 24h';
     }
@@ -5261,12 +5282,24 @@ function createPinElement(postData, postId) {
             requestAnimationFrame(function(){ progFill.style.transition = ''; });
         }
         var _drag = false;
-        progWrap.addEventListener('mousedown',  function(e){ e.stopPropagation(); _drag=true; progWrap.classList.add('scrubbing'); _seekAt(e); });
-        progWrap.addEventListener('touchstart', function(e){ e.stopPropagation(); _drag=true; progWrap.classList.add('scrubbing'); _seekAt(e); }, {passive:true});
-        document.addEventListener('mousemove',  function(e){ if(_drag) _seekAt(e); });
-        document.addEventListener('touchmove',  function(e){ if(_drag) _seekAt(e); }, {passive:true});
-        document.addEventListener('mouseup',    function(){ _drag=false; progWrap.classList.remove('scrubbing'); });
-        document.addEventListener('touchend',   function(){ _drag=false; progWrap.classList.remove('scrubbing'); });
+        function _onScrubMove(e){ if(_drag) _seekAt(e); }
+        function _onScrubUp(){
+            if(!_drag) return; _drag=false; progWrap.classList.remove('scrubbing');
+            document.removeEventListener('mousemove', _onScrubMove);
+            document.removeEventListener('touchmove', _onScrubMove);
+            document.removeEventListener('mouseup', _onScrubUp);
+            document.removeEventListener('touchend', _onScrubUp);
+        }
+        progWrap.addEventListener('mousedown', function(e){
+            e.stopPropagation(); _drag=true; progWrap.classList.add('scrubbing'); _seekAt(e);
+            document.addEventListener('mousemove', _onScrubMove);
+            document.addEventListener('mouseup', _onScrubUp);
+        });
+        progWrap.addEventListener('touchstart', function(e){
+            e.stopPropagation(); _drag=true; progWrap.classList.add('scrubbing'); _seekAt(e);
+            document.addEventListener('touchmove', _onScrubMove, {passive:true});
+            document.addEventListener('touchend', _onScrubUp);
+        }, {passive:true});
         progWrap.addEventListener('click', function(e){ e.stopPropagation(); _seekAt(e); });
     }
 
@@ -5605,19 +5638,26 @@ function createPinElement(postData, postId) {
         if (_unifiedUnsub) { _unifiedUnsub(); _unifiedUnsub = null; pinContainer._unifiedUnsub = null; }
     }
 
-    // ── Attach/detach based on pin visibility ──
-    var _pinVisObs = new IntersectionObserver(function(entries) {
-        entries.forEach(function(entry) {
-            if (entry.isIntersecting) {
-                _attachUnified();
-                if (typeof pinContainer._attachViewers === 'function') pinContainer._attachViewers();
-            } else {
-                _detachUnified();
-                if (typeof pinContainer._detachViewers === 'function') pinContainer._detachViewers();
-            }
-        });
-    }, { threshold: 0.2 });
-    _pinVisObs.observe(pinContainer);
+    // ── Attach/detach based on pin visibility — use shared global observer ──
+    // A single IntersectionObserver is reused for ALL pins to avoid the
+    // cost of creating one observer per card (which was a major perf bottleneck).
+    if (!window._sharedPinVisObs) {
+        window._sharedPinVisObs = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                var pc = entry.target;
+                if (entry.isIntersecting) {
+                    if (typeof pc._attachUnified === 'function') pc._attachUnified();
+                    if (typeof pc._attachViewers === 'function') pc._attachViewers();
+                } else {
+                    if (typeof pc._detachUnified === 'function') pc._detachUnified();
+                    if (typeof pc._detachViewers === 'function') pc._detachViewers();
+                }
+            });
+        }, { threshold: 0.4 });
+    }
+    pinContainer._attachUnified = _attachUnified;
+    pinContainer._detachUnified = _detachUnified;
+    window._sharedPinVisObs.observe(pinContainer);
     thumbBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
         if (!currentUser) { window._showAuthPrompt(); return; }
@@ -5636,10 +5676,8 @@ function createPinElement(postData, postId) {
         setTimeout(() => heart.remove(), 900);
         try {
             const postRef = doc(db, 'recence', postId);
-            const postDoc = await getDoc(postRef);
-            if (!postDoc.exists()) return;
-            const data = postDoc.data();
-            const isLiked = data.likes && data.likes.includes(currentUser.uid);
+            // Use current known state (onSnapshot keeps thumbBtn.classList in sync) — no getDoc needed
+            const isLiked = thumbBtn.classList.contains('on');
             if (isLiked) {
                 await updateDoc(postRef, { likes: arrayRemove(currentUser.uid) });
             } else {
@@ -5731,10 +5769,8 @@ function createPinElement(postData, postId) {
 
         try {
             var postRef2 = doc(db, 'recence', postId);
-            var postDoc2 = await getDoc(postRef2);
-            if (!postDoc2.exists()) return;
-            var sl2 = postDoc2.data().superlikes || [];
-            var isAddingSL = !sl2.includes(currentUser.uid);
+            // Optimistic: use current DOM state rather than fetching the doc
+            var isAddingSL = !dislikeBtn.classList.contains('on');
             var slUpdate = { superlikes: isAddingSL ? arrayUnion(currentUser.uid) : arrayRemove(currentUser.uid) };
             if (isAddingSL) slUpdate.superlike_burst_ts = Date.now();
             await updateDoc(postRef2, slUpdate);
@@ -7579,12 +7615,16 @@ init();
         requestAnimationFrame(function(){ dProgFill.style.transition = ''; });
     }
     var _dDrag = false;
-    dProgWrap.addEventListener('mousedown',  function(e){ e.stopPropagation(); _dDrag=true; dProgWrap.classList.add('scrubbing'); _dSeekAt(e); });
-    dProgWrap.addEventListener('touchstart', function(e){ e.stopPropagation(); _dDrag=true; dProgWrap.classList.add('scrubbing'); _dSeekAt(e); }, {passive:true});
-    document.addEventListener('mousemove',  function(e){ if(_dDrag) _dSeekAt(e); });
-    document.addEventListener('touchmove',  function(e){ if(_dDrag) _dSeekAt(e); }, {passive:true});
-    document.addEventListener('mouseup',    function(){ _dDrag=false; dProgWrap.classList.remove('scrubbing'); });
-    document.addEventListener('touchend',   function(){ _dDrag=false; dProgWrap.classList.remove('scrubbing'); });
+    function _dOnScrubMove(e){ if(_dDrag) _dSeekAt(e); }
+    function _dOnScrubUp(){
+        if(!_dDrag) return; _dDrag=false; dProgWrap.classList.remove('scrubbing');
+        document.removeEventListener('mousemove', _dOnScrubMove);
+        document.removeEventListener('touchmove', _dOnScrubMove);
+        document.removeEventListener('mouseup', _dOnScrubUp);
+        document.removeEventListener('touchend', _dOnScrubUp);
+    }
+    dProgWrap.addEventListener('mousedown', function(e){ e.stopPropagation(); _dDrag=true; dProgWrap.classList.add('scrubbing'); _dSeekAt(e); document.addEventListener('mousemove',_dOnScrubMove); document.addEventListener('mouseup',_dOnScrubUp); });
+    dProgWrap.addEventListener('touchstart', function(e){ e.stopPropagation(); _dDrag=true; dProgWrap.classList.add('scrubbing'); _dSeekAt(e); document.addEventListener('touchmove',_dOnScrubMove,{passive:true}); document.addEventListener('touchend',_dOnScrubUp); }, {passive:true});
     dProgWrap.addEventListener('click', function(e){ e.stopPropagation(); _dSeekAt(e); });
 
     var cardInner = document.createElement('div');
@@ -7663,12 +7703,20 @@ init();
       if (_upMs) {
         var _dcExpireMs = _upMs + 24*60*60*1000;
         uploadDateEl.textContent = _dcFmtLeft(_dcExpireMs - Date.now());
-        // Update every minute
-        var _dcTimer = setInterval(function() {
-          var left = _dcExpireMs - Date.now();
-          uploadDateEl.textContent = _dcFmtLeft(left);
-          if (left <= 0) clearInterval(_dcTimer);
-        }, 60000);
+        // Use shared global ticker instead of a new setInterval
+        if (!window._expiryTickers) window._expiryTickers = [];
+        window._expiryTickers.push({ el: uploadDateEl, expireMs: _dcExpireMs });
+        if (!window._expiryTickerInterval) {
+            window._expiryTickerInterval = setInterval(function() {
+                var now = Date.now();
+                window._expiryTickers = window._expiryTickers.filter(function(t) {
+                    if (!t.el.isConnected) return false;
+                    var left = t.expireMs - now;
+                    t.el.textContent = _dcFmtLeft(left);
+                    return left > 0;
+                });
+            }, 60000);
+        }
       } else {
         uploadDateEl.textContent = '';
       }
@@ -9070,19 +9118,30 @@ init();
     card.style.height = h+'px';
 
     var vid = document.createElement('video');
-    vid.src = media.url; vid.muted = true; vid.preload = 'metadata'; vid.playsInline = true;
+    vid.dataset.src = media.url; // lazy — don't set src yet
+    vid.muted = true; vid.preload = 'none'; vid.playsInline = true;
     card.appendChild(vid);
 
-    vid.addEventListener('loadedmetadata', function(){
-      vid.currentTime = 0.5;
-      var dur = fmtDur(vid.duration);
-      if (dur) {
-        var durEl = document.createElement('div');
-        durEl.className = 'exp-card-duration';
-        durEl.textContent = dur;
-        card.appendChild(durEl);
+    // Lazy-load video metadata only when card enters viewport
+    var _vidLoaded = false;
+    var _expCardObs = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting && !_vidLoaded) {
+        _vidLoaded = true;
+        vid.src = vid.dataset.src;
+        vid.addEventListener('loadedmetadata', function(){
+          vid.currentTime = 0.5;
+          var dur = fmtDur(vid.duration);
+          if (dur) {
+            var durEl = document.createElement('div');
+            durEl.className = 'exp-card-duration';
+            durEl.textContent = dur;
+            card.appendChild(durEl);
+          }
+        }, {once:true});
+        _expCardObs.disconnect();
       }
-    }, {once:true});
+    }, { rootMargin: '200px' });
+    _expCardObs.observe(card);
 
     if (desc) {
       var descEl = document.createElement('div');
