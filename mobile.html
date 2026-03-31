@@ -3336,11 +3336,23 @@ body, * {
     .exp-item:active .exp-card { transform:scale(0.975); }
     .exp-card {
         display:block; width:100%; position:relative;
-        border-radius:10px; overflow:hidden; background:#1a1a1a;
-        box-shadow:0 2px 8px rgba(0,0,0,0.14); transition:transform 0.16s;
+        border-radius:12px; overflow:hidden; background:#1a1a1a;
+        box-shadow:0 3px 12px rgba(0,0,0,0.18); transition:transform 0.16s;
     }
     .exp-card video {
         width:100%; height:100%; object-fit:cover; display:block; pointer-events:none;
+    }
+    /* Shimmer skeleton for card while thumbnail loads */
+    .exp-card-shimmer {
+        position:absolute; inset:0;
+        background:linear-gradient(110deg,#1a1a1a 25%,#2a2a2a 50%,#1a1a1a 75%);
+        background-size:200% 100%;
+        animation:expCardShimmer 1.4s infinite;
+        z-index:1;
+    }
+    @keyframes expCardShimmer {
+        0%{background-position:200% 0}
+        100%{background-position:-200% 0}
     }
     .exp-card-duration {
         position:absolute; top:6px; right:6px;
@@ -3384,6 +3396,29 @@ body, * {
     .exp-card-time {
         font-size:8.5px; font-weight:500; color:#bbb; font-family:var(--font); flex-shrink:0;
     }
+    /* Skeleton shimmer helper elements */
+    .exp-skel-av {
+        width:20px; height:20px; border-radius:50%; flex-shrink:0;
+        background:linear-gradient(110deg,#e0e0e0 25%,#ececec 50%,#e0e0e0 75%);
+        background-size:200% 100%; animation:shimmer 1.4s infinite;
+    }
+    .exp-skel-line {
+        background:linear-gradient(110deg,#e0e0e0 25%,#ececec 50%,#e0e0e0 75%);
+        background-size:200% 100%; animation:shimmer 1.4s infinite;
+    }
+    .exp-skel-card { cursor:default !important; pointer-events:none; }
+    /* Profile grid skeleton cell */
+    .prof-grid-skel {
+        break-inside:avoid; margin-bottom:5px;
+        border-radius:10px; overflow:hidden;
+        display:block; box-shadow:0 1px 6px rgba(0,0,0,0.10);
+    }
+    .prof-grid-skel-inner {
+        aspect-ratio:9/16;
+        background:linear-gradient(110deg,#e0e0e0 25%,#ececec 50%,#e0e0e0 75%);
+        background-size:200% 100%; animation:shimmer 1.4s infinite;
+        width:100%;
+    }
     #explore-viewer {
         position:fixed; inset:0; background:#000; z-index:1000;
         transform:translateY(100%); transition:transform 0.34s cubic-bezier(0.22,1,0.36,1);
@@ -3397,13 +3432,12 @@ body, * {
     }
     #explore-viewer-feed::-webkit-scrollbar { display:none; }
     #explore-viewer-back {
-        position:fixed; top:14px; left:14px; z-index:1010;
-        background:rgba(0,0,0,0.5); backdrop-filter:blur(10px);
-        -webkit-backdrop-filter:blur(10px);
-        border:1px solid rgba(255,255,255,0.15);
-        width:34px; height:34px; border-radius:50%;
+        position:fixed; top:calc(env(safe-area-inset-top,0px) + 12px); left:14px; z-index:1010;
+        background:var(--brand-gradient);
+        border:none;
+        width:36px; height:36px; border-radius:50%;
         display:none; align-items:center; justify-content:center;
-        cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,0.35);
+        cursor:pointer; box-shadow:0 2px 12px rgba(0,0,0,0.3);
         -webkit-tap-highlight-color:transparent;
     }
     #explore-viewer.open #explore-viewer-back { display:flex; }
@@ -3433,7 +3467,15 @@ body, * {
             </div>
         </div>
         <div id="explore-grid">
-            <div id="explore-loading"><div class="spinner"></div></div>
+            <div id="explore-loading" style="display:contents;">
+                <!-- Skeleton shimmer cards shown while real content loads -->
+                <div class="exp-item" id="exp-skel-1"><div class="exp-card exp-skel-card" style="height:280px;"><div class="exp-card-shimmer"></div></div><div class="exp-card-meta" style="padding:4px 2px 0;"><div class="exp-skel-av"></div><div class="exp-skel-line" style="width:55%;height:8px;border-radius:6px;margin-left:4px;"></div></div></div>
+                <div class="exp-item" id="exp-skel-2"><div class="exp-card exp-skel-card" style="height:340px;"><div class="exp-card-shimmer"></div></div><div class="exp-card-meta" style="padding:4px 2px 0;"><div class="exp-skel-av"></div><div class="exp-skel-line" style="width:65%;height:8px;border-radius:6px;margin-left:4px;"></div></div></div>
+                <div class="exp-item" id="exp-skel-3"><div class="exp-card exp-skel-card" style="height:220px;"><div class="exp-card-shimmer"></div></div><div class="exp-card-meta" style="padding:4px 2px 0;"><div class="exp-skel-av"></div><div class="exp-skel-line" style="width:48%;height:8px;border-radius:6px;margin-left:4px;"></div></div></div>
+                <div class="exp-item" id="exp-skel-4"><div class="exp-card exp-skel-card" style="height:300px;"><div class="exp-card-shimmer"></div></div><div class="exp-card-meta" style="padding:4px 2px 0;"><div class="exp-skel-av"></div><div class="exp-skel-line" style="width:60%;height:8px;border-radius:6px;margin-left:4px;"></div></div></div>
+                <div class="exp-item" id="exp-skel-5"><div class="exp-card exp-skel-card" style="height:260px;"><div class="exp-card-shimmer"></div></div><div class="exp-card-meta" style="padding:4px 2px 0;"><div class="exp-skel-av"></div><div class="exp-skel-line" style="width:70%;height:8px;border-radius:6px;margin-left:4px;"></div></div></div>
+                <div class="exp-item" id="exp-skel-6"><div class="exp-card exp-skel-card" style="height:320px;"><div class="exp-card-shimmer"></div></div><div class="exp-card-meta" style="padding:4px 2px 0;"><div class="exp-skel-av"></div><div class="exp-skel-line" style="width:52%;height:8px;border-radius:6px;margin-left:4px;"></div></div></div>
+            </div>
         </div>
         <div id="explore-viewer">
             <div id="explore-viewer-feed"></div>
@@ -8807,7 +8849,7 @@ init();
     var nameEl   = document.getElementById('mob-prof-name');
     var handleEl = document.getElementById('mob-prof-handle');
     var statsEl  = document.getElementById('mob-prof-stats');
-    var feedEl   = document.getElementById('mob-prof-feed');
+    var gridEl   = document.getElementById('mob-prof-grid');
     if (!avEl || !currentUser) return;
 
     var displayName = currentUser.displayName || currentUser.email || 'You';
@@ -8834,37 +8876,140 @@ init();
       +'<div style="text-align:center"><div style="font-size:18px;font-weight:900;color:#111" id="mob-stat-followers">—</div><div style="font-size:11px;color:#888;font-weight:600;margin-top:2px">Followers</div></div>'
       +'<div style="text-align:center"><div style="font-size:18px;font-weight:900;color:#111" id="mob-stat-following">—</div><div style="font-size:11px;color:#888;font-weight:600;margin-top:2px">Following</div></div>';
 
-    // Posts count + video grid
+    // Show skeleton grid while loading
+    if (gridEl) {
+      gridEl.innerHTML = '';
+      for (var _sk = 0; _sk < 9; _sk++) {
+        var _skel = document.createElement('div');
+        _skel.className = 'prof-grid-skel';
+        var _skelInner = document.createElement('div');
+        _skelInner.className = 'prof-grid-skel-inner';
+        _skel.appendChild(_skelInner);
+        gridEl.appendChild(_skel);
+      }
+    }
+
+    // Posts count + video grid (liked-cell style, matching saved/liked section)
     getDocs(query(collection(db,'recence'), where('userId','==',currentUser.uid), orderBy('timestamp','desc'))).then(function(snap){
       var el = document.getElementById('mob-stat-posts');
       if (el) el.textContent = snap.size;
-      if (!feedEl) return;
-      feedEl.innerHTML = '';
+      if (!gridEl) return;
+      gridEl.innerHTML = '';
       if (snap.empty) {
-        feedEl.innerHTML = '<div style="grid-column:1/-1;padding:32px 16px;text-align:center;color:#ccc;font-size:13px;font-weight:600;">No videos yet</div>';
+        gridEl.innerHTML = '<div style="grid-column:1/-1;padding:32px 16px;text-align:center;color:#ccc;font-size:13px;font-weight:600;">No videos yet</div>';
         return;
       }
       snap.forEach(function(d){
         var p = d.data();
         var media = p.media && p.media[0];
         if (!media) return;
-        var thumb = document.createElement('div');
-        thumb.style.cssText = 'aspect-ratio:9/16;background:#111;border-radius:8px;overflow:hidden;cursor:pointer;position:relative;';
-        var vid = document.createElement('video');
-        vid.src = media.url; vid.muted = true; vid.preload = 'metadata';
-        vid.style.cssText = 'width:100%;height:100%;object-fit:cover;pointer-events:none;';
-        thumb.appendChild(vid);
+
+        // Build liked-cell style card exactly like the saved section
+        var cell = document.createElement('div');
+        cell.className = 'liked-cell';
+        cell.dataset.postId = d.id;
+
+        // Shimmer skeleton shown until video thumbnail loads
+        var shimmer = document.createElement('div');
+        shimmer.style.cssText = 'position:absolute;inset:0;background:linear-gradient(110deg,#e0e0e0 25%,#ececec 50%,#e0e0e0 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;z-index:1;border-radius:10px;';
+        cell.style.position = 'relative';
+        cell.appendChild(shimmer);
+
+        // Canvas thumbnail — reliable on Android WebView
+        var canvas = document.createElement('canvas');
+        canvas.style.cssText = 'width:100%;display:block;object-fit:cover;pointer-events:none;aspect-ratio:9/16;opacity:0;transition:opacity 0.3s;border-radius:0;';
+        cell.appendChild(canvas);
+
+        // Lazy load: only load src when the cell enters viewport
+        var _cellLoaded = false;
+        function _loadCellThumb() {
+          if (_cellLoaded) return;
+          _cellLoaded = true;
+
+          var tv = document.createElement('video');
+          tv.muted = true; tv.playsInline = true; tv.preload = 'metadata';
+          tv.crossOrigin = 'anonymous';
+          tv.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
+          document.body.appendChild(tv);
+
+          var _revealed = false;
+          function _revealFrame() {
+            if (_revealed) return; _revealed = true;
+            try {
+              canvas.width  = tv.videoWidth  || 320;
+              canvas.height = tv.videoHeight || 568;
+              var ctx = canvas.getContext('2d');
+              ctx.drawImage(tv, 0, 0, canvas.width, canvas.height);
+              canvas.style.opacity = '1';
+              shimmer.style.display = 'none';
+            } catch(e) {
+              canvas.style.background = '#1a1a1a';
+              canvas.style.opacity = '1';
+              shimmer.style.display = 'none';
+            }
+            if (tv.duration && !isNaN(tv.duration)) {
+              var dur = Math.floor(tv.duration);
+              var durEl = document.createElement('div');
+              durEl.className = 'liked-cell-dur';
+              durEl.textContent = Math.floor(dur/60) + ':' + (dur%60 < 10 ? '0' : '') + (dur%60);
+              cell.appendChild(durEl);
+            }
+            try { tv.pause(); tv.src = ''; } catch(e2){}
+            if (tv.parentNode) tv.parentNode.removeChild(tv);
+          }
+
+          tv.addEventListener('loadedmetadata', function() {
+            tv.currentTime = Math.min(1, (tv.duration||2)*0.1);
+          }, {once:true});
+          tv.addEventListener('seeked', _revealFrame, {once:true});
+          tv.addEventListener('loadeddata', function() {
+            setTimeout(function(){ if (!_revealed) _revealFrame(); }, 120);
+          }, {once:true});
+          setTimeout(function(){
+            if (!_revealed) {
+              canvas.style.background='#1a1a1a'; canvas.style.opacity='1'; shimmer.style.display='none'; _revealed=true;
+              try { tv.pause(); tv.src=''; } catch(e){}
+              if (tv.parentNode) tv.parentNode.removeChild(tv);
+            }
+          }, 4000);
+
+          tv.src = media.url; tv.load();
+        }
+
+        if (!window._profGridObs) {
+          window._profGridObs = new IntersectionObserver(function(entries) {
+            entries.forEach(function(e) {
+              if (e.isIntersecting) {
+                var fn = e.target._loadThumb;
+                if (fn) fn();
+                window._profGridObs.unobserve(e.target);
+              }
+            });
+          }, { rootMargin: '200px' });
+        }
+        cell._loadThumb = _loadCellThumb;
+        window._profGridObs.observe(cell);
+
         // Like count overlay
         var likeCount = (p.likes || []).length;
-        if (likeCount > 0) {
-          var overlay = document.createElement('div');
-          overlay.style.cssText = 'position:absolute;bottom:5px;left:6px;display:flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.8);';
-          overlay.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="#fff"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' + likeCount;
-          thumb.appendChild(overlay);
-        }
-        feedEl.appendChild(thumb);
+        var overlay = document.createElement('div');
+        overlay.className = 'liked-cell-overlay';
+        var nameOv = document.createElement('div');
+        nameOv.className = 'liked-cell-name';
+        nameOv.textContent = likeCount > 0 ? '♥ ' + likeCount : '';
+        overlay.appendChild(nameOv);
+        cell.appendChild(overlay);
+
+        // Click → open profile viewer at this post
+        cell.addEventListener('click', function() {
+          _openProfileViewerAt(d.id, snap);
+        });
+
+        gridEl.appendChild(cell);
       });
-    }).catch(function(){});
+    }).catch(function(){
+      if (gridEl) gridEl.innerHTML = '<div style="padding:32px 16px;text-align:center;color:#ccc;font-size:13px;font-weight:600;">Could not load videos</div>';
+    });
 
     // Followers count
     getDocs(query(collection(db,'follows'), where('followedUserId','==',currentUser.uid))).then(function(s){
@@ -8876,6 +9021,96 @@ init();
       var el = document.getElementById('mob-stat-following'); if (el) el.textContent = s.size;
     }).catch(function(){});
   }
+
+  // ── Open profile viewer at a specific post (fullscreen TikTok feed) ──
+  function _openProfileViewerAt(postId, snap) {
+    var viewerEl = document.getElementById('mob-prof-viewer');
+    var feedEl   = document.getElementById('mob-prof-viewer-feed');
+    var backBtnP = document.getElementById('mob-prof-viewer-back');
+    if (!viewerEl || !feedEl) return;
+
+    // Rebuild feed
+    feedEl.innerHTML = '';
+    window._buildingForViewer = true;
+    snap.forEach(function(d) {
+      var p = d.data();
+      var pin = typeof window._createPinElement === 'function'
+        ? window._createPinElement(p, d.id) : null;
+      if (!pin) return;
+      pin.dataset.postId = d.id;
+      pin.style.height = '100dvh';
+      pin.style.scrollSnapAlign = 'start';
+      feedEl.appendChild(pin);
+    });
+    window._buildingForViewer = false;
+
+    // Setup autoplay observer
+    if (window._profViewerObs) { window._profViewerObs.disconnect(); window._profViewerObs = null; }
+    window._profViewerObs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        var pin = entry.target;
+        var vid = pin.querySelector('video');
+        if (!vid) return;
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+          pin.classList.add('is-active');
+          if (!vid.src && vid.dataset && vid.dataset.src) {
+            vid.src = vid.dataset.src;
+            delete vid.dataset.src;
+            vid.load();
+          }
+          var wantMuted = (typeof window._globalMuted !== 'undefined') ? window._globalMuted : false;
+          vid.muted = wantMuted;
+          var pl = vid.play();
+          if (pl && pl.catch) pl.catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
+          var pid2 = pin.dataset.postId;
+          if (pid2 && typeof window.trackPresence === 'function') window.trackPresence(pid2);
+        } else {
+          pin.classList.remove('is-active');
+          vid.pause();
+        }
+      });
+    }, { root: feedEl, threshold: [0, 0.55, 1.0] });
+
+    feedEl.querySelectorAll('.pin-container').forEach(function(pin) {
+      window._profViewerObs.observe(pin);
+    });
+
+    // Open viewer and scroll to target post
+    viewerEl.classList.add('open');
+    viewerEl.style.transform = 'translateY(0)';
+
+    // Show back button
+    if (backBtnP) backBtnP.style.display = 'flex';
+    if (backBtnP && !backBtnP._wired) {
+      backBtnP._wired = true;
+      backBtnP.addEventListener('click', function() {
+        viewerEl.classList.remove('open');
+        viewerEl.style.transform = '';
+        backBtnP.style.display = 'none';
+        feedEl.querySelectorAll('video').forEach(function(v){ v.pause(); });
+        if (window._profViewerObs) { window._profViewerObs.disconnect(); window._profViewerObs = null; }
+      });
+    }
+
+    requestAnimationFrame(function() {
+      var target = feedEl.querySelector('[data-post-id="' + postId + '"]');
+      if (target) {
+        target.scrollIntoView({ behavior: 'instant', block: 'start' });
+        // Eagerly load the video
+        var pins2 = Array.from(feedEl.querySelectorAll('.pin-container'));
+        var idx2 = pins2.indexOf(target);
+        pins2.slice(Math.max(0, idx2 - 1), idx2 + 3).forEach(function(p) {
+          var v = p.querySelector('video');
+          if (v && !v.src && v.dataset && v.dataset.src) {
+            v.src = v.dataset.src;
+            delete v.dataset.src;
+            v.load();
+          }
+        });
+      }
+    });
+  }
+
   // Expose so the non-module nav IIFE can call it
   window._populateMobileProfile = populateMobileProfile;
 
@@ -9014,14 +9249,20 @@ init();
   var _followingIds = [];
   var _followerCounts = {}; // userId -> count
 
-  // Show loading spinner
+  // Show/hide skeleton loading cards
   function _showLoading() {
-    var el = document.getElementById('explore-loading');
-    if (el) el.style.display = 'block';
+    // Show skeleton cards, hide real items
+    for (var _si = 1; _si <= 6; _si++) {
+      var _sel = document.getElementById('exp-skel-' + _si);
+      if (_sel) _sel.style.display = 'block';
+    }
   }
   function _hideLoading() {
-    var el = document.getElementById('explore-loading');
-    if (el) el.style.display = 'none';
+    // Remove all skeleton cards
+    for (var _si = 1; _si <= 6; _si++) {
+      var _sel = document.getElementById('exp-skel-' + _si);
+      if (_sel) _sel.parentNode && _sel.parentNode.removeChild(_sel);
+    }
   }
 
   function relTime(ts) {
@@ -9079,8 +9320,8 @@ init();
     return p;
   }
 
-  // Heights vary for Pinterest-style different shapes
-  var _heights = [210, 170, 240, 185, 260, 195, 220, 175, 250, 190];
+  // Heights vary for Pinterest-style different shapes — taller cards = more professional
+  var _heights = [280, 220, 320, 250, 340, 260, 300, 230, 360, 270];
   var _hIdx = 0;
 
   function _render(posts) {
@@ -9117,31 +9358,104 @@ init();
     card.className = 'exp-card';
     card.style.height = h+'px';
 
-    var vid = document.createElement('video');
-    vid.dataset.src = media.url; // lazy — don't set src yet
-    vid.muted = true; vid.preload = 'none'; vid.playsInline = true;
-    card.appendChild(vid);
+    // Shimmer skeleton shown while thumbnail loads
+    var shimmer = document.createElement('div');
+    shimmer.className = 'exp-card-shimmer';
+    card.appendChild(shimmer);
 
-    // Lazy-load video metadata only when card enters viewport
+    // Canvas-based thumbnail: reliable on all Android WebViews
+    var canvas = document.createElement('canvas');
+    canvas.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity 0.35s;position:absolute;inset:0;border-radius:12px;';
+    card.appendChild(canvas);
+
     var _vidLoaded = false;
-    var _expCardObs = new IntersectionObserver(function(entries) {
-      if (entries[0].isIntersecting && !_vidLoaded) {
-        _vidLoaded = true;
-        vid.src = vid.dataset.src;
-        vid.addEventListener('loadedmetadata', function(){
-          vid.currentTime = 0.5;
-          var dur = fmtDur(vid.duration);
+    function _loadVidThumb() {
+      if (_vidLoaded) return;
+      _vidLoaded = true;
+
+      // Create an off-screen video just to grab a frame
+      var tv = document.createElement('video');
+      tv.muted = true;
+      tv.playsInline = true;
+      tv.preload = 'metadata';
+      tv.crossOrigin = 'anonymous';
+      tv.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
+      document.body.appendChild(tv);
+
+      var _revealed = false;
+      function _revealThumb() {
+        if (_revealed) return;
+        _revealed = true;
+        try {
+          canvas.width  = tv.videoWidth  || 320;
+          canvas.height = tv.videoHeight || 568;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(tv, 0, 0, canvas.width, canvas.height);
+          canvas.style.opacity = '1';
+          shimmer.style.display = 'none';
+        } catch(e) {
+          // drawImage failed (CORS/security) — just show shimmer-free placeholder
+          canvas.style.background = '#1a1a1a';
+          canvas.style.opacity = '1';
+          shimmer.style.display = 'none';
+        }
+        // Show duration badge
+        if (tv.duration && !isNaN(tv.duration)) {
+          var dur = fmtDur(tv.duration);
           if (dur) {
             var durEl = document.createElement('div');
             durEl.className = 'exp-card-duration';
             durEl.textContent = dur;
             card.appendChild(durEl);
           }
-        }, {once:true});
-        _expCardObs.disconnect();
+        }
+        // Clean up the off-screen video
+        try { tv.pause(); tv.src = ''; } catch(e2){}
+        if (tv.parentNode) tv.parentNode.removeChild(tv);
       }
-    }, { rootMargin: '200px' });
-    _expCardObs.observe(card);
+
+      // Try to seek to a good frame — use multiple fallback events
+      function _onCanSeek() {
+        tv.currentTime = Math.min(1, (tv.duration || 2) * 0.1);
+      }
+      tv.addEventListener('loadedmetadata', _onCanSeek, {once:true});
+      tv.addEventListener('seeked', _revealThumb, {once:true});
+      tv.addEventListener('loadeddata', function() {
+        // Some Android versions fire loadeddata but not seeked — grab frame immediately
+        setTimeout(function(){
+          if (!_revealed) _revealThumb();
+        }, 120);
+      }, {once:true});
+      // Hard fallback: 4s
+      setTimeout(function(){
+        if (!_revealed) {
+          canvas.style.background = '#1a1a1a';
+          canvas.style.opacity = '1';
+          shimmer.style.display = 'none';
+          _revealed = true;
+          try { tv.pause(); tv.src = ''; } catch(e){}
+          if (tv.parentNode) tv.parentNode.removeChild(tv);
+        }
+      }, 4000);
+
+      tv.src = media.url;
+      tv.load();
+    }
+
+    // Shared IntersectionObserver — load thumbs as cards scroll into view
+    if (!window._expThumbObs) {
+      window._expThumbObs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) {
+            var loadFn = e.target._loadThumb;
+            if (loadFn) loadFn();
+            window._expThumbObs.unobserve(e.target);
+          }
+        });
+      }, { rootMargin: '400px' });
+    }
+    card._loadThumb = _loadVidThumb;
+    window._expThumbObs.observe(card);
 
     if (desc) {
       var descEl = document.createElement('div');
@@ -9195,27 +9509,133 @@ init();
     item.appendChild(card);
     item.appendChild(meta);
 
+    // ── Click: open viewer scrolled to exactly this post ──
     item.addEventListener('click', function(e){
       e.stopPropagation();
-      _openViewerAt(postId, item);
+      _openViewerAt(postId);
     });
 
     grid.appendChild(item);
   }
 
-  function _openViewerAt(postId, itemEl) {
-    if (typeof window.openExploreViewer === 'function') { window.openExploreViewer(postId); return; }
+  // ── Build a simple fullscreen video pin for explore viewer ──
+  // Same approach as profile viewer: direct src, plays immediately, no lazy-load dependency
+  function _buildExpViewerPin(postData, postId) {
+    var media = postData.media && postData.media[0];
+    if (!media || !media.url) return null;
+
+    var pin = document.createElement('div');
+    pin.className = 'pin-container';
+    pin.dataset.postId = postId;
+    pin.style.cssText = 'height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;position:relative;width:100%;background:#000;overflow:hidden;';
+
+    // Video element — src set directly, no lazy load
+    var vid = document.createElement('video');
+    vid.src = media.url;
+    vid.muted = true; // start muted, observer will apply global mute state
+    vid.loop = true;
+    vid.playsInline = true;
+    vid.controls = false;
+    vid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;';
+
+    // Cinematic gradient overlay
+    var grad = document.createElement('div');
+    grad.style.cssText = 'position:absolute;inset:0;background:linear-gradient(to bottom,transparent 0%,transparent 38%,rgba(0,0,0,0.25) 58%,rgba(0,0,0,0.72) 80%,rgba(0,0,0,0.94) 100%);pointer-events:none;z-index:1;';
+
+    // Creator info strip at bottom-left
+    var info = document.createElement('div');
+    info.style.cssText = 'position:absolute;bottom:80px;left:12px;right:70px;z-index:2;pointer-events:none;';
+
+    var name = postData.name || postData.displayName || postData.userName || 'User';
+    var nameEl = document.createElement('div');
+    nameEl.style.cssText = 'font-size:15px;font-weight:900;color:#fff;letter-spacing:-0.01em;text-shadow:0 1px 8px rgba(0,0,0,0.9);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+    nameEl.textContent = '@' + name;
+
+    var desc = (postData.text || '').trim();
+    if (desc) {
+      var descEl = document.createElement('div');
+      descEl.style.cssText = 'font-size:13px;font-weight:500;color:rgba(255,255,255,0.88);text-shadow:0 1px 8px rgba(0,0,0,0.9);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;';
+      descEl.textContent = desc;
+      info.appendChild(nameEl);
+      info.appendChild(descEl);
+    } else {
+      info.appendChild(nameEl);
+    }
+
+    // Watching badge — centered top, glass pill (same as profile viewer)
+    var watchBadge = document.createElement('div');
+    watchBadge.className = 'live-viewer-badge';
+    watchBadge.style.cssText = 'position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);backdrop-filter:blur(16px);-webkit-backdrop-filter:saturate(180%) blur(16px);border:1px solid rgba(255,255,255,0.18);border-radius:99px;padding:4px 10px 4px 6px;white-space:nowrap;';
+    var watchDot = document.createElement('div');
+    watchDot.className = 'live-dot';
+    var watchNum = document.createElement('span');
+    watchNum.style.cssText = 'font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);';
+    watchNum.textContent = '0 watching';
+    watchBadge.appendChild(watchDot);
+    watchBadge.appendChild(watchNum);
+
+    // Update watch count from RTDB if available
+    (function(_pid, _numEl) {
+      try {
+        var _rtdb = window._fbRtdb || (window.firebase && window.firebase.database && window.firebase.database());
+        if (!_rtdb && window._fbDb) {
+          // try to get rtdb from the global exposed by the module
+          var _db = window._fbDb;
+        }
+        // Use the onValue already exposed via index.js / the module
+        if (typeof window._trackViewerCount === 'function') {
+          window._trackViewerCount(_pid, function(count) {
+            _numEl.textContent = count + ' watching';
+          });
+        }
+      } catch(e) {}
+    })(postId, watchNum);
+
+    pin.appendChild(vid);
+    pin.appendChild(grad);
+    pin.appendChild(watchBadge);
+    pin.appendChild(info);
+
+    return pin;
+  }
+
+  // Build the explore viewer feed from current sorted posts, open at the right one
+  function _openViewerAt(postId) {
     if (!viewer || !vFeed) return;
+
+    var sortedPosts = _sorted(_allPosts);
+
+    // Always rebuild — ensures videos have direct src and no lazy-load issues
+    vFeed.innerHTML = '';
+    vFeed._builtFor = _curTab + _searchQ;
+
+    // Disconnect old observer
+    if (_expViewerObs) { _expViewerObs.disconnect(); _expViewerObs = null; }
+
+    sortedPosts.forEach(function(item) {
+      var pin = _buildExpViewerPin(item.data, item.id);
+      if (!pin) return;
+      vFeed.appendChild(pin);
+    });
+
+    // Open viewer
     viewer.classList.add('open');
-    setTimeout(function(){
-      var slot = postId ? vFeed.querySelector('[data-post-id="'+postId+'"]') : null;
-      if (!slot && itemEl) {
-        var all = Array.from(grid.querySelectorAll('.exp-item'));
-        var idx = all.indexOf(itemEl);
-        slot = vFeed.children[idx]||null;
+
+    // Setup autoplay/pause observer on the new pins
+    _setupExploreViewerObs();
+    if (_expViewerObs) {
+      vFeed.querySelectorAll('.pin-container').forEach(function(pin) {
+        _expViewerObs.observe(pin);
+      });
+    }
+
+    // Scroll to the tapped post
+    requestAnimationFrame(function() {
+      var target = vFeed.querySelector('[data-post-id="' + postId + '"]');
+      if (target) {
+        target.scrollIntoView({ behavior: 'instant', block: 'start' });
       }
-      if (slot) slot.scrollIntoView({behavior:'instant',block:'start'});
-    }, 50);
+    });
   }
 
   if (backBtn) backBtn.addEventListener('click', function(){
@@ -9223,6 +9643,42 @@ init();
     // pause any playing videos
     if (vFeed) vFeed.querySelectorAll('video').forEach(function(v){ v.pause(); });
   });
+
+  // ── Explore viewer: autoplay/pause videos on scroll ──
+  var _expViewerObs = null;
+  function _setupExploreViewerObs() {
+    if (_expViewerObs) { _expViewerObs.disconnect(); _expViewerObs = null; }
+    _expViewerObs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        var pin = entry.target;
+        var vid = pin.querySelector('video');
+        if (!vid) return;
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+          pin.classList.add('is-active');
+          // Apply global mute state (matches home feed and profile viewer behaviour)
+          var wantMuted = (typeof window._globalMuted !== 'undefined') ? window._globalMuted : false;
+          vid.muted = wantMuted;
+          var pl = vid.play();
+          if (pl && pl.catch) {
+            pl.catch(function() {
+              vid.muted = true;
+              vid.play().catch(function(){});
+            });
+          }
+          var pid = pin.dataset.postId;
+          if (pid && typeof window.trackPresence === 'function') window.trackPresence(pid);
+        } else {
+          pin.classList.remove('is-active');
+          vid.pause();
+        }
+      });
+    }, { root: vFeed, threshold: [0, 0.55, 1.0] });
+  }
+
+  // When tab or search changes, mark viewer as stale so it rebuilds next open
+  function _markViewerStale() {
+    if (vFeed) vFeed._builtFor = null;
+  }
 
   // ── Load follower counts for mostfollowed tab ──
   function _loadFollowerCounts(posts, db, fns) {
@@ -9282,6 +9738,7 @@ init();
       document.querySelectorAll('.exp-tab').forEach(function(t){ t.classList.remove('active'); });
       tab.classList.add('active');
       _curTab = tab.dataset.tab;
+      _markViewerStale();
       if (_loaded) _render(_sorted(_allPosts));
     });
   });
@@ -9293,30 +9750,40 @@ init();
       clearTimeout(_st);
       _st = setTimeout(function(){
         _searchQ = searchInput.value.trim();
+        _markViewerStale();
         if (_loaded) _render(_sorted(_allPosts));
       }, 300);
     });
   }
 
-  // ── Trigger: load when explore nav is tapped or section shown ──
+  // ── Trigger: load immediately when explore nav tab is tapped ──
+  // Also handle case where section is already visible on load
+  function _tryLoad() { if (!_loaded) _load(); }
+
+  // Listen for the nav tap that shows explore-section
+  document.addEventListener('exploreSectionShown', _tryLoad);
+
+  // MutationObserver as fallback for display:flex toggle
   var _observer = new MutationObserver(function(mutations){
     mutations.forEach(function(m){
       if (m.type==='attributes' && m.attributeName==='style') {
-        var s = grid.closest('#explore-section');
+        var s = document.getElementById('explore-section');
         if (s && s.style.display !== 'none' && !_loaded) _load();
       }
     });
   });
   var expSection = document.getElementById('explore-section');
-  if (expSection) _observer.observe(expSection, {attributes:true});
+  if (expSection) {
+    _observer.observe(expSection, {attributes:true});
+    // If already visible (e.g. deep link), load immediately
+    if (expSection.style.display !== 'none') _load();
+  }
 
-  // Fallback: load after 1.5s if section already visible
+  // Fallback after 800ms
   setTimeout(function(){
-    if (!_loaded) {
-      var s = document.getElementById('explore-section');
-      if (s && s.style.display !== 'none') _load();
-    }
-  }, 1500);
+    var s = document.getElementById('explore-section');
+    if (s && s.style.display !== 'none' && !_loaded) _load();
+  }, 800);
 
   // ── Block index.js from appending raw cards (we self-populate) ──
   var _origAppend = grid.appendChild.bind(grid);
