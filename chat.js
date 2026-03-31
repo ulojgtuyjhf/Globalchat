@@ -837,6 +837,26 @@
           color: ${t.textPrimary} !important;
           background-clip: padding-box !important;
         }
+
+        /* ── explore section ── */
+        #explore-section { background: ${t.surfaceSecondary} !important; }
+        #explore-grid { background: ${t.surfaceSecondary} !important; }
+        .exp-card-username { color: ${t.textPrimary} !important; }
+        .exp-card-time { color: ${t.textTertiary} !important; }
+        .exp-card-meta { background: transparent !important; }
+        .exp-skel-av, .exp-skel-line {
+          background: linear-gradient(110deg, ${t.shimmerBase} 25%, ${t.shimmerShine} 50%, ${t.shimmerBase} 75%) !important;
+          background-size: 200% 100% !important;
+        }
+        /* explore viewer is always fullscreen dark video — keep dark */
+        #explore-viewer { background: #000 !important; }
+        #explore-viewer-back { background: var(--brand-gradient) !important; }
+        /* prof grid skeleton */
+        .prof-grid-skel { background: ${t.surfaceHover} !important; }
+        .prof-grid-skel-inner {
+          background: linear-gradient(110deg, ${t.shimmerBase} 25%, ${t.shimmerShine} 50%, ${t.shimmerBase} 75%) !important;
+          background-size: 200% 100% !important;
+        }
         .mob-prof-stat-num { color: ${t.textPrimary} !important; }
         .mob-prof-stat-label { color: ${t.textTertiary} !important; }
         .mob-prof-stat.clickable:active { background: ${t.surfaceHover} !important; }
