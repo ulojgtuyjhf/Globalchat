@@ -383,8 +383,35 @@ if (window === window.top && !window.matchMedia('(max-width: 899px)').matches) {
                 var isOpen = commentSheet.classList.contains('open');
 
                 if (isOpen) {
-                    // OPEN: move real video into mini-player (keeps sound + state, no reload)
-                    var activePin = window._galleryCurrentPin || gallery.querySelector('.pin-container');
+                    // OPEN: move real video into mini-player.
+                    // Detect which viewer is active and grab the visible pin from it.
+                    var _expV  = document.getElementById('explore-viewer');
+                    var _profV = document.getElementById('mob-prof-viewer');
+                    var _expFeed  = document.getElementById('explore-viewer-feed');
+                    var _profFeed = document.getElementById('mob-prof-viewer-feed');
+
+                    var activePin = null;
+                    if (_expV && _expV.classList.contains('open') && _expFeed) {
+                        // Find the currently visible pin in explore feed
+                        var _expPins = _expFeed.querySelectorAll('.pin-container');
+                        _expPins.forEach(function(p) {
+                            var r = p.getBoundingClientRect();
+                            if (r.top >= -10 && r.top <= window.innerHeight * 0.2) activePin = p;
+                        });
+                        if (!activePin && _expPins.length) activePin = _expPins[0];
+                    } else if (_profV && _profV.classList.contains('open') && _profFeed) {
+                        // Find the currently visible pin in profile feed
+                        var _profPins = _profFeed.querySelectorAll('.pin-container');
+                        _profPins.forEach(function(p) {
+                            var r = p.getBoundingClientRect();
+                            if (r.top >= -10 && r.top <= window.innerHeight * 0.2) activePin = p;
+                        });
+                        if (!activePin && _profPins.length) activePin = _profPins[0];
+                    } else {
+                        // Home feed
+                        activePin = window._galleryCurrentPin || gallery.querySelector('.pin-container');
+                    }
+
                     var origVid = activePin ? activePin.querySelector('video') : null;
                     if (!origVid) { document.body.classList.add('comments-open'); return; }
 

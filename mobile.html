@@ -2339,6 +2339,7 @@ body.comments-open #mob-feed-tabs {
     transition: opacity 0.26s ease !important;
 }
 
+
 /* ─── COPY PROTECTION ─── */
 body, * {
     -webkit-user-select: none !important;
@@ -3306,8 +3307,16 @@ body, * {
     #explore-search-input::placeholder { color:rgba(255,255,255,0.45); }
     #explore-tabs {
         display:flex; gap:5px; overflow-x:auto; scrollbar-width:none; padding-bottom:10px;
+        transition: max-height 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.22s ease, transform 0.28s cubic-bezier(0.4,0,0.2,1);
+        max-height: 48px; opacity: 1; transform: translateY(0); overflow: hidden;
+        will-change: max-height, opacity, transform;
     }
     #explore-tabs::-webkit-scrollbar { display:none; }
+    #explore-tabs.tabs-hidden {
+        max-height: 0; opacity: 0; transform: translateY(-8px);
+        padding-bottom: 0;
+        pointer-events: none;
+    }
     .exp-tab {
         flex-shrink:0; padding:4px 11px; border-radius:20px;
         font-size:11px; font-weight:700; font-family:var(--font);
@@ -5356,7 +5365,7 @@ function createPinElement(postData, postId) {
 
     function buildViewerBadge(viewers) {
         var count = viewers.length;
-        var inLikedViewer = viewerBadge.closest('#liked-viewer-feed') || viewerBadge.closest('#mob-prof-viewer-feed');
+        var inLikedViewer = viewerBadge.closest('#liked-viewer-feed') || viewerBadge.closest('#mob-prof-viewer-feed') || viewerBadge.closest('#explore-viewer-feed');
 
         // Left label (home feed only)
         var label = count > 999 ? (count/1000).toFixed(1)+'K watching' : count + ' watching';
@@ -5459,7 +5468,7 @@ function createPinElement(postData, postId) {
     // Register with visibility observer — desktop cards only
     if (mediaElement && mediaElement.tagName === 'VIDEO' && window._videoVisObs) {
         var inGallery = mediaElement.closest('#gallery');
-        var inLikedViewer = mediaElement.closest('#liked-viewer-feed') || mediaElement.closest('#mob-prof-viewer-feed');
+        var inLikedViewer = mediaElement.closest('#liked-viewer-feed') || mediaElement.closest('#mob-prof-viewer-feed') || mediaElement.closest('#explore-viewer-feed');
         if (!inGallery && !inLikedViewer) window._videoVisObs.observe(mediaElement);
     }
 
@@ -5978,11 +5987,15 @@ function openModal(postData, postId) {
     currentPostData = postData;
     _sharePostId = postId;
     _sharePostData = postData;
-    // Ensure comment sheet appears above liked/saved viewer
+    // Ensure comment sheet appears above liked/saved/explore viewer
     var _lvf = document.getElementById('liked-viewer-feed');
     if (_lvf) _lvf.style.pointerEvents = 'none';
     var _dsvf = document.getElementById('dsv-feed');
     if (_dsvf) _dsvf.style.pointerEvents = 'none';
+    var _evf = document.getElementById('explore-viewer-feed');
+    if (_evf) _evf.style.pointerEvents = 'none';
+    var _pvf = document.getElementById('mob-prof-viewer-feed');
+    if (_pvf) _pvf.style.pointerEvents = 'none';
     
     modalMedia.innerHTML = '';
     commentsList.innerHTML = '';
@@ -6253,11 +6266,15 @@ function closeModal() {
     if (sheet) sheet.classList.remove('open');
     if (overlay) overlay.classList.remove('open');
     document.body.style.overflow = '';
-    // Restore pointer-events on liked/saved viewer feeds
+    // Restore pointer-events on liked/saved/explore viewer feeds
     var _lvf = document.getElementById('liked-viewer-feed');
     if (_lvf) _lvf.style.pointerEvents = '';
     var _dsvf = document.getElementById('dsv-feed');
     if (_dsvf) _dsvf.style.pointerEvents = '';
+    var _evf = document.getElementById('explore-viewer-feed');
+    if (_evf) _evf.style.pointerEvents = '';
+    var _pvf = document.getElementById('mob-prof-viewer-feed');
+    if (_pvf) _pvf.style.pointerEvents = '';
     
     if (commentsUnsubscribe) {
         commentsUnsubscribe();
@@ -9072,7 +9089,7 @@ init();
       var target = feedEl.querySelector('[data-post-id="' + postId + '"]');
       if (target) {
         target.scrollIntoView({ behavior: 'instant', block: 'start' });
-        // Eagerly load the video
+        // Eagerly load nearby videos
         var pins2 = Array.from(feedEl.querySelectorAll('.pin-container'));
         var idx2 = pins2.indexOf(target);
         pins2.slice(Math.max(0, idx2 - 1), idx2 + 3).forEach(function(p) {
@@ -9083,6 +9100,14 @@ init();
             v.load();
           }
         });
+        // Immediately play the target video — don't wait for observer
+        var targetVid = target.querySelector('video');
+        if (targetVid) {
+          var wantMuted = (typeof window._globalMuted !== 'undefined') ? window._globalMuted : false;
+          targetVid.muted = wantMuted;
+          var pl = targetVid.play();
+          if (pl && pl.catch) pl.catch(function(){ targetVid.muted = true; targetVid.play().catch(function(){}); });
+        }
       }
     });
   }
@@ -9370,11 +9395,31 @@ init();
           }
         }
       }, {once: true});
-      // Fallback: show after 3s
-      setTimeout(function() {
-        thumbVid.style.opacity = '1';
-        shimmer.style.display = 'none';
-      }, 3000);
+      // Remove card if video fails to load — no broken/blank cards
+      thumbVid.addEventListener('error', function() {
+        // Remove from _allPosts so it also skips the viewer
+        if (typeof _allPosts !== 'undefined') {
+          _allPosts = _allPosts.filter(function(x){ return x.id !== postId; });
+        }
+        // Animate out then remove DOM node
+        if (item && item.parentNode) {
+          item.style.transition = 'opacity 0.2s ease';
+          item.style.opacity = '0';
+          setTimeout(function(){ if (item.parentNode) item.parentNode.removeChild(item); }, 220);
+        }
+      }, {once: true});
+      // If nothing loads in 5s, treat as broken and remove
+      var _removeTimer = setTimeout(function() {
+        if (thumbVid.readyState === 0 && item && item.parentNode) {
+          if (typeof _allPosts !== 'undefined') {
+            _allPosts = _allPosts.filter(function(x){ return x.id !== postId; });
+          }
+          item.style.transition = 'opacity 0.2s ease';
+          item.style.opacity = '0';
+          setTimeout(function(){ if (item.parentNode) item.parentNode.removeChild(item); }, 220);
+        }
+      }, 5000);
+      thumbVid.addEventListener('loadedmetadata', function(){ clearTimeout(_removeTimer); }, {once:true});
     }
 
     // IntersectionObserver — load thumb as card scrolls into view
@@ -9514,89 +9559,119 @@ init();
     return pin;
   }
 
-  // ── Open explore viewer — exact same logic as profile viewer ──
+  // ── Open explore viewer — mirrors openLikedViewer exactly ──
   var _expViewerObs = null;
 
   function _openViewerAt(postId) {
     if (!viewer || !vFeed) return;
 
-    // Rebuild feed (same as profile viewer)
+    var buildPin = window._createPinElement;
+    if (!buildPin) { console.warn('_createPinElement not ready'); return; }
+
+    // Tear down previous session
+    if (_expViewerObs) { _expViewerObs.disconnect(); _expViewerObs = null; }
+    vFeed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime = 0; });
     vFeed.innerHTML = '';
+
+    // Build pins — flag disables the black loading overlay inside createPinElement
     window._buildingForViewer = true;
+    var built = 0;
     _sorted(_allPosts).forEach(function(item) {
-      var pin = typeof window._createPinElement === 'function'
-        ? window._createPinElement(item.data, item.id) : null;
+      if (!item.data.media || !item.data.media[0] || !item.data.media[0].url) return;
+      var pin = buildPin(item.data, item.id);
       if (!pin) return;
-      pin.dataset.postId = item.id;
-      pin.style.height = '100dvh';
-      pin.style.scrollSnapAlign = 'start';
+      // CRITICAL: activate the video src immediately (same as liked viewer)
+      var vid = pin.querySelector('video');
+      if (vid) {
+        var src = vid.dataset.src || vid.getAttribute('data-src') || vid.src;
+        if (src && src !== window.location.href) {
+          vid.src = src;
+          vid.removeAttribute('data-src');
+          vid.preload = 'auto';
+          vid.classList.remove('lazy-load');
+          vid.classList.add('loaded');
+          vid.load();
+        }
+      }
       vFeed.appendChild(pin);
+      // Re-trigger watcherBadge now that pin is inside #explore-viewer-feed
+      // so closest('#explore-viewer-feed') resolves correctly
+      if (typeof pin._attachViewers === 'function') pin._attachViewers();
+      built++;
     });
     window._buildingForViewer = false;
+    if (built === 0) return;
 
-    // Setup autoplay observer (same as profile viewer)
-    if (_expViewerObs) { _expViewerObs.disconnect(); _expViewerObs = null; }
+    // Hard stop home feed behind viewer
+    document.querySelectorAll('#gallery video, #desktop-feed video').forEach(function(v){
+      v.pause(); v.muted = true;
+    });
+
+    // Open viewer
+    viewer.style.transform = 'translateY(0)';
+    viewer.classList.add('open');
+
+    // Show back button
+    if (backBtn) backBtn.style.display = 'flex';
+    if (backBtn && !backBtn._wired) {
+      backBtn._wired = true;
+      backBtn.addEventListener('click', function() {
+        if (_expViewerObs) { _expViewerObs.disconnect(); _expViewerObs = null; }
+        document.querySelectorAll('video').forEach(function(v){ v.pause(); v.muted = true; });
+        viewer.classList.remove('open');
+        viewer.style.transform = '';
+        backBtn.style.display = 'none';
+        setTimeout(function(){ vFeed.innerHTML = ''; }, 400);
+      });
+    }
+
+    // Scroll to tapped post
+    var pins = vFeed.querySelectorAll('.pin-container');
+    var targetIdx = 0;
+    pins.forEach(function(p, i){ if (p.dataset.postId === postId) targetIdx = i; });
+    if (pins[targetIdx]) vFeed.scrollTop = pins[targetIdx].offsetTop;
+
+    // IntersectionObserver — same as liked viewer
+    var _expCurrentPin = null;
     _expViewerObs = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
         var pin = entry.target;
         var vid = pin.querySelector('video');
         if (!vid) return;
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
-          pin.classList.add('is-active');
-          if (!vid.src && vid.dataset && vid.dataset.src) {
-            vid.src = vid.dataset.src;
-            delete vid.dataset.src;
-            vid.load();
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.85) {
+          if (_expCurrentPin && _expCurrentPin !== pin) {
+            var lv = _expCurrentPin.querySelector('video');
+            if (lv) { lv.pause(); }
           }
-          var wantMuted = (typeof window._globalMuted !== 'undefined') ? window._globalMuted : false;
-          vid.muted = wantMuted;
+          _expCurrentPin = pin;
+          if (!vid.src || vid.src === window.location.href) {
+            var s = vid.dataset.savedSrc || vid.dataset.src;
+            if (s) { vid.src = s; vid.load(); }
+          }
+          vid.currentTime = 0;
+          vid.muted = false;
           var pl = vid.play();
           if (pl && pl.catch) pl.catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
+          pin.classList.toggle('ui-hidden', !!window._uiHidden);
           var pid = pin.dataset.postId;
           if (pid && typeof window.trackPresence === 'function') window.trackPresence(pid);
-        } else {
-          pin.classList.remove('is-active');
-          vid.pause();
+          // Preload adjacent
+          var allPins = Array.prototype.slice.call(vFeed.querySelectorAll('.pin-container'));
+          var ci = allPins.indexOf(pin);
+          [-1, 1].forEach(function(off) {
+            var adj = allPins[ci + off];
+            if (!adj) return;
+            var av = adj.querySelector('video');
+            if (av && (!av.src || av.src === window.location.href) && av.dataset.savedSrc) {
+              av.src = av.dataset.savedSrc; av.muted = true; av.preload = 'auto'; av.load();
+            }
+          });
+        } else if (!entry.isIntersecting) {
+          vid.pause(); vid.muted = true; vid.currentTime = 0;
         }
       });
-    }, { root: vFeed, threshold: [0, 0.55, 1.0] });
-
-    vFeed.querySelectorAll('.pin-container').forEach(function(pin) {
-      _expViewerObs.observe(pin);
-    });
-
-    // Open viewer (same as profile viewer)
-    viewer.classList.add('open');
-    viewer.style.transform = 'translateY(0)';
-
-    // Wire back button once (same as profile viewer)
-    if (backBtn && !backBtn._wired) {
-      backBtn._wired = true;
-      backBtn.addEventListener('click', function() {
-        viewer.classList.remove('open');
-        viewer.style.transform = '';
-        vFeed.querySelectorAll('video').forEach(function(v){ v.pause(); });
-        if (_expViewerObs) { _expViewerObs.disconnect(); _expViewerObs = null; }
-      });
-    }
-
-    // Scroll to tapped post + eagerly load nearby videos (same as profile viewer)
-    requestAnimationFrame(function() {
-      var target = vFeed.querySelector('[data-post-id="' + postId + '"]');
-      if (target) {
-        target.scrollIntoView({ behavior: 'instant', block: 'start' });
-        var pins2 = Array.from(vFeed.querySelectorAll('.pin-container'));
-        var idx2 = pins2.indexOf(target);
-        pins2.slice(Math.max(0, idx2 - 1), idx2 + 3).forEach(function(p) {
-          var v = p.querySelector('video');
-          if (v && !v.src && v.dataset && v.dataset.src) {
-            v.src = v.dataset.src;
-            delete v.dataset.src;
-            v.load();
-          }
-        });
-      }
-    });
+    }, { root: vFeed, threshold: [0, 0.85] });
+    pins.forEach(function(pin) { _expViewerObs.observe(pin); });
   }
 
   // When tab or search changes, mark viewer as stale so it rebuilds next open
@@ -9679,6 +9754,29 @@ init();
       }, 300);
     });
   }
+
+  // ── Hide tabs on scroll down, show on scroll up ──
+  (function() {
+    var _tabs = document.getElementById('explore-tabs');
+    var _lastY = 0;
+    var _ticking = false;
+    if (!grid || !_tabs) return;
+    grid.addEventListener('scroll', function() {
+      if (_ticking) return;
+      _ticking = true;
+      requestAnimationFrame(function() {
+        var y = grid.scrollTop;
+        var delta = y - _lastY;
+        if (delta > 6 && y > 40) {
+          _tabs.classList.add('tabs-hidden');
+        } else if (delta < -4) {
+          _tabs.classList.remove('tabs-hidden');
+        }
+        _lastY = y;
+        _ticking = false;
+      });
+    }, { passive: true });
+  })();
 
   // ── Trigger: load immediately when explore nav tab is tapped ──
   // Also handle case where section is already visible on load
