@@ -1240,18 +1240,18 @@ body.dsv-open #updates-column {
         border-radius: 8px;
         white-space: nowrap;
     }
-    /* Updates panel — right sidebar on desktop */
+    /* Updates panel — floating card over feed on desktop */
     #updates-panel {
+        position: fixed !important;
+        top: 12px !important; right: 12px !important; bottom: 12px !important;
         left: auto !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        top: 0 !important;
         width: 340px !important;
-        height: 100vh !important;
-        border-radius: 0 !important;
-        transform: translateX(100%) !important;
+        height: auto !important;
+        border-radius: 20px !important;
+        transform: translateX(calc(100% + 24px)) !important;
         transition: transform 0.42s cubic-bezier(0.22,1,0.36,1) !important;
-        box-shadow: -4px 0 32px rgba(0,0,0,0.14) !important;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.18) !important;
+        z-index: 800 !important;
     }
     #updates-panel.open {
         transform: translateX(0) !important;
@@ -2147,35 +2147,10 @@ body.dsv-open #updates-column {
   }
 
   /* ══════════════════════════════
-     UPDATES — floating overlay panel
+     UPDATES COLUMN ISLAND
   ══════════════════════════════ */
-  #updates-column {
-    display: none !important; /* no longer a flex column — updates is a floating overlay */
-  }
-  /* Sidebar spacer pushes Updates button to bottom */
-  .ds-sidebar-spacer {
-    flex: 1; min-height: 12px;
-  }
-  /* Updates bottom button styling */
-  .ds-updates-bottom-btn {
-    margin-top: auto;
-    border-top: 1px solid rgba(0,0,0,0.06);
-    padding-top: 12px !important;
-  }
-  /* Updates floating overlay — slides in from right over the feed */
-  #updates-panel {
-    position: fixed !important;
-    top: 12px !important; right: 12px !important; bottom: 12px !important;
-    width: 340px !important;
-    border-radius: 20px !important;
-    transform: translateX(calc(100% + 24px)) !important;
-    transition: transform 0.42s cubic-bezier(0.22,1,0.36,1) !important;
-    z-index: 500 !important;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.18) !important;
-  }
-  #updates-panel.open {
-    transform: translateX(0) !important;
-  }
+  /* Updates column removed — updates-panel is now a floating overlay */
+  #updates-column { display: none !important; }
   /* Comment toggle button on video card */
   .dc-toggle-btn {
     position: absolute;
@@ -2299,42 +2274,6 @@ body.dsv-open #updates-column {
   #dc-list .reply-btn { color: #ccc; }
   #dc-list .view-replies-btn { color: #aaa; }
   #dc-list .view-replies-btn::before { background: #eee; }
-  /* ── Reply quote bubbles — same as mobile ── */
-  #dc-list .reply-quote-bubble {
-    display: flex; align-items: stretch; gap: 0;
-    background: #f0f0f0; border-radius: 10px; padding: 0;
-    margin-bottom: 6px; cursor: pointer; overflow: hidden;
-    max-width: 85%; transition: background 0.14s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-  }
-  #dc-list .reply-quote-bubble:hover { background: #e8e8e8; }
-  #dc-list .reply-quote-bar {
-    width: 5px; flex-shrink: 0;
-    background: linear-gradient(180deg, #0f0f0f 0%, #3a3a3a 40%, #626262 70%, #a6a6a6 100%);
-    border-radius: 10px 0 0 10px;
-  }
-  #dc-list .reply-quote-body {
-    flex: 1; min-width: 0; padding: 5px 10px;
-    display: flex; flex-direction: column; gap: 2px;
-  }
-  #dc-list .reply-quote-name-row { display: flex; align-items: center; gap: 4px; min-width: 0; }
-  #dc-list .reply-quote-tilde {
-    font-size: 13px; font-weight: 900; flex-shrink: 0; line-height: 1;
-    background: linear-gradient(135deg, #0f0f0f 0%, #626262 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  }
-  #dc-list .reply-quote-name {
-    font-size: 12px; font-weight: 900; line-height: 1.2;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;
-    background: linear-gradient(135deg, #0f0f0f 0%, #626262 60%, #a6a6a6 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    letter-spacing: -0.01em;
-  }
-  #dc-list .reply-quote-time { font-size: 10px; color: #bbb; white-space: nowrap; flex-shrink: 0; font-weight: 500; margin-left: 2px; }
-  #dc-list .reply-quote-text {
-    font-size: 11px; color: #888; font-weight: 400; line-height: 1.3;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
 
   /* Skeleton */
   .dc-comment-skeleton { padding: 10px 16px; display: flex; flex-direction: column; gap: 6px; }
@@ -2441,7 +2380,70 @@ body.dsv-open #updates-column {
   .dc-gif-btn:hover { background: #e0e0e0; color: #444; }
   .dc-gif-btn.active { background: #222; color: #fff; }
 
-
+  /* ══════════════════════════════
+     EXPLORE PANEL
+  ══════════════════════════════ */
+  #ds-explore-panel { display: none; }
+  #ds-explore-panel.open { display: flex !important; }
+  #dse-grid::-webkit-scrollbar { width: 5px; }
+  #dse-grid::-webkit-scrollbar-thumb { background: #d0d0d0; border-radius: 4px; }
+  #dse-search-input::placeholder { color: rgba(255,255,255,0.45); }
+  @keyframes expShimmer { 0%{left:-100%} 100%{left:150%} }
+  .dse-tab {
+    width: 100%; padding: 8px 12px; border-radius: 10px; text-align: left;
+    font-size: 12px; font-weight: 700; font-family: var(--font);
+    cursor: pointer; border: 1.5px solid #ebebeb;
+    background: #fafafa; color: #555; transition: all 0.15s;
+    display: flex; align-items: center;
+  }
+  .dse-tab:hover { background: #f0f0f0; color: #111; border-color: #ddd; }
+  .dse-tab.active { background: #111; color: #fff; border-color: #111; }
+  .dse-item {
+    break-inside: avoid; display: block; margin-bottom: 5px;
+    cursor: pointer;
+    animation: dseIn 0.3s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  @keyframes dseIn { from { opacity:0; transform:translateY(12px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+  .dse-card {
+    display: block; width: 100%; position: relative;
+    border-radius: 11px; overflow: hidden; background: #1a1a1a;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.18s;
+  }
+  .dse-card:hover { transform: scale(1.025); box-shadow: 0 6px 20px rgba(0,0,0,0.22); }
+  .dse-card video { width:100%; display:block; object-fit:cover; pointer-events:none; }
+  .dse-card-shimmer {
+    position:absolute;inset:0;
+    background:linear-gradient(110deg,#1a1a1a 25%,#2a2a2a 50%,#1a1a1a 75%);
+    background-size:200% 100%;animation:dseShimmer 1.4s infinite;z-index:1;
+  }
+  @keyframes dseShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .dse-card-dur {
+    position:absolute;top:6px;right:6px;z-index:3;
+    background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);
+    color:#fff;font-size:9px;font-weight:800;padding:2px 5px;border-radius:4px;font-family:var(--font);
+  }
+  .dse-card-overlay {
+    position:absolute;bottom:0;left:0;right:0;z-index:2;
+    background:linear-gradient(to top,rgba(0,0,0,0.72) 0%,transparent 100%);
+    padding:22px 8px 7px;
+  }
+  .dse-card-name { font-size:10px;font-weight:800;color:rgba(255,255,255,0.95);font-family:var(--font);overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .dse-card-desc { font-size:9px;color:rgba(255,255,255,0.6);font-family:var(--font);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px; }
+  /* Reply quote bubbles in desktop comment panel — same as mobile */
+  #dc-list .reply-quote-bubble {
+    display:flex;align-items:stretch;gap:0;background:#f0f0f0;border-radius:10px;
+    padding:0;margin-bottom:6px;cursor:pointer;overflow:hidden;max-width:88%;
+    transition:background 0.14s;box-shadow:0 2px 8px rgba(0,0,0,0.07);
+  }
+  #dc-list .reply-quote-bubble:hover { background:#e8e8e8; }
+  #dc-list .reply-quote-bar { width:5px;flex-shrink:0;background:linear-gradient(180deg,#0f0f0f 0%,#3a3a3a 40%,#626262 70%,#a6a6a6 100%);border-radius:10px 0 0 10px; }
+  #dc-list .reply-quote-body { flex:1;min-width:0;padding:5px 10px;display:flex;flex-direction:column;gap:2px; }
+  #dc-list .reply-quote-name-row { display:flex;align-items:center;gap:4px;min-width:0; }
+  #dc-list .reply-quote-tilde { font-size:13px;font-weight:900;flex-shrink:0;line-height:1;background:linear-gradient(135deg,#0f0f0f 0%,#626262 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+  #dc-list .reply-quote-name { font-size:12px;font-weight:900;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;background:linear-gradient(135deg,#0f0f0f 0%,#626262 60%,#a6a6a6 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-0.01em; }
+  #dc-list .reply-quote-time { font-size:10px;color:#bbb;white-space:nowrap;flex-shrink:0;font-weight:500;margin-left:2px; }
+  #dc-list .reply-quote-text { font-size:11px;color:#888;font-weight:400;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 
 }
 
@@ -2508,7 +2510,7 @@ if (window === window.top && window.matchMedia('(max-width: 899px)').matches) {
           <span class="ds-logo-name">nmedea</span>
         </div>
 
-        <!-- Nav items -->
+        <!-- Nav items — Home, Explore, Upload, Updates, Profile (mirrors mobile) -->
         <button class="ds-nav-item active" id="dsNavHome">
           <div class="ds-nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2521,8 +2523,8 @@ if (window === window.top && window.matchMedia('(max-width: 899px)').matches) {
         <button class="ds-nav-item" id="dsNavExplore">
           <div class="ds-nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="currentColor" stroke="none"/>
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
           </div>
           Explore
@@ -2533,13 +2535,15 @@ if (window === window.top && window.matchMedia('(max-width: 899px)').matches) {
           </div>
           Upload
         </button>
-        <button class="ds-nav-item" id="dsNavLiked">
-          <div class="ds-nav-icon">
+        <button class="ds-nav-item" id="dsNavTop" style="position:relative;">
+          <div class="ds-nav-icon" style="position:relative;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
+            <span class="nav-badge" id="updBadgeDesk" style="display:none;position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;border-radius:99px;background:var(--brand-gradient);border:1.5px solid #000;font-size:9px;font-weight:900;color:#fff;font-family:var(--font);padding:0 3px;align-items:center;justify-content:center;"></span>
           </div>
-          Saved
+          Updates
         </button>
         <button class="ds-nav-item" id="dsNavProfile">
           <div class="ds-nav-icon">
@@ -2574,19 +2578,6 @@ if (window === window.top && window.matchMedia('(max-width: 899px)').matches) {
           <div class="ds-person-skel"><div class="ds-skel-av"></div><div class="ds-skel-lines"><div class="ds-skel-line w70"></div><div class="ds-skel-line w50"></div></div></div>
           <div class="ds-person-skel"><div class="ds-skel-av"></div><div class="ds-skel-lines"><div class="ds-skel-line w55"></div><div class="ds-skel-line w35"></div></div></div>
         </div>
-
-        <!-- Updates — pinned to bottom of sidebar -->
-        <div class="ds-sidebar-spacer"></div>
-        <button class="ds-nav-item ds-updates-bottom-btn" id="dsNavTop" style="position:relative;">
-          <div class="ds-nav-icon" style="position:relative;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-            <span class="nav-badge" id="updBadgeDesk" style="display:none;position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;border-radius:99px;background:var(--brand-gradient);border:1.5px solid #000;font-size:9px;font-weight:900;color:#fff;font-family:var(--font);padding:0 3px;align-items:center;justify-content:center;"></span>
-          </div>
-          Updates
-        </button>
 
       </aside>
 
@@ -2692,123 +2683,53 @@ if (window === window.top && window.matchMedia('(max-width: 899px)').matches) {
         </div>
       </aside>
 
-      <!-- Explore panel — full main area takeover -->
-      <div id="ds-explore-panel" style="display:none;flex:1;height:calc(100vh - 24px);background:#fff;border-radius:20px;box-shadow:0 2px 20px rgba(0,0,0,0.07);overflow:hidden;flex-direction:column;position:relative;">
+      <!-- EXPLORE PANEL — center grid + right sidebar (search & tabs) -->
+      <div id="ds-explore-panel" style="display:none;flex:1;height:calc(100vh - 24px);gap:12px;">
 
-        <!-- Explore header -->
-        <div id="dse-header" style="flex-shrink:0;background:var(--brand-gradient);padding:18px 20px 0;position:relative;overflow:hidden;">
-          <div id="dse-header-shimmer"></div>
-          <!-- Top row: title left, search right -->
-          <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="width:7px;height:7px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 7px #ff3b5c;flex-shrink:0;display:block;"></span>
-              <span style="font-size:18px;font-weight:900;color:#fff;font-family:var(--font);letter-spacing:-0.02em;">Explore</span>
+        <!-- Center: masonry grid -->
+        <div id="dse-grid-col" style="flex:1;background:#fff;border-radius:20px;box-shadow:0 2px 20px rgba(0,0,0,0.07);display:flex;flex-direction:column;overflow:hidden;">
+          <!-- Grid header bar -->
+          <div style="padding:18px 20px 14px;border-bottom:1px solid #f0f0f0;flex-shrink:0;display:flex;align-items:center;gap:10px;">
+            <span style="font-size:20px;font-weight:900;color:#111;font-family:var(--font);letter-spacing:-0.03em;flex:1;">Explore</span>
+            <span id="dse-count-badge" style="background:#111;color:#fff;font-size:10px;font-weight:800;padding:3px 10px;border-radius:99px;font-family:var(--font);display:none;"></span>
+          </div>
+          <!-- Scrollable masonry -->
+          <div id="dse-grid" style="flex:1;overflow-y:auto;padding:8px 6px 20px;columns:3;column-gap:5px;background:#f0f0f2;scrollbar-width:thin;scrollbar-color:#d0d0d0 transparent;">
+            <div id="dse-loading" style="column-span:all;text-align:center;padding:60px 0;">
+              <div class="spinner" style="margin:0 auto;"></div>
             </div>
-            <div id="dse-search-bar" style="flex:1;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);border-radius:10px;padding:8px 13px;border:1px solid rgba(255,255,255,0.2);max-width:340px;">
+          </div>
+        </div>
+
+        <!-- Right: search + tabs panel -->
+        <div id="dse-right-col" style="width:clamp(220px,18vw,280px);flex-shrink:0;height:100%;background:#fff;border-radius:20px;box-shadow:0 2px 20px rgba(0,0,0,0.07);display:flex;flex-direction:column;overflow:hidden;">
+          <!-- Gradient header -->
+          <div style="background:var(--brand-gradient);padding:18px 16px 16px;flex-shrink:0;position:relative;overflow:hidden;">
+            <div style="position:absolute;top:0;left:-100%;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent);animation:expShimmer 3.5s ease-in-out infinite;pointer-events:none;"></div>
+            <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);letter-spacing:0.06em;text-transform:uppercase;font-family:var(--font);margin-bottom:10px;">Search</div>
+            <div id="dse-search-bar" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);border-radius:10px;padding:9px 12px;border:1px solid rgba(255,255,255,0.2);">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input id="dse-search-input" placeholder="Search videos, creators..." autocomplete="off" style="flex:1;border:none;background:none;outline:none;font-size:13px;font-weight:500;color:#fff;font-family:var(--font);">
+              <input id="dse-search-input" placeholder="Search creators, videos..." autocomplete="off" style="flex:1;border:none;background:none;outline:none;font-size:12px;font-weight:500;color:#fff;font-family:var(--font);">
             </div>
           </div>
-          <!-- Tabs row -->
-          <div id="dse-tabs" style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:12px;">
-            <button class="dse-tab active" data-tab="recent">Recent</button>
-            <button class="dse-tab" data-tab="top">Top</button>
-            <button class="dse-tab" data-tab="mostliked">Most Liked</button>
-            <button class="dse-tab" data-tab="mostfollowed">Most Followed</button>
+          <!-- Tabs list -->
+          <div style="padding:14px 16px 8px;flex-shrink:0;border-bottom:1px solid #f0f0f0;">
+            <div style="font-size:11px;font-weight:700;color:#bbb;letter-spacing:0.06em;text-transform:uppercase;font-family:var(--font);margin-bottom:10px;">Filter</div>
+            <div id="dse-tabs" style="display:flex;flex-direction:column;gap:4px;">
+              <button class="dse-tab active" data-tab="recent">Recent</button>
+              <button class="dse-tab" data-tab="top">Top Rated</button>
+              <button class="dse-tab" data-tab="mostliked">Most Liked</button>
+              <button class="dse-tab" data-tab="mostfollowed">Most Followed</button>
+            </div>
+          </div>
+          <!-- Spacer / info -->
+          <div style="flex:1;padding:16px;display:flex;flex-direction:column;gap:6px;">
+            <div style="font-size:11px;font-weight:700;color:#bbb;letter-spacing:0.06em;text-transform:uppercase;font-family:var(--font);margin-bottom:4px;">About</div>
+            <div style="font-size:12px;color:#aaa;font-weight:500;font-family:var(--font);line-height:1.6;">Discover videos from creators. Click any video to watch in full with comments.</div>
           </div>
         </div>
 
-        <!-- Masonry grid -->
-        <div id="dse-grid" style="flex:1;overflow-y:auto;padding:8px 8px 20px;columns:3;column-gap:6px;background:#f0f0f2;scrollbar-width:thin;scrollbar-color:#d0d0d0 transparent;">
-          <div id="dse-loading" style="text-align:center;padding:40px 0;width:100%;column-span:all;">
-            <div class="spinner" style="border-top-color:#888;margin:0 auto;"></div>
-          </div>
-        </div>
-        <style>
-          #dse-grid::-webkit-scrollbar { width: 5px; }
-          #dse-grid::-webkit-scrollbar-thumb { background: #d0d0d0; border-radius: 4px; }
-          #dse-search-input::placeholder { color: rgba(255,255,255,0.5); }
-          #dse-tabs::-webkit-scrollbar { display: none; }
-          .dse-tab {
-            flex-shrink: 0; padding: 5px 13px; border-radius: 20px;
-            font-size: 11px; font-weight: 700; font-family: var(--font);
-            cursor: pointer; border: 1.5px solid rgba(255,255,255,0.3);
-            background: transparent; color: rgba(255,255,255,0.65);
-            transition: all 0.15s; white-space: nowrap;
-          }
-          .dse-tab.active { background: #fff; color: #111; border-color: #fff; }
-          .dse-item {
-            break-inside: avoid; display: block;
-            margin-bottom: 6px; cursor: pointer;
-            animation: dseItemIn 0.32s cubic-bezier(0.22,1,0.36,1) both;
-          }
-          @keyframes dseItemIn {
-            from { opacity: 0; transform: translateY(14px) scale(0.97); }
-            to   { opacity: 1; transform: translateY(0) scale(1); }
-          }
-          .dse-card {
-            display: block; width: 100%; position: relative;
-            border-radius: 12px; overflow: hidden; background: #1a1a1a;
-            box-shadow: 0 3px 12px rgba(0,0,0,0.18); transition: transform 0.16s;
-          }
-          .dse-card:hover { transform: scale(1.02); }
-          .dse-card video { width: 100%; display: block; object-fit: cover; pointer-events: none; }
-          .dse-card-shimmer {
-            position: absolute; inset: 0;
-            background: linear-gradient(110deg,#1a1a1a 25%,#2a2a2a 50%,#1a1a1a 75%);
-            background-size: 200% 100%; animation: dseShimmer 1.4s infinite; z-index: 1;
-          }
-          @keyframes dseShimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-          .dse-card-dur {
-            position: absolute; top: 6px; right: 6px;
-            background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
-            color: #fff; font-size: 9px; font-weight: 800;
-            padding: 2px 5px; border-radius: 4px; font-family: var(--font); z-index: 3;
-          }
-          .dse-card-overlay {
-            position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
-            background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
-            padding: 20px 8px 7px;
-          }
-          .dse-card-name { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.92); font-family: var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-          .dse-card-desc { font-size: 9px; color: rgba(255,255,255,0.6); font-family: var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
-
-          /* Explore video viewer — slides over panel */
-          #dse-viewer {
-            position: absolute; inset: 0; z-index: 100;
-            background: #000; border-radius: 20px; overflow: hidden;
-            transform: translateX(100%);
-            transition: transform 0.38s cubic-bezier(0.22,1,0.36,1);
-          }
-          #dse-viewer.open { transform: translateX(0); }
-          #dse-viewer-feed {
-            position: absolute; inset: 0;
-            overflow-y: scroll; scroll-snap-type: y mandatory;
-            scroll-snap-stop: always; overscroll-behavior-y: contain;
-            scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) transparent;
-          }
-          #dse-viewer-feed::-webkit-scrollbar { width: 4px; }
-          #dse-viewer-feed::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
-          #dse-viewer-back {
-            position: absolute; top: 14px; left: 14px; z-index: 110;
-            background: var(--brand-gradient); border: none; cursor: pointer;
-            width: 36px; height: 36px; border-radius: 50%;
-            display: none; align-items: center; justify-content: center;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-            transition: transform 0.15s;
-          }
-          #dse-viewer-back:hover { transform: scale(1.1); }
-          #dse-viewer.open #dse-viewer-back { display: flex; }
-        </style>
-
-        <!-- Viewer overlay inside explore panel -->
-        <div id="dse-viewer">
-          <div id="dse-viewer-feed"></div>
-          <button id="dse-viewer-back">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-        </div>
-      </div>
+      </div><!-- end #ds-explore-panel -->
 
       </div><!-- end #ds-main-area -->
 
@@ -6776,12 +6697,12 @@ init();
       var _cmt = document.getElementById('desktop-comments');
       if (_cmt) _cmt.classList.remove('open');
       document.body.classList.remove('comments-open', 'dsv-open', 'updates-open');
-      // Close explore viewer if open
-      var _expViewer = document.getElementById('dse-viewer');
-      if (_expViewer) _expViewer.classList.remove('open');
-      // Close updates floating panel
-      var _updPanel = document.getElementById('updates-panel');
-      if (_updPanel) _updPanel.classList.remove('open');
+      var _updPanel2 = document.getElementById('updates-panel');
+      if (_updPanel2) _updPanel2.classList.remove('open');
+      document.body.classList.remove('updates-open');
+      // Hide explore panel
+      var _expP2 = document.getElementById('ds-explore-panel');
+      if (_expP2) _expP2.style.display = 'none';
       // Nav arrows
       var _na = document.getElementById('desktopNavArrows');
       if (_na) _na.style.display = 'none';
@@ -6818,6 +6739,7 @@ init();
           openDesktopComments(_lastPostData, _lastPostId, false);
         }
       }
+
       var _rna = document.getElementById('desktopNavArrows');
       if (_rna) _rna.style.display = '';
       return;
@@ -6849,15 +6771,11 @@ init();
 
     if (section === 'Explore') {
       hideAll();
-      document.querySelectorAll('video').forEach(function(v){ v.pause(); v.muted = true; });
-      var expPanel = document.getElementById('ds-explore-panel');
-      if (expPanel) {
-        expPanel.style.display = 'flex';
-        // Trigger load on first visit
-        if (!expPanel._loaded) {
-          expPanel._loaded = true;
-          document.dispatchEvent(new CustomEvent('dseLoad'));
-        }
+      document.querySelectorAll('video').forEach(function(v){ try{v.pause();v.muted=true;}catch(e){} });
+      var expP = document.getElementById('ds-explore-panel');
+      if (expP) {
+        expP.style.display = 'flex';
+        if (!expP._loaded) { expP._loaded = true; document.dispatchEvent(new CustomEvent('dseLoad')); }
       }
       return;
     }
@@ -7547,7 +7465,7 @@ init();
       profPanel.style.display = 'flex';
       var _dpFeed = document.getElementById('desktop-feed');
       var _dpCmt  = document.getElementById('desktop-comments');
-      // updates-column removed (now floating)
+      var _dpUpd  = document.getElementById('updates-column');
       if (_dpFeed) _dpFeed.style.display = 'none';
       if (_dpCmt)  { _dpCmt.style.display = 'none'; _dpCmt.classList.remove('open'); }
       if (_dpUpd)  { _dpUpd.style.display = 'none'; _dpUpd.classList.remove('open'); }
@@ -7607,7 +7525,7 @@ init();
   function showDsGuestWall(type) {
     // Highlight the correct nav item
     document.querySelectorAll('.ds-nav-item').forEach(function(b){ b.classList.remove('active'); });
-    var navMap = { upload: 'dsNavUpload', saved: 'dsNavLiked', profile: 'dsNavProfile', updates: 'dsNavTop', explore: 'dsNavExplore' };
+    var navMap = { upload: 'dsNavUpload', explore: 'dsNavExplore', profile: 'dsNavProfile', updates: 'dsNavTop' };
     var nb = document.getElementById(navMap[type]);
     if (nb) nb.classList.add('active');
 
@@ -7641,19 +7559,15 @@ init();
   window._showDsGuestWall = showDsGuestWall;
 
   // Nav listeners
-  document.getElementById('dsNavHome').addEventListener('click',    function(){ showDesktopSection('Home'); });
+  document.getElementById('dsNavHome').addEventListener('click', function(){ showDesktopSection('Home'); });
   document.getElementById('dsNavExplore').addEventListener('click', function(){ showDesktopSection('Explore'); });
-  document.getElementById('dsNavTop').addEventListener('click', function(){
-    if (!window._currentUser) { showDsGuestWall('updates'); return; }
-    window.openUpdatesPanel && window.openUpdatesPanel();
-  });
-  document.getElementById('dsNavUpload').addEventListener('click',  function(){
+  document.getElementById('dsNavUpload').addEventListener('click', function(){
     if (!window._currentUser) { showDsGuestWall('upload'); return; }
     showDesktopSection('Upload');
   });
-  document.getElementById('dsNavLiked').addEventListener('click',   function(){
-    if (!window._currentUser) { showDsGuestWall('saved'); return; }
-    showDesktopSection('Liked');
+  document.getElementById('dsNavTop').addEventListener('click', function(){
+    if (!window._currentUser) { showDsGuestWall('updates'); return; }
+    window.openUpdatesPanel && window.openUpdatesPanel();
   });
   document.getElementById('dsNavProfile').addEventListener('click', function(){
     if (!window._currentUser) { showDsGuestWall('profile'); return; }
@@ -8622,7 +8536,7 @@ init();
             });
         });
 
-        // ── Open / Close panel (floating overlay) ──
+        // ── Open / Close panel ──
         window.openUpdatesPanel = function() {
             if (panel) panel.classList.add('open');
             document.body.classList.add('updates-open');
@@ -8647,7 +8561,7 @@ init();
                     window.closeUpdatesPanel();
                 }
             }
-        });
+        }, true);
 
         // Expose push for external use (e.g. comment sheet)
         window._pushNotification = pushNotif;
@@ -9612,35 +9526,28 @@ document.addEventListener('keydown', function(e){
 // ═══════════════════════════════════════════════════════
 //  PROFILE ENHANCEMENTS — paste before 
 <script>
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 //  DESKTOP EXPLORE ENGINE
-// ═══════════════════════════════════════════════════
+//  - Loads posts from Firestore
+//  - Renders masonry grid in #dse-grid
+//  - Opens video using EXACT same method as Saved viewer:
+//    _buildDesktopCard + desktop-feed + desktop-comments
+// ═══════════════════════════════════════════════════════════
 (function() {
   var grid        = document.getElementById('dse-grid');
   var searchInput = document.getElementById('dse-search-input');
-  var viewer      = document.getElementById('dse-viewer');
-  var viewerFeed  = document.getElementById('dse-viewer-feed');
-  var backBtn     = document.getElementById('dse-viewer-back');
   if (!grid) return;
 
-  var _allPosts      = [];
-  var _loaded        = false;
-  var _curTab        = 'recent';
-  var _searchQ       = '';
-  var _followerCounts = {};
-  var _followingIds  = [];
-  var _expViewerObs  = null;
+  var _allPosts    = [];
+  var _loaded      = false;
+  var _curTab      = 'recent';
+  var _searchQ     = '';
+  var _dseViewObs  = null;
+  var _dseCards    = [];
+  // Panel ref for show/hide
+  var _panel       = null;
 
-  function _showLoading() {
-    var el = document.getElementById('dse-loading');
-    if (el) el.style.display = 'block';
-  }
-  function _hideLoading() {
-    var el = document.getElementById('dse-loading');
-    if (el) el.style.display = 'none';
-  }
-
-  // ── Sort/filter posts ──
+  // ── Sort + filter ──
   function _sorted(posts) {
     var q = _searchQ.toLowerCase();
     var list = posts.filter(function(x) {
@@ -9651,11 +9558,20 @@ document.addEventListener('keydown', function(e){
              (d.username||'').toLowerCase().includes(q);
     });
     if (_curTab === 'top') {
-      list = list.slice().sort(function(a,b){ return (b.data.superlikeCount||b.data.superlikes&&b.data.superlikes.length||0)-(a.data.superlikeCount||a.data.superlikes&&a.data.superlikes.length||0); });
+      list = list.slice().sort(function(a,b){
+        return ((b.data.superlikes&&b.data.superlikes.length)||b.data.superlikeCount||0) -
+               ((a.data.superlikes&&a.data.superlikes.length)||a.data.superlikeCount||0);
+      });
     } else if (_curTab === 'mostliked') {
-      list = list.slice().sort(function(a,b){ return (b.data.likeCount||b.data.likes&&b.data.likes.length||0)-(a.data.likeCount||a.data.likes&&a.data.likes.length||0); });
+      list = list.slice().sort(function(a,b){
+        return ((b.data.likes&&b.data.likes.length)||b.data.likeCount||0) -
+               ((a.data.likes&&a.data.likes.length)||a.data.likeCount||0);
+      });
     } else if (_curTab === 'mostfollowed') {
-      list = list.slice().sort(function(a,b){ return (_followerCounts[b.data.userId]||0)-(_followerCounts[a.data.userId]||0); });
+      list = list.slice().sort(function(a,b){
+        return (_followerCounts[b.data.userId||b.data.uid]||0) -
+               (_followerCounts[a.data.userId||a.data.uid]||0);
+      });
     } else {
       list = list.slice().sort(function(a,b){
         var ta = a.data.timestamp, tb = b.data.timestamp;
@@ -9666,9 +9582,13 @@ document.addEventListener('keydown', function(e){
     }
     return list;
   }
+  var _followerCounts = {};
 
-  // ── Build a card ──
+  // ── Build one masonry card ──
   function _addCard(post, postId, delay) {
+    var m = post.media && post.media[0];
+    if (!m || !m.url) return;
+
     var wrap = document.createElement('div');
     wrap.className = 'dse-item';
     wrap.style.animationDelay = (delay||0)+'ms';
@@ -9677,188 +9597,202 @@ document.addEventListener('keydown', function(e){
     var card = document.createElement('div');
     card.className = 'dse-card';
 
-    var m = post.media && post.media[0];
-    var url = m && m.url || '';
-    var isVid = m && (m.type==='video'||(m.contentType&&m.contentType.startsWith('video/')));
+    // Variable height for masonry feel
+    var heights = [140,180,160,210,155,195,145,175,165,200];
+    var hIdx = 0;
+    for (var ci=0; ci<postId.length; ci++) hIdx += postId.charCodeAt(ci);
+    card.style.height = heights[hIdx % heights.length] + 'px';
 
-    // Aspect ratio — natural height based on random-ish pick for masonry feel
-    var heights = [140,170,200,160,185,155,210];
-    var h = heights[(postId.charCodeAt(0)+postId.charCodeAt(postId.length-1))%heights.length];
-    card.style.height = h+'px';
+    // Shimmer
+    var shim = document.createElement('div'); shim.className = 'dse-card-shimmer'; card.appendChild(shim);
 
-    var shimmer = document.createElement('div');
-    shimmer.className = 'dse-card-shimmer';
-    card.appendChild(shimmer);
+    // Video thumbnail
+    var vid = document.createElement('video');
+    vid.dataset.src = m.url;
+    vid.muted = true; vid.loop = true; vid.playsInline = true;
+    vid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
+    vid.addEventListener('loadeddata', function(){ shim.style.display='none'; }, {once:true});
+    card.appendChild(vid);
 
-    if (isVid && url) {
-      var vid = document.createElement('video');
-      vid.dataset.src = url;
-      vid.muted = true; vid.loop = true; vid.playsInline = true;
-      vid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
-      vid.addEventListener('loadeddata', function(){ shimmer.style.display='none'; }, {once:true});
-      card.appendChild(vid);
-    }
-
-    var overlay = document.createElement('div');
-    overlay.className = 'dse-card-overlay';
-    var nameEl = document.createElement('div');
-    nameEl.className = 'dse-card-name';
-    nameEl.textContent = post.name || post.username || '';
-    var descEl = document.createElement('div');
-    descEl.className = 'dse-card-desc';
-    descEl.textContent = post.description || '';
-    overlay.appendChild(nameEl);
-    overlay.appendChild(descEl);
-    card.appendChild(overlay);
+    // Overlay
+    var ov = document.createElement('div'); ov.className = 'dse-card-overlay';
+    var nm = document.createElement('div'); nm.className = 'dse-card-name';
+    nm.textContent = post.name || post.username || '';
+    var dc = document.createElement('div'); dc.className = 'dse-card-desc';
+    dc.textContent = post.description || '';
+    ov.appendChild(nm); ov.appendChild(dc); card.appendChild(ov);
 
     // Duration badge
     if (post.duration) {
-      var dur = document.createElement('div');
-      dur.className = 'dse-card-dur';
       var s = Math.round(post.duration);
-      dur.textContent = Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60);
-      card.appendChild(dur);
+      var db = document.createElement('div'); db.className = 'dse-card-dur';
+      db.textContent = Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60);
+      card.appendChild(db);
     }
 
     wrap.appendChild(card);
     grid.appendChild(wrap);
 
-    // Hover: load + play preview
+    // Hover: load + preview
     card.addEventListener('mouseenter', function() {
       var v = card.querySelector('video');
       if (v && !v.src) { v.src = v.dataset.src; v.load(); }
       if (v) v.play().catch(function(){});
     });
     card.addEventListener('mouseleave', function() {
-      var v = card.querySelector('video'); if (v) { v.pause(); v.currentTime=0; }
+      var v = card.querySelector('video');
+      if (v) { v.pause(); v.currentTime = 0; }
     });
 
-    // Click: open viewer
-    wrap.addEventListener('click', function() { _openViewer(postId); });
+    // Click: open in desktop viewer (same as Saved)
+    wrap.addEventListener('click', function() { _openInDesktopViewer(postId); });
   }
 
   // ── Render grid ──
   function _render(posts) {
-    // Remove existing cards only
-    Array.from(grid.querySelectorAll('.dse-item')).forEach(function(el){ el.remove(); });
-    _hideLoading();
+    Array.from(grid.querySelectorAll('.dse-item,.dse-empty')).forEach(function(el){ el.remove(); });
+    var loadEl = document.getElementById('dse-loading');
+    if (loadEl) loadEl.style.display = 'none';
+
+    var badge = document.getElementById('dse-count-badge');
+    if (badge) { badge.textContent = posts.length; badge.style.display = posts.length ? '' : 'none'; }
+
     if (!posts.length) {
-      var empty = document.createElement('div');
-      empty.style.cssText = 'column-span:all;text-align:center;padding:60px 0;color:#bbb;font-size:13px;font-weight:700;font-family:var(--font);';
-      empty.textContent = 'Nothing found';
-      grid.appendChild(empty);
+      var emp = document.createElement('div');
+      emp.className = 'dse-empty';
+      emp.style.cssText = 'column-span:all;text-align:center;padding:60px 0;color:#bbb;font-size:13px;font-weight:700;font-family:var(--font);';
+      emp.textContent = 'Nothing found';
+      grid.appendChild(emp);
       return;
     }
-    posts.forEach(function(x, i) { _addCard(x.data, x.id, i*30); });
+    posts.forEach(function(x, i) { _addCard(x.data, x.id, i*25); });
   }
 
-  // ── Open vertical video viewer ──
-  function _openViewer(postId) {
-    if (!viewer || !viewerFeed) return;
+  // ── Open video using EXACT same pattern as the Saved viewer ──
+  // Uses desktop-feed + desktop-comments + _buildDesktopCard
+  function _openInDesktopViewer(clickedPostId) {
+    var feed = document.getElementById('desktop-feed');
+    var cmt  = document.getElementById('desktop-comments');
+    _panel   = document.getElementById('ds-explore-panel');
+    if (!feed) return;
 
-    // Build pin-style cards for viewer
+    // Clean up any previous explore viewer obs
+    if (_dseViewObs) { _dseViewObs.disconnect(); _dseViewObs = null; }
+    _dseCards = [];
+
+    // Pause & clear feed
+    feed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
+    feed.innerHTML = '';
+
     var posts = _sorted(_allPosts);
-    viewerFeed.innerHTML = '';
+    var buildCard = window._buildDesktopCard;
+    if (!buildCard) return;
+
+    // Back button — sticky inside feed
+    var backBtn = document.getElementById('dse-viewer-back-btn');
+    if (!backBtn) {
+      backBtn = document.createElement('button');
+      backBtn.id = 'dse-viewer-back-btn';
+      backBtn.style.cssText = [
+        'position:sticky','top:14px','left:14px','z-index:50',
+        'width:36px','height:36px','border-radius:50%',
+        'background:var(--brand-gradient)','border:none','cursor:pointer',
+        'display:none','align-items:center','justify-content:center',
+        'box-shadow:0 2px 12px rgba(0,0,0,0.3)','transition:transform 0.15s',
+        'margin:14px 0 0 14px','flex-shrink:0'
+      ].join(';');
+      backBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+      backBtn.onmouseenter = function(){ backBtn.style.transform='scale(1.1)'; };
+      backBtn.onmouseleave = function(){ backBtn.style.transform='scale(1)'; };
+    }
+
+    function _closeExploreViewer() {
+      if (_dseViewObs) { _dseViewObs.disconnect(); _dseViewObs = null; }
+      _dseCards = [];
+      feed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
+      feed.innerHTML = '';
+      // Restore real home cards
+      if (window._allDesktopCards && window._allDesktopCards.length) {
+        window._allDesktopCards.forEach(function(c){ feed.appendChild(c); });
+      }
+      feed.style.display = 'none';
+      backBtn.style.display = 'none';
+      if (cmt) { cmt.classList.remove('open'); cmt.style.display = 'none'; document.body.classList.remove('comments-open'); }
+      if (_panel) _panel.style.display = 'flex';
+      var _na = document.getElementById('desktopNavArrows');
+      if (_na) _na.style.display = 'none';
+    }
+    backBtn.onclick = _closeExploreViewer;
+    window._closeExploreViewer = _closeExploreViewer;
+
+    // Build cards
+    backBtn.style.display = 'flex';
+    feed.appendChild(backBtn);
 
     posts.forEach(function(x) {
-      var pc = document.createElement('div');
-      pc.className = 'pin-container';
-      pc.dataset.postId = x.id;
-      pc.style.cssText = 'position:relative;width:100%;height:100%;scroll-snap-align:start;scroll-snap-stop:always;overflow:hidden;background:#000;flex-shrink:0;';
-
-      var m = x.data.media && x.data.media[0];
-      var url = m && m.url || '';
-
-      var gi = document.createElement('div');
-      gi.className = 'gallery-item';
-      gi.style.cssText = 'position:absolute;inset:0;overflow:hidden;';
-
-      var vid = document.createElement('video');
-      vid.dataset.savedSrc = url;
-      vid.muted = true; vid.loop = true; vid.playsInline = true;
-      vid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-      gi.appendChild(vid);
-
-      // Gradient overlay
-      var grad = document.createElement('div');
-      grad.style.cssText = 'position:absolute;inset:0;background:linear-gradient(to bottom,transparent 0%,transparent 38%,rgba(0,0,0,0.25) 58%,rgba(0,0,0,0.72) 80%,rgba(0,0,0,0.94) 100%);pointer-events:none;';
-      gi.appendChild(grad);
-
-      // Caption
-      var cap = document.createElement('div');
-      cap.style.cssText = 'position:absolute;bottom:74px;left:16px;right:70px;z-index:6;pointer-events:none;';
-      var nameSpan = document.createElement('div');
-      nameSpan.style.cssText = 'font-size:14px;font-weight:800;color:#fff;font-family:var(--font);text-shadow:0 1px 8px rgba(0,0,0,0.8);margin-bottom:4px;';
-      nameSpan.textContent = x.data.name || x.data.username || '';
-      var descSpan = document.createElement('div');
-      descSpan.style.cssText = 'font-size:12px;font-weight:500;color:rgba(255,255,255,0.85);font-family:var(--font);text-shadow:0 1px 6px rgba(0,0,0,0.8);line-height:1.4;';
-      descSpan.textContent = x.data.description || '';
-      cap.appendChild(nameSpan);
-      cap.appendChild(descSpan);
-
-      pc.appendChild(gi);
-      pc.appendChild(cap);
-      viewerFeed.appendChild(pc);
+      if (!x.data.media || !x.data.media[0] || !x.data.media[0].url) return;
+      var card = buildCard(x.data, x.id);
+      if (!card) return;
+      card._postData = x.data;
+      _dseCards.push(card);
+      feed.appendChild(card);
     });
 
-    // Open viewer
-    viewer.classList.add('open');
+    if (!_dseCards.length) return;
 
-    // Scroll to tapped post
-    var allPins = viewerFeed.querySelectorAll('.pin-container');
-    var targetIdx = 0;
-    allPins.forEach(function(p,i){ if (p.dataset.postId===postId) targetIdx=i; });
-    if (allPins[targetIdx]) viewerFeed.scrollTop = allPins[targetIdx].offsetTop;
+    // Hide explore grid, show feed + comments
+    if (_panel) _panel.style.display = 'none';
+    feed.style.display = '';
+    if (cmt) { cmt.style.display = ''; }
 
-    // IntersectionObserver for autoplay
-    if (_expViewerObs) { _expViewerObs.disconnect(); _expViewerObs=null; }
-    var _curPin = null;
-    _expViewerObs = new IntersectionObserver(function(entries) {
+    // Scroll to clicked post
+    var startIdx = posts.findIndex(function(x){ return x.id === clickedPostId; });
+    var targetCard = _dseCards[Math.max(0,startIdx)];
+    if (targetCard) feed.scrollTop = targetCard.offsetTop;
+
+    // IntersectionObserver — same as Saved viewer
+    _dseViewObs = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
-        var pin = entry.target;
-        var vid = pin.querySelector('video');
-        if (!vid) return;
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.85) {
-          if (_curPin && _curPin !== pin) {
-            var lv = _curPin.querySelector('video');
-            if (lv) { lv.pause(); lv.currentTime=0; }
+        var card = entry.target;
+        var vid  = card._video || card.querySelector('video');
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+          _dseCards.forEach(function(c){ c.classList.remove('active'); });
+          card.classList.add('active');
+          if (vid) {
+            vid.muted = false; vid.currentTime = 0;
+            vid.play().catch(function(){ vid.muted=true; vid.play().catch(function(){}); });
           }
-          _curPin = pin;
-          if (!vid.src) { var s=vid.dataset.savedSrc; if(s){vid.src=s;vid.load();} }
-          vid.currentTime=0; vid.muted=false;
-          var pl=vid.play(); if(pl&&pl.catch) pl.catch(function(){ vid.muted=true; vid.play().catch(function(){}); });
-          // preload adjacent
-          var arr=Array.prototype.slice.call(viewerFeed.querySelectorAll('.pin-container'));
-          var ci=arr.indexOf(pin);
-          [-1,1].forEach(function(off){
-            var adj=arr[ci+off]; if(!adj) return;
-            var av=adj.querySelector('video');
-            if(av&&!av.src&&av.dataset.savedSrc){av.src=av.dataset.savedSrc;av.muted=true;av.preload='auto';av.load();}
-          });
-        } else if (!entry.isIntersecting) {
-          vid.pause(); vid.muted=true; vid.currentTime=0;
+          var pid = card.dataset.postId;
+          if (pid && typeof trackPresence === 'function') trackPresence(pid);
+          if (pid && card._postData && typeof window._openDesktopComments === 'function') {
+            window._openDesktopComments(card._postData, pid);
+          }
+        } else {
+          card.classList.remove('active');
+          if (vid) vid.pause();
         }
       });
-    }, { root: viewerFeed, threshold: [0, 0.85] });
-    allPins.forEach(function(pin){ _expViewerObs.observe(pin); });
+    }, { root: feed, threshold: 0.55 });
+    _dseCards.forEach(function(c){ _dseViewObs.observe(c); });
+    window._dsvObsRef = _dseViewObs;
+
+    // Nav arrows
+    if (typeof injectDesktopNavArrows === 'function') injectDesktopNavArrows();
+    var _na = document.getElementById('desktopNavArrows');
+    if (_na) _na.style.display = 'flex';
+    var _dnUp = document.getElementById('dnUp');
+    var _dnDown = document.getElementById('dnDown');
+    if (_dnUp) { _dnUp.onclick = function(){ feed.scrollBy({ top: -window.innerHeight, behavior: 'smooth' }); }; }
+    if (_dnDown) { _dnDown.onclick = function(){ feed.scrollBy({ top: window.innerHeight, behavior: 'smooth' }); }; }
   }
 
-  // Back button
-  if (backBtn) {
-    backBtn.addEventListener('click', function() {
-      if (_expViewerObs) { _expViewerObs.disconnect(); _expViewerObs=null; }
-      viewerFeed.querySelectorAll('video').forEach(function(v){ v.pause(); v.muted=true; });
-      viewer.classList.remove('open');
-      setTimeout(function(){ viewerFeed.innerHTML=''; }, 400);
-    });
-  }
-
-  // ── Load data ──
+  // ── Load posts from Firestore ──
   function _load() {
     var db  = window._fbDb;
     var fns = window._fbFirestoreFns;
     if (!db || !fns) { setTimeout(_load, 500); return; }
-    _showLoading();
+    var loadEl = document.getElementById('dse-loading');
+    if (loadEl) loadEl.style.display = 'block';
     fns.getDocs(fns.query(fns.collection(db,'recence'), fns.orderBy('timestamp','desc'), fns.limit(120)))
     .then(function(snap) {
       _allPosts = [];
@@ -9868,13 +9802,12 @@ document.addEventListener('keydown', function(e){
         if (!data.media || !data.media[0] || !data.media[0].url) return;
         var ts = data.timestamp;
         var ms = ts ? (ts.seconds ? ts.seconds*1000 : 0) : 0;
-        if (ms && (now-ms) > 24*60*60*1000) return;
-        _allPosts.push({id:d.id, data:data});
+        if (ms && (now - ms) > 24*60*60*1000) return;
+        _allPosts.push({id: d.id, data: data});
       });
       _loaded = true;
-      _hideLoading();
       _render(_sorted(_allPosts));
-    }).catch(function(e){ _hideLoading(); console.warn('dse load error',e); });
+    }).catch(function(e){ console.warn('dse error', e); });
   }
 
   // ── Tabs ──
@@ -9899,20 +9832,21 @@ document.addEventListener('keydown', function(e){
     });
   }
 
-  // ── Trigger load when Explore is opened ──
+  // ── Trigger on first open ──
   document.addEventListener('dseLoad', function() { if (!_loaded) _load(); });
 
-  // Also watch for display change as fallback
-  var _dseObs = new MutationObserver(function(muts) {
-    muts.forEach(function(m) {
-      if (m.type==='attributes' && m.attributeName==='style') {
-        var p = document.getElementById('ds-explore-panel');
-        if (p && p.style.display==='flex' && !_loaded) _load();
-      }
-    });
-  });
-  var ep = document.getElementById('ds-explore-panel');
-  if (ep) _dseObs.observe(ep, {attributes:true});
+  // Fallback MutationObserver
+  var _ep = document.getElementById('ds-explore-panel');
+  if (_ep) {
+    new MutationObserver(function(muts) {
+      muts.forEach(function(m) {
+        if (m.type === 'attributes' && m.attributeName === 'style') {
+          var p = document.getElementById('ds-explore-panel');
+          if (p && p.style.display !== 'none' && !_loaded) _load();
+        }
+      });
+    }).observe(_ep, {attributes: true});
+  }
 
 })();
 </script>
@@ -10276,35 +10210,28 @@ window._openProfileModal = openModal;
 
 
 <script>
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 //  DESKTOP EXPLORE ENGINE
-// ═══════════════════════════════════════════════════
+//  - Loads posts from Firestore
+//  - Renders masonry grid in #dse-grid
+//  - Opens video using EXACT same method as Saved viewer:
+//    _buildDesktopCard + desktop-feed + desktop-comments
+// ═══════════════════════════════════════════════════════════
 (function() {
   var grid        = document.getElementById('dse-grid');
   var searchInput = document.getElementById('dse-search-input');
-  var viewer      = document.getElementById('dse-viewer');
-  var viewerFeed  = document.getElementById('dse-viewer-feed');
-  var backBtn     = document.getElementById('dse-viewer-back');
   if (!grid) return;
 
-  var _allPosts      = [];
-  var _loaded        = false;
-  var _curTab        = 'recent';
-  var _searchQ       = '';
-  var _followerCounts = {};
-  var _followingIds  = [];
-  var _expViewerObs  = null;
+  var _allPosts    = [];
+  var _loaded      = false;
+  var _curTab      = 'recent';
+  var _searchQ     = '';
+  var _dseViewObs  = null;
+  var _dseCards    = [];
+  // Panel ref for show/hide
+  var _panel       = null;
 
-  function _showLoading() {
-    var el = document.getElementById('dse-loading');
-    if (el) el.style.display = 'block';
-  }
-  function _hideLoading() {
-    var el = document.getElementById('dse-loading');
-    if (el) el.style.display = 'none';
-  }
-
-  // ── Sort/filter posts ──
+  // ── Sort + filter ──
   function _sorted(posts) {
     var q = _searchQ.toLowerCase();
     var list = posts.filter(function(x) {
@@ -10315,11 +10242,20 @@ window._openProfileModal = openModal;
              (d.username||'').toLowerCase().includes(q);
     });
     if (_curTab === 'top') {
-      list = list.slice().sort(function(a,b){ return (b.data.superlikeCount||b.data.superlikes&&b.data.superlikes.length||0)-(a.data.superlikeCount||a.data.superlikes&&a.data.superlikes.length||0); });
+      list = list.slice().sort(function(a,b){
+        return ((b.data.superlikes&&b.data.superlikes.length)||b.data.superlikeCount||0) -
+               ((a.data.superlikes&&a.data.superlikes.length)||a.data.superlikeCount||0);
+      });
     } else if (_curTab === 'mostliked') {
-      list = list.slice().sort(function(a,b){ return (b.data.likeCount||b.data.likes&&b.data.likes.length||0)-(a.data.likeCount||a.data.likes&&a.data.likes.length||0); });
+      list = list.slice().sort(function(a,b){
+        return ((b.data.likes&&b.data.likes.length)||b.data.likeCount||0) -
+               ((a.data.likes&&a.data.likes.length)||a.data.likeCount||0);
+      });
     } else if (_curTab === 'mostfollowed') {
-      list = list.slice().sort(function(a,b){ return (_followerCounts[b.data.userId]||0)-(_followerCounts[a.data.userId]||0); });
+      list = list.slice().sort(function(a,b){
+        return (_followerCounts[b.data.userId||b.data.uid]||0) -
+               (_followerCounts[a.data.userId||a.data.uid]||0);
+      });
     } else {
       list = list.slice().sort(function(a,b){
         var ta = a.data.timestamp, tb = b.data.timestamp;
@@ -10330,9 +10266,13 @@ window._openProfileModal = openModal;
     }
     return list;
   }
+  var _followerCounts = {};
 
-  // ── Build a card ──
+  // ── Build one masonry card ──
   function _addCard(post, postId, delay) {
+    var m = post.media && post.media[0];
+    if (!m || !m.url) return;
+
     var wrap = document.createElement('div');
     wrap.className = 'dse-item';
     wrap.style.animationDelay = (delay||0)+'ms';
@@ -10341,188 +10281,202 @@ window._openProfileModal = openModal;
     var card = document.createElement('div');
     card.className = 'dse-card';
 
-    var m = post.media && post.media[0];
-    var url = m && m.url || '';
-    var isVid = m && (m.type==='video'||(m.contentType&&m.contentType.startsWith('video/')));
+    // Variable height for masonry feel
+    var heights = [140,180,160,210,155,195,145,175,165,200];
+    var hIdx = 0;
+    for (var ci=0; ci<postId.length; ci++) hIdx += postId.charCodeAt(ci);
+    card.style.height = heights[hIdx % heights.length] + 'px';
 
-    // Aspect ratio — natural height based on random-ish pick for masonry feel
-    var heights = [140,170,200,160,185,155,210];
-    var h = heights[(postId.charCodeAt(0)+postId.charCodeAt(postId.length-1))%heights.length];
-    card.style.height = h+'px';
+    // Shimmer
+    var shim = document.createElement('div'); shim.className = 'dse-card-shimmer'; card.appendChild(shim);
 
-    var shimmer = document.createElement('div');
-    shimmer.className = 'dse-card-shimmer';
-    card.appendChild(shimmer);
+    // Video thumbnail
+    var vid = document.createElement('video');
+    vid.dataset.src = m.url;
+    vid.muted = true; vid.loop = true; vid.playsInline = true;
+    vid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
+    vid.addEventListener('loadeddata', function(){ shim.style.display='none'; }, {once:true});
+    card.appendChild(vid);
 
-    if (isVid && url) {
-      var vid = document.createElement('video');
-      vid.dataset.src = url;
-      vid.muted = true; vid.loop = true; vid.playsInline = true;
-      vid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
-      vid.addEventListener('loadeddata', function(){ shimmer.style.display='none'; }, {once:true});
-      card.appendChild(vid);
-    }
-
-    var overlay = document.createElement('div');
-    overlay.className = 'dse-card-overlay';
-    var nameEl = document.createElement('div');
-    nameEl.className = 'dse-card-name';
-    nameEl.textContent = post.name || post.username || '';
-    var descEl = document.createElement('div');
-    descEl.className = 'dse-card-desc';
-    descEl.textContent = post.description || '';
-    overlay.appendChild(nameEl);
-    overlay.appendChild(descEl);
-    card.appendChild(overlay);
+    // Overlay
+    var ov = document.createElement('div'); ov.className = 'dse-card-overlay';
+    var nm = document.createElement('div'); nm.className = 'dse-card-name';
+    nm.textContent = post.name || post.username || '';
+    var dc = document.createElement('div'); dc.className = 'dse-card-desc';
+    dc.textContent = post.description || '';
+    ov.appendChild(nm); ov.appendChild(dc); card.appendChild(ov);
 
     // Duration badge
     if (post.duration) {
-      var dur = document.createElement('div');
-      dur.className = 'dse-card-dur';
       var s = Math.round(post.duration);
-      dur.textContent = Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60);
-      card.appendChild(dur);
+      var db = document.createElement('div'); db.className = 'dse-card-dur';
+      db.textContent = Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60);
+      card.appendChild(db);
     }
 
     wrap.appendChild(card);
     grid.appendChild(wrap);
 
-    // Hover: load + play preview
+    // Hover: load + preview
     card.addEventListener('mouseenter', function() {
       var v = card.querySelector('video');
       if (v && !v.src) { v.src = v.dataset.src; v.load(); }
       if (v) v.play().catch(function(){});
     });
     card.addEventListener('mouseleave', function() {
-      var v = card.querySelector('video'); if (v) { v.pause(); v.currentTime=0; }
+      var v = card.querySelector('video');
+      if (v) { v.pause(); v.currentTime = 0; }
     });
 
-    // Click: open viewer
-    wrap.addEventListener('click', function() { _openViewer(postId); });
+    // Click: open in desktop viewer (same as Saved)
+    wrap.addEventListener('click', function() { _openInDesktopViewer(postId); });
   }
 
   // ── Render grid ──
   function _render(posts) {
-    // Remove existing cards only
-    Array.from(grid.querySelectorAll('.dse-item')).forEach(function(el){ el.remove(); });
-    _hideLoading();
+    Array.from(grid.querySelectorAll('.dse-item,.dse-empty')).forEach(function(el){ el.remove(); });
+    var loadEl = document.getElementById('dse-loading');
+    if (loadEl) loadEl.style.display = 'none';
+
+    var badge = document.getElementById('dse-count-badge');
+    if (badge) { badge.textContent = posts.length; badge.style.display = posts.length ? '' : 'none'; }
+
     if (!posts.length) {
-      var empty = document.createElement('div');
-      empty.style.cssText = 'column-span:all;text-align:center;padding:60px 0;color:#bbb;font-size:13px;font-weight:700;font-family:var(--font);';
-      empty.textContent = 'Nothing found';
-      grid.appendChild(empty);
+      var emp = document.createElement('div');
+      emp.className = 'dse-empty';
+      emp.style.cssText = 'column-span:all;text-align:center;padding:60px 0;color:#bbb;font-size:13px;font-weight:700;font-family:var(--font);';
+      emp.textContent = 'Nothing found';
+      grid.appendChild(emp);
       return;
     }
-    posts.forEach(function(x, i) { _addCard(x.data, x.id, i*30); });
+    posts.forEach(function(x, i) { _addCard(x.data, x.id, i*25); });
   }
 
-  // ── Open vertical video viewer ──
-  function _openViewer(postId) {
-    if (!viewer || !viewerFeed) return;
+  // ── Open video using EXACT same pattern as the Saved viewer ──
+  // Uses desktop-feed + desktop-comments + _buildDesktopCard
+  function _openInDesktopViewer(clickedPostId) {
+    var feed = document.getElementById('desktop-feed');
+    var cmt  = document.getElementById('desktop-comments');
+    _panel   = document.getElementById('ds-explore-panel');
+    if (!feed) return;
 
-    // Build pin-style cards for viewer
+    // Clean up any previous explore viewer obs
+    if (_dseViewObs) { _dseViewObs.disconnect(); _dseViewObs = null; }
+    _dseCards = [];
+
+    // Pause & clear feed
+    feed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
+    feed.innerHTML = '';
+
     var posts = _sorted(_allPosts);
-    viewerFeed.innerHTML = '';
+    var buildCard = window._buildDesktopCard;
+    if (!buildCard) return;
+
+    // Back button — sticky inside feed
+    var backBtn = document.getElementById('dse-viewer-back-btn');
+    if (!backBtn) {
+      backBtn = document.createElement('button');
+      backBtn.id = 'dse-viewer-back-btn';
+      backBtn.style.cssText = [
+        'position:sticky','top:14px','left:14px','z-index:50',
+        'width:36px','height:36px','border-radius:50%',
+        'background:var(--brand-gradient)','border:none','cursor:pointer',
+        'display:none','align-items:center','justify-content:center',
+        'box-shadow:0 2px 12px rgba(0,0,0,0.3)','transition:transform 0.15s',
+        'margin:14px 0 0 14px','flex-shrink:0'
+      ].join(';');
+      backBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+      backBtn.onmouseenter = function(){ backBtn.style.transform='scale(1.1)'; };
+      backBtn.onmouseleave = function(){ backBtn.style.transform='scale(1)'; };
+    }
+
+    function _closeExploreViewer() {
+      if (_dseViewObs) { _dseViewObs.disconnect(); _dseViewObs = null; }
+      _dseCards = [];
+      feed.querySelectorAll('video').forEach(function(v){ v.pause(); v.currentTime=0; });
+      feed.innerHTML = '';
+      // Restore real home cards
+      if (window._allDesktopCards && window._allDesktopCards.length) {
+        window._allDesktopCards.forEach(function(c){ feed.appendChild(c); });
+      }
+      feed.style.display = 'none';
+      backBtn.style.display = 'none';
+      if (cmt) { cmt.classList.remove('open'); cmt.style.display = 'none'; document.body.classList.remove('comments-open'); }
+      if (_panel) _panel.style.display = 'flex';
+      var _na = document.getElementById('desktopNavArrows');
+      if (_na) _na.style.display = 'none';
+    }
+    backBtn.onclick = _closeExploreViewer;
+    window._closeExploreViewer = _closeExploreViewer;
+
+    // Build cards
+    backBtn.style.display = 'flex';
+    feed.appendChild(backBtn);
 
     posts.forEach(function(x) {
-      var pc = document.createElement('div');
-      pc.className = 'pin-container';
-      pc.dataset.postId = x.id;
-      pc.style.cssText = 'position:relative;width:100%;height:100%;scroll-snap-align:start;scroll-snap-stop:always;overflow:hidden;background:#000;flex-shrink:0;';
-
-      var m = x.data.media && x.data.media[0];
-      var url = m && m.url || '';
-
-      var gi = document.createElement('div');
-      gi.className = 'gallery-item';
-      gi.style.cssText = 'position:absolute;inset:0;overflow:hidden;';
-
-      var vid = document.createElement('video');
-      vid.dataset.savedSrc = url;
-      vid.muted = true; vid.loop = true; vid.playsInline = true;
-      vid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-      gi.appendChild(vid);
-
-      // Gradient overlay
-      var grad = document.createElement('div');
-      grad.style.cssText = 'position:absolute;inset:0;background:linear-gradient(to bottom,transparent 0%,transparent 38%,rgba(0,0,0,0.25) 58%,rgba(0,0,0,0.72) 80%,rgba(0,0,0,0.94) 100%);pointer-events:none;';
-      gi.appendChild(grad);
-
-      // Caption
-      var cap = document.createElement('div');
-      cap.style.cssText = 'position:absolute;bottom:74px;left:16px;right:70px;z-index:6;pointer-events:none;';
-      var nameSpan = document.createElement('div');
-      nameSpan.style.cssText = 'font-size:14px;font-weight:800;color:#fff;font-family:var(--font);text-shadow:0 1px 8px rgba(0,0,0,0.8);margin-bottom:4px;';
-      nameSpan.textContent = x.data.name || x.data.username || '';
-      var descSpan = document.createElement('div');
-      descSpan.style.cssText = 'font-size:12px;font-weight:500;color:rgba(255,255,255,0.85);font-family:var(--font);text-shadow:0 1px 6px rgba(0,0,0,0.8);line-height:1.4;';
-      descSpan.textContent = x.data.description || '';
-      cap.appendChild(nameSpan);
-      cap.appendChild(descSpan);
-
-      pc.appendChild(gi);
-      pc.appendChild(cap);
-      viewerFeed.appendChild(pc);
+      if (!x.data.media || !x.data.media[0] || !x.data.media[0].url) return;
+      var card = buildCard(x.data, x.id);
+      if (!card) return;
+      card._postData = x.data;
+      _dseCards.push(card);
+      feed.appendChild(card);
     });
 
-    // Open viewer
-    viewer.classList.add('open');
+    if (!_dseCards.length) return;
 
-    // Scroll to tapped post
-    var allPins = viewerFeed.querySelectorAll('.pin-container');
-    var targetIdx = 0;
-    allPins.forEach(function(p,i){ if (p.dataset.postId===postId) targetIdx=i; });
-    if (allPins[targetIdx]) viewerFeed.scrollTop = allPins[targetIdx].offsetTop;
+    // Hide explore grid, show feed + comments
+    if (_panel) _panel.style.display = 'none';
+    feed.style.display = '';
+    if (cmt) { cmt.style.display = ''; }
 
-    // IntersectionObserver for autoplay
-    if (_expViewerObs) { _expViewerObs.disconnect(); _expViewerObs=null; }
-    var _curPin = null;
-    _expViewerObs = new IntersectionObserver(function(entries) {
+    // Scroll to clicked post
+    var startIdx = posts.findIndex(function(x){ return x.id === clickedPostId; });
+    var targetCard = _dseCards[Math.max(0,startIdx)];
+    if (targetCard) feed.scrollTop = targetCard.offsetTop;
+
+    // IntersectionObserver — same as Saved viewer
+    _dseViewObs = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
-        var pin = entry.target;
-        var vid = pin.querySelector('video');
-        if (!vid) return;
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.85) {
-          if (_curPin && _curPin !== pin) {
-            var lv = _curPin.querySelector('video');
-            if (lv) { lv.pause(); lv.currentTime=0; }
+        var card = entry.target;
+        var vid  = card._video || card.querySelector('video');
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+          _dseCards.forEach(function(c){ c.classList.remove('active'); });
+          card.classList.add('active');
+          if (vid) {
+            vid.muted = false; vid.currentTime = 0;
+            vid.play().catch(function(){ vid.muted=true; vid.play().catch(function(){}); });
           }
-          _curPin = pin;
-          if (!vid.src) { var s=vid.dataset.savedSrc; if(s){vid.src=s;vid.load();} }
-          vid.currentTime=0; vid.muted=false;
-          var pl=vid.play(); if(pl&&pl.catch) pl.catch(function(){ vid.muted=true; vid.play().catch(function(){}); });
-          // preload adjacent
-          var arr=Array.prototype.slice.call(viewerFeed.querySelectorAll('.pin-container'));
-          var ci=arr.indexOf(pin);
-          [-1,1].forEach(function(off){
-            var adj=arr[ci+off]; if(!adj) return;
-            var av=adj.querySelector('video');
-            if(av&&!av.src&&av.dataset.savedSrc){av.src=av.dataset.savedSrc;av.muted=true;av.preload='auto';av.load();}
-          });
-        } else if (!entry.isIntersecting) {
-          vid.pause(); vid.muted=true; vid.currentTime=0;
+          var pid = card.dataset.postId;
+          if (pid && typeof trackPresence === 'function') trackPresence(pid);
+          if (pid && card._postData && typeof window._openDesktopComments === 'function') {
+            window._openDesktopComments(card._postData, pid);
+          }
+        } else {
+          card.classList.remove('active');
+          if (vid) vid.pause();
         }
       });
-    }, { root: viewerFeed, threshold: [0, 0.85] });
-    allPins.forEach(function(pin){ _expViewerObs.observe(pin); });
+    }, { root: feed, threshold: 0.55 });
+    _dseCards.forEach(function(c){ _dseViewObs.observe(c); });
+    window._dsvObsRef = _dseViewObs;
+
+    // Nav arrows
+    if (typeof injectDesktopNavArrows === 'function') injectDesktopNavArrows();
+    var _na = document.getElementById('desktopNavArrows');
+    if (_na) _na.style.display = 'flex';
+    var _dnUp = document.getElementById('dnUp');
+    var _dnDown = document.getElementById('dnDown');
+    if (_dnUp) { _dnUp.onclick = function(){ feed.scrollBy({ top: -window.innerHeight, behavior: 'smooth' }); }; }
+    if (_dnDown) { _dnDown.onclick = function(){ feed.scrollBy({ top: window.innerHeight, behavior: 'smooth' }); }; }
   }
 
-  // Back button
-  if (backBtn) {
-    backBtn.addEventListener('click', function() {
-      if (_expViewerObs) { _expViewerObs.disconnect(); _expViewerObs=null; }
-      viewerFeed.querySelectorAll('video').forEach(function(v){ v.pause(); v.muted=true; });
-      viewer.classList.remove('open');
-      setTimeout(function(){ viewerFeed.innerHTML=''; }, 400);
-    });
-  }
-
-  // ── Load data ──
+  // ── Load posts from Firestore ──
   function _load() {
     var db  = window._fbDb;
     var fns = window._fbFirestoreFns;
     if (!db || !fns) { setTimeout(_load, 500); return; }
-    _showLoading();
+    var loadEl = document.getElementById('dse-loading');
+    if (loadEl) loadEl.style.display = 'block';
     fns.getDocs(fns.query(fns.collection(db,'recence'), fns.orderBy('timestamp','desc'), fns.limit(120)))
     .then(function(snap) {
       _allPosts = [];
@@ -10532,13 +10486,12 @@ window._openProfileModal = openModal;
         if (!data.media || !data.media[0] || !data.media[0].url) return;
         var ts = data.timestamp;
         var ms = ts ? (ts.seconds ? ts.seconds*1000 : 0) : 0;
-        if (ms && (now-ms) > 24*60*60*1000) return;
-        _allPosts.push({id:d.id, data:data});
+        if (ms && (now - ms) > 24*60*60*1000) return;
+        _allPosts.push({id: d.id, data: data});
       });
       _loaded = true;
-      _hideLoading();
       _render(_sorted(_allPosts));
-    }).catch(function(e){ _hideLoading(); console.warn('dse load error',e); });
+    }).catch(function(e){ console.warn('dse error', e); });
   }
 
   // ── Tabs ──
@@ -10563,20 +10516,21 @@ window._openProfileModal = openModal;
     });
   }
 
-  // ── Trigger load when Explore is opened ──
+  // ── Trigger on first open ──
   document.addEventListener('dseLoad', function() { if (!_loaded) _load(); });
 
-  // Also watch for display change as fallback
-  var _dseObs = new MutationObserver(function(muts) {
-    muts.forEach(function(m) {
-      if (m.type==='attributes' && m.attributeName==='style') {
-        var p = document.getElementById('ds-explore-panel');
-        if (p && p.style.display==='flex' && !_loaded) _load();
-      }
-    });
-  });
-  var ep = document.getElementById('ds-explore-panel');
-  if (ep) _dseObs.observe(ep, {attributes:true});
+  // Fallback MutationObserver
+  var _ep = document.getElementById('ds-explore-panel');
+  if (_ep) {
+    new MutationObserver(function(muts) {
+      muts.forEach(function(m) {
+        if (m.type === 'attributes' && m.attributeName === 'style') {
+          var p = document.getElementById('ds-explore-panel');
+          if (p && p.style.display !== 'none' && !_loaded) _load();
+        }
+      });
+    }).observe(_ep, {attributes: true});
+  }
 
 })();
 </script>
