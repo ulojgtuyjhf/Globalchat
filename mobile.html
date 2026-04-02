@@ -473,18 +473,30 @@ document.querySelectorAll('.mob-feed-tab').forEach(t=>{t.addEventListener('click
 
 // ── FULLSCREEN VIEWER — clean snap-proof open/close ──
 let _gvOpen=false;
+
+function _injectCtx(code,gid){
+  const u=window._currentUser;
+  const inject=`<script>
+window.__NM_GID=${JSON.stringify(gid)};
+window.__NM_UID=${JSON.stringify(u?u.uid:'')};
+window.__NM_NAME=${JSON.stringify(u?(u.displayName||u.email||'Player'):'Guest')};
+window.__NM_PHOTO=${JSON.stringify(u?u.photoURL||'':'')};<\/script>`;
+  if(code.includes('<head>'))return code.replace('<head>','<head>'+inject);
+  if(code.includes('<html>'))return code.replace('<html>','<html>'+inject);
+  return inject+code;
+}
+
 function openGameFullscreen(gid,data){
   if(_gvOpen)return;_gvOpen=true;
   $('gv-title').textContent=data.title||'Game';
   $('gv-iframe').srcdoc='';
-  // Show viewer first (CSS transition), then load iframe — avoids lag flash
   const viewer=$('game-viewer');
   viewer.style.display='flex';
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{
       viewer.classList.add('open');$('gv-back').classList.add('show-x');
       setTimeout(()=>{
-        $('gv-iframe').srcdoc=data.code||'';
+        $('gv-iframe').srcdoc=_injectCtx(data.code||'',gid);
         try{updateDoc(doc(db,COL,gid),{plays:increment(1)}).catch(()=>{});}catch(x){}
       },120);
     });
@@ -524,6 +536,7 @@ function buildViewers(wl,vb,viewers){
   s+='</div>';vb.innerHTML=s;
 }
 let _pId=null;
+if(!window._viewerCache)window._viewerCache={};
 function trackPresence(gid){
   if(!window._currentUser||!gid)return;
   if(_pId&&_pId!==gid)try{set(ref(rtdb,'viewers/'+_pId+'/'+window._currentUser.uid),null);}catch(e){}
@@ -531,6 +544,10 @@ function trackPresence(gid){
   const r=ref(rtdb,'viewers/'+gid+'/'+window._currentUser.uid);
   set(r,{uid:window._currentUser.uid,t:Date.now(),name:window._currentUser.displayName||'player',photo:window._currentUser.photoURL||''});
   onDisconnect(r).remove();
+  // Cache viewer list for name injection into games
+  onValue(ref(rtdb,'viewers/'+gid),(snap)=>{
+    window._viewerCache[gid]=snap.exists()?snap.val():{};
+  });
 }
 const followedUsers=new Set();
 async function toggleFollow(uid){
@@ -545,11 +562,23 @@ function fmtLeft(ms){if(ms<=0)return'Expiring…';const h=Math.floor(ms/3600000)
 function buildSlide(gid,data){
   const slide=document.createElement('div');slide.className='ac-slide';
 
-  // Preview iframe — blurry, no thumbnail
+  // Preview — thumbnail image if available, else sandboxed iframe
   const card=document.createElement('div');card.className='ac-card';
-  const iframe=document.createElement('iframe');iframe.className='ac-preview-iframe';
-  iframe.sandbox='allow-scripts';iframe.title=data.title||'Game';
-  card.appendChild(iframe);slide.appendChild(card);
+  if(data.thumbnail){
+    // Thumbnail image as preview (instant, no sandbox issues)
+    const tImg=document.createElement('img');
+    tImg.src=data.thumbnail;
+    tImg.style.cssText='width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0;filter:brightness(0.5);transform:scale(1.05);transition:filter 1.8s ease-out,transform 1.8s ease-out;';
+    card.appendChild(tImg);
+    card.style.background='#000';
+    setTimeout(()=>{tImg.style.filter='brightness(0.82)';tImg.style.transform='scale(1)';},100);
+  } else {
+    // Sandboxed iframe preview — allow-same-origin needed for ES modules
+    const iframe=document.createElement('iframe');iframe.className='ac-preview-iframe';
+    iframe.sandbox='allow-scripts allow-same-origin';iframe.title=data.title||'Game';
+    card.appendChild(iframe);
+  }
+  slide.appendChild(card);
 
   // Play prompt — pill only, appears after 5s
   const prompt=document.createElement('div');prompt.className='ac-play-prompt';
@@ -566,24 +595,24 @@ function buildSlide(gid,data){
   slide.appendChild(prompt);
 
   let previewLoaded=false,promptTimer=null,unblurTimer=null;
+  const previewIframe=card.querySelector('iframe');
   new IntersectionObserver(entries=>{
     if(entries[0].isIntersecting){
-      if(!previewLoaded&&data.code){
+      trackPresence(gid);
+      requestAnimationFrame(()=>fill.classList.add('run'));
+      promptTimer=setTimeout(()=>prompt.classList.add('visible'),5000);
+      if(previewIframe&&!previewLoaded&&data.code){
         previewLoaded=true;
-        iframe.srcdoc=data.code;
-        trackPresence(gid);
-        // Unblur starts almost immediately — 300ms for iframe to paint
-        unblurTimer=setTimeout(()=>card.classList.add('unblur'),300);
-        // Progress bar starts right away
-        requestAnimationFrame(()=>fill.classList.add('run'));
-        // Prompt at 5s
-        promptTimer=setTimeout(()=>prompt.classList.add('visible'),5000);
+        previewIframe.srcdoc=data.code;
+        unblurTimer=setTimeout(()=>card.classList.add('unblur'),400);
+      } else if(!previewIframe){
+        // thumbnail — just show the play prompt sooner
+        card.classList.add('unblur');
       }
     } else {
       clearTimeout(promptTimer);clearTimeout(unblurTimer);
       prompt.classList.remove('visible');
-      card.classList.remove('unblur');
-      iframe.srcdoc='';previewLoaded=false;
+      if(previewIframe){card.classList.remove('unblur');previewIframe.srcdoc='';previewLoaded=false;}
       fill.style.transition='none';fill.classList.remove('run');
       requestAnimationFrame(()=>{fill.style.transition='';});
     }
