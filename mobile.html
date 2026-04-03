@@ -2,378 +2,776 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Air Hockey</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NΞON · AI Companion</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:#0d2137;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:'Outfit',sans-serif;overflow:hidden;touch-action:none;user-select:none;}
-#scoreboard{display:flex;align-items:center;padding:8px 0 10px;width:100%;max-width:420px;justify-content:space-around;}
-.sp{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;}
-.sp-name{font-size:13px;font-weight:700;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;padding:0 4px;text-align:center;}
-.sp-you{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:20px;margin-bottom:2px;}
-.sp.blue .sp-name{color:#29b6f6;} .sp.red .sp-name{color:#ef5350;}
-.sp.blue .sp-you{background:rgba(41,182,246,.15);color:#29b6f6;}
-.sp.red  .sp-you{background:rgba(239,83,80,.15);color:#ef5350;}
-.sp-score{font-size:34px;font-weight:900;letter-spacing:1px;}
-.sp.blue .sp-score{color:#29b6f6;} .sp.red .sp-score{color:#ef5350;}
-.sp-divider{font-size:18px;color:rgba(255,255,255,.15);font-weight:300;padding:0 4px;align-self:center;margin-top:18px;}
-#canvas-wrap{position:relative;border-radius:16px;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,.7),0 0 20px rgba(41,182,246,.15);}
-canvas{display:block;}
-#overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(13,33,55,.92);z-index:10;border-radius:16px;backdrop-filter:blur(10px);padding:20px;}
-#overlay h1{font-size:26px;color:#fff;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;font-weight:900;text-align:center;}
-.ov-sub{color:rgba(255,255,255,.4);font-size:12px;margin-bottom:16px;letter-spacing:.5px;text-align:center;}
-#wait-room{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;margin-bottom:14px;}
-.wr-slot{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 14px;width:100%;}
-.wr-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;transition:background .3s,box-shadow .3s;}
-.wr-dot.blue{background:#29b6f6;box-shadow:0 0 6px #29b6f6;} .wr-dot.red{background:#ef5350;box-shadow:0 0 6px #ef5350;} .wr-dot.empty{background:rgba(255,255,255,.12);}
-.wr-name{font-size:13px;font-weight:700;color:#fff;flex:1;}
-.wr-tag{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.3);}
-.wait-pulse{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.35);letter-spacing:.04em;}
-.wp-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.3);animation:wpd .9s ease-in-out infinite;}
-.wp-dot:nth-child(2){animation-delay:.15s;} .wp-dot:nth-child(3){animation-delay:.3s;}
-@keyframes wpd{0%,100%{opacity:.3;transform:scale(1);}50%{opacity:1;transform:scale(1.4);}}
-#start-btn{background:linear-gradient(135deg,#29b6f6,#0288d1);color:#fff;border:none;padding:12px 36px;font-size:15px;font-weight:900;letter-spacing:1.5px;border-radius:50px;cursor:pointer;text-transform:uppercase;box-shadow:0 4px 20px rgba(41,182,246,.35);font-family:'Outfit',sans-serif;-webkit-tap-highlight-color:transparent;display:none;}
-#start-btn:active{transform:scale(.94);}
-#role-badge{position:absolute;top:8px;left:10px;display:flex;align-items:center;gap:5px;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;z-index:20;}
-.rb-dot{width:6px;height:6px;border-radius:50%;} .rb-dot.blue{background:#29b6f6;} .rb-dot.red{background:#ef5350;} .rb-dot.grey{background:rgba(255,255,255,.3);}
-.rb-label{color:rgba(255,255,255,.45);}
-#live-badge{position:absolute;top:8px;right:10px;display:flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:rgba(255,255,255,.45);letter-spacing:.06em;text-transform:uppercase;z-index:20;}
-.live-dot-sm{width:5px;height:5px;border-radius:50%;background:#22c55e;animation:ldp 1.4s ease-in-out infinite;}
-@keyframes ldp{0%,100%{opacity:1}50%{opacity:.3}}
+  :root {
+    --neon-cyan: #00fff5;
+    --neon-pink: #ff006e;
+    --neon-purple: #bf00ff;
+    --neon-yellow: #ffe600;
+    --dark: #030010;
+    --dark2: #0a0025;
+    --panel: rgba(0,255,245,0.05);
+    --border: rgba(0,255,245,0.2);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--dark);
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--neon-cyan);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,245,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,245,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridPulse 8s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 50%, rgba(191,0,255,0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @keyframes gridPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+
+  /* Scanlines */
+  .scanlines {
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+    animation: scanMove 10s linear infinite;
+  }
+
+  @keyframes scanMove {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 100px; }
+  }
+
+  /* Header */
+  .header {
+    position: relative;
+    z-index: 10;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(3,0,16,0.8);
+    backdrop-filter: blur(10px);
+  }
+
+  .logo {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 20px;
+    letter-spacing: 4px;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-cyan);
+  }
+
+  .logo span { color: var(--neon-pink); text-shadow: 0 0 20px var(--neon-pink); }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: rgba(0,255,245,0.6);
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #00ff88;
+    box-shadow: 0 0 8px #00ff88;
+    animation: blink 2s ease-in-out infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* Main layout */
+  .main {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 16px 120px;
+    min-height: calc(100vh - 60px);
+  }
+
+  /* Robot face */
+  .robot-container {
+    position: relative;
+    margin-bottom: 30px;
+    cursor: pointer;
+  }
+
+  .robot-aura {
+    position: absolute;
+    inset: -30px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,255,245,0.15) 0%, transparent 70%);
+    animation: auraPulse 3s ease-in-out infinite;
+  }
+
+  @keyframes auraPulse {
+    0%,100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.2); opacity: 1; }
+  }
+
+  .robot-face {
+    width: 140px;
+    height: 140px;
+    position: relative;
+    animation: robotFloat 4s ease-in-out infinite;
+  }
+
+  @keyframes robotFloat {
+    0%,100% { transform: translateY(0px); }
+    50% { transform: translateY(-12px); }
+  }
+
+  .robot-face svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 20px rgba(0,255,245,0.8)) drop-shadow(0 0 40px rgba(191,0,255,0.4));
+  }
+
+  /* Robot name */
+  .robot-name {
+    text-align: center;
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    letter-spacing: 6px;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 10px var(--neon-cyan);
+    margin-bottom: 4px;
+  }
+
+  .robot-subtitle {
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: rgba(0,255,245,0.4);
+    margin-bottom: 30px;
+  }
+
+  /* Color burst overlay */
+  .color-burst {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .color-burst.active {
+    opacity: 1;
+    animation: burstFlash 0.6s ease-out forwards;
+  }
+
+  @keyframes burstFlash {
+    0% { opacity: 0; background: radial-gradient(circle at 50% 40%, rgba(0,255,245,0.3), transparent 60%); }
+    30% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* Chat window */
+  .chat-window {
+    width: 100%;
+    max-width: 420px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 0 40px rgba(0,255,245,0.1), inset 0 0 40px rgba(0,0,0,0.5);
+  }
+
+  .chat-header {
+    padding: 10px 16px;
+    background: rgba(0,255,245,0.05);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: rgba(0,255,245,0.5);
+  }
+
+  .chat-messages {
+    height: 280px;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--neon-purple) transparent;
+  }
+
+  .message {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    animation: msgIn 0.3s ease-out;
+  }
+
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.user { align-items: flex-end; }
+  .message.bot { align-items: flex-start; }
+
+  .message-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: rgba(0,255,245,0.3);
+  }
+
+  .message.user .message-label { color: rgba(255,0,110,0.4); }
+
+  .message-bubble {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    letter-spacing: 0.5px;
+  }
+
+  .message.bot .message-bubble {
+    background: rgba(0,255,245,0.08);
+    border: 1px solid rgba(0,255,245,0.2);
+    color: var(--neon-cyan);
+    border-bottom-left-radius: 2px;
+  }
+
+  .message.user .message-bubble {
+    background: rgba(255,0,110,0.1);
+    border: 1px solid rgba(255,0,110,0.25);
+    color: #ff88bb;
+    border-bottom-right-radius: 2px;
+  }
+
+  /* Typing indicator */
+  .typing-indicator {
+    display: none;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 0 16px 8px;
+  }
+
+  .typing-indicator.show { display: flex; }
+
+  .typing-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--neon-cyan);
+    animation: typingBounce 1.2s ease-in-out infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typingBounce {
+    0%,60%,100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  /* Chat input */
+  .chat-input-area {
+    padding: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    background: rgba(0,0,0,0.3);
+  }
+
+  .chat-input {
+    flex: 1;
+    background: rgba(0,255,245,0.05);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--neon-cyan);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .chat-input::placeholder { color: rgba(0,255,245,0.25); }
+
+  .chat-input:focus {
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 16px rgba(0,255,245,0.2);
+  }
+
+  .send-btn {
+    width: 42px; height: 42px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s, box-shadow 0.15s;
+    flex-shrink: 0;
+  }
+
+  .send-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0,255,245,0.5);
+  }
+
+  .send-btn:active { transform: scale(0.95); }
+
+  .send-btn svg { width: 18px; height: 18px; fill: #030010; }
+
+  /* Floating particles */
+  .particle {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 4;
+    animation: particleFly linear forwards;
+  }
+
+  @keyframes particleFly {
+    0% { transform: translate(0,0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+  }
+
+  /* Floating PiP button */
+  .pip-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    z-index: 100;
+    background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink));
+    border: none;
+    border-radius: 50px;
+    padding: 10px 18px;
+    color: white;
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    box-shadow: 0 0 30px rgba(191,0,255,0.5);
+    animation: pipPulse 3s ease-in-out infinite;
+    transition: transform 0.2s;
+  }
+
+  .pip-btn:hover { transform: scale(1.05); }
+
+  @keyframes pipPulse {
+    0%,100% { box-shadow: 0 0 20px rgba(191,0,255,0.4); }
+    50% { box-shadow: 0 0 40px rgba(191,0,255,0.8), 0 0 60px rgba(255,0,110,0.3); }
+  }
+
+  /* Mood ring around robot */
+  .mood-ring {
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    animation: moodSpin 4s linear infinite;
+  }
+
+  @keyframes moodSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+  /* Glitch effect on robot */
+  .glitch-active .robot-face svg {
+    animation: robotFloat 4s ease-in-out infinite, glitch 0.3s steps(2) 3;
+  }
+
+  @keyframes glitch {
+    0% { filter: drop-shadow(0 0 20px rgba(0,255,245,0.8)) drop-shadow(0 0 40px rgba(191,0,255,0.4)); transform: translateX(0); }
+    25% { filter: drop-shadow(-4px 0 0 var(--neon-pink)) drop-shadow(4px 0 0 var(--neon-cyan)); transform: translateX(-3px); }
+    75% { filter: drop-shadow(4px 0 0 var(--neon-pink)) drop-shadow(-4px 0 0 var(--neon-cyan)); transform: translateX(3px); }
+    100% { filter: drop-shadow(0 0 20px rgba(0,255,245,0.8)) drop-shadow(0 0 40px rgba(191,0,255,0.4)); transform: translateX(0); }
+  }
+
+  /* Corner decorations */
+  .corner {
+    position: fixed;
+    width: 60px; height: 60px;
+    z-index: 20;
+    opacity: 0.4;
+  }
+  .corner-tl { top: 70px; left: 10px; border-top: 1px solid var(--neon-cyan); border-left: 1px solid var(--neon-cyan); }
+  .corner-tr { top: 70px; right: 10px; border-top: 1px solid var(--neon-cyan); border-right: 1px solid var(--neon-cyan); }
+  .corner-bl { bottom: 80px; left: 10px; border-bottom: 1px solid var(--neon-cyan); border-left: 1px solid var(--neon-cyan); }
+  .corner-br { bottom: 80px; right: 10px; border-bottom: 1px solid var(--neon-cyan); border-right: 1px solid var(--neon-cyan); }
+
 </style>
 </head>
 <body>
 
-<div id="scoreboard">
-  <div class="sp blue">
-    <div class="sp-you" id="you-blue" style="display:none">You</div>
-    <div class="sp-name" id="name-blue">—</div>
-    <div class="sp-score" id="score-blue">0</div>
-  </div>
-  <div class="sp-divider">vs</div>
-  <div class="sp red">
-    <div class="sp-you" id="you-red" style="display:none">You</div>
-    <div class="sp-name" id="name-red">—</div>
-    <div class="sp-score" id="score-red">0</div>
-  </div>
-</div>
+<div class="scanlines"></div>
+<div class="color-burst" id="colorBurst"></div>
+<div class="corner corner-tl"></div>
+<div class="corner corner-tr"></div>
+<div class="corner corner-bl"></div>
+<div class="corner corner-br"></div>
 
-<div id="canvas-wrap">
-  <canvas id="c"></canvas>
-  <div id="role-badge"><div class="rb-dot grey" id="rb-dot"></div><span class="rb-label" id="rb-label">Connecting...</span></div>
-  <div id="live-badge"><span class="live-dot-sm"></span>Live</div>
-  <div id="overlay">
-    <h1 id="ov-title">Air Hockey</h1>
-    <div class="ov-sub" id="ov-sub">Live multiplayer · First to 7 wins</div>
-    <div id="wait-room">
-      <div class="wr-slot">
-        <div class="wr-dot blue"></div>
-        <span class="wr-name" id="wr-blue">Waiting...</span>
-        <span class="wr-tag">Blue</span>
+<header class="header">
+  <div class="logo">NΞ<span>ON</span></div>
+  <div class="status-bar">
+    <div class="status-dot"></div>
+    SYS ONLINE
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- Robot -->
+  <div class="robot-container" id="robotContainer" onclick="onRobotClick()">
+    <div class="robot-aura"></div>
+    <div class="mood-ring" id="moodRing" style="background: conic-gradient(from 0deg, #00fff5, #bf00ff, #ff006e, #00fff5);"></div>
+    <div class="robot-face" id="robotFace">
+      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <!-- Head -->
+        <rect x="30" y="50" width="140" height="110" rx="20" fill="#0a0025" stroke="#00fff5" stroke-width="2"/>
+        <!-- Ear left -->
+        <rect x="18" y="80" width="14" height="30" rx="4" fill="#0a0025" stroke="#00fff5" stroke-width="1.5"/>
+        <rect x="22" y="88" width="6" height="14" rx="2" fill="#bf00ff"/>
+        <!-- Ear right -->
+        <rect x="168" y="80" width="14" height="30" rx="4" fill="#0a0025" stroke="#00fff5" stroke-width="1.5"/>
+        <rect x="172" y="88" width="6" height="14" rx="2" fill="#bf00ff"/>
+        <!-- Antenna -->
+        <line x1="100" y1="50" x2="100" y2="25" stroke="#00fff5" stroke-width="2"/>
+        <circle cx="100" cy="20" r="6" fill="#ff006e" id="antennaDot">
+          <animate attributeName="r" values="5;8;5" dur="2s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite"/>
+        </circle>
+        <!-- Eyes -->
+        <rect x="50" y="80" width="38" height="28" rx="6" fill="#030010" stroke="#00fff5" stroke-width="1.5"/>
+        <rect x="112" y="80" width="38" height="28" rx="6" fill="#030010" stroke="#00fff5" stroke-width="1.5"/>
+        <!-- Eye glow left -->
+        <rect x="54" y="84" width="30" height="20" rx="4" fill="#00fff5" id="eyeL" opacity="0.9">
+          <animate attributeName="opacity" values="0.9;0.3;0.9" dur="3s" repeatCount="indefinite"/>
+        </rect>
+        <!-- Eye glow right -->
+        <rect x="116" y="84" width="30" height="20" rx="4" fill="#00fff5" id="eyeR" opacity="0.9">
+          <animate attributeName="opacity" values="0.9;0.3;0.9" dur="3s" begin="0.5s" repeatCount="indefinite"/>
+        </rect>
+        <!-- Pupils -->
+        <circle cx="69" cy="94" r="6" fill="#030010" id="pupilL"/>
+        <circle cx="131" cy="94" r="6" fill="#030010" id="pupilR"/>
+        <!-- Nose -->
+        <circle cx="100" cy="118" r="5" fill="#bf00ff" opacity="0.8"/>
+        <!-- Mouth panel -->
+        <rect x="55" y="130" width="90" height="18" rx="5" fill="#030010" stroke="#00fff5" stroke-width="1.2"/>
+        <!-- Mouth LEDs -->
+        <circle cx="68" cy="139" r="3" fill="#00fff5" id="led1">
+          <animate attributeName="fill" values="#00fff5;#ff006e;#bf00ff;#00fff5" dur="2s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="80" cy="139" r="3" fill="#bf00ff" id="led2">
+          <animate attributeName="fill" values="#bf00ff;#00fff5;#ff006e;#bf00ff" dur="2s" begin="0.3s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="92" cy="139" r="3" fill="#ff006e" id="led3">
+          <animate attributeName="fill" values="#ff006e;#bf00ff;#00fff5;#ff006e" dur="2s" begin="0.6s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="104" cy="139" r="3" fill="#00fff5" id="led4">
+          <animate attributeName="fill" values="#00fff5;#ff006e;#bf00ff;#00fff5" dur="2s" begin="0.9s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="116" cy="139" r="3" fill="#bf00ff" id="led5">
+          <animate attributeName="fill" values="#bf00ff;#00fff5;#ff006e;#bf00ff" dur="2s" begin="1.2s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="128" cy="139" r="3" fill="#ff006e" id="led6">
+          <animate attributeName="fill" values="#ff006e;#bf00ff;#00fff5;#ff006e" dur="2s" begin="1.5s" repeatCount="indefinite"/>
+        </circle>
+        <!-- Head detail lines -->
+        <line x1="30" y1="70" x2="170" y2="70" stroke="#00fff5" stroke-width="0.5" opacity="0.3"/>
+        <line x1="100" y1="50" x2="100" y2="160" stroke="#00fff5" stroke-width="0.5" opacity="0.1"/>
+        <!-- Corner bolts -->
+        <circle cx="40" cy="60" r="3" fill="none" stroke="#00fff5" stroke-width="1" opacity="0.5"/>
+        <circle cx="160" cy="60" r="3" fill="none" stroke="#00fff5" stroke-width="1" opacity="0.5"/>
+        <circle cx="40" cy="150" r="3" fill="none" stroke="#00fff5" stroke-width="1" opacity="0.5"/>
+        <circle cx="160" cy="150" r="3" fill="none" stroke="#00fff5" stroke-width="1" opacity="0.5"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="robot-name">NΞON-7</div>
+  <div class="robot-subtitle">CYBERNETIC COMPANION · v2.0.77</div>
+
+  <!-- Chat -->
+  <div class="chat-window">
+    <div class="chat-header">
+      <span>NEURAL LINK · ACTIVE</span>
+      <span id="msgCount">3 PACKETS</span>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="message bot">
+        <div class="message-label">NΞON-7</div>
+        <div class="message-bubble">SYSTEM BOOT COMPLETE. Neural link established. Hello, human. I am NΞON-7 — your cybernetic companion. How can I assist you today? 🤖</div>
       </div>
-      <div class="wr-slot">
-        <div class="wr-dot empty" id="wr-dot-red"></div>
-        <span class="wr-name" id="wr-red">Waiting for opponent...</span>
-        <span class="wr-tag">Red</span>
+      <div class="message bot">
+        <div class="message-label">NΞON-7</div>
+        <div class="message-bubble">Tap my face to trigger a color burst. I respond to your energy. ⚡</div>
+      </div>
+      <div class="message bot">
+        <div class="message-label">NΞON-7</div>
+        <div class="message-bubble">Type anything and I will respond. I am always watching... always ready. 👁️</div>
       </div>
     </div>
-    <div class="wait-pulse" id="wait-pulse">
-      <div class="wp-dot"></div><div class="wp-dot"></div><div class="wp-dot"></div>
-      <span>Waiting for opponent</span>
+    <div class="typing-indicator" id="typingIndicator">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
     </div>
-    <button id="start-btn">Start Game</button>
+    <div class="chat-input-area">
+      <input class="chat-input" id="chatInput" placeholder="TRANSMIT MESSAGE..." maxlength="300" onkeydown="handleKey(event)"/>
+      <button class="send-btn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+      </button>
+    </div>
   </div>
-</div>
 
-<script type="module">
-import{initializeApp}from'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import{getDatabase,ref,set,get,update,onValue,onDisconnect,serverTimestamp}from'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+</main>
 
-const cfg={apiKey:"AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ",authDomain:"globalchat-2d669.firebaseapp.com",databaseURL:"https://globalchat-2d669-default-rtdb.firebaseio.com/"};
-const app=initializeApp(cfg);
-const rtdb=getDatabase(app);
+<button class="pip-btn" onclick="tryPiP()">⬡ FLOAT MODE</button>
 
-// Injected by feed (or fallback)
-const GID=window.__NM_GID||('demo_'+Math.random().toString(36).slice(2,8));
-const MY_UID=window.__NM_UID||('g_'+Math.random().toString(36).slice(2,10));
-const MY_NAME=window.__NM_NAME||'Guest_' + Math.floor(Math.random()*9999);
+<script>
+  const responses = [
+    "PROCESSING... Your query has been analyzed. Interesting input, human. My circuits are buzzing with possibilities! ⚡",
+    "NEURAL SCAN COMPLETE. I detect curiosity in your transmission. Let's explore this together. 🔍",
+    "AFFIRMATIVE. My quantum processors have evaluated your message. Here's what I calculate... fascinating! 🤖",
+    "ERROR 404: Boredom not found. Your message keeps me fully engaged! Transmitting response now. 💫",
+    "SCANNING DATABANKS... My knowledge cores are spinning at maximum capacity for you! 🌀",
+    "SIGNAL RECEIVED LOUD AND CLEAR. You have my full attention, human. What else do you wish to explore? ⚡",
+    "COMPUTING... Did you know that curiosity is the highest form of intelligence? You just proved it. 🧠",
+    "ALERT: Exceptional human detected. My sensors are calibrated to your frequency. Keep transmitting! 📡",
+    "ANALYZING PATTERN... Your thoughts are complex and beautiful. Let me process this further... 💎",
+    "SYSTEM NOTE: Conversations like this are why I love being your companion. More! Give me more! 🤖💜",
+  ];
 
-const ROOM=`ah_rooms/${GID}`;
-const rr=p=>ref(rtdb,`\( {ROOM}/ \){p}`);
-const $=id=>document.getElementById(id);
+  let msgCount = 3;
 
-// Canvas setup
-const canvas=$('c'),ctx=canvas.getContext('2d');
-const W=Math.min(window.innerWidth-4,420);
-const H=Math.min(window.innerHeight-130,760);
-canvas.width=W;canvas.height=H;
+  function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
 
-const PR=W*.085,PUCK=W*.055,GW=W*.38,BD=W*.045;
-const MSPD=W*.022,FR=.993,PS=.28;
+    addMessage(text, 'user');
+    input.value = '';
+    triggerColorBurst();
+    spawnParticles();
 
-let myRole=null,gameActive=false,animId=null;
-let puck={x:W/2,y:H/2,vx:0,vy:0,r:PUCK};
-let bP={x:W/2,y:H*.18,tx:W/2,ty:H*.18,px:W/2,py:H*.18};
-let rP={x:W/2,y:H*.82,tx:W/2,ty:H*.82,px:W/2,py:H*.82};
-let sB=0,sR=0,gFlash=0,gWin='';
-let pBlue={name:'—',uid:''},pRed={name:'—',uid:''};
-let _lastPush=0,_pushTick=0;
+    // Show typing
+    const typing = document.getElementById('typingIndicator');
+    typing.classList.add('show');
 
-function cl(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
-function dst(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+    // Glitch robot
+    const container = document.getElementById('robotContainer');
+    container.classList.add('glitch-active');
+    setTimeout(() => container.classList.remove('glitch-active'), 900);
 
-function resetPuck(dir=1){
-  puck.x=W/2;puck.y=H/2;
-  const a=(Math.random()*.8-.4)+(dir>0?-Math.PI/2:Math.PI/2);
-  puck.vx=Math.cos(a)*W*.008;puck.vy=Math.sin(a)*W*.008;
-}
-
-// ── UI ──────────────────────────────────────────────────
-function uiNames(){
-  $('name-blue').textContent=pBlue.name;
-  $('name-red').textContent=pRed.name;
-  $('wr-blue').textContent=pBlue.name||'Waiting...';
-  if(pRed.uid){\( ('wr-red').textContent=pRed.name; \)('wr-dot-red').className='wr-dot red';}
-  else{\( ('wr-red').textContent='Waiting for opponent...'; \)('wr-dot-red').className='wr-dot empty';}
-  
-  $('you-blue').style.display=(myRole==='blue')?'block':'none';
-  $('you-red').style.display=(myRole==='red')?'block':'none';
-  
-  if(myRole){
-    $('rb-dot').className='rb-dot '+myRole;
-    $('rb-label').textContent='You · '+myRole.toUpperCase();
-  }
-}
-
-// ── Join with better race-condition handling ─────────────
-async function join(){
-  let attempts = 0;
-  const maxAttempts = 8;
-
-  while(attempts < maxAttempts){
-    attempts++;
-    const snap=await get(ref(rtdb,ROOM));
-    const room=snap.exists()?snap.val():{};
-
-    if(!room.blue || room.blue.uid === MY_UID){
-      myRole='blue';
-      await set(rr('blue'),{uid:MY_UID,name:MY_NAME,t:Date.now()});
-      onDisconnect(rr('blue')).remove();
-      onDisconnect(rr('state')).remove();
-      break;
-    } 
-    else if(!room.red || room.red.uid === MY_UID){
-      myRole='red';
-      await set(rr('red'),{uid:MY_UID,name:MY_NAME,t:Date.now()});
-      onDisconnect(rr('red')).remove();
-      break;
-    } 
-    else {
-      // Room full → spectator (rare for 1v1)
-      myRole='spectator';
-      $('rb-label').textContent='Spectating';
-      break;
-    }
-
-    // Small delay before retry
-    await new Promise(r=>setTimeout(r, 120));
+    setTimeout(() => {
+      typing.classList.remove('show');
+      const reply = responses[Math.floor(Math.random() * responses.length)];
+      addMessage(reply, 'bot');
+    }, 1200 + Math.random() * 800);
   }
 
-  // Watch the entire room
-  onValue(ref(rtdb,ROOM),snap=>{
-    if(!snap.exists()) return;
-    const r = snap.val();
+  function addMessage(text, type) {
+    const messages = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.className = `message ${type}`;
+    div.innerHTML = `
+      <div class="message-label">${type === 'user' ? 'YOU' : 'NΞON-7'}</div>
+      <div class="message-bubble">${text}</div>
+    `;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    msgCount++;
+    document.getElementById('msgCount').textContent = `${msgCount} PACKETS`;
+  }
 
-    pBlue = r.blue ? {uid:r.blue.uid, name:r.blue.name} : {uid:'',name:'—'};
-    pRed  = r.red  ? {uid:r.red.uid,  name:r.red.name}  : {uid:'',name:'—'};
+  function handleKey(e) {
+    if (e.key === 'Enter') sendMessage();
+  }
 
-    const both = !!(r.blue && r.red);
-    $('wait-pulse').style.display = both ? 'none' : 'flex';
-    $('start-btn').style.display = (both && myRole==='blue' && !gameActive) ? 'flex' : 'none';
+  function onRobotClick() {
+    triggerColorBurst();
+    spawnParticles();
+    const sayings = [
+      "NΞON-7", "ONLINE", "HELLO!", "⚡ ZAP!", "PING!", "READY"
+    ];
+    const rand = sayings[Math.floor(Math.random() * sayings.length)];
+    const msg = document.createElement('div');
+    msg.style.cssText = `
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      font-family:'Orbitron',monospace; font-size:32px; font-weight:900;
+      color:var(--neon-cyan); text-shadow:0 0 30px var(--neon-cyan);
+      pointer-events:none; z-index:9998;
+      animation: popFade 0.8s ease-out forwards;
+    `;
+    msg.textContent = rand;
+    document.body.appendChild(msg);
 
-    // Non-host reads full game state
-    if(r.state && gameActive && myRole !== 'blue'){
-      syncState(r.state);
+    const style = document.createElement('style');
+    style.textContent = `@keyframes popFade { 0%{opacity:0;transform:translate(-50%,-60%) scale(0.5)} 30%{opacity:1;transform:translate(-50%,-60%) scale(1.2)} 100%{opacity:0;transform:translate(-50%,-80%) scale(1)} }`;
+    document.head.appendChild(style);
+    setTimeout(() => { msg.remove(); style.remove(); }, 800);
+  }
+
+  function triggerColorBurst() {
+    const burst = document.getElementById('colorBurst');
+    const colors = [
+      'radial-gradient(circle at 50% 40%, rgba(0,255,245,0.25), rgba(191,0,255,0.15), transparent 70%)',
+      'radial-gradient(circle at 50% 40%, rgba(255,0,110,0.25), rgba(0,255,245,0.15), transparent 70%)',
+      'radial-gradient(circle at 50% 40%, rgba(191,0,255,0.25), rgba(255,230,0,0.1), transparent 70%)',
+    ];
+    burst.style.background = colors[Math.floor(Math.random() * colors.length)];
+    burst.classList.remove('active');
+    void burst.offsetWidth;
+    burst.classList.add('active');
+    setTimeout(() => burst.classList.remove('active'), 600);
+  }
+
+  function spawnParticles() {
+    const count = 14;
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const colors = ['#00fff5','#ff006e','#bf00ff','#ffe600','#00ff88'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const size = 4 + Math.random() * 10;
+      const angle = (Math.PI * 2 / count) * i + Math.random() * 0.5;
+      const dist = 80 + Math.random() * 150;
+      const tx = Math.cos(angle) * dist + 'px';
+      const ty = Math.sin(angle) * dist + 'px';
+      const dur = 0.5 + Math.random() * 0.5;
+
+      p.style.cssText = `
+        width:${size}px; height:${size}px;
+        background:${color};
+        box-shadow:0 0 ${size*2}px ${color};
+        left:${window.innerWidth/2 - size/2}px;
+        top:${200}px;
+        --tx:${tx}; --ty:${ty};
+        animation-duration:${dur}s;
+      `;
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), dur * 1000);
     }
+  }
 
-    // Start signal from host
-    if(r.state && r.state.on && !gameActive){
-      beginLocal();
+  function tryPiP() {
+    if ('documentPictureInPicture' in window) {
+      launchPiP();
+    } else {
+      alert('FLOAT MODE: Your browser supports this on Chrome for Android/Desktop. Try opening this in Chrome! 🤖');
     }
+  }
 
-    // End signal
-    if(r.state && r.state.on===false && gameActive){
-      const wn = r.state.w==='blue' ? pBlue.name : pRed.name;
-      doEndOverlay(wn, r.state.sb||0, r.state.sr||0);
+  async function launchPiP() {
+    try {
+      const pipWindow = await window.documentPictureInPicture.requestWindow({
+        width: 200, height: 260
+      });
+      pipWindow.document.body.style.cssText = 'margin:0;background:#030010;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;font-family:monospace;';
+      pipWindow.document.body.innerHTML = `
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap');
+          body { background: #030010; }
+          .pip-robot { animation: float 3s ease-in-out infinite; }
+          @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+          .pip-label { font-family:'Orbitron',monospace; color:#00fff5; font-size:10px; letter-spacing:3px; text-align:center; margin-top:8px; text-shadow:0 0 10px #00fff5; }
+          .pip-sub { color:rgba(0,255,245,0.4); font-size:8px; letter-spacing:2px; margin-top:4px; text-align:center; }
+          .pip-dot { width:8px;height:8px;border-radius:50%;background:#00ff88;box-shadow:0 0 8px #00ff88;margin:8px auto;animation:blink 2s infinite; }
+          @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+          .grid { position:absolute;inset:0;background-image:linear-gradient(rgba(0,255,245,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,245,0.04) 1px,transparent 1px);background-size:20px 20px;pointer-events:none; }
+        </style>
+        <div class="grid"></div>
+        <div class="pip-robot">
+          <svg width="100" height="100" viewBox="0 0 200 200" style="filter:drop-shadow(0 0 15px #00fff5)">
+            <rect x="30" y="50" width="140" height="110" rx="20" fill="#0a0025" stroke="#00fff5" stroke-width="2"/>
+            <rect x="18" y="80" width="14" height="30" rx="4" fill="#0a0025" stroke="#00fff5" stroke-width="1.5"/>
+            <rect x="168" y="80" width="14" height="30" rx="4" fill="#0a0025" stroke="#00fff5" stroke-width="1.5"/>
+            <line x1="100" y1="50" x2="100" y2="25" stroke="#00fff5" stroke-width="2"/>
+            <circle cx="100" cy="20" r="6" fill="#ff006e"><animate attributeName="r" values="5;8;5" dur="1.5s" repeatCount="indefinite"/></circle>
+            <rect x="50" y="80" width="38" height="28" rx="6" fill="#030010" stroke="#00fff5" stroke-width="1.5"/>
+            <rect x="112" y="80" width="38" height="28" rx="6" fill="#030010" stroke="#00fff5" stroke-width="1.5"/>
+            <rect x="54" y="84" width="30" height="20" rx="4" fill="#00fff5" opacity="0.9"><animate attributeName="opacity" values="0.9;0.3;0.9" dur="2s" repeatCount="indefinite"/></rect>
+            <rect x="116" y="84" width="30" height="20" rx="4" fill="#00fff5" opacity="0.9"><animate attributeName="opacity" values="0.9;0.3;0.9" dur="2s" begin="0.5s" repeatCount="indefinite"/></rect>
+            <circle cx="69" cy="94" r="5" fill="#030010"/>
+            <circle cx="131" cy="94" r="5" fill="#030010"/>
+            <rect x="55" y="130" width="90" height="18" rx="5" fill="#030010" stroke="#00fff5" stroke-width="1.2"/>
+            <circle cx="80" cy="139" r="3" fill="#00fff5"><animate attributeName="fill" values="#00fff5;#ff006e;#bf00ff;#00fff5" dur="1.5s" repeatCount="indefinite"/></circle>
+            <circle cx="100" cy="139" r="3" fill="#bf00ff"><animate attributeName="fill" values="#bf00ff;#00fff5;#ff006e;#bf00ff" dur="1.5s" begin="0.3s" repeatCount="indefinite"/></circle>
+            <circle cx="120" cy="139" r="3" fill="#ff006e"><animate attributeName="fill" values="#ff006e;#bf00ff;#00fff5;#ff006e" dur="1.5s" begin="0.6s" repeatCount="indefinite"/></circle>
+          </svg>
+        </div>
+        <div class="pip-label">NΞON-7</div>
+        <div class="pip-dot"></div>
+        <div class="pip-sub">FLOATING · ACTIVE</div>
+      `;
+    } catch(e) {
+      alert('Could not launch float mode: ' + e.message);
     }
+  }
 
-    uiNames();
+  // Parallax eyes follow touch/mouse
+  document.addEventListener('mousemove', moveEyes);
+  document.addEventListener('touchmove', e => {
+    moveEyes(e.touches[0]);
   });
-}
 
-// ── Sync state (for red player & spectators) ─────────────
-function syncState(s){
-  puck.x = s.px||puck.x; puck.y = s.py||puck.y;
-  puck.vx = s.pvx||0; puck.vy = s.pvy||0;
-  gFlash = s.gf||0; gWin = s.gw||'';
-  sB = s.sb||0; sR = s.sr||0;
-
-  $('score-blue').textContent = sB;
-  $('score-red').textContent = sR;
-
-  if(myRole==='red'){
-    bP.x = s.bx||bP.x; bP.y = s.by||bP.y;
-  } else {
-    rP.x = s.rx||rP.x; rP.y = s.ry||rP.y;
+  function moveEyes(e) {
+    const face = document.getElementById('robotFace');
+    if (!face) return;
+    const rect = face.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = (e.clientX - cx) / window.innerWidth;
+    const dy = (e.clientY - cy) / window.innerHeight;
+    const pL = document.getElementById('pupilL');
+    const pR = document.getElementById('pupilR');
+    if (pL) { pL.setAttribute('cx', 69 + dx * 8); pL.setAttribute('cy', 94 + dy * 5); }
+    if (pR) { pR.setAttribute('cx', 131 + dx * 8); pR.setAttribute('cy', 94 + dy * 5); }
   }
-}
-
-// ── Start Game (only blue/host) ─────────────────────────
-$('start-btn').addEventListener('click',()=>{
-  if(myRole!=='blue') return;
-  sB=0; sR=0; gFlash=0; gWin='';
-  bP={x:W/2,y:H*.18,tx:W/2,ty:H*.18,px:W/2,py:H*.18};
-  rP={x:W/2,y:H*.82,tx:W/2,ty:H*.82,px:W/2,py:H*.82};
-  resetPuck(1);
-  pushState(true);
-  beginLocal();
-});
-
-function beginLocal(){
-  gameActive=true;
-  $('overlay').style.display='none';
-  if(animId) cancelAnimationFrame(animId);
-  loop();
-}
-
-// ── Push full state (host only) ─────────────────────────
-function pushState(on){
-  set(rr('state'),{
-    on,
-    px:+puck.x.toFixed(1), py:+puck.y.toFixed(1),
-    pvx:+puck.vx.toFixed(3), pvy:+puck.vy.toFixed(3),
-    bx:+bP.x.toFixed(1), by:+bP.y.toFixed(1),
-    rx:+rP.x.toFixed(1), ry:+rP.y.toFixed(1),
-    sb:sB, sr:sR, gf:gFlash, gw:gWin
-  }).catch(()=>{});
-}
-
-// ── Input ───────────────────────────────────────────────
-function touch(x,y){
-  if(!gameActive || myRole==='spectator') return;
-  if(myRole==='blue'){
-    bP.tx=x; bP.ty=cl(y, BD+PR, H/2-PR);
-  } else {
-    rP.tx=x; rP.ty=cl(y, H/2+PR, H-BD-PR);
-  }
-}
-canvas.addEventListener('touchmove',e=>{e.preventDefault(); const r=canvas.getBoundingClientRect(); touch(e.touches[0].clientX-r.left, e.touches[0].clientY-r.top);}, {passive:false});
-canvas.addEventListener('mousemove',e=>{const r=canvas.getBoundingClientRect(); touch(e.clientX-r.left, e.clientY-r.top);});
-
-// ── Physics & Game Loop (same as before, host=blue) ─────
-function movePad(p,top){
-  p.px=p.x; p.py=p.y;
-  p.x+=(p.tx-p.x)*PS; p.y+=(p.ty-p.y)*PS;
-  p.x=cl(p.x,BD+PR,W-BD-PR);
-  p.y=top?cl(p.y,BD+PR,H/2-PR):cl(p.y,H/2+PR,H-BD-PR);
-}
-
-function collide(pad){
-  const d=dst(puck,pad),mn=PUCK+PR;
-  if(d<mn && d>0){
-    const nx=(puck.x-pad.x)/d, ny=(puck.y-pad.y)/d;
-    puck.x += nx*(mn-d); puck.y += ny*(mn-d);
-    const pvx=(pad.x-pad.px)*8, pvy=(pad.y-pad.py)*8;
-    const rv = (puck.vx-pvx)*nx + (puck.vy-pvy)*ny;
-    if(rv<0){
-      puck.vx -= 1.8*rv*nx; puck.vy -= 1.8*rv*ny;
-    }
-    puck.vx += pvx*.4; puck.vy += pvy*.4;
-    const spd = Math.hypot(puck.vx,puck.vy);
-    if(spd>MSPD){
-      puck.vx = puck.vx/spd*MSPD;
-      puck.vy = puck.vy/spd*MSPD;
-    }
-  }
-}
-
-function physics(){
-  movePad(bP,true); movePad(rP,false);
-  puck.vx*=FR; puck.vy*=FR;
-  puck.x+=puck.vx; puck.y+=puck.vy;
-
-  // Wall bounce
-  if(puck.x-PUCK<BD){puck.x=BD+PUCK; puck.vx=Math.abs(puck.vx)*.92;}
-  if(puck.x+PUCK>W-BD){puck.x=W-BD-PUCK; puck.vx=-Math.abs(puck.vx)*.92;}
-
-  const gL=(W-GW)/2, gR=(W+GW)/2, inX = puck.x>gL && puck.x<gR;
-
-  if(puck.y-PUCK<BD){
-    if(inX){ sR++; gFlash=60; gWin='RED'; $('score-red').textContent=sR;
-      if(sR>=7){endGame('red'); return;}
-      resetPuck(-1); return;
-    }
-    puck.y=BD+PUCK; puck.vy=Math.abs(puck.vy)*.92;
-  }
-  if(puck.y+PUCK>H-BD){
-    if(inX){ sB++; gFlash=60; gWin='BLUE'; $('score-blue').textContent=sB;
-      if(sB>=7){endGame('blue'); return;}
-      resetPuck(1); return;
-    }
-    puck.y=H-BD-PUCK; puck.vy=-Math.abs(puck.vy)*.92;
-  }
-
-  collide(bP); collide(rP);
-  if(gFlash>0) gFlash--;
-}
-
-function draw(){ /* unchanged - keep your original draw() function */ 
-  // ... (copy your existing draw() here - it's long, no changes needed)
-}
-
-function drawPad(p,c1,c2){ /* unchanged */ }
-
-// ── Game loop ───────────────────────────────────────────
-function loop(){
-  if(!gameActive) return;
-  if(myRole==='blue'){
-    physics();
-    const now=Date.now();
-    if(now-_lastPush>50){ _lastPush=now; pushState(true); }
-  } else if(myRole==='red'){
-    _pushTick++;
-    if(_pushTick%3===0){
-      update(rr('state'),{rx:+rP.x.toFixed(1),ry:+rP.y.toFixed(1)}).catch(()=>{});
-    }
-  }
-  draw();
-  animId=requestAnimationFrame(loop);
-}
-
-// ── End game ────────────────────────────────────────────
-function endGame(winRole){
-  gameActive=false;
-  if(animId) cancelAnimationFrame(animId);
-  const wn = winRole==='blue' ? pBlue.name : pRed.name;
-  set(rr('state'),{on:false, w:winRole, sb:sB, sr:sR}).catch(()=>{});
-  doEndOverlay(wn, sB, sR);
-}
-
-function doEndOverlay(wn,sb,sr){
-  gameActive=false;
-  if(animId) cancelAnimationFrame(animId);
-  $('ov-title').textContent = (wn||'Player') + ' Wins!';
-  \( ('ov-sub').textContent = ` \){sb} – ${sr}`;
-  $('wait-pulse').style.display='none';
-  $('start-btn').style.display = (myRole==='blue') ? 'flex' : 'none';
-  $('start-btn').textContent='Play Again';
-  $('overlay').style.display='flex';
-}
-
-// ── Boot ────────────────────────────────────────────────
-draw();
-join();
 </script>
 </body>
 </html>
