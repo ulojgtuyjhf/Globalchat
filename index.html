@@ -1,658 +1,2228 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Choose Life</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
-        iframe {
-            position: fixed; inset: 0;
-            width: 100%; height: 100%;
-            border: none; display: block;
-            opacity: 0;
-            transition: opacity 0.4s ease;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,viewport-fit=cover">
+<title>Ludo King — Nmedea</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<script>
+/* ══════════════════════════════════════════
+   SPLASH SCREEN — runs before everything
+══════════════════════════════════════════ */
+(function(){
+  document.documentElement.style.visibility='hidden';
+  const luxGrad='linear-gradient(135deg,#0f0f0f 0%,#1c1c1c 15%,#3a3a3a 30%,#4d4d4d 45%,#626262 60%,#787878 75%,#8f8f8f 90%,#a6a6a6 100%)';
+  const splash=document.createElement('div');
+  splash.id='splashScreen';
+  splash.style.cssText='position:fixed;inset:0;background:#0b0b0b;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:99999;opacity:1;transition:opacity 0.5s ease';
+  const st=document.createElement('style');
+  st.textContent=`
+    #splashLogo::before{content:'';position:absolute;top:-8px;left:-8px;right:-8px;bottom:-8px;border-radius:50%;background:${luxGrad};-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;padding:2px;}
+    @keyframes logoShim{0%{transform:translateX(-200%) skewX(-18deg)}100%{transform:translateX(400%) skewX(-18deg)}}
+    @keyframes nameShim{0%{transform:translateX(-250%) skewX(-18deg)}100%{transform:translateX(500%) skewX(-18deg)}}
+    @keyframes ludoPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+    .slogo-shim{position:absolute;inset:0;overflow:hidden;border-radius:50%;pointer-events:none;z-index:5}
+    .slogo-shim::after{content:'';position:absolute;top:0;left:0;width:40%;height:100%;background:linear-gradient(105deg,transparent 0%,transparent 30%,rgba(255,255,255,.28) 50%,transparent 70%,transparent 100%);animation:logoShim 2.8s cubic-bezier(.4,0,.2,1) infinite}
+    .sname-shim{position:relative;overflow:hidden;display:inline-block}
+    .sname-shim::after{content:'';position:absolute;top:0;left:0;width:35%;height:100%;background:linear-gradient(105deg,transparent 0%,rgba(255,255,255,.35) 50%,transparent 100%);animation:nameShim 2.8s cubic-bezier(.4,0,.2,1) infinite;animation-delay:.4s}
+    @keyframes spinDice{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+    .splash-dice{animation:ludoPulse 1.4s ease-in-out infinite}
+  `;
+  document.head.appendChild(st);
+  const wrap=document.createElement('div');wrap.style.cssText='position:relative;height:100%;width:100%;display:flex;flex-direction:column;justify-content:center;align-items:center';
+  const logoCont=document.createElement('div');logoCont.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:96px;height:96px;display:flex;justify-content:center;align-items:center';
+  const logo=document.createElement('div');logo.id='splashLogo';logo.style.cssText=`width:100%;height:100%;border-radius:50%;display:flex;justify-content:center;align-items:center;position:relative;background:#0b0b0b`;
+  const lt=document.createElement('div');lt.className='splash-dice';lt.innerHTML='<svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="4" y="4" width="40" height="40" rx="10" fill="url(#dg)"/><circle cx="16" cy="16" r="4" fill="white"/><circle cx="32" cy="16" r="4" fill="white"/><circle cx="16" cy="32" r="4" fill="white"/><circle cx="32" cy="32" r="4" fill="white"/><defs><linearGradient id="dg" x1="4" y1="4" x2="44" y2="44"><stop stop-color="#a855f7"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs></svg>';
+  const shim=document.createElement('div');shim.className='slogo-shim';
+  logo.appendChild(lt);logo.appendChild(shim);logoCont.appendChild(logo);
+  const info=document.createElement('div');info.style.cssText='position:absolute;bottom:15%;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;text-align:center';
+  const from=document.createElement('div');from.style.cssText='font-size:14px;color:#666;margin-bottom:6px;font-family:system-ui,sans-serif;font-weight:400;letter-spacing:.5px';from.textContent='from';
+  const brand=document.createElement('h1');brand.textContent='nmedea';brand.className='sname-shim';brand.style.cssText=`font-size:24px;font-weight:600;margin:0;letter-spacing:.8px;background:${luxGrad};-webkit-background-clip:text;background-clip:text;color:transparent;font-family:system-ui,sans-serif;text-transform:lowercase`;
+  info.appendChild(from);info.appendChild(brand);
+  wrap.appendChild(logoCont);wrap.appendChild(info);
+  splash.appendChild(wrap);
+  document.addEventListener('DOMContentLoaded',()=>{document.body.insertBefore(splash,document.body.firstChild);document.documentElement.style.visibility='visible';});
+  window._removeSplash=function(){splash.style.opacity='0';setTimeout(()=>splash.parentNode&&splash.parentNode.removeChild(splash),500);};
+})();
+</script>
+
+<style>
+/* ═══════ TOKENS ═══════ */
+:root{
+  --black:#0b0b0b;--white:#f3f3ee;--dim:#555;--muted:#1c1c1c;
+  --border:rgba(243,243,238,.09);--green:#22c55e;--amber:#f59e0b;--red:#ef4444;
+  --brand:linear-gradient(135deg,#0f0f0f 0%,#3a3a3a 40%,#626262 70%,#a6a6a6 100%);
+  --ludo-red:#ef4444;--ludo-blue:#3b82f6;--ludo-green:#22c55e;--ludo-yellow:#f59e0b;
+  --auth-bg:#f5f5f5;--auth-card:#fff;--auth-text:#111;--auth-mid:#555;
+  --auth-light:#999;--auth-border:#e8e8e8;--auth-error:#e53935;--auth-success:#22c55e;--auth-radius:16px;
+}
+body.light{--black:#f3f3ee;--white:#0b0b0b;--dim:#888;--muted:#e0e0d8;--border:rgba(11,11,11,.1);--green:#16a34a;--amber:#d97706;--red:#dc2626;}
+body.light .topnav{background:rgba(243,243,238,.96);}
+body.light .sidebar{background:#f3f3ee;}
+body.light .drop{background:#f0f0eb;}
+body.light .toast{background:#0b0b0b;color:#f3f3ee;}
+body.light .di{color:rgba(11,11,11,.65);}
+body.light .di:hover{background:rgba(11,11,11,.07);color:#0b0b0b;}
+body.light .slink{color:rgba(11,11,11,.45);}
+body.light .slink:hover{background:rgba(11,11,11,.06);color:#0b0b0b;}
+body.light .slink.active{background:rgba(11,11,11,.1);color:#0b0b0b;}
+body.light .sc{background:rgba(11,11,11,.03);border-color:rgba(11,11,11,.1);}
+body.light .srv{background:rgba(11,11,11,.03);}
+body.light .srv:hover:not(.reserved,.full){background:rgba(11,11,11,.06);}
+body.light .bg-grid{background-image:linear-gradient(rgba(11,11,11,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(11,11,11,.04) 1px,transparent 1px);}
+body.light .hist-item{border-color:rgba(11,11,11,.1);}
+body.light .hist-item:hover{border-color:rgba(11,11,11,.25);}
+body.light .proc{background:rgba(243,243,238,.97);}
+body.light .dot-loader span{background:#0b0b0b;}
+body.light .mob-sheet{background:#f3f3ee;border-color:rgba(11,11,11,.1);}
+body.light .srv-btn{background:#0b0b0b;color:#f3f3ee;}
+body.light .confirm-box{background:#f0f0eb;}
+body.light .ludo-game-wrap{background:#f3f3ee;}
+body.light .ludo-game-nav{background:rgba(243,243,238,.96);border-color:rgba(11,11,11,.1);}
+body.light .player-card{background:rgba(11,11,11,.04);border-color:rgba(11,11,11,.1);}
+body.light .player-card.active-turn{border-color:rgba(11,11,11,.3);}
+body.light .game-chat-box{background:#fff;border-color:rgba(11,11,11,.1);}
+body.light .chat-msg-text{color:#0b0b0b;}
+body.light #ludoChatInput{background:rgba(11,11,11,.05);border-color:rgba(11,11,11,.1);color:#0b0b0b;}
+body.light .result-overlay{background:rgba(243,243,238,.96);}
+body.light .result-box{background:#fff;}
+body.light .profile-panel{background:rgba(11,11,11,.03);border-color:rgba(11,11,11,.1);}
+body.light .edit-field{background:#fff;border-color:rgba(11,11,11,.15);color:#0b0b0b;}
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{font-family:'DM Sans',sans-serif;background:var(--black);color:var(--white);min-height:100dvh;overflow-x:hidden;max-width:100vw;transition:background .3s,color .3s;}
+
+/* ═══════ BG GRID ═══════ */
+.bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(243,243,238,.026) 1px,transparent 1px),linear-gradient(90deg,rgba(243,243,238,.026) 1px,transparent 1px);background-size:52px 52px;animation:drift 24s linear infinite;}
+@keyframes drift{to{background-position:52px 52px}}
+
+/* ═══════ SHELL ═══════ */
+.shell{position:relative;z-index:1;display:grid;grid-template-columns:240px 1fr;grid-template-rows:62px 1fr;min-height:100dvh;}
+
+/* ═══════ TOP NAV ═══════ */
+.topnav{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:62px;border-bottom:1px solid var(--border);background:rgba(11,11,11,.96);backdrop-filter:blur(14px);position:sticky;top:0;z-index:100;transition:background .3s;}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.logo-mark{width:34px;height:34px;background:var(--white);border-radius:7px;display:grid;place-items:center;flex-shrink:0;transition:background .3s;}
+.logo-mark svg{width:20px;height:20px;color:var(--black);}
+.logo-text{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;color:var(--white);transition:color .3s;}
+.nav-right{display:flex;align-items:center;gap:12px;}
+.nav-bal{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:4px 10px;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;color:var(--green);}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--muted);border:1.5px solid var(--border);display:grid;place-items:center;cursor:pointer;overflow:hidden;position:relative;flex-shrink:0;font-family:'Bebas Neue',sans-serif;font-size:15px;transition:border-color .2s;user-select:none;}
+.avatar:hover{border-color:rgba(243,243,238,.35);}
+.avatar img{width:100%;height:100%;object-fit:cover;display:none;position:absolute;inset:0;border-radius:50%;}
+.avatar-init{position:relative;z-index:1;}
+
+/* DROPDOWN */
+.drop{position:absolute;top:calc(100% + 10px);right:0;background:#111;border:1px solid var(--border);border-radius:12px;min-width:196px;padding:6px;display:none;z-index:200;box-shadow:0 20px 50px rgba(0,0,0,.65);}
+.drop.open{display:block;animation:dropIn .22s cubic-bezier(.16,1,.3,1);}
+@keyframes dropIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.drop-hd{padding:11px 13px 9px;border-bottom:1px solid var(--border);margin-bottom:4px;}
+.drop-name{font-weight:700;font-size:13.5px;}
+.drop-email{font-size:11px;color:var(--dim);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;}
+.di{display:flex;align-items:center;gap:10px;padding:9px 13px;border-radius:8px;cursor:pointer;font-size:13px;color:rgba(243,243,238,.7);transition:background .15s,color .15s;}
+.di svg{width:14px;height:14px;flex-shrink:0;}
+.di:hover{background:rgba(243,243,238,.07);color:var(--white);}
+.di.red{color:#f87171;}
+.di.red:hover{background:rgba(248,113,113,.1);}
+.drop-sep{height:1px;background:var(--border);margin:4px 0;}
+.di.theme-toggle{justify-content:space-between;}
+.toggle-switch{width:34px;height:18px;background:rgba(243,243,238,.15);border-radius:100px;position:relative;flex-shrink:0;transition:background .3s;}
+.toggle-switch.on{background:var(--white);}
+.toggle-knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--black);transition:transform .3s;}
+.toggle-switch.on .toggle-knob{transform:translateX(16px);}
+
+/* ═══════ SIDEBAR ═══════ */
+.sidebar{border-right:1px solid var(--border);padding:20px 14px;display:flex;flex-direction:column;gap:2px;transition:background .3s;}
+.s-lbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);padding:0 10px;margin:12px 0 6px;}
+.s-lbl:first-child{margin-top:0;}
+.slink{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;cursor:pointer;font-size:13px;color:rgba(243,243,238,.5);transition:background .15s,color .15s;text-decoration:none;}
+.slink svg{width:15px;height:15px;flex-shrink:0;}
+.slink:hover{background:rgba(243,243,238,.06);color:var(--white);}
+.slink.active{background:rgba(243,243,238,.1);color:var(--white);font-weight:600;}
+.slink.red{color:#f87171;margin-top:auto;}
+.slink.red:hover{background:rgba(248,113,113,.08);}
+
+/* ═══════ MAIN ═══════ */
+.main{overflow-y:auto;padding:clamp(18px,3vw,32px);max-width:100%;overflow-x:hidden;}
+.pg-eyebrow{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--dim);margin-bottom:5px;}
+.pg-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,3.5vw,42px);letter-spacing:1px;line-height:1;margin-bottom:clamp(18px,2.5vh,28px);}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:clamp(16px,2.5vh,24px);}
+.sc{background:rgba(243,243,238,.04);border:1px solid var(--border);border-radius:13px;padding:18px 20px;transition:border-color .3s;}
+.sc:hover{border-color:rgba(243,243,238,.2);}
+.sc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.sc-lbl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);}
+.sc-ico{width:26px;height:26px;background:rgba(243,243,238,.07);border-radius:7px;display:grid;place-items:center;}
+.sc-ico svg{width:13px;height:13px;color:var(--white);}
+.sc-val{font-family:'Bebas Neue',sans-serif;font-size:clamp(26px,2.8vw,36px);letter-spacing:1px;line-height:1;}
+.sc-sub{font-size:11px;color:var(--dim);margin-top:3px;}
+
+/* SECTION ROW */
+.sec-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.sec-ttl{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;}
+.sec-note{font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:4px 11px;border:1px solid var(--border);border-radius:100px;color:var(--dim);}
+.sec-create-btn{padding:8px 16px;background:var(--white);color:var(--black);border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:opacity .18s;}
+.sec-create-btn:hover{opacity:.85;}
+
+/* SERVER GRID */
+.server-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.srv{background:rgba(243,243,238,.04);border:1px solid var(--border);border-radius:14px;padding:18px 20px;position:relative;overflow:hidden;transition:border-color .25s,background .25s,transform .2s;display:flex;flex-direction:column;gap:14px;}
+.srv:hover:not(.reserved,.full){border-color:rgba(243,243,238,.26);background:rgba(243,243,238,.07);transform:translateY(-2px);}
+.srv.reserved{cursor:default;opacity:.6;}
+.srv.full{opacity:.65;}
+.srv-top{display:flex;align-items:center;justify-content:space-between;}
+.srv-name{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:1px;}
+.srv-badge{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:100px;}
+.srv-badge svg{width:6px;height:6px;flex-shrink:0;}
+.badge-open{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.25);}
+.badge-waiting{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.25);}
+.badge-full{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25);}
+@keyframes blinkG{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes blinkA{0%,100%{opacity:1}50%{opacity:.3}}
+.dot-green{animation:blinkG 2s infinite;}
+.dot-amber{animation:blinkA 1.2s infinite;}
+.srv-info{display:flex;align-items:center;gap:14px;font-size:12px;color:var(--dim);}
+.srv-info-item{display:flex;align-items:center;gap:5px;}
+.srv-info-item svg{width:12px;height:12px;}
+/* LUDO SLOTS */
+.ludo-slots{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.lslot{height:32px;border:1.5px dashed rgba(243,243,238,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:10px;letter-spacing:.5px;color:rgba(243,243,238,.3);transition:all .3s;padding:0 8px;}
+.lslot.filled{border-style:solid;border-color:rgba(243,243,238,.25);background:rgba(243,243,238,.06);color:rgba(243,243,238,.7);font-size:11px;}
+.lslot.red-slot{border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08);}
+.lslot.blue-slot{border-color:rgba(59,130,246,.4);background:rgba(59,130,246,.08);}
+.lslot.green-slot{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.08);}
+.lslot.yellow-slot{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.08);}
+.lslot .piece-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.prize-tag{background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.25);color:#a855f7;font-size:10px;font-weight:700;letter-spacing:1px;padding:4px 10px;border-radius:100px;text-transform:uppercase;}
+.srv-btn{width:100%;padding:11px;background:var(--white);color:var(--black);border:none;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;position:relative;overflow:hidden;transition:transform .18s;}
+.srv-btn::after{content:'';position:absolute;inset:0;background:#222;transform:translateY(102%);transition:transform .35s cubic-bezier(.16,1,.3,1);}
+.srv-btn:hover::after{transform:translateY(0);}
+.srv-btn span{position:relative;z-index:1;transition:color .3s;}
+.srv-btn:hover span{color:var(--white);}
+.srv-btn:disabled{opacity:.4;cursor:not-allowed;}
+.srv-btn:disabled::after{display:none;}
+.srv-empty{grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--dim);font-size:14px;border:1.5px dashed var(--border);border-radius:14px;}
+.srv-empty svg{width:40px;height:40px;margin:0 auto 14px;display:block;opacity:.25;}
+
+/* HISTORY */
+.hist-list{display:flex;flex-direction:column;gap:8px;}
+.hist-item{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(243,243,238,.04);border:1px solid var(--border);border-radius:12px;transition:border-color .2s;}
+.hist-item:hover{border-color:rgba(243,243,238,.2);}
+.hist-left{display:flex;align-items:center;gap:12px;}
+.hist-ico{width:34px;height:34px;border-radius:9px;background:rgba(243,243,238,.07);display:grid;place-items:center;flex-shrink:0;font-size:16px;}
+.hist-ico.win{background:rgba(34,197,94,.12);color:var(--green);}
+.hist-ico.loss{background:rgba(239,68,68,.12);color:var(--red);}
+.hist-title{font-size:13px;font-weight:600;}
+.hist-time{font-size:11px;color:var(--dim);margin-top:2px;}
+.hist-amt{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.5px;}
+.hist-amt.win{color:var(--green);}
+.hist-amt.loss{color:var(--red);}
+
+/* SECTION FADE */
+.section-panel{animation:fadeIn .22s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* PROCESSING */
+.proc{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;}
+.proc.open{display:flex;}
+.dot-loader{display:flex;align-items:center;gap:8px;}
+.dot-loader span{width:8px;height:8px;border-radius:50%;background:var(--white);animation:dotPulse 1.2s ease-in-out infinite;}
+.dot-loader span:nth-child(2){animation-delay:.2s;}
+.dot-loader span:nth-child(3){animation-delay:.4s;}
+@keyframes dotPulse{0%,100%{transform:scale(1);opacity:.3}50%{transform:scale(1.6);opacity:1}}
+.proc-txt{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:rgba(243,243,238,.35);}
+
+/* CONFIRM */
+.confirm-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px;}
+.confirm-overlay.open{display:flex;}
+.confirm-box{background:#111;border:1px solid var(--border);border-radius:18px;padding:30px;max-width:360px;width:100%;animation:modalIn .25s cubic-bezier(.16,1,.3,1);}
+@keyframes modalIn{from{opacity:0;transform:scale(.93)}to{opacity:1;transform:scale(1)}}
+.confirm-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;margin-bottom:8px;}
+.confirm-body{font-size:13px;color:var(--dim);margin-bottom:24px;line-height:1.6;}
+.confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn-cancel-c,.btn-confirm-c{padding:12px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+.btn-cancel-c{background:rgba(243,243,238,.06);border:1px solid var(--border);color:var(--white);}
+.btn-cancel-c:hover{opacity:.8;}
+.btn-confirm-c{background:var(--white);color:var(--black);border:none;}
+.btn-confirm-c:hover{opacity:.85;}
+
+/* TOAST */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:#111;border:1px solid var(--border);border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:9px;font-size:13px;font-weight:500;z-index:9000;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;white-space:nowrap;max-width:calc(100vw - 40px);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast svg{width:15px;height:15px;flex-shrink:0;color:var(--green);}
+.toast.warn svg{color:var(--amber);}
+
+/* MOBILE NAV */
+.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:90;background:rgba(11,11,11,.97);backdrop-filter:blur(14px);border-top:1px solid var(--border);padding:0 0 max(env(safe-area-inset-bottom,0px),6px);}
+.mob-nav-items{display:flex;align-items:center;justify-content:space-around;}
+.mob-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 16px;cursor:pointer;flex:1;color:rgba(243,243,238,.4);transition:color .15s;}
+.mob-nav-item.active{color:var(--white);}
+.mob-nav-item svg{width:20px;height:20px;}
+.mob-nav-item span{font-size:9px;letter-spacing:.5px;text-transform:uppercase;font-weight:600;}
+
+/* MOB PROFILE SHEET */
+.mob-sheet-bg{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);display:none;}
+.mob-sheet-bg.open{display:block;}
+.mob-sheet{position:fixed;bottom:0;left:0;right:0;z-index:400;background:#0f0f0f;border:1px solid var(--border);border-radius:24px 24px 0 0;padding:16px 20px max(env(safe-area-inset-bottom,16px),24px);transform:translateY(110%);transition:transform .35s cubic-bezier(.16,1,.3,1);}
+.mob-sheet.open{transform:translateY(0);}
+.sheet-handle{width:36px;height:4px;background:rgba(243,243,238,.15);border-radius:100px;margin:0 auto 20px;}
+.mob-sheet-av{width:56px;height:56px;border-radius:50%;background:var(--muted);display:grid;place-items:center;margin:0 auto 12px;font-family:'Bebas Neue',sans-serif;font-size:22px;overflow:hidden;border:2px solid var(--border);}
+.mob-sheet-av img{width:100%;height:100%;object-fit:cover;display:none;border-radius:50%;}
+.mob-sheet-name{text-align:center;font-weight:700;font-size:16px;margin-bottom:3px;}
+.mob-sheet-email{text-align:center;font-size:12px;color:var(--dim);margin-bottom:16px;}
+.mob-sheet-bal{text-align:center;margin-bottom:16px;}
+.mob-sheet-bal .bal-val{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--green);letter-spacing:1px;}
+.mob-sheet-bal .bal-lbl{font-size:11px;color:var(--dim);margin-top:-2px;}
+.mob-sheet-sep{height:1px;background:var(--border);margin:0 0 12px;}
+.mob-sheet-item{display:flex;align-items:center;gap:12px;padding:11px 0;cursor:pointer;font-size:14px;color:var(--white);}
+.mob-sheet-item svg{width:16px;height:16px;color:var(--dim);}
+.mob-sheet-item.red{color:#f87171;}
+
+/* ═══════════════════════════════
+   AUTH STYLES
+═══════════════════════════════ */
+.auth-view{display:none;position:fixed;inset:0;z-index:50;background:var(--auth-bg);overflow-y:auto;}
+.auth-view.active{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;padding:20px;}
+.auth-logo{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:4px;background:linear-gradient(135deg,#0f0f0f 0%,#3a3a3a 40%,#626262 70%,#a6a6a6 100%);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:32px;}
+.auth-container{width:100%;max-width:380px;}
+.welcome-text{margin-bottom:24px;text-align:center;}
+.welcome-text h2{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;color:var(--auth-text);margin-bottom:6px;}
+.welcome-text h2 span{background:linear-gradient(135deg,#a855f7,#6366f1);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.welcome-text p{font-size:14px;color:var(--auth-mid);}
+.auth-options{display:flex;flex-direction:column;gap:10px;}
+.auth-option{display:flex;align-items:center;gap:14px;padding:16px 18px;background:var(--auth-card);border:1.5px solid var(--auth-border);border-radius:var(--auth-radius);cursor:pointer;transition:border-color .2s,transform .15s,box-shadow .2s;}
+.auth-option:hover{border-color:#a855f7;transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,0,0,.1);}
+.auth-option-icon{width:28px;height:28px;flex-shrink:0;}
+.auth-option-title{font-weight:700;font-size:14px;color:var(--auth-text);}
+.auth-option-desc{font-size:12px;color:var(--auth-light);margin-top:2px;}
+
+/* AUTH OVERLAY & MODALS */
+.auth-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);display:none;align-items:flex-end;justify-content:center;padding:0;}
+.auth-overlay.active{display:flex;}
+.auth-modal{background:var(--auth-card);border-radius:26px 26px 0 0;padding:28px 24px max(env(safe-area-inset-bottom,20px),28px);width:100%;max-width:480px;position:relative;animation:slideUp .3s cubic-bezier(.16,1,.3,1);}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-close{position:absolute;top:20px;right:20px;width:32px;height:32px;border-radius:50%;background:rgba(11,11,11,.07);border:none;cursor:pointer;display:grid;place-items:center;}
+.modal-close svg{width:14px;height:14px;}
+.modal-header{margin-bottom:20px;}
+.modal-header h3{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;color:var(--auth-text);}
+.modal-header p{font-size:13px;color:var(--auth-mid);margin-top:4px;}
+.input-group{position:relative;margin-bottom:14px;}
+.input-group input{width:100%;padding:18px 16px 8px;background:var(--auth-bg);border:1.5px solid var(--auth-border);border-radius:12px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--auth-text);outline:none;transition:border-color .2s;}
+.input-group input:focus{border-color:#a855f7;}
+.input-group label{position:absolute;top:50%;left:16px;transform:translateY(-50%);font-size:14px;color:var(--auth-light);pointer-events:none;transition:all .18s;}
+.input-group input:focus~label,.input-group input:not(:placeholder-shown)~label{top:10px;transform:translateY(0);font-size:11px;color:#a855f7;}
+.has-toggle{padding-right:44px!important;}
+.pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;color:var(--auth-light);}
+.pw-toggle svg{width:16px;height:16px;}
+.error-msg{font-size:11px;color:var(--auth-error);margin-top:4px;display:none;}
+.uname-status{display:flex;align-items:center;gap:6px;font-size:12px;margin-top:-8px;margin-bottom:10px;}
+.uname-status.hidden{display:none!important;}
+.uname-status.ok{color:var(--auth-success);}
+.uname-status.bad{color:var(--auth-error);}
+.uname-status.checking{color:var(--auth-mid);}
+.uname-status svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
+.submit-btn{width:100%;padding:15px;background:linear-gradient(135deg,#a855f7,#6366f1);color:#fff;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;position:relative;overflow:hidden;transition:opacity .2s;letter-spacing:.5px;}
+.submit-btn:hover{opacity:.9;}
+.submit-btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none;position:absolute;right:16px;top:50%;transform:translateY(-50%);}
+@keyframes spin{to{transform:translateY(-50%) rotate(360deg)}}
+.forgot-link{text-align:right;margin-bottom:12px;}
+.forgot-link a{font-size:12px;color:#a855f7;cursor:pointer;text-decoration:none;}
+.captcha-wrap{margin-bottom:14px;}
+.captcha-box{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--auth-bg);border:1.5px solid var(--auth-border);border-radius:12px;cursor:pointer;font-size:13px;color:var(--auth-mid);transition:border-color .2s;}
+.captcha-box:hover{border-color:#a855f7;}
+.captcha-box.checked{border-color:var(--auth-success);}
+.check-icon{width:22px;height:22px;border:2px solid var(--auth-border);border-radius:4px;flex-shrink:0;transition:all .2s;display:grid;place-items:center;}
+.captcha-box.checked .check-icon{background:var(--auth-success);border-color:var(--auth-success);}
+.captcha-box.checked .check-icon::after{content:'✓';font-size:13px;color:#fff;font-weight:bold;}
+.google-inline{display:flex;align-items:center;justify-content:center;gap:10px;padding:13px;background:var(--auth-bg);border:1.5px solid var(--auth-border);border-radius:12px;cursor:pointer;font-size:14px;color:var(--auth-text);font-weight:600;margin-bottom:14px;transition:border-color .2s;}
+.google-inline:hover{border-color:#a855f7;}
+.google-inline svg{width:20px;height:20px;}
+.divider{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.divider-line{flex:1;height:1px;background:var(--auth-border);}
+.divider-label{font-size:12px;color:var(--auth-light);white-space:nowrap;}
+.loading-body{text-align:center;padding:20px 0;}
+.dots-loader{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:16px;}
+.dots-loader span{width:8px;height:8px;border-radius:50%;background:#a855f7;animation:dotPulse 1.2s ease-in-out infinite;}
+.dots-loader span:nth-child(2){animation-delay:.2s;background:#6366f1;}
+.dots-loader span:nth-child(3){animation-delay:.4s;background:#a855f7;}
+.loading-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--auth-text);margin-bottom:6px;}
+.loading-sub{font-size:13px;color:var(--auth-mid);}
+.progress-bar-wrap{height:3px;background:var(--auth-border);border-radius:100px;margin-top:16px;overflow:hidden;}
+.progress-bar{height:100%;background:linear-gradient(90deg,#a855f7,#6366f1);border-radius:100px;width:0%;transition:width .4s ease;}
+.photo-av-ring{width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#6366f1);padding:3px;margin:0 auto 12px;cursor:pointer;}
+.photo-av-inner{width:100%;height:100%;border-radius:50%;background:var(--auth-bg);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;font-size:30px;color:var(--auth-text);}
+.photo-av-inner img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
+.photo-av-edit{position:absolute;bottom:0;left:0;right:0;height:30px;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.photo-av-edit svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;}
+.photo-tap-hint{text-align:center;font-size:12px;color:var(--auth-mid);margin-bottom:16px;}
+#photo-upload-btn,#photo-skip-btn{width:100%;padding:14px;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px;transition:opacity .2s;}
+#photo-upload-btn{background:linear-gradient(135deg,#a855f7,#6366f1);color:#fff;border:none;}
+#photo-upload-btn:disabled{opacity:.4;cursor:not-allowed;}
+#photo-skip-btn{background:transparent;color:var(--auth-mid);border:1.5px solid var(--auth-border);}
+.photo-progress-wrap{height:3px;background:var(--auth-border);border-radius:100px;margin-bottom:14px;overflow:hidden;display:none;}
+.photo-progress-bar{height:100%;background:linear-gradient(90deg,#a855f7,#6366f1);border-radius:100px;width:0%;transition:width .4s;}
+#forgot-success{text-align:center;display:none;padding:20px 0;}
+.check-circle{width:56px;height:56px;border-radius:50%;background:rgba(34,197,94,.12);display:grid;place-items:center;margin:0 auto 12px;}
+.check-circle svg{width:24px;height:24px;stroke:var(--auth-success);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
+#forgot-success p{font-size:14px;color:var(--auth-mid);}
+
+@media(max-width:640px){
+  .auth-overlay{align-items:flex-end;}
+  .auth-modal{width:100%!important;max-width:100%!important;}
+}
+
+/* ══════════════════════════════════
+   PROFILE SECTION
+══════════════════════════════════ */
+.profile-panel{background:rgba(243,243,238,.04);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px;}
+.profile-av-section{display:flex;align-items:center;gap:16px;margin-bottom:24px;}
+.profile-av-big{width:72px;height:72px;border-radius:50%;background:var(--muted);display:grid;place-items:center;font-family:'Bebas Neue',sans-serif;font-size:28px;overflow:hidden;border:2px solid var(--border);flex-shrink:0;position:relative;cursor:pointer;}
+.profile-av-big img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:none;}
+.profile-av-big:hover::after{content:'📷';position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:20px;border-radius:50%;}
+.profile-av-info{flex:1;}
+.profile-av-name{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;margin-bottom:2px;}
+.profile-av-handle{font-size:12px;color:var(--dim);}
+.profile-bal-badge{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:3px 10px;font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--green);letter-spacing:1px;margin-top:6px;display:inline-block;}
+.profile-fields{display:flex;flex-direction:column;gap:12px;margin-bottom:20px;}
+.profile-field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.edit-field-wrap{display:flex;flex-direction:column;gap:4px;}
+.edit-field-lbl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);}
+.edit-field{background:rgba(243,243,238,.05);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--white);outline:none;transition:border-color .2s;width:100%;}
+.edit-field:focus{border-color:#a855f7;}
+.edit-field:read-only{opacity:.5;cursor:default;}
+.save-profile-btn{width:100%;padding:13px;background:linear-gradient(135deg,#a855f7,#6366f1);color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .2s;letter-spacing:.5px;}
+.save-profile-btn:hover{opacity:.9;}
+.profile-danger{display:flex;gap:10px;}
+.danger-btn{flex:1;padding:12px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .2s;}
+.danger-btn.logout{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#f87171;}
+.danger-btn.logout:hover{opacity:.8;}
+
+/* ══════════════════════════════════
+   LUDO GAME VIEW
+══════════════════════════════════ */
+.ludo-game-view{display:none;position:fixed;inset:0;z-index:80;background:var(--black);flex-direction:column;overflow:hidden;}
+.ludo-game-view.active{display:flex;}
+.ludo-game-nav{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:54px;border-bottom:1px solid var(--border);background:rgba(11,11,11,.96);backdrop-filter:blur(14px);flex-shrink:0;}
+.ludo-back-btn{display:flex;align-items:center;gap:8px;background:rgba(243,243,238,.07);border:1px solid var(--border);border-radius:8px;padding:7px 12px;cursor:pointer;font-size:12px;font-weight:600;color:var(--white);transition:background .15s;}
+.ludo-back-btn:hover{background:rgba(243,243,238,.12);}
+.ludo-back-btn svg{width:14px;height:14px;}
+.ludo-game-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--white);}
+.ludo-prize-chip{background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.25);border-radius:8px;padding:5px 10px;font-family:'Bebas Neue',sans-serif;font-size:14px;color:#a855f7;letter-spacing:1px;}
+
+.ludo-body{flex:1;display:grid;grid-template-columns:1fr 300px;overflow:hidden;}
+.ludo-board-area{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:12px;overflow:hidden;}
+.ludo-board-outer{position:relative;width:min(calc(100vw - 360px),calc(100dvh - 140px));max-width:520px;aspect-ratio:1;}
+
+/* Player bars */
+.player-bars{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:min(calc(100vw - 360px),520px);max-width:520px;}
+.player-card{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(243,243,238,.04);border:1.5px solid var(--border);border-radius:12px;transition:border-color .3s,background .3s;}
+.player-card.active-turn{border-color:rgba(243,243,238,.3);background:rgba(243,243,238,.07);animation:cardGlow .8s ease-in-out infinite alternate;}
+@keyframes cardGlow{from{box-shadow:none}to{box-shadow:0 0 14px rgba(243,243,238,.1)}}
+.player-card.eliminated{opacity:.35;}
+.pc-color{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.pc-color.red{background:var(--ludo-red);}
+.pc-color.blue{background:var(--ludo-blue);}
+.pc-color.green{background:var(--ludo-green);}
+.pc-color.yellow{background:var(--ludo-yellow);}
+.pc-av{width:28px;height:28px;border-radius:50%;background:var(--muted);display:grid;place-items:center;font-size:11px;font-weight:700;flex-shrink:0;overflow:hidden;}
+.pc-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:none;}
+.pc-info{flex:1;min-width:0;}
+.pc-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pc-status{font-size:10px;color:var(--dim);margin-top:1px;}
+.pc-timer{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;min-width:36px;text-align:right;flex-shrink:0;}
+.pc-timer.low{color:var(--red);}
+
+/* LUDO SIDE PANEL */
+.ludo-side{border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.ludo-side-tabs{display:flex;border-bottom:1px solid var(--border);}
+.ls-tab{flex:1;padding:12px;text-align:center;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;color:var(--dim);transition:color .15s,border-bottom .15s;border-bottom:2px solid transparent;}
+.ls-tab.active{color:var(--white);border-bottom-color:var(--white);}
+.ls-pane{display:none;flex:1;overflow-y:auto;padding:12px;}
+.ls-pane.active{display:flex;flex-direction:column;gap:8px;}
+
+/* JOIN FEED */
+.join-event{display:flex;align-items:center;gap:8px;padding:9px 12px;background:rgba(243,243,238,.04);border-radius:10px;font-size:12px;border:1px solid var(--border);animation:eventIn .3s ease;}
+@keyframes eventIn{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:translateX(0)}}
+.join-event .je-color{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.join-event .je-text{flex:1;color:var(--dim);line-height:1.4;}
+.join-event .je-text b{color:var(--white);}
+.join-event .je-time{font-size:10px;color:var(--dim);flex-shrink:0;}
+
+/* GAME CHAT */
+.game-chat-box{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px;}
+.chat-msg-item{display:flex;gap:8px;}
+.chat-msg-av{width:24px;height:24px;border-radius:50%;background:var(--muted);display:grid;place-items:center;font-size:9px;font-weight:700;flex-shrink:0;overflow:hidden;}
+.chat-msg-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
+.chat-msg-body{flex:1;min-width:0;}
+.chat-msg-name{font-size:10px;font-weight:700;color:var(--dim);}
+.chat-msg-text{font-size:12px;color:var(--white);line-height:1.4;word-break:break-word;}
+.chat-sys-msg{font-size:11px;color:var(--dim);text-align:center;padding:4px 0;font-style:italic;}
+.chat-input-wrap{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0;}
+#ludoChatInput{flex:1;background:rgba(243,243,238,.07);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--white);outline:none;}
+#ludoChatInput:focus{border-color:rgba(243,243,238,.3);}
+.chat-send-btn{width:30px;height:30px;border-radius:8px;background:rgba(243,243,238,.1);border:1px solid var(--border);cursor:pointer;display:grid;place-items:center;flex-shrink:0;}
+.chat-send-btn svg{width:12px;height:12px;color:var(--white);}
+
+/* ══ DICE SECTION ══ */
+.dice-section{display:flex;align-items:center;justify-content:center;gap:16px;padding:12px 0;}
+.dice-btn{width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg,#a855f7,#6366f1);border:none;cursor:pointer;display:grid;place-items:center;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 16px rgba(168,85,247,.3);position:relative;overflow:hidden;}
+.dice-btn:hover:not(:disabled){transform:scale(1.05);box-shadow:0 8px 24px rgba(168,85,247,.5);}
+.dice-btn:active:not(:disabled){transform:scale(.95);}
+.dice-btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none;}
+.dice-btn svg{width:32px;height:32px;color:#fff;transition:transform .1s;}
+.dice-btn.rolling svg{animation:diceRoll .5s ease-in-out;}
+@keyframes diceRoll{0%{transform:rotate(0deg) scale(1)}25%{transform:rotate(90deg) scale(1.2)}50%{transform:rotate(180deg) scale(1)}75%{transform:rotate(270deg) scale(1.2)}100%{transform:rotate(360deg) scale(1)}}
+.dice-val{font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:-2px;color:var(--white);min-width:48px;text-align:center;animation:diceValPop .2s cubic-bezier(.16,1,.3,1);}
+@keyframes diceValPop{from{transform:scale(1.5);opacity:0}to{transform:scale(1);opacity:1}}
+.turn-indicator{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);text-align:center;}
+.turn-indicator b{color:var(--white);}
+
+/* WAITING OVERLAY */
+.waiting-overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:10;border-radius:14px;}
+.waiting-overlay.hidden{display:none;}
+.waiting-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:var(--white);}
+.waiting-sub{font-size:13px;color:var(--dim);text-align:center;max-width:280px;line-height:1.6;}
+.waiting-dots{display:flex;gap:6px;}
+.waiting-dots span{width:8px;height:8px;border-radius:50%;background:#a855f7;animation:dotPulse 1.2s ease-in-out infinite;}
+.waiting-dots span:nth-child(2){animation-delay:.2s;background:#6366f1;}
+.waiting-dots span:nth-child(3){animation-delay:.4s;background:#a855f7;}
+.waiting-players{display:flex;flex-direction:column;gap:6px;min-width:200px;}
+.wp-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(243,243,238,.05);border-radius:8px;font-size:13px;}
+.wp-item .wpi-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.wp-item .wpi-name{flex:1;}
+.wp-item .wpi-status{font-size:10px;color:var(--green);}
+.leave-wait-btn{padding:10px 20px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:8px;color:#f87171;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s;letter-spacing:1px;text-transform:uppercase;}
+.leave-wait-btn:hover{opacity:.8;}
+
+/* RESULT OVERLAY */
+.ludo-result-overlay{position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.92);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px;}
+.ludo-result-overlay.show{display:flex;}
+.result-box{background:#111;border:1px solid var(--border);border-radius:24px;padding:36px 32px;max-width:380px;width:100%;text-align:center;animation:modalIn .3s cubic-bezier(.16,1,.3,1);}
+.result-emoji{font-size:64px;margin-bottom:12px;display:block;}
+.result-title{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;margin-bottom:6px;color:var(--white);}
+.result-sub{font-size:14px;color:var(--dim);margin-bottom:8px;}
+.result-prize{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--green);letter-spacing:1px;margin-bottom:24px;}
+.result-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.result-btn{padding:13px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:800;cursor:pointer;transition:opacity .18s;}
+.result-btn.primary{background:linear-gradient(135deg,#a855f7,#6366f1);color:#fff;border:none;}
+.result-btn.secondary{background:transparent;color:var(--white);border:1px solid var(--border);}
+.result-btn:hover{opacity:.85;}
+
+/* JOIN CONFIRM OVERLAY */
+.join-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px;}
+.join-overlay.open{display:flex;}
+.join-box{background:#111;border:1px solid var(--border);border-radius:20px;padding:28px;max-width:360px;width:100%;animation:modalIn .25s cubic-bezier(.16,1,.3,1);}
+.join-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1.5px;margin-bottom:8px;}
+.join-sub{font-size:13px;color:var(--dim);margin-bottom:20px;line-height:1.6;}
+.join-prize-preview{display:flex;align-items:center;justify-content:space-between;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.2);border-radius:12px;padding:14px 16px;margin-bottom:20px;}
+.join-prize-item{text-align:center;}
+.join-prize-lbl{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin-bottom:4px;}
+.join-prize-val{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;}
+.join-prize-val.green{color:var(--green);}
+.join-prize-val.purple{color:#a855f7;}
+.join-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.join-cancel{padding:12px;background:rgba(243,243,238,.06);border:1px solid var(--border);border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;color:var(--white);}
+.join-confirm-btn{padding:12px;background:linear-gradient(135deg,#a855f7,#6366f1);border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;color:#fff;position:relative;}
+.join-confirm-btn.ld::after{content:'';position:absolute;right:12px;top:50%;transform:translateY(-50%);width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
+
+/* ══ MOBILE RESPONSIVE ══ */
+@media(max-width:768px){
+  .shell{grid-template-columns:1fr;grid-template-rows:62px 1fr;}
+  .sidebar{display:none;}
+  .main{padding:18px 16px 90px;}
+  .stats{grid-template-columns:1fr 1fr;}
+  .stats .sc:last-child{grid-column:1/-1;}
+  .server-grid{grid-template-columns:1fr;}
+  .logo-text{display:none;}
+  .mob-nav{display:flex;}
+  .ludo-body{grid-template-columns:1fr;grid-template-rows:1fr;}
+  .ludo-side{display:none;}
+  .player-bars{width:100%;max-width:100%;}
+  .ludo-board-outer{width:min(calc(100vw - 32px),calc(100dvh - 320px));max-width:380px;}
+  .profile-field-row{grid-template-columns:1fr;}
+}
+@media(max-width:400px){
+  .stats{grid-template-columns:1fr;}
+  .stats .sc:last-child{grid-column:auto;}
+}
+
+/* TRANSACTION TICKER */
+.tx-ticker{position:fixed;top:68px;right:16px;z-index:800;display:flex;flex-direction:column;gap:6px;pointer-events:none;}
+.tx-item{background:#111;border:1px solid var(--border);border-radius:10px;padding:9px 14px;font-size:12px;display:flex;align-items:center;gap:8px;opacity:0;transform:translateX(20px);transition:opacity .3s,transform .3s;box-shadow:0 4px 16px rgba(0,0,0,.5);}
+.tx-item.show{opacity:1;transform:translateX(0);}
+.tx-item.hide{opacity:0;transform:translateX(20px);}
+.tx-item.credit{border-left:3px solid var(--green);}
+.tx-item.debit{border-left:3px solid var(--red);}
+.tx-item .tx-icon{font-size:16px;}
+.tx-item .tx-text{flex:1;color:var(--dim);}
+.tx-item .tx-text b{color:var(--white);}
+.tx-item .tx-amt{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.5px;}
+.tx-item.credit .tx-amt{color:var(--green);}
+.tx-item.debit .tx-amt{color:var(--red);}
+
+/* SHIMMER SKELETON */
+@keyframes shimmer{to{background-position:200% center}}
+.skeleton{background:linear-gradient(90deg,rgba(243,243,238,.05) 25%,rgba(243,243,238,.1) 50%,rgba(243,243,238,.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px;}
+</style>
 </head>
 <body>
 
-<iframe id="appFrame" src="" allowfullscreen allow="camera; microphone; autoplay"></iframe>
+<!-- SVG SPRITES -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-ludo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="3"/><circle cx="8" cy="8" r="2"/><circle cx="16" cy="8" r="2"/><circle cx="8" cy="16" r="2"/><circle cx="16" cy="16" r="2"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H3V5h3M18 9h3V5h-3"/><path d="M6 5h12v7a6 6 0 01-12 0V5z"/><path d="M12 18v3M9 21h6"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.87"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/><line x1="12" y1="7" x2="12" y2="12"/><line x1="12" y1="12" x2="15" y2="14"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  <symbol id="i-circle" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 7V5a2 2 0 00-2-2H6a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12.01" y2="12"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
+</svg>
 
-<!-- ── Onboarding overlay (shows once) ── -->
-<style>
-  @keyframes nm-unlock {
-    0% { transform:scale(1); }
-    40% { transform:scale(1.04); }
-    70% { transform:scale(0.98); }
-    100% { transform:scale(1); }
-  }
-  @keyframes nm-shimmer {
-    0% { background-position:-200% center; }
-    100% { background-position:200% center; }
-  }
-  .nm-check-row { display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid #1e1e1e;cursor:pointer;user-select:none; }
-  .nm-check-row:last-of-type { border-bottom:none; }
-  .nm-checkbox {
-    width:22px;height:22px;border-radius:6px;flex-shrink:0;margin-top:1px;
-    border:2px solid #3a3a3a;background:#0e0e0e;
-    display:flex;align-items:center;justify-content:center;
-    transition:background 0.2s,border-color 0.2s;
-  }
-  .nm-checkbox.checked {
-    background:linear-gradient(135deg,#0f0f0f,#626262);
-    border-color:#626262;
-  }
-  .nm-checkbox svg { display:none;width:12px;height:12px;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round; }
-  .nm-checkbox.checked svg { display:block; }
-  .nm-check-label { font-size:13px;color:#999;line-height:1.7;font-family:-apple-system,BlinkMacSystemFont,sans-serif; }
-  .nm-check-label strong { display:block;font-size:14px;font-weight:700;color:#ddd;margin-bottom:3px; }
-  .nm-icon-row { display:flex;align-items:center;gap:10px;margin-bottom:6px; }
-  .nm-icon-row svg { width:18px;height:18px;stroke:#a6a6a6;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0; }
-  #onboarding-btn.nm-active {
-    background:linear-gradient(135deg,#0f0f0f 0%,#3a3a3a 40%,#626262 70%,#a6a6a6 100%) !important;
-    color:#fff !important;cursor:pointer !important;
-    animation:nm-unlock 0.45s cubic-bezier(0.22,1,0.36,1);
-  }
-  #onboarding-btn.nm-active:active { transform:scale(0.97); }
-</style>
+<div class="bg-grid"></div>
 
-<div id="onboarding" style="
-  position:fixed;inset:0;z-index:99998;
-  background:rgba(0,0,0,0.80);
-  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  display:flex;align-items:flex-end;justify-content:center;
-  opacity:0;transition:opacity 0.4s ease;pointer-events:none;
-">
-  <div id="onboarding-card" style="
-    background:#0e0e0e;border-radius:28px 28px 0 0;
-    width:100%;max-width:520px;
-    transform:translateY(60px);
-    transition:transform 0.45s cubic-bezier(0.22,1,0.36,1);
-    position:relative;overflow:hidden;
-    max-height:92vh;display:flex;flex-direction:column;
-    border-top:1px solid #2a2a2a;
-  ">
-    <!-- brand top bar -->
-    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0f0f0f,#3a3a3a,#626262,#a6a6a6);"></div>
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <svg><use href="#i-check" id="toastIco"/></svg>
+  <span id="toastTxt"></span>
+</div>
 
-    <!-- Scrollable area -->
-    <div id="onboarding-scroll" style="overflow-y:auto;padding:28px 22px 20px;flex:1;">
+<!-- TRANSACTION TICKER -->
+<div class="tx-ticker" id="txTicker"></div>
 
-      <!-- Handle -->
-      <div style="width:36px;height:4px;background:#2a2a2a;border-radius:4px;margin:0 auto 24px;"></div>
-
-      <!-- Header -->
-      <div style="margin-bottom:22px;">
-        <div style="font-size:11px;font-weight:700;color:#626262;letter-spacing:0.1em;text-transform:uppercase;font-family:-apple-system,BlinkMacSystemFont,sans-serif;margin-bottom:8px;">Getting started</div>
-        <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.04em;font-family:-apple-system,BlinkMacSystemFont,sans-serif;line-height:1.2;margin-bottom:10px;">Welcome to nmedea.</div>
-        <p style="font-size:14px;color:#777;line-height:1.75;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">nmedea is built differently. Before you dive in, take a moment to understand what makes this platform unlike anything else you have used.</p>
-      </div>
-
-      <!-- Divider -->
-      <div style="height:1px;background:#1e1e1e;margin-bottom:20px;"></div>
-
-      <!-- Checkboxes -->
-      <div id="nm-checks">
-
-        <div class="nm-check-row" data-idx="0">
-          <div class="nm-checkbox" id="nmchk-0"><svg viewBox="0 0 14 14"><polyline points="2 7 6 11 12 3"/></svg></div>
-          <div class="nm-check-label">
-            <div class="nm-icon-row">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
-              <strong>Live viewing on uploaded videos</strong>
-            </div>
-            When you open any video on nmedea — uploaded an hour ago or a day ago — you enter a live session. You can see the exact number of people watching that same video at that very moment. It is not a view count. It is a live headcount, updating in real time.
-          </div>
-        </div>
-
-        <div class="nm-check-row" data-idx="1">
-          <div class="nm-checkbox" id="nmchk-1"><svg viewBox="0 0 14 14"><polyline points="2 7 6 11 12 3"/></svg></div>
-          <div class="nm-check-label">
-            <div class="nm-icon-row">
-              <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <strong>Live comments — understand this before you type</strong>
-            </div>
-            Every comment on nmedea is live. The moment you send a message, it appears instantly for every person watching that video — no delay, no buffer, no chance to take it back.<br><br>
-            <span style="color:#ddd;font-weight:600;">How comments work:</span><br>
-            Every comment displays the country it was sent from. You can like or dislike any comment and those reactions update live. You can reply directly to other users and those replies are visible in real time. Every 10 comments, the oldest ones automatically disappear — keeping the room in the present moment.<br><br>
-            <span style="color:#ddd;font-weight:600;">Moderated and regulated:</span><br>
-            The comment section is actively regulated. Only one comment can be sent per second per user — flooding is not possible. This keeps conversations meaningful and prevents the section from becoming noise.<br><br>
-            <span style="color:#ddd;font-weight:600;">Language is not a barrier:</span><br>
-            nmedea has a built-in language integration system. Anyone from anywhere in the world can join the same conversation and be understood. A person in South Africa and a person in South Korea can interact in the same comment section, in real time, without confusion. The world is the room.<br><br>
-            <span style="color:#ddd;font-weight:600;">This is a global public space:</span><br>
-            Discrimination of any kind — based on race, nationality, language, religion or gender — is not tolerated. Violations can result in your account being permanently removed without notice. nmedea is built for connection, not division.<br><br>
-            <span style="color:#a6a6a6;font-weight:600;">What you type is what the world sees — the moment you press send. Be thoughtful. Be respectful.</span>
-          </div>
-        </div>
-
-        <div class="nm-check-row" data-idx="2">
-          <div class="nm-checkbox" id="nmchk-2"><svg viewBox="0 0 14 14"><polyline points="2 7 6 11 12 3"/></svg></div>
-          <div class="nm-check-label">
-            <div class="nm-icon-row">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              <strong>All posts expire in 24 hours</strong>
-            </div>
-            Content on nmedea does not stay forever. Every post is automatically removed 24 hours after it is uploaded. The platform is designed to live in the present — what you see now will not be here tomorrow. There are no archives. There is only now.
-          </div>
-        </div>
-
-        <div class="nm-check-row" data-idx="3">
-          <div class="nm-checkbox" id="nmchk-3"><svg viewBox="0 0 14 14"><polyline points="2 7 6 11 12 3"/></svg></div>
-          <div class="nm-check-label">
-            <div class="nm-icon-row">
-              <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-              <strong>Built on infrastructure unlike any other platform</strong>
-            </div>
-            nmedea runs on a real-time database architecture that processes every single interaction — every view count, comment, like, reply, presence signal and live indicator — simultaneously across the entire platform, for every user, at the same time.<br><br>
-            Nothing is cached and served later. Nothing is approximate. Every number you see and every action you take is happening live in the database at that exact moment.<br><br>
-            <span style="color:#ddd;font-weight:600;">What this costs:</span><br>
-            This level of real-time infrastructure is significantly more demanding than conventional social media. Running it is expensive by design — because the experience it creates cannot be replicated any other way. You are not using a standard social platform. The architecture beneath what you see is built for something different.<br><br>
-            <span style="color:#ddd;font-weight:600;">Guest access and sessions:</span><br>
-            You can browse nmedea and watch videos without an account. However, after a period of time the platform will prompt you to sign in or create an account to continue interacting. Commenting, liking, uploading and following all require an account. It is free and takes under a minute.<br><br>
-            <span style="color:#a6a6a6;font-weight:600;">nmedea is not trying to be like anything else. It is its own thing — and you are seeing it from the very beginning.</span>
-          </div>
-        </div>
-
-        <div class="nm-check-row" data-idx="4" style="border-bottom:none;">
-          <div class="nm-checkbox" id="nmchk-4"><svg viewBox="0 0 14 14"><polyline points="2 7 6 11 12 3"/></svg></div>
-          <div class="nm-check-label">
-            <div class="nm-icon-row">
-              <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <strong>You are early — and that matters more than you think</strong>
-            </div>
-            nmedea is new. You may open the app and find that not many videos have been posted yet, or that the comment sections are quiet. That is not a flaw — it is where every great platform begins. Every community that exists today was once exactly this: a small number of people who showed up before everyone else did.<br><br>
-            The platform is still being refined. Some things may not work perfectly yet. If something feels off, or you have a thought on what nmedea should become, that feedback is taken seriously and acted on.<br><br>
-            <span style="color:#a6a6a6;font-weight:600;">The people who join now are the ones who will shape what this becomes. You are one of them.</span>
-          </div>
-        </div>
-
-      </div>
-
-      <div style="height:8px;"></div>
+<!-- ═══ AUTH VIEW ═══ -->
+<div class="auth-view active" id="authView">
+  <div class="auth-logo">Nmedea</div>
+  <div class="auth-container">
+    <div class="welcome-text">
+      <h2>Ludo King on <span>Nmedea</span></h2>
+      <p>Win real prizes in live multiplayer Ludo. Sign in to start.</p>
     </div>
-
-    <!-- Button area -->
-    <div style="padding:14px 22px 40px;background:#0e0e0e;border-top:1px solid #1a1a1a;">
-      <div style="font-size:12px;color:#3a3a3a;text-align:center;margin-bottom:10px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-weight:500;" id="nm-hint">Check all boxes above to continue</div>
-      <button id="onboarding-btn" disabled style="
-        width:100%;height:54px;border:none;border-radius:18px;
-        background:#1c1c1c;color:#3a3a3a;
-        font-size:15px;font-weight:800;
-        font-family:-apple-system,BlinkMacSystemFont,sans-serif;
-        cursor:not-allowed;letter-spacing:0.02em;
-        transition:background 0.35s,color 0.35s,transform 0.15s;
-      ">I understand — take me in</button>
+    <div class="auth-options">
+      <div class="auth-option google-btn" id="google-auth">
+        <svg class="auth-option-icon" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        <div class="auth-option-text"><div class="auth-option-title">Continue with Google</div><div class="auth-option-desc">Sign in or register with your Google account</div></div>
+      </div>
+      <div class="auth-option" id="manual-auth">
+        <svg class="auth-option-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        <div class="auth-option-text"><div class="auth-option-title">Create Account</div><div class="auth-option-desc">Register with email &amp; password</div></div>
+      </div>
+      <div class="auth-option" id="login-btn">
+        <svg class="auth-option-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        <div class="auth-option-text"><div class="auth-option-title">Sign In</div><div class="auth-option-desc">Already have an account?</div></div>
+      </div>
     </div>
-
+  </div>
+  <div class="auth-overlay" id="authOverlay">
+    <div class="auth-modal" id="register-modal">
+      <button class="modal-close" id="close-register"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <div class="modal-header"><h3>Create Account</h3><p>Fill in your details to get started</p></div>
+      <form id="register-form" novalidate>
+        <div class="input-group"><input type="text" id="reg-username" placeholder=" " required autocomplete="username" spellcheck="false"><label for="reg-username">Username</label><div class="error-msg" id="reg-username-err"></div></div>
+        <div class="uname-status hidden" id="uname-status"><svg id="uname-icon" viewBox="0 0 24 24"></svg><span id="uname-text"></span></div>
+        <div class="input-group"><input type="email" id="reg-email" placeholder=" " required autocomplete="email"><label for="reg-email">Email</label><div class="error-msg" id="reg-email-err"></div></div>
+        <div class="input-group"><input type="password" id="reg-password" placeholder=" " required autocomplete="new-password" class="has-toggle"><label for="reg-password">Password</label><button type="button" class="pw-toggle" data-target="reg-password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button><div class="error-msg" id="reg-password-err"></div></div>
+        <div class="error-msg" id="reg-form-err" style="margin-bottom:10px"></div>
+        <button type="submit" class="submit-btn">Create Account<div class="btn-spinner"></div></button>
+      </form>
+    </div>
+    <div class="auth-modal" id="login-modal">
+      <button class="modal-close" id="close-login"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <div class="modal-header"><h3>Welcome Back</h3><p>Sign in to your Nmedea account</p></div>
+      <div class="google-inline" id="login-google-btn"><svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span>Continue with Google</span></div>
+      <div class="divider"><div class="divider-line"></div><span class="divider-label">or sign in with email</span><div class="divider-line"></div></div>
+      <form id="login-form" novalidate>
+        <div class="input-group"><input type="email" id="login-email" placeholder=" " required autocomplete="email"><label for="login-email">Email</label><div class="error-msg" id="login-email-err"></div></div>
+        <div class="input-group"><input type="password" id="login-password" placeholder=" " required autocomplete="current-password" class="has-toggle"><label for="login-password">Password</label><button type="button" class="pw-toggle" data-target="login-password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button><div class="error-msg" id="login-password-err"></div></div>
+        <div class="forgot-link"><a id="forgot-link">Forgot password?</a></div>
+        <div class="captcha-wrap"><div class="captcha-box" id="captcha"><div class="check-icon"></div><span>I'm not a robot</span></div></div>
+        <div class="error-msg" id="login-form-err" style="margin-bottom:10px"></div>
+        <button type="submit" class="submit-btn" id="login-submit" disabled>Sign In<div class="btn-spinner"></div></button>
+      </form>
+    </div>
+    <div class="auth-modal" id="loading-modal"><div class="loading-body"><div class="dots-loader"><span></span><span></span><span></span></div><div class="loading-title" id="loading-title">Processing...</div><div class="loading-sub" id="loading-sub"></div><div class="progress-bar-wrap"><div class="progress-bar" id="prog-bar"></div></div></div></div>
+    <div class="auth-modal" id="photo-modal">
+      <div class="modal-header"><h3>Add a profile photo</h3><p>Let people know who you are</p></div>
+      <div class="photo-av-ring" id="photo-ring"><div class="photo-av-inner" id="photo-inner"><span id="photo-letter">?</span><div class="photo-av-edit"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div></div></div>
+      <p class="photo-tap-hint">Tap the circle above to choose a photo</p>
+      <div class="photo-progress-wrap" id="photo-prog-wrap"><div class="photo-progress-bar" id="photo-prog-bar"></div></div>
+      <input type="file" id="photo-file" accept="image/*" style="display:none">
+      <button id="photo-upload-btn" disabled>Save Photo</button>
+      <button id="photo-skip-btn">Skip for now</button>
+    </div>
+    <div class="auth-modal" id="forgot-modal">
+      <button class="modal-close" id="close-forgot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <div class="modal-header"><h3>Reset Password</h3><p>Enter your email to receive a reset link</p></div>
+      <form id="forgot-form" novalidate>
+        <div class="input-group"><input type="email" id="forgot-email" placeholder=" " required autocomplete="email"><label for="forgot-email">Email</label><div class="error-msg" id="forgot-email-err"></div></div>
+        <div class="error-msg" id="forgot-form-err" style="margin-bottom:10px"></div>
+        <button type="submit" class="submit-btn">Send Reset Link<div class="btn-spinner"></div></button>
+      </form>
+      <div id="forgot-success"><div class="check-circle"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><p>Check your inbox for a password reset link.</p></div>
+    </div>
   </div>
 </div>
 
-<script>
-(function() {
-  var KEY = 'nm_onboarded_v3';
-  if (localStorage.getItem(KEY)) return;
+<!-- ═══ DASHBOARD SHELL ═══ -->
+<div class="shell" id="dashShell" style="display:none">
+  <nav class="topnav">
+    <a class="nav-logo" href="#">
+      <div class="logo-mark"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 17V3L10 13.5V3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 16.5V6L17 17V3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="logo-text">nmedea</div>
+    </a>
+    <div class="nav-right">
+      <div class="nav-bal" id="navBal">R0.00</div>
+      <div class="avatar" id="avatarBtn" onclick="toggleDrop()">
+        <img id="navAvImg" alt=""><span class="avatar-init" id="avatarLetter">N</span>
+        <div class="drop" id="dropMenu">
+          <div class="drop-hd"><div class="drop-name" id="dName">—</div><div class="drop-email" id="dEmail">—</div></div>
+          <div class="drop-sep"></div>
+          <div class="di" onclick="showSection('profile')"><svg><use href="#i-user"/></svg> Profile</div>
+          <div class="di theme-toggle" onclick="toggleTheme(event)"><span style="display:flex;align-items:center;gap:9px"><svg width="14" height="14"><use href="#i-sun"/></svg> Light Mode</span><div class="toggle-switch" id="themeSwitch"><div class="toggle-knob"></div></div></div>
+          <div class="drop-sep"></div>
+          <div class="di red" onclick="askLogout()"><svg><use href="#i-logout"/></svg> Sign Out</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <aside class="sidebar">
+    <div class="s-lbl">Menu</div>
+    <a class="slink active" id="sl-dashboard" onclick="showSection('dashboard')"><svg><use href="#i-home"/></svg> Dashboard</a>
+    <a class="slink" id="sl-history" onclick="showSection('history')"><svg><use href="#i-history"/></svg> Game History</a>
+    <a class="slink" id="sl-profile" onclick="showSection('profile')"><svg><use href="#i-user"/></svg> Profile</a>
+    <div class="s-lbl">Account</div>
+    <div style="padding:10px 11px 6px">
+      <div style="font-size:13px;font-weight:700;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="sideProfileName">—</div>
+      <div style="font-size:11px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="sideProfileEmail">—</div>
+    </div>
+    <a class="slink theme-toggle" onclick="toggleTheme(event)" style="justify-content:space-between">
+      <span style="display:flex;align-items:center;gap:10px"><svg><use href="#i-sun"/></svg> Light Mode</span>
+      <div class="toggle-switch" id="themeSwitchSide"><div class="toggle-knob"></div></div>
+    </a>
+    <a class="slink red" onclick="askLogout()"><svg><use href="#i-logout"/></svg> Sign Out</a>
+  </aside>
+  <main class="main">
+    <!-- DASHBOARD -->
+    <div id="section-dashboard" class="section-panel">
+      <div class="pg-eyebrow">Welcome back</div>
+      <div class="pg-title">LUDO KING LOBBY</div>
+      <div class="stats">
+        <div class="sc"><div class="sc-top"><div class="sc-lbl">Wins</div><div class="sc-ico"><svg><use href="#i-trophy"/></svg></div></div><div class="sc-val" id="statWins">0</div><div class="sc-sub">Games won</div></div>
+        <div class="sc"><div class="sc-top"><div class="sc-lbl">Losses</div><div class="sc-ico"><svg><use href="#i-bolt"/></svg></div></div><div class="sc-val" id="statLoss">0</div><div class="sc-sub">Games lost</div></div>
+        <div class="sc"><div class="sc-top"><div class="sc-lbl">Balance</div><div class="sc-ico"><svg><use href="#i-wallet"/></svg></div></div><div class="sc-val" id="statBalance">R0</div><div class="sc-sub">Nmedea coins</div></div>
+      </div>
+      <div class="sec-row">
+        <div class="sec-ttl">LIVE ROOMS</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="sec-note" id="roomCount">— open</div>
+          <button class="sec-create-btn" onclick="createRoom()">+ Create Room</button>
+        </div>
+      </div>
+      <div class="server-grid" id="serverGrid">
+        <div class="srv-empty" style="grid-column:1/-1"><svg><use href="#i-ludo"/></svg><strong>Loading rooms…</strong></div>
+      </div>
+    </div>
 
-  var overlay  = document.getElementById('onboarding');
-  var card     = document.getElementById('onboarding-card');
-  var btn      = document.getElementById('onboarding-btn');
-  var hint     = document.getElementById('nm-hint');
-  var checked  = [false, false, false, false, false];
+    <!-- HISTORY -->
+    <div id="section-history" class="section-panel" style="display:none">
+      <div class="pg-eyebrow">Your record</div>
+      <div class="pg-title">GAME HISTORY</div>
+      <div class="hist-list" id="histList">
+        <div class="hist-item skeleton" style="height:64px"></div>
+        <div class="hist-item skeleton" style="height:64px;opacity:.6"></div>
+        <div class="hist-item skeleton" style="height:64px;opacity:.4"></div>
+      </div>
+    </div>
 
-  setTimeout(function() {
-    overlay.style.pointerEvents = 'auto';
-    overlay.style.opacity = '1';
-    card.style.transform = 'translateY(0)';
-  }, 3200);
+    <!-- PROFILE -->
+    <div id="section-profile" class="section-panel" style="display:none">
+      <div class="pg-eyebrow">Your account</div>
+      <div class="pg-title">PROFILE</div>
+      <div class="profile-panel">
+        <div class="profile-av-section">
+          <div class="profile-av-big" id="profileAvBig" onclick="document.getElementById('profile-photo-file').click()">
+            <img id="profileAvImg" alt="">
+            <span id="profileAvLetter">N</span>
+          </div>
+          <div class="profile-av-info">
+            <div class="profile-av-name" id="profileAvName">—</div>
+            <div class="profile-av-handle" id="profileAvHandle">@—</div>
+            <div class="profile-bal-badge" id="profileBalBadge">R0.00</div>
+          </div>
+        </div>
+        <input type="file" id="profile-photo-file" accept="image/*" style="display:none">
+        <div class="profile-fields">
+          <div class="profile-field-row">
+            <div class="edit-field-wrap">
+              <div class="edit-field-lbl">Display Name</div>
+              <input type="text" class="edit-field" id="editDisplayName" maxlength="30" placeholder="Your name">
+            </div>
+            <div class="edit-field-wrap">
+              <div class="edit-field-lbl">Username</div>
+              <input type="text" class="edit-field" id="editUsername" readonly placeholder="@username">
+            </div>
+          </div>
+          <div class="edit-field-wrap">
+            <div class="edit-field-lbl">Bio</div>
+            <input type="text" class="edit-field" id="editBio" maxlength="80" placeholder="Tell us about yourself…">
+          </div>
+          <div class="edit-field-wrap">
+            <div class="edit-field-lbl">Email</div>
+            <input type="text" class="edit-field" id="editEmail" readonly>
+          </div>
+        </div>
+        <button class="save-profile-btn" onclick="saveProfile()">Save Changes</button>
+      </div>
+      <div class="profile-danger">
+        <button class="danger-btn logout" onclick="askLogout()"><svg width="14" height="14"><use href="#i-logout"/></svg> Sign Out</button>
+      </div>
+    </div>
+  </main>
+</div>
 
-  document.querySelectorAll('.nm-check-row').forEach(function(row) {
-    row.addEventListener('click', function() {
-      var idx = parseInt(row.getAttribute('data-idx'));
-      checked[idx] = !checked[idx];
-      var box = document.getElementById('nmchk-' + idx);
-      box.classList.toggle('checked', checked[idx]);
+<!-- ═══ MOBILE NAV ═══ -->
+<nav class="mob-nav" id="mobNav" style="display:none">
+  <div class="mob-nav-items">
+    <div class="mob-nav-item active" id="mob-dashboard" onclick="showSection('dashboard')"><svg><use href="#i-home"/></svg><span>Home</span></div>
+    <div class="mob-nav-item" id="mob-history" onclick="showSection('history')"><svg><use href="#i-history"/></svg><span>History</span></div>
+    <div class="mob-nav-item" id="mob-profile" onclick="showSection('profile')"><svg><use href="#i-user"/></svg><span>Profile</span></div>
+  </div>
+</nav>
 
-      var all = checked.every(Boolean);
-      if (all) {
-        btn.disabled = false;
-        btn.classList.add('nm-active');
-        hint.style.color = '#626262';
-        hint.textContent = 'You are all set.';
-      } else {
-        btn.disabled = true;
-        btn.classList.remove('nm-active');
-        hint.style.color = '#3a3a3a';
-        hint.textContent = 'Check all boxes above to continue';
-      }
-    });
+<!-- ═══ PROCESSING OVERLAY ═══ -->
+<div class="proc" id="procOv">
+  <div class="dot-loader"><span></span><span></span><span></span></div>
+  <div class="proc-txt" id="procTxt">Please wait…</div>
+</div>
+
+<!-- ═══ CONFIRM LOGOUT ═══ -->
+<div class="confirm-overlay" id="confirmOv">
+  <div class="confirm-box">
+    <div class="confirm-title">Sign Out</div>
+    <div class="confirm-body">Are you sure you want to sign out of Nmedea?</div>
+    <div class="confirm-actions">
+      <button class="btn-cancel-c" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-confirm-c" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ JOIN ROOM CONFIRM ═══ -->
+<div class="join-overlay" id="joinOverlay">
+  <div class="join-box">
+    <div class="join-title" id="joinModalTitle">JOIN ROOM</div>
+    <div class="join-sub">You're about to enter a live Ludo match. An entry fee will be deducted from your balance.</div>
+    <div class="join-prize-preview">
+      <div class="join-prize-item"><div class="join-prize-lbl">Entry Fee</div><div class="join-prize-val" id="joinEntryFee">R10</div></div>
+      <div style="width:1px;background:var(--border)"></div>
+      <div class="join-prize-item"><div class="join-prize-lbl">Prize Pool</div><div class="join-prize-val green" id="joinPrizePool">R36</div></div>
+      <div style="width:1px;background:var(--border)"></div>
+      <div class="join-prize-item"><div class="join-prize-lbl">Your Balance</div><div class="join-prize-val purple" id="joinYourBal">R0</div></div>
+    </div>
+    <div class="join-actions">
+      <button class="join-cancel" onclick="closeJoinModal()">Cancel</button>
+      <button class="join-confirm-btn" id="joinConfirmBtn" onclick="confirmJoin()">Join Game</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LUDO GAME VIEW ═══ -->
+<div class="ludo-game-view" id="ludoGameView">
+  <div class="ludo-game-nav">
+    <button class="ludo-back-btn" onclick="askLeaveGame()"><svg><use href="#i-back"/></svg> Leave</button>
+    <div class="ludo-game-title">LUDO KING</div>
+    <div class="ludo-prize-chip" id="gamePrizeChip">R36 Prize</div>
+  </div>
+
+  <div class="ludo-body">
+    <!-- BOARD AREA -->
+    <div class="ludo-board-area" id="ludoBoardArea">
+      <!-- Player bars top -->
+      <div class="player-bars" id="playerBarsTop">
+        <div class="player-card" id="pc-red">
+          <div class="pc-color red"></div>
+          <div class="pc-av" id="pcAv-red"><span id="pcInit-red">?</span><img id="pcImg-red" alt=""></div>
+          <div class="pc-info"><div class="pc-name" id="pcName-red">Waiting...</div><div class="pc-status" id="pcSt-red">🔴 Red</div></div>
+          <div class="pc-timer" id="pcTimer-red">—</div>
+        </div>
+        <div class="player-card" id="pc-blue">
+          <div class="pc-color blue"></div>
+          <div class="pc-av" id="pcAv-blue"><span id="pcInit-blue">?</span><img id="pcImg-blue" alt=""></div>
+          <div class="pc-info"><div class="pc-name" id="pcName-blue">Waiting...</div><div class="pc-status" id="pcSt-blue">🔵 Blue</div></div>
+          <div class="pc-timer" id="pcTimer-blue">—</div>
+        </div>
+      </div>
+
+      <!-- The board -->
+      <div class="ludo-board-outer" id="ludoBoardOuter">
+        <canvas id="ludoCanvas" style="width:100%;height:100%;display:block;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.6)"></canvas>
+        <!-- Waiting overlay -->
+        <div class="waiting-overlay" id="waitingOverlay">
+          <div class="waiting-title">WAITING FOR PLAYERS</div>
+          <div class="waiting-dots"><span></span><span></span><span></span></div>
+          <div class="waiting-players" id="waitingPlayers"></div>
+          <div class="waiting-sub" id="waitingSub">Share the room code with friends or wait for others to join</div>
+          <button class="leave-wait-btn" onclick="askLeaveGame()">Leave Room</button>
+        </div>
+      </div>
+
+      <!-- Dice section -->
+      <div class="dice-section" id="diceSection">
+        <button class="dice-btn" id="diceBtn" onclick="rollDice()" disabled>
+          <svg viewBox="0 0 40 40" fill="none">
+            <rect x="2" y="2" width="36" height="36" rx="8" fill="white" fill-opacity=".15"/>
+            <circle cx="13" cy="13" r="3" fill="white"/>
+            <circle cx="27" cy="13" r="3" fill="white"/>
+            <circle cx="13" cy="27" r="3" fill="white"/>
+            <circle cx="27" cy="27" r="3" fill="white"/>
+          </svg>
+        </button>
+        <div class="dice-val" id="diceVal">—</div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div class="turn-indicator" id="turnIndicator">Waiting for game to start</div>
+        </div>
+      </div>
+
+      <!-- Player bars bottom -->
+      <div class="player-bars" id="playerBarsBottom">
+        <div class="player-card" id="pc-green">
+          <div class="pc-color green"></div>
+          <div class="pc-av" id="pcAv-green"><span id="pcInit-green">?</span><img id="pcImg-green" alt=""></div>
+          <div class="pc-info"><div class="pc-name" id="pcName-green">Waiting...</div><div class="pc-status" id="pcSt-green">🟢 Green</div></div>
+          <div class="pc-timer" id="pcTimer-green">—</div>
+        </div>
+        <div class="player-card" id="pc-yellow">
+          <div class="pc-color yellow"></div>
+          <div class="pc-av" id="pcAv-yellow"><span id="pcInit-yellow">?</span><img id="pcImg-yellow" alt=""></div>
+          <div class="pc-info"><div class="pc-name" id="pcName-yellow">Waiting...</div><div class="pc-status" id="pcSt-yellow">🟡 Yellow</div></div>
+          <div class="pc-timer" id="pcTimer-yellow">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIDE PANEL -->
+    <div class="ludo-side" id="ludoSide">
+      <div class="ludo-side-tabs">
+        <div class="ls-tab active" id="lst-events" onclick="switchLudoTab('events')">Feed</div>
+        <div class="ls-tab" id="lst-chat" onclick="switchLudoTab('chat')">Chat</div>
+      </div>
+      <div class="ls-pane active" id="lsp-events"><div id="eventsContainer"></div></div>
+      <div class="ls-pane" id="lsp-chat">
+        <div class="game-chat-box" id="ludoChatMessages"></div>
+        <div class="chat-input-wrap">
+          <input type="text" id="ludoChatInput" placeholder="Message..." maxlength="200" autocomplete="off">
+          <button class="chat-send-btn" onclick="sendLudoChat()"><svg><use href="#i-send"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RESULT OVERLAY ═══ -->
+<div class="ludo-result-overlay" id="ludoResultOverlay">
+  <div class="result-box">
+    <span class="result-emoji" id="resultEmoji">🎲</span>
+    <div class="result-title" id="resultTitle">Game Over</div>
+    <div class="result-sub" id="resultSub"></div>
+    <div class="result-prize" id="resultPrize"></div>
+    <div class="result-btns">
+      <button class="result-btn secondary" onclick="leaveGame()">Lobby</button>
+      <button class="result-btn primary" onclick="leaveGame()">Play Again</button>
+    </div>
+  </div>
+</div>
+
+<!-- FIREBASE -->
+<script type="module">
+import{initializeApp}from'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import{getAuth,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult,updateProfile,sendPasswordResetEmail,signOut}from'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import{getFirestore,setDoc,doc,getDoc,updateDoc,collection,query,where,getDocs,increment,addDoc,orderBy,limit,onSnapshot}from'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import{getDatabase,ref,set,get,update,onValue,off,push,remove,serverTimestamp,onDisconnect}from'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+import{getStorage,ref as sRef,uploadBytes,getDownloadURL}from'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
+
+const app=initializeApp({apiKey:'AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ',authDomain:'globalchat-2d669.firebaseapp.com',databaseURL:'https://globalchat-2d669-default-rtdb.firebaseio.com',projectId:'globalchat-2d669',storageBucket:'globalchat-2d669.firebasestorage.app',messagingSenderId:'178714711978',appId:'1:178714711978:web:fb831188be23e62a4bbdd3'});
+const auth=getAuth(app),db=getFirestore(app),rtdb=getDatabase(app),storage=getStorage(app);
+const R2='https://r2-upload.katlegomashilwane0691.workers.dev/upload';
+const ENTRY_FEE=10,PLATFORM_CUT=0.10,STARTING_BALANCE=100;
+
+// ── STATE ──
+let CU=null,UD=null;
+let _authChecked=false,_unameTimer=null,_unameValid=false;
+let roomsOff=null,gameOff=null,chatOff=null;
+let roomId=null,RD=null,myColor=null;
+let currentDice=0,myTurnActive=false,delayTimer=null,turnTimerInterval=null;
+let gameStarted=false,pendingJoinId=null,pendingRoomData=null;
+let pieceClickHandlers=[];
+
+// ── LUDO GAME STATE ──
+const COLORS=['red','blue','green','yellow'];
+const COLOR_HEX={red:'#ef4444',blue:'#3b82f6',green:'#22c55e',yellow:'#f59e0b'};
+
+/* ═══════════════════════════════════
+   LUDO BOARD LOGIC
+═══════════════════════════════════ */
+// 15x15 Ludo board path (classic)
+// Positions 0-51 = main path (clockwise from red start)
+// Positions 100-105 = red home column, 200-205 = blue, 300-305 = green, 400-405 = yellow
+// Position 999 = home center
+
+const LUDO_PATH={
+  red:[  // Starting at red's entry square going clockwise
+    {r:6,c:1},{r:6,c:2},{r:6,c:3},{r:6,c:4},{r:6,c:5},
+    {r:5,c:6},{r:4,c:6},{r:3,c:6},{r:2,c:6},{r:1,c:6},{r:0,c:6},
+    {r:0,c:7},{r:0,c:8},
+    {r:1,c:8},{r:2,c:8},{r:3,c:8},{r:4,c:8},{r:5,c:8},
+    {r:6,c:9},{r:6,c:10},{r:6,c:11},{r:6,c:12},{r:6,c:13},{r:6,c:14},
+    {r:7,c:14},{r:8,c:14},
+    {r:8,c:13},{r:8,c:12},{r:8,c:11},{r:8,c:10},{r:8,c:9},
+    {r:9,c:8},{r:10,c:8},{r:11,c:8},{r:12,c:8},{r:13,c:8},{r:14,c:8},
+    {r:14,c:7},{r:14,c:6},
+    {r:13,c:6},{r:12,c:6},{r:11,c:6},{r:10,c:6},{r:9,c:6},
+    {r:8,c:5},{r:8,c:4},{r:8,c:3},{r:8,c:2},{r:8,c:1},{r:8,c:0},
+    {r:7,c:0},{r:6,c:0}
+  ],
+  homeCol:{
+    red:[{r:7,c:1},{r:7,c:2},{r:7,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6}],
+    blue:[{r:1,c:7},{r:2,c:7},{r:3,c:7},{r:4,c:7},{r:5,c:7},{r:6,c:7}],
+    green:[{r:7,c:13},{r:7,c:12},{r:7,c:11},{r:7,c:10},{r:7,c:9},{r:7,c:8}],
+    yellow:[{r:13,c:7},{r:12,c:7},{r:11,c:7},{r:10,c:7},{r:9,c:7},{r:8,c:7}]
+  },
+  startOffset:{red:0,blue:13,green:26,yellow:39},
+  yardPos:{
+    red:[{r:1,c:2},{r:1,c:4},{r:3,c:2},{r:3,c:4}],
+    blue:[{r:1,c:10},{r:1,c:12},{r:3,c:10},{r:3,c:12}],
+    green:[{r:11,c:10},{r:11,c:12},{r:13,c:10},{r:13,c:12}],
+    yellow:[{r:11,c:2},{r:11,c:4},{r:13,c:2},{r:13,c:4}]
+  },
+  safeSquares:[
+    {r:6,c:2},{r:2,c:6},{r:6,c:12},{r:12,c:8},
+    {r:8,c:2},{r:8,c:12},{r:2,c:8},{r:12,c:6},
+    {r:6,c:1},{r:1,c:8},{r:8,c:13},{r:13,c:6}
+  ]
+};
+
+function buildColorPath(color){
+  const offset=LUDO_PATH.startOffset[color];
+  const base=LUDO_PATH.red;
+  const n=base.length;
+  const path=[];
+  for(let i=0;i<n;i++)path.push(base[(i+offset)%n]);
+  // Add home column
+  LUDO_PATH.homeCol[color].forEach(p=>path.push(p));
+  return path;
+}
+
+const COLOR_PATH={
+  red:buildColorPath('red'),
+  blue:buildColorPath('blue'),
+  green:buildColorPath('green'),
+  yellow:buildColorPath('yellow')
+};
+
+function initPieces(){
+  const pieces={};
+  COLORS.forEach(c=>{
+    pieces[c]=[];
+    for(let i=0;i<4;i++)pieces[c].push({id:i,pos:-1,finished:false});
   });
+  return pieces;
+}
 
-  function dismiss() {
-    if (btn.disabled) return;
-    localStorage.setItem(KEY, '1');
-    overlay.style.opacity = '0';
-    card.style.transform = 'translateY(60px)';
-    setTimeout(function() { overlay.style.display = 'none'; }, 450);
+let pieces=initPieces();
+let canvas,ctx,boardSize;
+
+function initCanvas(){
+  canvas=document.getElementById('ludoCanvas');
+  const outer=document.getElementById('ludoBoardOuter');
+  const sz=outer.clientWidth;
+  canvas.width=sz*window.devicePixelRatio;
+  canvas.height=sz*window.devicePixelRatio;
+  boardSize=sz;
+  ctx=canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio,window.devicePixelRatio);
+}
+
+function cellSize(){return boardSize/15;}
+
+function drawBoard(){
+  if(!ctx||!boardSize)return;
+  const cs=cellSize();
+  ctx.clearRect(0,0,boardSize,boardSize);
+
+  // Background
+  ctx.fillStyle='#1a1a2e';
+  roundRect(ctx,0,0,boardSize,boardSize,14);
+  ctx.fill();
+
+  // Draw all cells
+  for(let r=0;r<15;r++){
+    for(let c=0;c<15;c++){
+      const x=c*cs,y=r*cs;
+      const cellColor=getCellColor(r,c);
+      ctx.fillStyle=cellColor;
+      if(r===0&&c===0){roundRect(ctx,x,y,cs*6,cs*6,12);ctx.fill();}
+      else if(r===0&&c===9){roundRect(ctx,x,y,cs*6,cs*6,12);ctx.fill();}
+      else if(r===9&&c===0){roundRect(ctx,x,y,cs*6,cs*6,12);ctx.fill();}
+      else if(r===9&&c===9){roundRect(ctx,x,y,cs*6,cs*6,12);ctx.fill();}
+      else if(r>=6&&r<=8&&c>=6&&c<=8){}
+      else{
+        ctx.fillStyle=cellColor;
+        ctx.fillRect(x+1,y+1,cs-2,cs-2);
+      }
+    }
   }
 
-  btn.addEventListener('click', dismiss);
-  btn.addEventListener('touchend', function(e) { e.preventDefault(); dismiss(); });
-})();
-</script>
+  // Draw yard areas (colored home bases)
+  drawYard(0,0,6,6,'red');
+  drawYard(0,9,6,6,'blue');
+  drawYard(9,0,6,6,'yellow');
+  drawYard(9,9,6,6,'green');
 
-<script>
-(function () {
-    var MOBILE_SRC  = 'mobile.html';
-    var DESKTOP_SRC = 'desktop.html';
-    var isMobile = window.matchMedia('(max-width: 899px)').matches;
-    document.getElementById('appFrame').src = isMobile ? MOBILE_SRC : DESKTOP_SRC;
+  // Center star
+  drawCenter();
 
-    // Re-check on resize (e.g. tablet rotation)
-    window.matchMedia('(max-width: 899px)').addEventListener('change', function (e) {
-        var frame = document.getElementById('appFrame');
-        var target = e.matches ? MOBILE_SRC : DESKTOP_SRC;
-        if (frame.src.indexOf(target) === -1) frame.src = target;
+  // Grid lines
+  ctx.strokeStyle='rgba(255,255,255,0.08)';
+  ctx.lineWidth=0.5;
+  for(let r=0;r<=15;r++){ctx.beginPath();ctx.moveTo(0,r*cs);ctx.lineTo(boardSize,r*cs);ctx.stroke();}
+  for(let c=0;c<=15;c++){ctx.beginPath();ctx.moveTo(c*cs,0);ctx.lineTo(c*cs,boardSize);ctx.stroke();}
+
+  // Safe star markers
+  LUDO_PATH.safeSquares.forEach(s=>{
+    const x=s.c*cs+cs/2,y=s.r*cs+cs/2;
+    drawStar(x,y,cs*0.22,'rgba(255,215,0,0.6)');
+  });
+
+  // Color arrows on starting squares
+  drawColorArrows();
+
+  // Draw pieces
+  drawAllPieces();
+}
+
+function getCellColor(r,c){
+  // Yard areas handled separately
+  if((r<6&&c<6)||(r<6&&c>8)||(r>8&&c<6)||(r>8&&c>8))return'transparent';
+  // Center
+  if(r>=6&&r<=8&&c>=6&&c<=8)return'transparent';
+  // Red home column
+  if(r===7&&c>=1&&c<=5)return'rgba(239,68,68,0.25)';
+  // Blue home column
+  if(c===7&&r>=1&&r<=5)return'rgba(59,130,246,0.25)';
+  // Green home column
+  if(r===7&&c>=9&&c<=13)return'rgba(34,197,94,0.25)';
+  // Yellow home column
+  if(c===7&&r>=9&&r<=13)return'rgba(245,158,11,0.25)';
+  // Red path row
+  if(r===6)return'rgba(239,68,68,0.1)';
+  if(r===8)return'rgba(239,68,68,0.06)';
+  if(c===6)return'rgba(59,130,246,0.06)';
+  if(c===8)return'rgba(34,197,94,0.06)';
+  return'rgba(255,255,255,0.03)';
+}
+
+function drawYard(row,col,h,w,color){
+  const cs=cellSize();
+  const x=col*cs+4,y=row*cs+4;
+  const W=w*cs-8,H=h*cs-8;
+  const clr=COLOR_HEX[color];
+  // Outer border
+  ctx.fillStyle=clr+'33';
+  roundRect(ctx,x,y,W,H,10);ctx.fill();
+  ctx.strokeStyle=clr+'66';
+  ctx.lineWidth=1.5;
+  roundRect(ctx,x,y,W,H,10);ctx.stroke();
+  // Inner circle area
+  const cx=x+W/2,cy=y+H/2;
+  ctx.fillStyle=clr+'22';
+  ctx.beginPath();ctx.arc(cx,cy,W*0.35,0,Math.PI*2);ctx.fill();
+  // Yard label
+  ctx.fillStyle=clr+'99';
+  ctx.font=`bold ${cs*0.5}px 'Bebas Neue',sans-serif`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(color[0].toUpperCase(),cx,cy);
+  // Piece slots in yards
+  const slots=LUDO_PATH.yardPos[color];
+  slots.forEach((s,i)=>{
+    const sx=s.c*cs+cs/2,sy=s.r*cs+cs/2;
+    ctx.fillStyle=clr+'22';
+    ctx.beginPath();ctx.arc(sx,sy,cs*0.35,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=clr+'55';
+    ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(sx,sy,cs*0.35,0,Math.PI*2);ctx.stroke();
+  });
+}
+
+function drawCenter(){
+  const cs=cellSize();
+  const x=6*cs,y=6*cs,size=3*cs;
+  // Draw 4 triangles
+  const colors=['red','blue','green','yellow'];
+  const cx=x+size/2,cy=y+size/2;
+  [[cx,y,x,y+size,cx,cy,'red'],[cx,y,x+size,y+size,cx,cy,'blue'],[x,y,x,y+size,cx,cy,'yellow'],[x+size,y,x+size,y+size,cx,cy,'green']].forEach(([x1,y1,x2,y2,x3,y3,c])=>{
+    ctx.fillStyle=COLOR_HEX[c]+'cc';
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.lineTo(x3,y3);ctx.closePath();ctx.fill();
+  });
+  // Star in center
+  drawStar(cx,cy,size*0.22,'rgba(255,255,255,0.9)');
+}
+
+function drawColorArrows(){
+  const cs=cellSize();
+  // Red enters at row 6, col 0 — draw right arrow
+  drawArrow(0.5*cs,6.5*cs,'right',COLOR_HEX.red);
+  // Blue enters at col 8, row 0 — draw down arrow
+  drawArrow(8.5*cs,0.5*cs,'down',COLOR_HEX.blue);
+  // Green enters at col 6, row 14 — draw up arrow
+  drawArrow(6.5*cs,14.5*cs,'up',COLOR_HEX.green);
+  // Yellow enters at row 8, col 14 — draw left arrow
+  drawArrow(14.5*cs,8.5*cs,'left',COLOR_HEX.yellow);
+}
+
+function drawArrow(x,y,dir,color){
+  const cs=cellSize(),s=cs*0.28;
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  if(dir==='right'){ctx.moveTo(x-s,y-s);ctx.lineTo(x+s,y);ctx.lineTo(x-s,y+s);}
+  else if(dir==='down'){ctx.moveTo(x-s,y-s);ctx.lineTo(x,y+s);ctx.lineTo(x+s,y-s);}
+  else if(dir==='up'){ctx.moveTo(x-s,y+s);ctx.lineTo(x,y-s);ctx.lineTo(x+s,y+s);}
+  else{ctx.moveTo(x+s,y-s);ctx.lineTo(x-s,y);ctx.lineTo(x+s,y+s);}
+  ctx.closePath();ctx.fill();
+}
+
+function drawAllPieces(){
+  const cs=cellSize();
+  COLORS.forEach(color=>{
+    if(!pieces[color])return;
+    pieces[color].forEach((p,pi)=>{
+      if(p.finished)return;
+      let px,py;
+      if(p.pos===-1){
+        // In yard
+        const yard=LUDO_PATH.yardPos[color][pi];
+        if(!yard)return;
+        px=yard.c*cs+cs/2;py=yard.r*cs+cs/2;
+      } else if(p.pos>=52){
+        // In home column
+        const homeIdx=p.pos-52;
+        const hc=LUDO_PATH.homeCol[color];
+        if(!hc||homeIdx>=hc.length)return;
+        px=hc[homeIdx].c*cs+cs/2;py=hc[homeIdx].r*cs+cs/2;
+      } else {
+        const pathCell=COLOR_PATH[color][p.pos];
+        if(!pathCell)return;
+        px=pathCell.c*cs+cs/2;py=pathCell.r*cs+cs/2;
+      }
+      drawPiece(px,py,cs,color,pi);
     });
-})();
+  });
+}
+
+function drawPiece(x,y,cs,color,idx){
+  const r=cs*0.33;
+  const clr=COLOR_HEX[color];
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,0.4)';
+  ctx.beginPath();ctx.ellipse(x,y+r*0.8,r*0.7,r*0.25,0,0,Math.PI*2);ctx.fill();
+  // Body
+  ctx.fillStyle=clr;
+  ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+  // Shine
+  const grad=ctx.createRadialGradient(x-r*0.3,y-r*0.3,0,x,y,r);
+  grad.addColorStop(0,'rgba(255,255,255,0.6)');
+  grad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=grad;
+  ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+  // Number
+  ctx.fillStyle='rgba(255,255,255,0.9)';
+  ctx.font=`bold ${r*0.9}px sans-serif`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(idx+1,x,y+1);
+}
+
+function drawStar(x,y,r,color){
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  for(let i=0;i<10;i++){
+    const angle=Math.PI/5*i-Math.PI/2;
+    const rad=i%2===0?r:r*0.45;
+    if(i===0)ctx.moveTo(x+rad*Math.cos(angle),y+rad*Math.sin(angle));
+    else ctx.lineTo(x+rad*Math.cos(angle),y+rad*Math.sin(angle));
+  }
+  ctx.closePath();ctx.fill();
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+
+/* ══════════════════════════════════════════
+   UTILITIES
+══════════════════════════════════════════ */
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function isMob(){return/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);}
+function fmtBal(n){return'R'+(n||0).toFixed(2);}
+function fmtTime(ts){if(!ts)return'';const d=new Date(ts);const now=new Date();const diff=now-d;if(diff<60000)return'Just now';if(diff<3600000)return Math.floor(diff/60000)+'m ago';if(diff<86400000)return Math.floor(diff/3600000)+'h ago';return d.toLocaleDateString();}
+
+function toast(msg,type='success'){
+  const t=document.getElementById('toast'),ico=document.getElementById('toastIco');
+  document.getElementById('toastTxt').textContent=msg;
+  ico.innerHTML=type==='warn'?'<use href="#i-warn"/>':'<use href="#i-check"/>';
+  t.className='toast '+type+' show';clearTimeout(t._t);
+  t._t=setTimeout(()=>t.classList.remove('show'),3400);
+}
+window.toast=toast;
+
+/* ══════════════════════════════════════════
+   TRANSACTION TICKER (fake but realistic)
+══════════════════════════════════════════ */
+const FAKE_NAMES=['Siyanda M.','Katlego P.','Lerato T.','Thabo D.','Nandi K.','Sipho R.','Zanele M.','Mpho N.'];
+function showTxTicker(type,text,amount){
+  const ticker=document.getElementById('txTicker');
+  const item=document.createElement('div');
+  item.className=`tx-item ${type}`;
+  item.innerHTML=`<span class="tx-icon">${type==='credit'?'💰':'💸'}</span><span class="tx-text">${text}</span><span class="tx-amt">${type==='credit'?'+':'-'}${fmtBal(amount)}</span>`;
+  ticker.appendChild(item);
+  requestAnimationFrame(()=>item.classList.add('show'));
+  setTimeout(()=>{item.classList.remove('show');item.classList.add('hide');setTimeout(()=>item.remove(),400);},4000);
+}
+
+function startFakeTxSimulation(){
+  // Simulate live transactions every 8–20 seconds
+  function scheduleFake(){
+    const delay=8000+Math.random()*12000;
+    setTimeout(()=>{
+      const name=FAKE_NAMES[Math.floor(Math.random()*FAKE_NAMES.length)];
+      const type=Math.random()>0.4?'debit':'credit';
+      const amt=10;
+      if(type==='debit')showTxTicker('debit',`<b>${name}</b> entered a game`,amt);
+      else showTxTicker('credit',`<b>${name}</b> won a match`,amt*3.6);
+      scheduleFake();
+    },delay);
+  }
+  scheduleFake();
+}
+
+/* ══════════════════════════════════════════
+   AUTH
+══════════════════════════════════════════ */
+const authOverlay=document.getElementById('authOverlay');
+const ALL_MODALS=[document.getElementById('register-modal'),document.getElementById('login-modal'),document.getElementById('loading-modal'),document.getElementById('photo-modal'),document.getElementById('forgot-modal')];
+function openModal(m){ALL_MODALS.forEach(x=>x&&(x.style.display='none'));if(m)m.style.display='block';authOverlay.classList.add('active');}
+function closeAll(){authOverlay.classList.remove('active');setTimeout(()=>ALL_MODALS.forEach(m=>m&&(m.style.display='none')),320);}
+authOverlay.addEventListener('click',e=>{if(e.target===authOverlay)closeAll();});
+document.querySelectorAll('.modal-close').forEach(btn=>btn.addEventListener('click',closeAll));
+
+function showLoading(t,s){ALL_MODALS.forEach(m=>m&&(m.style.display='none'));document.getElementById('loading-title').textContent=t||'Processing...';document.getElementById('loading-sub').textContent=s||'';document.getElementById('prog-bar').style.width='0%';document.getElementById('loading-modal').style.display='block';}
+function setProgress(p,t,s){document.getElementById('prog-bar').style.width=p+'%';if(t)document.getElementById('loading-title').textContent=t;if(s)document.getElementById('loading-sub').textContent=s;}
+
+function showErr(id,msg){const el=document.getElementById(id);if(el){el.textContent=msg;el.style.display=msg?'block':'none';}}
+function clearErrs(){document.querySelectorAll('.error-msg').forEach(e=>{e.textContent='';e.style.display='none';});}
+function validate(inp){
+  const v=inp.value.trim();
+  if(!v&&inp.required)return'This field is required';
+  if(inp.type==='email'&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))return'Enter a valid email';
+  if(inp.type==='password'&&v.length<6)return'At least 6 characters';
+  if(inp.id==='reg-username'&&!/^[a-zA-Z0-9_]{3,20}$/.test(v))return'3–20 chars: letters, numbers or _';
+  return null;
+}
+
+document.querySelectorAll('.pw-toggle').forEach(btn=>{btn.addEventListener('click',()=>{const inp=document.getElementById(btn.dataset.target);if(!inp)return;inp.type=inp.type==='text'?'password':'text';});});
+
+let _captchaChecked=false;
+document.getElementById('captcha').addEventListener('click',()=>{_captchaChecked=true;document.getElementById('captcha').classList.add('checked');document.getElementById('login-submit').disabled=false;});
+
+getRedirectResult(auth).then(async r=>{if(!r)return;await handleGoogleResult(r);}).catch(()=>{});
+
+onAuthStateChanged(auth,async user=>{
+  if(_authChecked)return;_authChecked=true;CU=user;
+  if(!user){showAuthView();window._removeSplash&&window._removeSplash();return;}
+  showLoading('Loading your account…','');setProgress(30);
+  await loadOrCreateUD(user);
+  setProgress(100);
+  setTimeout(()=>{
+    window._removeSplash&&window._removeSplash();
+    if(shouldAskForPhoto(user))showPhotoModal(user,user.displayName||user.email);
+    else showDash();
+  },600);
+});
+
+function shouldAskForPhoto(u){
+  if(!u||!u.photoURL||u.photoURL.includes('default_profile')||u.photoURL==='')return true;
+  try{const sk=JSON.parse(localStorage.getItem('photoSkipped')||'{}');const last=sk[u.uid];if(!last)return false;return(Date.now()-last)>3*24*60*60*1000;}catch{return false;}
+}
+
+async function loadOrCreateUD(user){
+  const snap=await getDoc(doc(db,'users',user.uid));
+  if(snap.exists()){
+    UD={...snap.data()};
+    if(UD.balance===undefined)UD.balance=STARTING_BALANCE;
+    if(!UD.ludoWins)UD.ludoWins=0;
+    if(!UD.ludoLoss)UD.ludoLoss=0;
+  } else {
+    const un=(user.displayName||'player').toLowerCase().replace(/[^a-z0-9_]/g,'').slice(0,20)||'p'+Math.floor(Math.random()*9999);
+    UD={uid:user.uid,email:user.email||'',displayName:user.displayName||'Player',username:un,photoURL:user.photoURL||'',bio:'',provider:'unknown',balance:STARTING_BALANCE,ludoWins:0,ludoLoss:0,createdAt:new Date().toISOString()};
+    await setDoc(doc(db,'users',user.uid),UD);
+    // Simulate welcome bonus tx
+    setTimeout(()=>showTxTicker('credit','<b>Welcome bonus</b> added to your account',STARTING_BALANCE),2000);
+  }
+}
+
+async function handleGoogleResult(result){
+  setProgress(60,'Setting up profile…','');
+  const user=result.user;
+  const isNew=!(await getDoc(doc(db,'users',user.uid))).exists();
+  if(isNew){
+    const un=(user.displayName||'g').toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').slice(0,20)||'g'+Date.now().toString(36);
+    await setDoc(doc(db,'users',user.uid),{uid:user.uid,email:user.email,displayName:user.displayName||'',username:un,photoURL:user.photoURL||'',bio:'',provider:'google',balance:STARTING_BALANCE,ludoWins:0,ludoLoss:0,createdAt:new Date().toISOString()});
+  }
+  await loadOrCreateUD(user);setProgress(90,'Almost there…','');
+  window._removeSplash&&window._removeSplash();
+  if(isNew||shouldAskForPhoto(user))showPhotoModal(user,user.displayName);
+  else{setProgress(100,'Welcome!');setTimeout(()=>{closeAll();showDash();},900);}
+}
+
+async function doGoogle(){
+  showLoading('Connecting to Google…','Please wait');setProgress(25);
+  const prov=new GoogleAuthProvider();prov.setCustomParameters({prompt:'select_account'});
+  if(isMob()){try{await signInWithRedirect(auth,prov);}catch(e){closeAll();toast('Google sign-in failed','warn');}return;}
+  try{const r=await signInWithPopup(auth,prov);await handleGoogleResult(r);}
+  catch(e){closeAll();if(e.code==='auth/popup-closed-by-user')return;if(e.code==='auth/popup-blocked'){setTimeout(async()=>await signInWithRedirect(auth,prov),500);return;}toast(e.message||'Google failed','warn');}
+}
+
+document.getElementById('google-auth').addEventListener('click',doGoogle);
+document.getElementById('login-google-btn').addEventListener('click',doGoogle);
+document.getElementById('manual-auth').addEventListener('click',()=>{clearErrs();openModal(document.getElementById('register-modal'));setTimeout(()=>document.getElementById('reg-username').focus(),350);});
+document.getElementById('login-btn').addEventListener('click',()=>{clearErrs();openModal(document.getElementById('login-modal'));});
+document.getElementById('forgot-link').addEventListener('click',()=>{clearErrs();openModal(document.getElementById('forgot-modal'));});
+
+// Username check
+const unameInput=document.getElementById('reg-username');
+const unameStatus=document.getElementById('uname-status');
+function resetUnameStatus(){unameStatus.className='uname-status hidden';_unameValid=false;}
+function setUnameStatus(type,text){unameStatus.className='uname-status '+type;document.getElementById('uname-icon').innerHTML=type==='ok'?'<polyline points="20 6 9 17 4 12"/>':type==='bad'?'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>':'';document.getElementById('uname-text').textContent=text;}
+unameInput.addEventListener('input',()=>{
+  clearTimeout(_unameTimer);const val=unameInput.value.trim();showErr('reg-username-err','');
+  if(!val){resetUnameStatus();return;}
+  if(!/^[a-zA-Z0-9_]{3,20}$/.test(val)){setUnameStatus('bad','3–20 chars: letters, numbers or _');_unameValid=false;return;}
+  setUnameStatus('checking','Checking…');
+  _unameTimer=setTimeout(async()=>{try{const s=await getDocs(query(collection(db,'users'),where('username','==',val)));if(!s.empty){setUnameStatus('bad','@'+val+' is taken');_unameValid=false;}else{setUnameStatus('ok','@'+val+' is available ✓');_unameValid=true;}}catch{resetUnameStatus();_unameValid=true;}},550);
+});
+
+document.getElementById('register-form').addEventListener('submit',async e=>{
+  e.preventDefault();clearErrs();
+  const uname=document.getElementById('reg-username'),email=document.getElementById('reg-email'),pw=document.getElementById('reg-password');
+  let ok=true;
+  ['reg-username','reg-email','reg-password'].forEach(id=>{const el=document.getElementById(id);const er=validate(el);if(er){showErr(id+'-err',er);ok=false;}});
+  if(!ok)return;if(!_unameValid){showErr('reg-username-err','Wait for username check');return;}
+  const btn=e.target.querySelector('.submit-btn'),sp=btn.querySelector('.btn-spinner');btn.disabled=true;sp.style.display='block';
+  try{
+    const cred=await createUserWithEmailAndPassword(auth,email.value.trim(),pw.value);
+    await updateProfile(cred.user,{displayName:uname.value.trim()});
+    await setDoc(doc(db,'users',cred.user.uid),{uid:cred.user.uid,email:email.value.trim(),displayName:uname.value.trim(),username:uname.value.trim().toLowerCase(),photoURL:'',bio:'',provider:'email',balance:STARTING_BALANCE,ludoWins:0,ludoLoss:0,createdAt:new Date().toISOString()});
+    await loadOrCreateUD(cred.user);showPhotoModal(cred.user,uname.value.trim());
+  }catch(err){showErr('reg-form-err',err.code==='auth/email-already-in-use'?'Email already registered.':(err.message||'Registration failed.'));btn.disabled=false;sp.style.display='none';}
+});
+
+document.getElementById('login-form').addEventListener('submit',async e=>{
+  e.preventDefault();clearErrs();if(!_captchaChecked){toast('Please check the captcha','warn');return;}
+  const email=document.getElementById('login-email'),pw=document.getElementById('login-password');
+  const ee=validate(email);if(ee){showErr('login-email-err',ee);return;}
+  const pe=validate(pw);if(pe){showErr('login-password-err',pe);return;}
+  const btn=document.getElementById('login-submit'),sp=btn.querySelector('.btn-spinner');btn.disabled=true;sp.style.display='block';
+  try{const cred=await signInWithEmailAndPassword(auth,email.value.trim(),pw.value);await loadOrCreateUD(cred.user);CU=cred.user;closeAll();showDash();}
+  catch(err){showErr('login-form-err',err.code==='auth/wrong-password'||err.code==='auth/user-not-found'||err.code==='auth/invalid-credential'?'Invalid email or password.':(err.message||'Sign in failed.'));btn.disabled=false;sp.style.display='none';}
+});
+
+document.getElementById('forgot-form').addEventListener('submit',async e=>{
+  e.preventDefault();clearErrs();
+  const btn=e.target.querySelector('.submit-btn'),sp=btn.querySelector('.btn-spinner');
+  const email=document.getElementById('forgot-email').value.trim();
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showErr('forgot-email-err','Enter a valid email');return;}
+  btn.disabled=true;sp.style.display='block';
+  try{await sendPasswordResetEmail(auth,email);document.getElementById('forgot-form').style.display='none';document.getElementById('forgot-success').style.display='block';}
+  catch(err){showErr('forgot-form-err',err.code==='auth/user-not-found'?'No account with that email.':(err.message||'Failed.'));btn.disabled=false;sp.style.display='none';}
+});
+
+// Photo upload
+let _pendingUser=null,_photoFile=null,_photoURL2=null;
+function showPhotoModal(user,name){
+  _pendingUser=user;const letter=(name||user.email||'U')[0].toUpperCase();
+  document.getElementById('photo-letter').textContent=letter;
+  const img=document.getElementById('photo-inner').querySelector('img');if(img)img.remove();
+  document.getElementById('photo-letter').style.display='';
+  const ubtn=document.getElementById('photo-upload-btn');
+  if(user.photoURL&&!user.photoURL.includes('default_profile')){const i=document.createElement('img');i.src=user.photoURL;i.onerror=()=>i.remove();document.getElementById('photo-inner').appendChild(i);ubtn.disabled=false;ubtn.textContent='Keep this photo';}
+  else{ubtn.disabled=true;ubtn.textContent='Save Photo';}
+  _photoFile=null;_photoURL2=null;
+  document.getElementById('photo-prog-wrap').style.display='none';
+  openModal(document.getElementById('photo-modal'));
+}
+document.getElementById('photo-ring').addEventListener('click',()=>document.getElementById('photo-file').click());
+document.getElementById('photo-file').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;if(f.size>8*1024*1024){toast('Image must be under 8MB','warn');return;}
+  _photoFile=f;if(_photoURL2)URL.revokeObjectURL(_photoURL2);_photoURL2=URL.createObjectURL(f);
+  let img=document.getElementById('photo-inner').querySelector('img');if(!img){img=document.createElement('img');document.getElementById('photo-inner').appendChild(img);}
+  img.src=_photoURL2;document.getElementById('photo-letter').style.display='none';
+  document.getElementById('photo-upload-btn').disabled=false;document.getElementById('photo-upload-btn').textContent='Save Photo';
+});
+document.getElementById('photo-upload-btn').addEventListener('click',async()=>{
+  if(!_pendingUser){afterAuth();return;}
+  if(!_photoFile&&_pendingUser.photoURL&&!_pendingUser.photoURL.includes('default_profile')){setTimeout(afterAuth,900);return;}
+  if(!_photoFile){afterAuth();return;}
+  const btn=document.getElementById('photo-upload-btn');btn.disabled=true;btn.textContent='Uploading...';
+  const pw2=document.getElementById('photo-prog-wrap'),pb=document.getElementById('photo-prog-bar');pw2.style.display='block';pb.style.width='20%';
+  try{
+    const ext=_photoFile.name.split('.').pop()||'jpg';const fname='avatars/'+_pendingUser.uid+'_'+Date.now()+'.'+ext;
+    const fd=new FormData();fd.append('file',_photoFile,fname);pb.style.width='50%';
+    let photoURL='';
+    try{const res=await fetch(R2,{method:'POST',body:fd});if(res.ok){const d=await res.json();photoURL=d.url||d.fileUrl||d.publicUrl||'';}}catch{try{const sr=sRef(storage,'avatars/'+_pendingUser.uid);await uploadBytes(sr,_photoFile);photoURL=await getDownloadURL(sr);}catch(e2){console.warn(e2);}}
+    pb.style.width='80%';
+    if(photoURL){await updateProfile(_pendingUser,{photoURL});await setDoc(doc(db,'users',_pendingUser.uid),{photoURL},{merge:true});if(UD)UD.photoURL=photoURL;}
+    pb.style.width='100%';setTimeout(afterAuth,600);
+  }catch(err){btn.disabled=false;btn.textContent='Retry';document.getElementById('photo-prog-wrap').style.display='none';toast('Upload failed — you can skip','warn');}
+});
+document.getElementById('photo-skip-btn').addEventListener('click',()=>{
+  if(_pendingUser){const sk=JSON.parse(localStorage.getItem('photoSkipped')||'{}');sk[_pendingUser.uid]=Date.now();localStorage.setItem('photoSkipped',JSON.stringify(sk));}
+  afterAuth();
+});
+function afterAuth(){closeAll();if(_pendingUser)CU=_pendingUser;showDash();}
+
+// Profile photo change in profile section
+document.getElementById('profile-photo-file').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(!f||!CU)return;
+  if(f.size>8*1024*1024){toast('Image must be under 8MB','warn');return;}
+  const proc=document.getElementById('procOv');proc.classList.add('open');document.getElementById('procTxt').textContent='Uploading photo…';
+  try{
+    const ext=f.name.split('.').pop()||'jpg';const fname='avatars/'+CU.uid+'_'+Date.now()+'.'+ext;
+    const fd=new FormData();fd.append('file',f,fname);
+    let photoURL='';
+    try{const res=await fetch(R2,{method:'POST',body:fd});if(res.ok){const d=await res.json();photoURL=d.url||d.fileUrl||d.publicUrl||'';}}catch{try{const sr=sRef(storage,'avatars/'+CU.uid);await uploadBytes(sr,f);photoURL=await getDownloadURL(sr);}catch(e2){console.warn(e2);}}
+    if(photoURL){await updateProfile(CU,{photoURL});await setDoc(doc(db,'users',CU.uid),{photoURL},{merge:true});if(UD)UD.photoURL=photoURL;refreshDashUI();toast('Photo updated!');}
+  }catch(err){toast('Photo upload failed','warn');}finally{proc.classList.remove('open');}
+});
+
+window.saveProfile=async function(){
+  if(!CU||!UD)return;
+  const name=document.getElementById('editDisplayName').value.trim();
+  const bio=document.getElementById('editBio').value.trim();
+  if(!name){toast('Display name required','warn');return;}
+  const proc=document.getElementById('procOv');proc.classList.add('open');document.getElementById('procTxt').textContent='Saving…';
+  try{
+    await updateProfile(CU,{displayName:name});
+    await setDoc(doc(db,'users',CU.uid),{displayName:name,bio},{merge:true});
+    UD.displayName=name;UD.bio=bio;
+    refreshDashUI();toast('Profile saved!');
+  }catch(err){toast('Failed to save','warn');}finally{proc.classList.remove('open');}
+};
+
+/* ══════════════════════════════════════════
+   DASHBOARD
+══════════════════════════════════════════ */
+function showAuthView(){
+  document.getElementById('authView').classList.add('active');
+  document.getElementById('dashShell').style.display='none';
+  document.getElementById('mobNav').style.display='none';
+  document.getElementById('ludoGameView').classList.remove('active');
+}
+function showDash(){
+  document.getElementById('authView').classList.remove('active');
+  document.getElementById('dashShell').style.display='grid';
+  document.getElementById('mobNav').style.display='flex';
+  document.getElementById('ludoGameView').classList.remove('active');
+  refreshDashUI();listenRooms();loadHistory();applyTheme();startFakeTxSimulation();
+}
+window.showDash=showDash;
+
+function refreshDashUI(){
+  if(!UD)return;
+  // Nav avatar
+  const navImg=document.getElementById('navAvImg'),navInit=document.getElementById('avatarLetter');
+  if(UD.photoURL){navImg.src=UD.photoURL;navImg.style.display='block';navInit.style.display='none';}
+  else{navImg.style.display='none';navInit.style.display='flex';navInit.textContent=(UD.displayName||'N')[0].toUpperCase();}
+  document.getElementById('dName').textContent=UD.displayName||'—';
+  document.getElementById('dEmail').textContent=UD.email||CU?.email||'—';
+  document.getElementById('sideProfileName').textContent=UD.displayName||'—';
+  document.getElementById('sideProfileEmail').textContent=UD.email||CU?.email||'—';
+  // Balance
+  const bal=(UD.balance||0);
+  document.getElementById('navBal').textContent=fmtBal(bal);
+  document.getElementById('statBalance').textContent='R'+Math.floor(bal);
+  document.getElementById('statWins').textContent=UD.ludoWins||0;
+  document.getElementById('statLoss').textContent=UD.ludoLoss||0;
+  // Profile section
+  const pImg=document.getElementById('profileAvImg'),pLet=document.getElementById('profileAvLetter');
+  if(UD.photoURL){pImg.src=UD.photoURL;pImg.style.display='block';pLet.style.display='none';}
+  else{pImg.style.display='none';pLet.style.display='flex';pLet.textContent=(UD.displayName||'N')[0].toUpperCase();}
+  document.getElementById('profileAvName').textContent=UD.displayName||'—';
+  document.getElementById('profileAvHandle').textContent='@'+(UD.username||'—');
+  document.getElementById('profileBalBadge').textContent=fmtBal(bal)+' Balance';
+  document.getElementById('editDisplayName').value=UD.displayName||'';
+  document.getElementById('editUsername').value=UD.username||'';
+  document.getElementById('editBio').value=UD.bio||'';
+  document.getElementById('editEmail').value=UD.email||CU?.email||'';
+}
+
+window.showSection=function(name){
+  ['dashboard','history','profile'].forEach(s=>{
+    const el=document.getElementById('section-'+s);if(el)el.style.display=s===name?'block':'none';
+    const mb=document.getElementById('mob-'+s);if(mb)mb.classList.toggle('active',s===name);
+    const sl=document.getElementById('sl-'+s);if(sl)sl.classList.toggle('active',s===name);
+  });
+  if(name==='history')loadHistory();
+  if(name==='profile')refreshDashUI();
+};
+
+window.toggleDrop=function(){document.getElementById('dropMenu').classList.toggle('open');};
+document.addEventListener('click',e=>{const ab=document.getElementById('avatarBtn');if(ab&&!ab.contains(e.target))document.getElementById('dropMenu').classList.remove('open');});
+
+function applyTheme(){const saved=localStorage.getItem('ludoTheme');if(saved==='light'){document.body.classList.add('light');['themeSwitch','themeSwitchSide'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.add('on');});}}
+window.toggleTheme=function(e){if(e)e.stopPropagation();const l=document.body.classList.toggle('light');['themeSwitch','themeSwitchSide'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.toggle('on',l);});localStorage.setItem('ludoTheme',l?'light':'dark');};
+window.askLogout=function(){document.getElementById('dropMenu').classList.remove('open');document.getElementById('confirmOv').classList.add('open');};
+window.closeConfirm=function(){document.getElementById('confirmOv').classList.remove('open');};
+window.doLogout=async function(){closeConfirm();cleanupGame();if(roomsOff){roomsOff();roomsOff=null;}await signOut(auth);showAuthView();_authChecked=false;CU=null;UD=null;};
+
+/* ══════════════════════════════════════════
+   HISTORY
+══════════════════════════════════════════ */
+function loadHistory(){
+  if(!CU)return;
+  onValue(ref(rtdb,'ludo_history/'+CU.uid),snap=>{
+    const all=Object.values(snap.val()||{}).sort((a,b)=>(b.ts||0)-(a.ts||0));
+    const list=document.getElementById('histList');
+    if(!all.length){
+      list.innerHTML='<div style="text-align:center;padding:60px 20px;color:var(--dim)"><div style="font-size:40px;margin-bottom:12px">🎲</div><div style="font-size:14px;font-weight:600;margin-bottom:6px">No games played yet</div><div style="font-size:12px">Create or join a room to start playing</div></div>';
+      return;
+    }
+    list.innerHTML=all.map(h=>{
+      const isWin=h.result==='win';
+      const emoji=isWin?'🏆':'😔';
+      const amt=isWin?`+${fmtBal(h.prize||0)}`:`-${fmtBal(ENTRY_FEE)}`;
+      return`<div class="hist-item">
+        <div class="hist-left">
+          <div class="hist-ico ${h.result}">${emoji}</div>
+          <div><div class="hist-title">${isWin?'Victory!':'Defeated'} vs ${esc(h.opponent||'Unknown')}</div><div class="hist-time">${fmtTime(h.ts)} · 🎲 Ludo · ${h.players||2} players</div></div>
+        </div>
+        <div class="hist-amt ${h.result}">${amt}</div>
+      </div>`;
+    }).join('');
+  },{onlyOnce:true});
+}
+
+async function saveHistory(result,opponent,prize,players){
+  if(!CU)return;
+  await push(ref(rtdb,'ludo_history/'+CU.uid),{result,opponent,prize,players,ts:Date.now()});
+  if(result==='win'){await setDoc(doc(db,'users',CU.uid),{ludoWins:increment(1)},{merge:true});if(UD)UD.ludoWins=(UD.ludoWins||0)+1;}
+  else{await setDoc(doc(db,'users',CU.uid),{ludoLoss:increment(1)},{merge:true});if(UD)UD.ludoLoss=(UD.ludoLoss||0)+1;}
+}
+
+/* ══════════════════════════════════════════
+   ROOM SYSTEM
+══════════════════════════════════════════ */
+function listenRooms(){
+  if(roomsOff){roomsOff();roomsOff=null;}
+  roomsOff=onValue(ref(rtdb,'ludo_rooms'),snap=>renderRooms(snap.val()||{}));
+}
+
+function renderRooms(all){
+  const grid=document.getElementById('serverGrid');
+  const entries=Object.entries(all).filter(([,r])=>r.status==='waiting'||r.status==='playing');
+  const openCount=entries.filter(([,r])=>r.status==='waiting').length;
+  document.getElementById('roomCount').textContent=openCount+' open';
+  if(!entries.length){grid.innerHTML='<div class="srv-empty" style="grid-column:1/-1"><svg><use href="#i-ludo"/></svg><strong>NO ROOMS YET</strong><br><span style="font-size:12px">Create one above to start playing</span></div>';return;}
+  grid.innerHTML=entries.map(([id,r])=>{
+    const playerCount=Object.values(r.players||{}).length;
+    const maxPlayers=r.maxPlayers||4;
+    const isFull=playerCount>=maxPlayers||r.status==='playing';
+    const isMyRoom=r.players&&r.players[CU?.uid];
+    const entryFee=r.entryFee||ENTRY_FEE;
+    const prize=Math.floor(playerCount*entryFee*(1-PLATFORM_CUT));
+    let badgeCls,badgeTxt;
+    if(r.status==='playing'){badgeCls='badge-full';badgeTxt='IN GAME';}
+    else if(playerCount===1){badgeCls='badge-waiting';badgeTxt='WAITING';}
+    else{badgeCls='badge-open';badgeTxt='OPEN';}
+    const slots=COLORS.map((c,i)=>{
+      const pData=r.players?Object.values(r.players).find(p=>p.color===c):null;
+      const filled=!!pData;
+      return`<div class="lslot ${filled?c+'-slot filled':''}">${filled?`<div class="piece-dot" style="background:${COLOR_HEX[c]}"></div>${esc(pData.name.split(' ')[0]||c)}`:`<div class="piece-dot" style="background:${COLOR_HEX[c]}33;border:1px dashed ${COLOR_HEX[c]}55"></div>Open`}</div>`;
+    }).join('');
+    const canJoin=!isFull&&!isMyRoom;
+    const btnTxt=isMyRoom?'REJOIN ROOM':isFull?'SPECTATE':canJoin?'JOIN ROOM':'—';
+    const btnDisabled=isFull&&!isMyRoom;
+    return`<div class="srv${isFull?' full':''}">
+      <div class="srv-top"><div class="srv-name">ROOM #${id.slice(-4).toUpperCase()}</div><div class="srv-badge ${badgeCls}"><svg width="6" height="6" fill="currentColor"><use href="#i-circle"/></svg>${badgeTxt}</div></div>
+      <div class="srv-info"><div class="srv-info-item"><svg><use href="#i-users"/></svg>${playerCount}/${maxPlayers} players</div><div class="srv-info-item">🎲 Entry: R${entryFee}</div></div>
+      <div class="ludo-slots">${slots}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:-6px"><div class="prize-tag">🏆 Prize: R${prize>0?prize:entryFee*4*0.9}</div></div>
+      <button class="srv-btn" onclick="handleRoomClick('${id}')" ${btnDisabled?'disabled':''}><span>${btnTxt}</span></button>
+    </div>`;
+  }).join('');
+}
+
+window.handleRoomClick=function(id){
+  get(ref(rtdb,'ludo_rooms/'+id)).then(snap=>{
+    const d=snap.val();if(!d)return;
+    const playerCount=Object.values(d.players||{}).length;
+    const maxPlayers=d.maxPlayers||4;
+    // Check if already in room
+    if(d.players&&d.players[CU?.uid]){enterRoom(id,d);return;}
+    if(d.status==='playing'){toast('Game already in progress','warn');return;}
+    if(playerCount>=maxPlayers){toast('Room is full','warn');return;}
+    // Check if game is about to end (last 30s of 10min)
+    if(d.startedAt&&Date.now()-d.startedAt>9.5*60*1000){toast('Game ending soon, cannot join','warn');return;}
+    // Show join confirmation
+    pendingJoinId=id;pendingRoomData=d;
+    const entryFee=d.entryFee||ENTRY_FEE;
+    const newPrize=Math.floor((playerCount+1)*entryFee*(1-PLATFORM_CUT));
+    document.getElementById('joinModalTitle').textContent='JOIN ROOM #'+id.slice(-4).toUpperCase();
+    document.getElementById('joinEntryFee').textContent='R'+entryFee;
+    document.getElementById('joinPrizePool').textContent='R'+newPrize;
+    document.getElementById('joinYourBal').textContent=fmtBal(UD?.balance||0);
+    document.getElementById('joinOverlay').classList.add('open');
+  });
+};
+
+window.closeJoinModal=function(){document.getElementById('joinOverlay').classList.remove('open');pendingJoinId=null;pendingRoomData=null;};
+
+window.confirmJoin=async function(){
+  if(!pendingJoinId||!CU)return;
+  const entryFee=(pendingRoomData?.entryFee)||ENTRY_FEE;
+  if((UD?.balance||0)<entryFee){toast('Insufficient balance','warn');closeJoinModal();return;}
+  const btn=document.getElementById('joinConfirmBtn');btn.classList.add('ld');btn.disabled=true;
+  const id=pendingJoinId;
+  try{
+    const snap=await get(ref(rtdb,'ludo_rooms/'+id));const d=snap.val();
+    if(!d||d.status!=='waiting'){toast('Room no longer available','warn');closeJoinModal();btn.classList.remove('ld');btn.disabled=false;return;}
+    const playerCount=Object.values(d.players||{}).length;
+    if(playerCount>=(d.maxPlayers||4)){toast('Room just became full','warn');closeJoinModal();btn.classList.remove('ld');btn.disabled=false;return;}
+    // Assign color
+    const usedColors=(Object.values(d.players||{})).map(p=>p.color);
+    const myCol=COLORS.find(c=>!usedColors.includes(c));
+    if(!myCol){toast('No color available','warn');closeJoinModal();btn.classList.remove('ld');btn.disabled=false;return;}
+    // Deduct entry fee
+    const newBal=(UD.balance||0)-entryFee;
+    await setDoc(doc(db,'users',CU.uid),{balance:newBal},{merge:true});
+    UD.balance=newBal;
+    // Join room
+    await update(ref(rtdb,'ludo_rooms/'+id+'/players/'+CU.uid),{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',color:myCol,ready:true,joinedAt:Date.now()});
+    // Show debit tx
+    showTxTicker('debit','<b>Entry fee</b> deducted for Ludo match',entryFee);
+    closeJoinModal();btn.classList.remove('ld');btn.disabled=false;
+    enterRoom(id,d);
+  }catch(e){toast('Failed to join room','warn');btn.classList.remove('ld');btn.disabled=false;}
+};
+
+window.createRoom=async function(){
+  if(!CU){toast('Sign in first','warn');return;}
+  const entryFee=ENTRY_FEE;
+  if((UD?.balance||0)<entryFee){toast('Insufficient balance to create a room','warn');return;}
+  const id='L'+Math.random().toString(36).slice(2,7).toUpperCase();
+  document.getElementById('procOv').classList.add('open');document.getElementById('procTxt').textContent='Creating room…';
+  try{
+    const myCol='red'; // Host is always red
+    const newBal=(UD.balance||0)-entryFee;
+    await setDoc(doc(db,'users',CU.uid),{balance:newBal},{merge:true});
+    UD.balance=newBal;
+    await set(ref(rtdb,'ludo_rooms/'+id),{
+      id,status:'waiting',entryFee,maxPlayers:4,
+      players:{[CU.uid]:{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',color:myCol,ready:true,joinedAt:Date.now()}},
+      pieces:null,turnOrder:null,currentTurn:null,diceVal:null,
+      lastActivity:Date.now(),createdAt:serverTimestamp()
+    });
+    showTxTicker('debit','<b>Entry fee</b> paid to create room',entryFee);
+    document.getElementById('procOv').classList.remove('open');
+    toast('Room created! Waiting for players…');
+    const snap=await get(ref(rtdb,'ludo_rooms/'+id));
+    enterRoom(id,snap.val());
+  }catch(e){document.getElementById('procOv').classList.remove('open');toast('Failed to create room','warn');}
+};
+
+/* ══════════════════════════════════════════
+   GAME VIEW
+══════════════════════════════════════════ */
+function enterRoom(id,d){
+  roomId=id;RD=d;
+  const myPlayer=d.players&&d.players[CU?.uid];
+  myColor=myPlayer?myPlayer.color:null;
+  document.getElementById('dashShell').style.display='none';
+  document.getElementById('mobNav').style.display='none';
+  document.getElementById('ludoGameView').classList.add('active');
+  // Init canvas
+  requestAnimationFrame(()=>{
+    initCanvas();
+    pieces=d.pieces?JSON.parse(d.pieces):initPieces();
+    drawBoard();
+    listenGame(id);
+    loadGameChat(id);
+  });
+  // Prize chip
+  const playerCount=Object.values(d.players||{}).length;
+  const prize=Math.floor((playerCount||1)*(d.entryFee||ENTRY_FEE)*(1-PLATFORM_CUT));
+  document.getElementById('gamePrizeChip').textContent='R'+prize+' Prize';
+}
+
+function listenGame(id){
+  if(gameOff){gameOff();gameOff=null;}
+  gameOff=onValue(ref(rtdb,'ludo_rooms/'+id),snap=>{
+    const d=snap.val();if(!d){leaveGame();return;}
+    RD=d;
+    updatePlayerCards(d);
+    // Check if enough players to start (min 2)
+    const playerCount=Object.values(d.players||{}).length;
+    if(d.status==='waiting'&&playerCount>=2&&d.players[CU?.uid]){
+      // Auto-start if all players joined and host triggers
+      const isHost=Object.values(d.players||{})[0]?.uid===CU?.uid;
+      if(isHost&&playerCount>=2&&!d.turnOrder){startGame(id,d);}
+    }
+    if(d.status==='waiting'){
+      showWaitingOverlay(d);
+    } else {
+      hideWaitingOverlay();
+      if(d.pieces){pieces=JSON.parse(d.pieces);}
+      if(d.status==='playing'){
+        updateGameState(d);
+      } else if(d.status==='finished'){
+        handleGameFinished(d);
+      }
+    }
+    drawBoard();
+    // Update prize
+    const pc=Object.values(d.players||{}).length;
+    const prize=Math.floor(pc*(d.entryFee||ENTRY_FEE)*(1-PLATFORM_CUT));
+    document.getElementById('gamePrizeChip').textContent='R'+prize+' Prize';
+  });
+}
+
+async function startGame(id,d){
+  const players=Object.values(d.players||{});
+  if(players.length<2)return;
+  const order=players.map(p=>p.color);
+  // Shuffle turn order
+  for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+  const initPiecesData=JSON.stringify(initPieces());
+  await update(ref(rtdb,'ludo_rooms/'+id),{
+    status:'playing',turnOrder:order,currentTurn:order[0],
+    pieces:initPiecesData,diceVal:null,diceRolled:false,
+    turnStartedAt:Date.now(),startedAt:Date.now()
+  });
+  addEvent(`Game started with ${players.length} players! 🎲`,'system');
+}
+
+function showWaitingOverlay(d){
+  const ov=document.getElementById('waitingOverlay');
+  ov.classList.remove('hidden');
+  const players=Object.values(d.players||{});
+  const max=d.maxPlayers||4;
+  document.getElementById('waitingSub').textContent=`${players.length}/${max} players joined. Game starts when at least 2 players are ready.`;
+  const wp=document.getElementById('waitingPlayers');
+  wp.innerHTML=COLORS.map(c=>{
+    const p=players.find(pl=>pl.color===c);
+    return`<div class="wp-item"><div class="wpi-dot" style="background:${COLOR_HEX[c]}"></div><div class="wpi-name">${p?esc(p.name):'Waiting...'}</div>${p?'<div class="wpi-status">✓ Joined</div>':''}</div>`;
+  }).join('');
+}
+function hideWaitingOverlay(){document.getElementById('waitingOverlay').classList.add('hidden');}
+
+function updatePlayerCards(d){
+  const players=d.players||{};
+  COLORS.forEach(c=>{
+    const p=Object.values(players).find(pl=>pl.color===c);
+    const card=document.getElementById('pc-'+c);
+    if(!card)return;
+    if(p){
+      document.getElementById('pcName-'+c).textContent=p.name||(c+' player');
+      const isMe=p.uid===CU?.uid;
+      document.getElementById('pcSt-'+c).textContent=(isMe?'👤 You':'')+'  '+c.charAt(0).toUpperCase()+c.slice(1);
+      const img=document.getElementById('pcImg-'+c);
+      const init=document.getElementById('pcInit-'+c);
+      if(p.photo){img.src=p.photo;img.style.display='block';init.style.display='none';}
+      else{img.style.display='none';init.style.display='flex';init.textContent=(p.name||c)[0].toUpperCase();}
+      card.classList.remove('eliminated');
+    } else {
+      document.getElementById('pcName-'+c).textContent='Waiting…';
+      document.getElementById('pcSt-'+c).textContent=c.charAt(0).toUpperCase()+c.slice(1);
+      document.getElementById('pcImg-'+c).style.display='none';
+      document.getElementById('pcInit-'+c).style.display='flex';
+      document.getElementById('pcInit-'+c).textContent='?';
+    }
+    // Active turn highlight
+    card.classList.toggle('active-turn',d.currentTurn===c);
+  });
+}
+
+function updateGameState(d){
+  gameStarted=true;
+  const currentColor=d.currentTurn;
+  const isMyTurn=currentColor===myColor;
+  const diceRolled=d.diceRolled||false;
+  myTurnActive=isMyTurn&&!diceRolled;
+  // Dice button
+  const diceBtn=document.getElementById('diceBtn');
+  diceBtn.disabled=!isMyTurn||diceRolled;
+  // Turn indicator
+  const players=d.players||{};
+  const currentPlayer=Object.values(players).find(p=>p.color===currentColor);
+  const ti=document.getElementById('turnIndicator');
+  if(isMyTurn){ti.innerHTML='<b>Your turn!</b> Roll the dice';diceBtn.style.boxShadow='0 0 20px rgba(168,85,247,.8)';}
+  else{ti.innerHTML=`<b>${esc(currentPlayer?.name||currentColor)}</b>'s turn`;diceBtn.style.boxShadow='0 4px 16px rgba(168,85,247,.3)';}
+  // Dice value
+  if(d.diceVal){document.getElementById('diceVal').textContent=d.diceVal;}
+  // Handle delay timer
+  if(d.turnStartedAt){
+    clearInterval(turnTimerInterval);
+    const TURN_LIMIT=30;// seconds
+    turnTimerInterval=setInterval(()=>{
+      const elapsed=Math.floor((Date.now()-(d.turnStartedAt||Date.now()))/1000);
+      const remaining=Math.max(0,TURN_LIMIT-elapsed);
+      const timer=document.getElementById('pcTimer-'+currentColor);
+      if(timer)timer.textContent=remaining+'s';
+      if(remaining<=10&&timer)timer.classList.add('low');
+      else if(timer)timer.classList.remove('low');
+      // Auto-skip if timed out
+      if(remaining<=0&&isMyTurn&&d.status==='playing'){
+        clearInterval(turnTimerInterval);
+        skipTurn();
+      }
+    },1000);
+  }
+  // Canvas click for piece selection
+  if(isMyTurn&&d.diceVal&&!diceRolled){
+    canvas.onclick=e=>handlePieceClick(e,d.diceVal);
+  } else if(isMyTurn&&!diceRolled){
+    canvas.onclick=null;
+  } else {
+    canvas.onclick=null;
+  }
+  // If dice rolled, handle piece movement
+  if(diceRolled&&isMyTurn&&d.diceVal){
+    canvas.onclick=e=>handlePieceClick(e,d.diceVal);
+  }
+}
+
+async function skipTurn(){
+  if(!roomId||!RD)return;
+  const order=RD.turnOrder||COLORS;
+  const ci=order.indexOf(RD.currentTurn);
+  const next=order[(ci+1)%order.length];
+  await update(ref(rtdb,'ludo_rooms/'+roomId),{
+    currentTurn:next,diceVal:null,diceRolled:false,
+    turnStartedAt:Date.now(),lastActivity:Date.now()
+  });
+  addEvent(`⏰ ${RD.currentTurn} was skipped for delay`,'system');
+}
+
+window.rollDice=async function(){
+  if(!roomId||!RD||RD.status!=='playing')return;
+  if(RD.currentTurn!==myColor)return;
+  if(RD.diceRolled)return;
+  const btn=document.getElementById('diceBtn');
+  btn.disabled=true;btn.classList.add('rolling');
+  // Animate
+  let val;
+  let rollCount=0;
+  const rollAnim=setInterval(()=>{
+    const fakeVal=Math.floor(Math.random()*6)+1;
+    document.getElementById('diceVal').textContent=fakeVal;
+    rollCount++;
+    if(rollCount>=8){
+      clearInterval(rollAnim);
+      val=Math.floor(Math.random()*6)+1;
+      document.getElementById('diceVal').textContent=val;
+      btn.classList.remove('rolling');
+      // Push to Firebase
+      update(ref(rtdb,'ludo_rooms/'+roomId),{
+        diceVal:val,diceRolled:true,lastRolledBy:myColor,lastActivity:Date.now()
+      });
+      addEvent(`🎲 ${myColor} rolled a <b>${val}</b>`,'move');
+      // Check if any movable pieces
+      const movable=getMovablePieces(val);
+      if(movable.length===0){
+        // No moves, skip
+        setTimeout(()=>advanceTurn(),1500);
+      } else if(movable.length===1&&val!==6){
+        // Auto-move single option
+        setTimeout(()=>movePiece(movable[0],val),800);
+      } else {
+        document.getElementById('turnIndicator').innerHTML='<b>Tap a piece</b> to move it';
+      }
+    }
+  },80);
+};
+
+function getMovablePieces(dice){
+  if(!pieces||!myColor||!pieces[myColor])return[];
+  return pieces[myColor].filter(p=>{
+    if(p.finished)return false;
+    if(p.pos===-1&&dice===6)return true;// Can exit yard
+    if(p.pos===-1)return false;
+    const newPos=p.pos+dice;
+    const pathLen=COLOR_PATH[myColor].length;
+    if(newPos>=pathLen)return false;// Would overshoot home
+    return true;
+  });
+}
+
+function handlePieceClick(e,dice){
+  if(!myColor||!pieces[myColor])return;
+  const cs=cellSize();
+  const rect=canvas.getBoundingClientRect();
+  const x=(e.clientX-rect.left)*(boardSize/rect.width);
+  const y=(e.clientY-rect.top)*(boardSize/rect.height);
+  // Find which piece was clicked
+  const myPieces=pieces[myColor];
+  for(let i=0;i<myPieces.length;i++){
+    const p=myPieces[i];
+    if(p.finished)continue;
+    let px,py;
+    if(p.pos===-1){const yard=LUDO_PATH.yardPos[myColor][i];if(!yard)continue;px=yard.c*cs+cs/2;py=yard.r*cs+cs/2;}
+    else if(p.pos>=52){const homeIdx=p.pos-52;const hc=LUDO_PATH.homeCol[myColor];if(!hc||homeIdx>=hc.length)continue;px=hc[homeIdx].c*cs+cs/2;py=hc[homeIdx].r*cs+cs/2;}
+    else{const pathCell=COLOR_PATH[myColor][p.pos];if(!pathCell)continue;px=pathCell.c*cs+cs/2;py=pathCell.r*cs+cs/2;}
+    const dist=Math.hypot(x-px,y-py);
+    if(dist<cs*0.45){
+      // Clicked this piece
+      const canMove=(p.pos===-1&&dice===6)||(p.pos>=0&&p.pos+dice<COLOR_PATH[myColor].length);
+      if(canMove){movePiece(i,dice);return;}
+    }
+  }
+}
+
+async function movePiece(pieceIdx,dice){
+  if(!roomId||!pieces||!myColor)return;
+  canvas.onclick=null;
+  const p=pieces[myColor][pieceIdx];
+  let newPos;
+  let eventMsg='';
+  const pathLen=COLOR_PATH[myColor].length;
+  if(p.pos===-1&&dice===6){
+    newPos=0;
+    eventMsg=`🟢 ${myColor} piece entered the board!`;
+  } else {
+    newPos=p.pos+dice;
+    if(newPos>=pathLen-1){
+      pieces[myColor][pieceIdx].finished=true;
+      pieces[myColor][pieceIdx].pos=pathLen-1;
+      eventMsg=`🏠 ${myColor} piece reached home!`;
+      addEvent(eventMsg,'move');
+      // Check win
+      const allHome=pieces[myColor].every(p=>p.finished);
+      if(allHome){
+        await finishGame();return;
+      }
+    } else {
+      pieces[myColor][pieceIdx].pos=newPos;
+      eventMsg=`♟ ${myColor} moved piece ${pieceIdx+1}`;
+      // Check if landed on another piece (capture)
+      await checkCapture(newPos,myColor);
+    }
+  }
+  addEvent(eventMsg,'move');
+  // Save and advance turn
+  const order=RD.turnOrder||COLORS;
+  const ci=order.indexOf(RD.currentTurn);
+  const next=dice===6?myColor:order[(ci+1)%order.length];// Roll 6 = extra turn
+  await update(ref(rtdb,'ludo_rooms/'+roomId),{
+    pieces:JSON.stringify(pieces),
+    currentTurn:next,diceVal:null,diceRolled:false,
+    turnStartedAt:Date.now(),lastActivity:Date.now()
+  });
+  if(dice===6)addEvent(`🎲 ${myColor} gets an extra turn for rolling 6!`,'system');
+}
+
+async function checkCapture(pos,color){
+  for(const c of COLORS){
+    if(c===color||!pieces[c])continue;
+    pieces[c].forEach((p,i)=>{
+      if(p.pos===pos&&p.pos!==-1&&!p.finished){
+        // Check if safe square
+        const cell=COLOR_PATH[c][p.pos];
+        const isSafe=LUDO_PATH.safeSquares.some(s=>s.r===cell.r&&s.c===cell.c);
+        if(!isSafe){
+          pieces[c][i].pos=-1;// Send back to yard
+          addEvent(`💥 ${color} captured ${c}'s piece! It went back to yard.`,'capture');
+        }
+      }
+    });
+  }
+}
+
+async function finishGame(){
+  if(!roomId||!myColor)return;
+  const players=RD.players||{};
+  const entryFee=RD.entryFee||ENTRY_FEE;
+  const playerCount=Object.values(players).length;
+  const prize=Math.floor(playerCount*entryFee*(1-PLATFORM_CUT));
+  // Update winner balance
+  const newBal=(UD.balance||0)+prize;
+  await setDoc(doc(db,'users',CU.uid),{balance:newBal},{merge:true});
+  UD.balance=newBal;
+  // Mark room finished
+  await update(ref(rtdb,'ludo_rooms/'+roomId),{
+    status:'finished',winnerId:CU.uid,winnerName:UD.displayName||'Player',
+    winnerColor:myColor,prize,finishedAt:Date.now(),pieces:JSON.stringify(pieces)
+  });
+  showTxTicker('credit','🏆 <b>You won!</b> Prize credited',prize);
+  await saveHistory('win','Opponents',prize,playerCount);
+}
+
+function handleGameFinished(d){
+  clearInterval(turnTimerInterval);
+  const iWon=d.winnerId===CU?.uid;
+  const winnerName=d.winnerName||'Player';
+  const prize=d.prize||0;
+  document.getElementById('resultEmoji').textContent=iWon?'🏆':'😔';
+  document.getElementById('resultTitle').textContent=iWon?'YOU WIN!':'GAME OVER';
+  document.getElementById('resultSub').textContent=iWon?'Congratulations! You won the match!':`${esc(winnerName)} won this match`;
+  document.getElementById('resultPrize').textContent=iWon?`+${fmtBal(prize)}`:'';
+  document.getElementById('ludoResultOverlay').classList.add('show');
+  if(!iWon&&!RD?._savedLoss){
+    RD._savedLoss=true;
+    const opponentName=d.winnerName||'Opponent';
+    saveHistory('loss',opponentName,0,Object.values(d.players||{}).length);
+  }
+}
+
+async function advanceTurn(){
+  if(!roomId||!RD)return;
+  const order=RD.turnOrder||COLORS;
+  const ci=order.indexOf(RD.currentTurn);
+  const next=order[(ci+1)%order.length];
+  await update(ref(rtdb,'ludo_rooms/'+roomId),{
+    currentTurn:next,diceVal:null,diceRolled:false,
+    turnStartedAt:Date.now(),lastActivity:Date.now()
+  });
+}
+
+/* ══════════════════════════════════════════
+   GAME CHAT + EVENTS
+══════════════════════════════════════════ */
+function addEvent(text,type){
+  const ec=document.getElementById('eventsContainer');
+  if(!ec)return;
+  const now=new Date();
+  const time=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+  const colors={red:'#ef4444',blue:'#3b82f6',green:'#22c55e',yellow:'#f59e0b'};
+  const matchColor=Object.keys(colors).find(c=>text.toLowerCase().includes(c));
+  const color=matchColor?colors[matchColor]:'#888';
+  const item=document.createElement('div');
+  item.className='join-event';
+  item.innerHTML=`<div class="je-color" style="background:${color}"></div><div class="je-text">${text}</div><div class="je-time">${time}</div>`;
+  ec.insertBefore(item,ec.firstChild);
+  // Keep max 20 events
+  while(ec.children.length>20)ec.removeChild(ec.lastChild);
+}
+
+function loadGameChat(id){
+  if(chatOff){chatOff();chatOff=null;}
+  chatOff=onValue(ref(rtdb,'ludo_chat/'+id),snap=>{
+    const msgs=snap.val()||{};
+    const box=document.getElementById('ludoChatMessages');
+    if(!box)return;
+    const sorted=Object.values(msgs).sort((a,b)=>(a.ts||0)-(b.ts||0));
+    box.innerHTML=sorted.map(m=>{
+      if(m.system)return`<div class="chat-sys-msg">${esc(m.text)}</div>`;
+      const av=m.photo?`<img src="${esc(m.photo)}" alt="">`:`<span>${esc((m.name||'?')[0])}</span>`;
+      return`<div class="chat-msg-item"><div class="chat-msg-av">${av}</div><div class="chat-msg-body"><div class="chat-msg-name" style="color:${COLOR_HEX[m.color]||'#888'}">${esc(m.name||'?')}</div><div class="chat-msg-text">${esc(m.text)}</div></div></div>`;
+    }).join('');
+    box.scrollTop=box.scrollHeight;
+  });
+}
+
+window.sendLudoChat=async function(){
+  const inp=document.getElementById('ludoChatInput');const t=(inp.value||'').trim();if(!t||!roomId)return;
+  const blocked=['fuck','shit','bitch','asshole','nigger','kaffir'];
+  if(blocked.some(w=>t.toLowerCase().includes(w))){toast('Inappropriate language','warn');inp.value='';return;}
+  inp.value='';
+  await push(ref(rtdb,'ludo_chat/'+roomId),{uid:CU.uid,name:UD?.displayName||'Player',photo:UD?.photoURL||'',color:myColor||'red',text:t,ts:Date.now()});
+};
+document.getElementById('ludoChatInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')window.sendLudoChat();});
+
+window.switchLudoTab=function(name){
+  ['events','chat'].forEach(t=>{
+    document.getElementById('lst-'+t).classList.toggle('active',t===name);
+    document.getElementById('lsp-'+t).classList.toggle('active',t===name);
+  });
+};
+
+/* ══════════════════════════════════════════
+   LEAVE GAME
+══════════════════════════════════════════ */
+window.askLeaveGame=function(){
+  if(gameStarted&&RD?.status==='playing'){
+    if(!confirm('Leaving a game in progress will count as a loss. Continue?'))return;
+  }
+  leaveGame();
+};
+
+window.leaveGame=function(){
+  document.getElementById('ludoResultOverlay').classList.remove('show');
+  cleanupGame();
+  showDash();
+  refreshDashUI();
+};
+
+function cleanupGame(){
+  clearInterval(turnTimerInterval);
+  if(gameOff){gameOff();gameOff=null;}
+  if(chatOff){chatOff();chatOff=null;}
+  // Remove player from room if waiting
+  if(roomId&&CU&&RD?.status==='waiting'){
+    const players=Object.values(RD.players||{});
+    if(players.length<=1){
+      remove(ref(rtdb,'ludo_rooms/'+roomId)).catch(()=>{});
+    } else {
+      remove(ref(rtdb,'ludo_rooms/'+roomId+'/players/'+CU.uid)).catch(()=>{});
+    }
+  }
+  roomId=null;RD=null;myColor=null;gameStarted=false;
+  currentDice=0;myTurnActive=false;pieces=initPieces();
+  document.getElementById('waitingOverlay').classList.remove('hidden');
+}
+
+// Resize canvas on window resize
+window.addEventListener('resize',()=>{
+  if(document.getElementById('ludoGameView').classList.contains('active')){
+    requestAnimationFrame(()=>{initCanvas();drawBoard();});
+  }
+});
+
+// Prevent navigating away during game
+window.addEventListener('beforeunload',e=>{
+  if(RD?.status==='playing'){e.preventDefault();e.returnValue='You are in a game!';}
+});
+
+// Remove splash on load if already removed
+window.addEventListener('load',()=>{
+  setTimeout(()=>window._removeSplash&&window._removeSplash(),3000);
+});
+
+document.querySelectorAll('.auth-overlay input').forEach(inp=>{
+  inp.addEventListener('blur',()=>{if(!inp.value.trim())return;const err=validate(inp);const el=document.getElementById(inp.id+'-err');if(el&&err){el.textContent=err;el.style.display='block';}});
+  inp.addEventListener('input',()=>{const el=document.getElementById(inp.id+'-err');if(el){el.textContent='';el.style.display='none';}});
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!roomId)closeAll();});
 </script>
 
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
-    // ── Download notification (isolated IIFE — no conflicts) ──
-    (function() {
-        'use strict';
-        function createDownloadNotification() {
-            if (window.matchMedia('(display-mode: standalone)').matches ||
-                window.navigator.standalone ||
-                document.referrer.includes('android-app://')) return;
-            var isApple = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
-            if (isApple) return;
-            var ua = navigator.userAgent.toLowerCase();
-            var isWebView = /(webview|wv)/.test(ua) || (/android/.test(ua) && /wv/.test(ua));
-            var isMobile = /android|windows phone/.test(ua);
-            var isDesktop = !/(android|iphone|ipad|ipod|windows phone)/i.test(ua);
-            if (!isMobile || isWebView || isDesktop) return;
-
-            var isAndroid = /android/.test(ua);
-            var brandGradient = 'linear-gradient(135deg,#0f0f0f 0%,#3a3a3a 40%,#626262 70%,#a6a6a6 100%)';
-            var brandDark = '#3a3a3a';
-            var brandMid = '#626262';
-
-            var notification = document.createElement('div');
-            notification.id = 'dlNotif';
-            notification.style.cssText = [
-                'position:fixed','bottom:80px','left:50%',
-                'transform:translateX(-50%) translateY(120px)',
-                'background:#1a1a1a',
-                'color:#fff',
-                'padding:14px 16px',
-                'border-radius:18px',
-                'font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif',
-                'box-shadow:0 6px 24px rgba(0,0,0,0.5)',
-                'display:flex','align-items:center','gap:12px',
-                'opacity:0',
-                'transition:all 0.45s cubic-bezier(0.4,0,0.2,1)',
-                'z-index:99999','max-width:92%','width:auto',
-                'border:1px solid #3a3a3a'
-            ].join(';');
-
-            var iconEl = document.createElement('div');
-            iconEl.innerHTML = '<svg width="36" height="36" viewBox="0 0 36 36"><defs><linearGradient id="dlGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0f0f0f"/><stop offset="50%" stop-color="#626262"/><stop offset="100%" stop-color="#a6a6a6"/></linearGradient></defs><circle cx="18" cy="18" r="18" fill="url(#dlGrad)"/><text x="50%" y="50%" text-anchor="middle" fill="#fff" font-size="15" font-weight="700" dy=".35em" font-family="sans-serif">N</text></svg>';
-
-            var textEl = document.createElement('div');
-            textEl.innerHTML = '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:3px;">Get the App</div>'
-                + '<div style="font-size:11px;color:rgba(255,255,255,0.55);">' + (isAndroid ? 'Download for Android' : 'Download for Windows') + '</div>';
-
-            var btnWrap = document.createElement('div');
-            btnWrap.style.cssText = 'display:flex;gap:8px;margin-left:8px;flex-shrink:0;';
-
-            var installBtn = document.createElement('button');
-            installBtn.textContent = 'Install';
-            installBtn.style.cssText = 'background:linear-gradient(135deg,#3a3a3a,#8f8f8f);color:#fff;border:none;padding:7px 14px;border-radius:20px;font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap;';
-
-            var cancelBtn = document.createElement('button');
-            cancelBtn.textContent = 'Later';
-            cancelBtn.style.cssText = 'background:transparent;color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.25);padding:7px 12px;border-radius:20px;font-weight:500;font-size:12px;cursor:pointer;white-space:nowrap;';
-
-            function hide() {
-                notification.style.opacity = '0';
-                notification.style.transform = 'translateX(-50%) translateY(120px)';
-                setTimeout(function(){ if (notification.parentNode) notification.parentNode.removeChild(notification); }, 500);
-            }
-
-            installBtn.onclick = function() {
-                var url = isAndroid ? 'https://median.co/share/zjajxa#apk' : 'https://median.co/share/bzqkem#apk';
-                var a = document.createElement('a');
-                a.href = url; a.download = 'app.apk';
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                hide();
-            };
-            cancelBtn.onclick = hide;
-
-            btnWrap.appendChild(installBtn);
-            btnWrap.appendChild(cancelBtn);
-            notification.appendChild(iconEl);
-            notification.appendChild(textEl);
-            notification.appendChild(btnWrap);
-            document.body.appendChild(notification);
-
-            setTimeout(function() {
-                notification.style.opacity = '1';
-                notification.style.transform = 'translateX(-50%) translateY(0)';
-            }, 600);
-
-            setTimeout(hide, 20000);
-        }
-        if (document.readyState === 'complete') {
-            var delay = Math.floor(Math.random() * 60000) + 30000; // 30–90 seconds
-            setTimeout(createDownloadNotification, delay);
-        } else {
-            window.addEventListener('load', function() {
-                var delay = Math.floor(Math.random() * 60000) + 30000;
-                setTimeout(createDownloadNotification, delay);
-            }, { once: true });
-        }
-    })();
-    </script>
-    <script>
-  // Immediately hide everything to prevent flickering  
-  document.documentElement.style.visibility = 'hidden';
-  
-  // Check local storage for theme preference from the page  
-  const themePreference = localStorage.getItem('twitter-theme') || 'light';
-  
-  // Define luxury gradient (static but refined)  
-  const luxuryGradient = `linear-gradient(
-    135deg,  
-    #0f0f0f 0%,  
-    #1c1c1c 15%,  
-    #3a3a3a 30%,  
-    #4d4d4d 45%,  
-    #626262 60%,  
-    #787878 75%,  
-    #8f8f8f 90%,  
-    #a6a6a6 100%
-  )`;
-  
-  // Create splash screen container  
-  const splashScreen = document.createElement('div');
-  splashScreen.style.cssText = `  
-    position: fixed;  
-    top: 0;  
-    left: 0;  
-    width: 100vw;  
-    height: 100vh;  
-    background-color: ${themePreference === 'light' ? '#f7f9fa' : themePreference === 'dim' ? '#15202b' : '#000000'};  
-    display: flex;  
-    flex-direction: column;  
-    justify-content: center;  
-    align-items: center;  
-    z-index: 9999;  
-    opacity: 1;  
-    transition: opacity 0.5s ease-in-out;  
-  `;
-  
-  // Create content wrapper  
-  const contentWrapper = document.createElement('div');
-  contentWrapper.style.cssText = `  
-    position: relative;  
-    height: 100%;  
-    width: 100%;  
-    display: flex;  
-    flex-direction: column;  
-    justify-content: center;  
-    align-items: center;  
-  `;
-  
-  // Create logo container - positioned in the middle  
-  const logoContainer = document.createElement('div');
-  logoContainer.style.cssText = `  
-    position: absolute;  
-    top: 50%;  
-    left: 50%;  
-    transform: translate(-50%, -50%);  
-    width: 96px;  
-    height: 96px;  
-    display: flex;  
-    justify-content: center;  
-    align-items: center;  
-  `;
-  
-  // Add style for the circle border (now thicker and more polished)
-  const styleElement = document.createElement('style');
-  styleElement.textContent = `  
-    #splash-screen-logo::before {  
-        content: '';  
-        position: absolute;  
-        top: -8px;  
-        left: -8px;  
-        right: -8px;  
-        bottom: -8px;  
-        border-radius: 50%;  
-        background: ${luxuryGradient};  
-        -webkit-mask:   
-            linear-gradient(#fff 0 0) content-box,   
-            linear-gradient(#fff 0 0);  
-        -webkit-mask-composite: xor;  
-        mask-composite: exclude;  
-        border: 8px solid transparent;  
-        z-index: 1;
-        padding: 2px; /* Adds smoothness to the gradient edge */
-    }  
-  `;
-  
-  document.head.appendChild(styleElement);
-  
-  // Logo design with refined gradient border  
-  const logoPlaceholder = document.createElement('div');
-  logoPlaceholder.id = 'splash-screen-logo';
-  logoPlaceholder.style.cssText = `  
-    width: 100%;  
-    height: 100%;  
-    border-radius: 50%;  
-    display: flex;  
-    justify-content: center;  
-    align-items: center;  
-    position: relative;  
-    background: ${themePreference === 'light' ? '#f7f9fa' : themePreference === 'dim' ? '#15202b' : '#000000'};
-  `;
-  
-  const logoText = document.createElement('span');
-  logoText.textContent = 'N';
-  logoText.style.cssText = `  
-    font-size: 48px;  
-    font-weight: 700;  
-    background: ${luxuryGradient};  
-    -webkit-background-clip: text;  
-    background-clip: text;  
-    color: transparent;  
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;  
-    z-index: 2;  
-    letter-spacing: -2px;
-    letter-spacing: -2px;
-  `;
-  logoPlaceholder.appendChild(logoText);
-  logoContainer.appendChild(logoPlaceholder);
-  
-  // Create company info container at the bottom  
-  const companyInfoContainer = document.createElement('div');
-  companyInfoContainer.style.cssText = `  
-    position: absolute;  
-    bottom: 15%;  
-    left: 50%;  
-    transform: translateX(-50%);  
-    display: flex;  
-    flex-direction: column;  
-    align-items: center;  
-    text-align: center;
-  `;
-  
-  // Create "from" text (more elegant)
-  const tagline = document.createElement('div');
-  tagline.style.cssText = `  
-    font-size: 14px;  
-    color: ${themePreference === 'light' ? '#657786' : '#8899a6'};  
-    margin-bottom: 6px;  
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;  
-    font-weight: 400;
-    letter-spacing: 0.5px;
-    opacity: 0.8;
-  `;
-  tagline.textContent = 'from';
-  
-  // Create company name with refined gradient
-  const companyName = document.createElement('h1');
-  companyName.textContent = 'nmedea';
-  companyName.className = 'splash-name-shimmer';
-  companyName.style.cssText = `  
-    font-size: 24px;  
-    font-weight: 600;  
-    margin: 0;  
-    letter-spacing: 0.8px;  
-    background: ${luxuryGradient};  
-    -webkit-background-clip: text;  
-    background-clip: text;  
-    color: transparent;  
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;  
-    text-transform: lowercase;
-  `;
-  
-  // Append elements  
-  companyInfoContainer.appendChild(tagline);
-  companyInfoContainer.appendChild(companyName);
-  contentWrapper.appendChild(logoContainer);
-  contentWrapper.appendChild(companyInfoContainer);
-  splashScreen.appendChild(contentWrapper);
-  
-  // Shimmer on logo circle + company name only (not full screen)
-  const shimmerStyle = document.createElement('style');
-  shimmerStyle.textContent = `
-    @keyframes logoShimmer {
-      0%   { transform: translateX(-200%) skewX(-18deg); }
-      100% { transform: translateX(400%)  skewX(-18deg); }
-    }
-    @keyframes nameShimmer {
-      0%   { transform: translateX(-250%) skewX(-18deg); }
-      100% { transform: translateX(500%)  skewX(-18deg); }
-    }
-    .splash-logo-shimmer {
-      position: absolute;
-      inset: 0;
-      overflow: hidden;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 5;
-    }
-    .splash-logo-shimmer::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0;
-      width: 40%; height: 100%;
-      background: linear-gradient(
-        105deg,
-        transparent 0%,
-        transparent 30%,
-        rgba(255,255,255,0.28) 50%,
-        transparent 70%,
-        transparent 100%
-      );
-      animation: logoShimmer 2.8s cubic-bezier(0.4,0,0.2,1) infinite;
-    }
-    .splash-name-shimmer {
-      position: relative;
-      overflow: hidden;
-      display: inline-block;
-    }
-    .splash-name-shimmer::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0;
-      width: 35%; height: 100%;
-      background: linear-gradient(
-        105deg,
-        transparent 0%,
-        rgba(255,255,255,0.35) 50%,
-        transparent 100%
-      );
-      animation: nameShimmer 2.8s cubic-bezier(0.4,0,0.2,1) infinite;
-      animation-delay: 0.4s;
-    }
-  `;
-  document.head.appendChild(shimmerStyle);
-  // Add shimmer overlay inside logo circle
-  const shimmerEl = document.createElement('div');
-  shimmerEl.className = 'splash-logo-shimmer';
-  logoPlaceholder.appendChild(shimmerEl);
-
-  // Add to body immediately  
-  document.body.insertBefore(splashScreen, document.body.firstChild);
-  
-  // Show the splash screen immediately  
-  document.documentElement.style.visibility = 'visible';
-  
-  // Find and hide the auth container if it exists  
-  const hideAuthContainer = () => {
-    const authContainer = document.querySelector('.auth-container');
-    if (authContainer) {
-      authContainer.style.opacity = '0';
-      authContainer.style.pointerEvents = 'none';
-      authContainer.style.position = 'fixed';
-      authContainer.style.top = '-100%';
-    }
-  };
-  
-  // Try to hide the auth container  
-  hideAuthContainer();
-  
-  // Give it another try after a delay in case DOM isn't ready  
-  setTimeout(hideAuthContainer, 100);
-  
-  // Remove splash screen and show content  
-  const removeSplashScreen = () => {
-    splashScreen.style.opacity = '0';
-    
-    setTimeout(() => {
-      if (document.body.contains(splashScreen)) {
-        document.body.removeChild(splashScreen);
-      }
-      
-      // Restore any hidden containers  
-      const authContainer = document.querySelector('.auth-container');
-      if (authContainer) {
-        authContainer.style.position = 'static';
-        authContainer.style.top = '0';
-        authContainer.style.opacity = '1';
-        authContainer.style.pointerEvents = 'auto';
-      }
-    }, 500);
-  };
-  
-  // Remove after 2.5 seconds then reveal the app
-  setTimeout(removeSplashScreen, 2500);
-  setTimeout(function() {
-    var frame = document.getElementById('appFrame');
-    if (frame) frame.style.opacity = '1';
-  }, 3100);
-  
-  // Expose a method to easily replace the logo  
-  window.replaceSplashScreenLogo = (logoUrl) => {
-    const logoElement = document.getElementById('splash-screen-logo');
-    if (logoElement) {
-      // Clear existing content  
-      logoElement.innerHTML = '';
-      
-      // Create and append new logo image  
-      const logoImage = document.createElement('img');
-      logoImage.src = logoUrl;
-      logoImage.style.cssText = `  
-        width: 100%;  
-        height: 100%;  
-        object-fit: contain;  
-        border-radius: 50%;
-      `;
-      logoElement.appendChild(logoImage);
-    }
-  };
+window.OneSignalDeferred=window.OneSignalDeferred||[];
+OneSignalDeferred.push(async function(OneSignal){await OneSignal.init({appId:'b7b291e1-5bd8-46b6-b698-ade4de650caa'});});
 </script>
 </body>
 </html>
