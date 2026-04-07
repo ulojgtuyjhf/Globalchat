@@ -3,18 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Yoco Live Payment Example - R2</title>
-  <!-- Yoco JS SDK -->
-  <script src="https://js.yoco.com/v1/yoco-sdk.js"></script>
+  <title>Pay R2</title>
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: Arial, sans-serif;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       height: 100vh;
       background-color: #f4f4f4;
+      gap: 16px;
     }
+    h2 { color: #333; }
     #payButton {
       padding: 15px 30px;
       font-size: 18px;
@@ -24,39 +26,67 @@
       border-radius: 8px;
       cursor: pointer;
     }
-    #payButton:hover {
-      background-color: #0f68c1;
+    #payButton:hover { background-color: #0f68c1; }
+    #status {
+      font-size: 14px;
+      color: #666;
     }
   </style>
 </head>
 <body>
 
+  <h2>Test Product - R2</h2>
   <button id="payButton">Pay Now R2</button>
+  <p id="status">Click the button to pay</p>
 
   <script>
-    // Initialize Yoco with your Live Public Key
-    const yoco = new Yoco({
-      publicKey: 'pk_live_3fa50d60wE6ZogWa2474'
-    });
-
     const payButton = document.getElementById('payButton');
+    const status = document.getElementById('status');
 
-    payButton.addEventListener('click', function() {
-      yoco.showPopup({
-        amountInCents: 200, // R2 in cents
+    payButton.addEventListener('click', function () {
+      status.textContent = 'Opening payment...';
+
+      // Build Yoco payment URL
+      const params = new URLSearchParams({
+        publicKey: 'pk_live_3fa50d60wE6ZogWa2474',
+        amount: '200',
         currency: 'ZAR',
         name: 'Test Product',
-        description: 'This is a test purchase',
-        callback: function(response) {
-          if (response.error) {
-            alert('Payment failed: ' + response.error.message);
-          } else {
-            console.log('Payment token: ', response.id);
-            alert('Payment successful! Token: ' + response.id);
-            // Normally, send this token to your server to charge the card
-          }
-        }
+        description: 'This is a test purchase'
       });
+
+      // Load Yoco SDK dynamically
+      const script = document.createElement('script');
+      script.src = 'https://js.yoco.com/v1/yoco-sdk.js';
+
+      script.onload = function () {
+        status.textContent = 'SDK loaded! Opening popup...';
+        const yoco = new Yoco({
+          publicKey: 'pk_live_3fa50d60wE6ZogWa2474'
+        });
+        yoco.showPopup({
+          amountInCents: 200,
+          currency: 'ZAR',
+          name: 'Test Product',
+          description: 'This is a test purchase',
+          callback: function (response) {
+            if (response.error) {
+              status.textContent = 'Payment failed: ' + response.error.message;
+              alert('Payment failed: ' + response.error.message);
+            } else {
+              status.textContent = 'Payment successful! Token: ' + response.id;
+              alert('Payment successful! Token: ' + response.id);
+            }
+          }
+        });
+      };
+
+      script.onerror = function () {
+        status.textContent = 'SDK failed to load - check your internet connection';
+        alert('Could not load Yoco SDK. Please check your internet connection.');
+      };
+
+      document.body.appendChild(script);
     });
   </script>
 
