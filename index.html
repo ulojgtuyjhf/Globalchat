@@ -2984,7 +2984,7 @@ window.addEventListener('beforeunload',e=>{
   attachScrollListener();
 })();
 
-// ═══════ ADD FUNDS / YOCO CHECKOUT ═══════
+// ═══════ ADD FUNDS / YOCO IFRAME PAYMENT ═══════
 const VAL_URL='https://katlegomashilwane--0cc35f74362e11f18cb942b51c65c3df.web.val.run';
 let _selAmt=0;
 
@@ -3003,6 +3003,12 @@ window.closeAddFunds=function(){
   document.getElementById('addFundsOverlay').classList.remove('open');
 };
 
+window.closePaymentFrame=function(){
+  const frame=document.getElementById('yocoFrameOverlay');
+  frame.style.display='none';
+  document.getElementById('yocoFrame').src='';
+};
+
 window.selectFundsAmt=function(el,amount){
   _selAmt=amount;
   document.querySelectorAll('.funds-amt-btn').forEach(b=>b.classList.remove('selected'));
@@ -3016,10 +3022,8 @@ window.startYocoPayment=async function(){
   const btn=document.getElementById('fundsPayBtn');
   const status=document.getElementById('fundsStatus');
   btn.disabled=true;btn.style.opacity='.6';
-  status.textContent='Creating payment…';
+  status.textContent='Loading payment…';
   const amt=_selAmt;
-  const successUrl=window.location.href.split('?')[0];
-  const cancelUrl=window.location.href.split('?')[0];
   try{
     const res=await fetch(VAL_URL,{
       method:'POST',
@@ -3033,12 +3037,17 @@ window.startYocoPayment=async function(){
     });
     const data=await res.json();
     if(data.success&&data.redirectUrl){
-      // Save pending payment to Firestore so we can verify on return
+      // Save pending payment in Firestore
       await updateDoc(doc(db,'sw_users',CU.uid),{
         pendingPayment:{amount:amt,checkoutId:data.checkoutId,ts:Date.now()}
       });
-      // Redirect user to Yoco hosted payment page
-      window.location.href=data.redirectUrl;
+      // Close the amount selector
+      window.closeAddFunds();
+      // Open Yoco payment page inside fullscreen iframe — stays in app
+      const frame=document.getElementById('yocoFrameOverlay');
+      const iframe=document.getElementById('yocoFrame');
+      iframe.src=data.redirectUrl;
+      frame.style.display='flex';
     }else{
       status.textContent=data.error||'Could not start payment. Try again.';
       btn.disabled=false;btn.style.opacity='1';
@@ -3049,44 +3058,79 @@ window.startYocoPayment=async function(){
   }
 };
 
-// On page load — check if returning from successful Yoco payment
+// Listen for Yoco success inside iframe via postMessage or URL polling
+(function(){
+  // Poll the iframe URL every second — when it hits nmedea.com it means payment done
+  let _iframePoll=null;
+  const _startPoll=function(){
+    if(_iframePoll)clearInterval(_iframePoll);
+    _iframePoll=setInterval(async()=>{
+      const iframe=document.getElementById('yocoFrame');
+      if(!iframe||!iframe.src)return;
+      let iframeUrl='';
+      try{iframeUrl=iframe.contentWindow.location.href;}catch(e){return;}// cross-origin blocks this
+      if(iframeUrl&&iframeUrl.includes('nmedea.com')){
+        clearInterval(_iframePoll);_iframePoll=null;
+        window.closePaymentFrame();
+        await _creditPendingPayment();
+      }
+    },1000);
+  };
+  // Start polling when iframe opens
+  const observer=new MutationObserver(()=>{
+    const frame=document.getElementById('yocoFrameOverlay');
+    if(frame&&frame.style.display==='flex')_startPoll();
+    else{if(_iframePoll)clearInterval(_iframePoll);_iframePoll=null;}
+  });
+  document.addEventListener('DOMContentLoaded',()=>{
+    const frame=document.getElementById('yocoFrameOverlay');
+    if(frame)observer.observe(frame,{attributes:true,attributeFilter:['style']});
+  });
+})();
+
+// Credit balance from Firestore pendingPayment
+async function _creditPendingPayment(){
+  if(!CU)return;
+  try{
+    const snap=await getDoc(doc(db,'sw_users',CU.uid));
+    if(!snap.exists())return;
+    const d=snap.data();
+    if(!d.pendingPayment)return;
+    const amt=d.pendingPayment.amount;
+    const newBal=(d.balance||0)+amt;
+    await updateDoc(doc(db,'sw_users',CU.uid),{
+      balance:newBal,
+      totalDeposited:increment(amt),
+      pendingPayment:null
+    });
+    UD.balance=newBal;
+    refreshLobbyUI();
+    toast('💰 R'+amt+' added! Balance: R'+newBal.toFixed(2),'gold');
+  }catch(e){
+    toast('Payment done but update failed — contact support','red');
+    console.error(e);
+  }
+}
+
+// Also handle direct URL return (browser fallback)
 (async function checkPaymentReturn(){
   const params=new URLSearchParams(window.location.search);
   const uid=params.get('uid');
   const amount=parseInt(params.get('amount'));
   if(!uid||!amount)return;
-  // Clean URL immediately so refresh doesn't re-trigger
   window.history.replaceState({},'',window.location.pathname);
-  // Store in sessionStorage so we can process after auth loads
   sessionStorage.setItem('pendingPayment',JSON.stringify({uid,amount}));
 })();
 
-// Called after auth is confirmed — processes any pending payment from Yoco redirect
 async function processPendingPayment(){
   const raw=sessionStorage.getItem('pendingPayment');
-  if(!raw)return;
-  sessionStorage.removeItem('pendingPayment');
-  let uid,amount;
-  try{const p=JSON.parse(raw);uid=p.uid;amount=p.amount;}catch(e){return;}
-  if(!CU||CU.uid!==uid){console.warn('Payment uid mismatch');return;}
-  try{
-    const snap=await getDoc(doc(db,'sw_users',uid));
-    if(!snap.exists())return;
-    const d=snap.data();
-    const amtRands=amount/100;
-    const newBal=(d.balance||0)+amtRands;
-    await updateDoc(doc(db,'sw_users',uid),{
-      balance:newBal,
-      totalDeposited:increment(amtRands),
-      pendingPayment:null
-    });
-    UD.balance=newBal;
-    refreshLobbyUI();
-    toast('💰 R'+amtRands+' added! Balance: R'+newBal.toFixed(2),'gold');
-  }catch(e){
-    console.error('Payment credit error:',e);
-    toast('Payment received but balance update failed — contact support','red');
+  if(raw){
+    sessionStorage.removeItem('pendingPayment');
+    await _creditPendingPayment();
+    return;
   }
+  // Also check Firestore directly in case iframe redirect worked
+  await _creditPendingPayment();
 }
 </script>
 
@@ -3516,6 +3560,15 @@ function applyTranslations(){
 .funds-amt-btn{padding:14px 8px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--white);font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:1px;cursor:pointer;text-align:center;transition:all .2s;}
 .funds-amt-btn.selected{border-color:var(--brand)!important;background:rgba(230,57,70,.12)!important;color:var(--brand)!important;}
 </style>
+
+<!-- ═══════ YOCO PAYMENT IFRAME ═══════ -->
+<div id="yocoFrameOverlay" style="display:none;position:fixed;inset:0;z-index:999999;background:#000;flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#111;flex-shrink:0;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#fff;">💳 SECURE PAYMENT</div>
+    <button onclick="closePaymentFrame()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;padding:8px 14px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">✕ Cancel</button>
+  </div>
+  <iframe id="yocoFrame" src="" style="flex:1;width:100%;border:none;background:#fff;" allow="payment"></iframe>
+</div>
 
 </body>
 </html>
