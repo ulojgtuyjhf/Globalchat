@@ -1181,6 +1181,14 @@ body.dark-theme .slink.red{color:#f87171;}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
           Animations: ON
         </button>
+        <button class="dismiss-btn" onclick="toggleMinimap()" id="minimapToggleLabel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          Map: ON
+        </button>
+        <button class="dismiss-btn" onclick="toggleHideHP()" id="hideHPLabel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          Hide My HP: OFF
+        </button>
         <button class="leave-btn" onclick="closeGearPanel();askLeaveGame()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           Leave Battle
@@ -1192,7 +1200,7 @@ body.dark-theme .slink.red{color:#f87171;}
       </div>
     </div>
     <div class="ingame-killfeed" id="ingameKillfeed"></div>
-    <div class="minimap-wrap">
+    <div class="minimap-wrap" id="minimapWrap">
       <div class="minimap-label">MAP</div>
       <canvas id="minimapCanvas"></canvas>
     </div>
@@ -1241,10 +1249,14 @@ body.dark-theme .slink.red{color:#f87171;}
   </div>
 </div>
 
-<div id="deathBanner" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9200;background:rgba(0,0,0,.9);border:1px solid rgba(239,68,68,.3);border-radius:18px;padding:24px 36px;text-align:center;backdrop-filter:blur(14px);pointer-events:none;transition:opacity .6s;">
-  <div style="display:flex;align-items:center;justify-content:center;width:64px;height:64px;margin:0 auto 8px;border-radius:50%;background:rgba(239,68,68,.15)"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>
-  <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;color:#ef4444">ELIMINATED</div>
-  <div style="font-size:13px;color:rgba(255,255,255,.5);margin-top:6px">Spectating the battle…</div>
+<div id="deathBanner" style="display:none;position:fixed;inset:0;z-index:9200;background:rgba(0,0,0,.92);backdrop-filter:blur(14px);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:32px;">
+  <div style="display:flex;align-items:center;justify-content:center;width:80px;height:80px;margin:0 auto 16px;border-radius:50%;background:rgba(239,68,68,.15);border:2px solid rgba(239,68,68,.3)"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:4px;color:#ef4444;margin-bottom:8px;">ELIMINATED</div>
+  <div id="deathSpectateMsg" style="font-size:14px;color:rgba(255,255,255,.5);margin-bottom:32px;line-height:1.6;">Returning to lobby…</div>
+  <div style="display:flex;gap:12px;justify-content:center;width:100%;max-width:320px;margin:0 auto;">
+    <button onclick="respawnPlayer()" style="flex:1;padding:14px;background:var(--grad);color:#fff;border:none;border-radius:12px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;">⚔ SPAWN AGAIN</button>
+    <button onclick="leaveGame()" style="flex:1;padding:14px;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:12px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;">🏠 LOBBY</button>
+  </div>
 </div>
 
 <!-- victory banner removed -->
@@ -2104,6 +2116,7 @@ let lastFireTime=0;
 let myBullets=MAX_BULLETS;
 let _savedResult=false;
 let _sessionKills=0;
+let _killedSet=new Set();
 let _animEnabled=true,_soundEnabled=true;
 
 // ── FIX 3: Tank movement — clean physics using direct angle approach ──
@@ -2185,7 +2198,7 @@ function initGame(roomId,roomData){
   ctx=canvas.getContext('2d');
   miniCtx=miniCanvas.getContext('2d');
   myUid=CU.uid;gameState=roomData;currentRoomId=roomId;
-  _savedResult=false;_sessionKills=0;
+  _savedResult=false;_sessionKills=0;_killedSet=new Set();
   bullets=[];myBullets=MAX_BULLETS;
   _speed=0;_bodyAngleRad=0;_treadDist=0;_treads=[];
   initBulletIcons();
@@ -2394,7 +2407,7 @@ function drawPlayers(){
     if(!p||!p.alive)return;
     const isMe=p.uid===myUid;
     const color=TANK_COLORS[p.colorIdx%TANK_COLORS.length];
-    drawTank(p.x,p.y,p.angle||0,color,p.name,p.hp||0,isMe,p.uid);
+    drawTank(p.x,p.y,p.angle||0,color,p.name,p.hp||0,isMe,p.uid,isMe?false:p.hideHP);
   });
 }
 
@@ -2421,7 +2434,7 @@ function updateParticles(){
   });
 }
 
-function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid){
+function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP){
   ctx.save();ctx.translate(x,y);
   ctx.fillStyle='rgba(0,0,0,0.25)';
   ctx.beginPath();ctx.ellipse(2,10,32,10,0,0,Math.PI*2);ctx.fill();
@@ -2453,10 +2466,13 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid){
   ctx.font='bold 9px \'Rajdhani\',sans-serif';ctx.textAlign='center';
   ctx.fillStyle=isMe?'#ffffff':'rgba(255,255,255,.8)';
   ctx.fillText((name||'Tank').slice(0,14),0,by-2);
-  ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(bx,by+2,barW,barH);
-  const hpPct=Math.max(0,(hp||0)/498);
-  ctx.fillStyle=hpPct>0.5?'#22c55e':hpPct>0.25?'#f59e0b':'#ef4444';
-  ctx.fillRect(bx,by+2,barW*hpPct,barH);
+  // Only show HP bar if not hidden (hideHP only hides from others, not self)
+  if(isMe||!hideHP){
+    ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(bx,by+2,barW,barH);
+    const hpPct=Math.max(0,(hp||0)/498);
+    ctx.fillStyle=hpPct>0.5?'#22c55e':hpPct>0.25?'#f59e0b':'#ef4444';
+    ctx.fillRect(bx,by+2,barW*hpPct,barH);
+  }
   ctx.restore();
 }
 
@@ -2488,7 +2504,10 @@ async function handleBulletHit(bullet,targetUid,target){
   if(bullet.shooterUid!==myUid)return;
   const newHp=Math.max(0,(target.hp||0)-TANK_DAMAGE);
   await update(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+targetUid),{hp:newHp});
-  if(newHp<=0){await handleKill(targetUid,target);}
+  if(newHp<=0&&!_killedSet.has(targetUid)){
+    _killedSet.add(targetUid);
+    await handleKill(targetUid,target);
+  }
 }
 
 async function handleKill(targetUid,target){
@@ -2827,18 +2846,37 @@ async function handleMyDeath(){
   if(bulletRegenTimer){clearInterval(bulletRegenTimer);bulletRegenTimer=null;}
   await updateDoc(doc(db,'sw_users',CU.uid),{deaths:increment(1)});
   UD.deaths=(UD.deaths||0)+1;
-  await push(ref(rtdb,'sw_history/'+CU.uid),{result:'loss',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:0,lost:ENTRY_FEE,ts:Date.now()});
+  await push(ref(rtdb,'sw_history/'+CU.uid),{result:'loss',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:_sessionKills,lost:0,ts:Date.now()});
+  // Show eliminated screen with options
   const banner=document.getElementById('deathBanner');
-  if(banner){banner.style.display='flex';setTimeout(()=>{banner.style.opacity='0';setTimeout(()=>{banner.style.display='none';banner.style.opacity='1';},600);},4000);}
-  toast('You were eliminated! Spectating…','red');
+  if(banner)banner.style.display='flex';
 }
 
 async function handleWin(){
   if(_soundEnabled)playSound('kill');
-  const prize=(Object.values(gameState?.players||{}).length-1)*KILL_REWARD;
-  await push(ref(rtdb,'sw_history/'+CU.uid),{result:'win',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:1,earned:prize,ts:Date.now()});
+  const prize=_sessionKills*KILL_REWARD;
+  await push(ref(rtdb,'sw_history/'+CU.uid),{result:'win',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:_sessionKills,earned:prize,ts:Date.now()});
   toast(prize>0?'+R'+prize.toFixed(2)+' earned!':'Last tank standing!','gold');
 }
+
+// Spawn again — re-enter same room with fresh HP, deduct entry fee
+window.respawnPlayer=async function(){
+  if(!currentRoomId||!CU)return;
+  const banner=document.getElementById('deathBanner');
+  if(banner)banner.style.display='none';
+  if((UD.balance||0)<ENTRY_FEE){toast('Not enough balance to respawn','red');leaveGame();return;}
+  const newBal=(UD.balance||0)-ENTRY_FEE;
+  await updateDoc(doc(db,'sw_users',CU.uid),{balance:newBal,gamesPlayed:increment(1)});
+  UD.balance=newBal;UD.gamesPlayed=(UD.gamesPlayed||0)+1;
+  const spawnPos=safeSpawnPos();
+  await update(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+CU.uid),{hp:498,bullets:MAX_BULLETS,...spawnPos,angle:0,alive:true,lastActive:Date.now()});
+  _savedResult=false;_sessionKills=0;_killedSet=new Set();
+  myBullets=MAX_BULLETS;updateBulletIcons();
+  if(bulletRegenTimer)clearInterval(bulletRegenTimer);
+  bulletRegenTimer=setInterval(()=>{if(myBullets<MAX_BULLETS){myBullets++;updateBulletIcons();}},BULLET_REGEN_MS);
+  toast('Respawned! -R'+ENTRY_FEE,'gold');
+  refreshLobbyUI();
+};
 
 function listenIngameChat(id){
   if(chatOff){chatOff();chatOff=null;}
@@ -2862,8 +2900,21 @@ window.sendIngameChat=async function(){
 };
 document.getElementById('ingameChatInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')window.sendIngameChat();});
 
-window.toggleGearPanel=function(){document.getElementById('hudGearPanel')?.classList.toggle('open');};
-window.closeGearPanel=function(){document.getElementById('hudGearPanel')?.classList.remove('open');};
+let _minimapVisible=true;
+let _hideHP=false;
+
+window.toggleGearPanel=function(){
+  document.getElementById('hudGearPanel')?.classList.toggle('open');
+  // Hide minimap when gear panel is open
+  const panel=document.getElementById('hudGearPanel');
+  const map=document.getElementById('minimapWrap');
+  if(map)map.style.display=panel?.classList.contains('open')?'none':(_minimapVisible?'block':'none');
+};
+window.closeGearPanel=function(){
+  document.getElementById('hudGearPanel')?.classList.remove('open');
+  const map=document.getElementById('minimapWrap');
+  if(map)map.style.display=_minimapVisible?'block':'none';
+};
 window.toggleSounds=function(){
   _soundEnabled=!_soundEnabled;
   document.getElementById('soundToggleLabel').innerHTML=_soundEnabled
@@ -2878,17 +2929,39 @@ window.toggleAnimations=function(){
     :'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg> Animations: OFF';
   localStorage.setItem('sw_anim',_animEnabled?'1':'0');
 };
+window.toggleMinimap=function(){
+  _minimapVisible=!_minimapVisible;
+  const map=document.getElementById('minimapWrap');
+  if(map)map.style.display=_minimapVisible?'block':'none';
+  const lbl=document.getElementById('minimapToggleLabel');
+  if(lbl)lbl.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Map: '+(_minimapVisible?'ON':'OFF');
+  localStorage.setItem('sw_map',_minimapVisible?'1':'0');
+};
+window.toggleHideHP=function(){
+  _hideHP=!_hideHP;
+  const lbl=document.getElementById('hideHPLabel');
+  if(lbl)lbl.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Hide My HP: '+(_hideHP?'ON':'OFF');
+  localStorage.setItem('sw_hidehp',_hideHP?'1':'0');
+  // Update Firebase so other players see/hide your HP bar
+  if(currentRoomId&&CU)update(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+CU.uid),{hideHP:_hideHP}).catch(()=>{});
+};
 function loadSettings(){
   _soundEnabled=localStorage.getItem('sw_sound')!=='0';
   _animEnabled=localStorage.getItem('sw_anim')!=='0';
+  _minimapVisible=localStorage.getItem('sw_map')!=='0';
+  _hideHP=localStorage.getItem('sw_hidehp')==='1';
   const sl=document.getElementById('soundToggleLabel');
   const al=document.getElementById('animToggleLabel');
+  const ml=document.getElementById('minimapToggleLabel');
+  const hl=document.getElementById('hideHPLabel');
   if(sl)sl.innerHTML=_soundEnabled
     ?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Sound: ON'
     :'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg> Sound: OFF';
   if(al)al.innerHTML=_animEnabled
     ?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg> Animations: ON'
     :'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg> Animations: OFF';
+  if(ml)ml.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Map: '+(_minimapVisible?'ON':'OFF');
+  if(hl)hl.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Hide My HP: '+(_hideHP?'ON':'OFF');
 }
 
 let _leaveTimer=null,_leaveSecs=10;
