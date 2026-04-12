@@ -1134,10 +1134,12 @@ body.dark-theme .slink.red{color:#f87171;}
     <button class="save-profile-btn" id="saveProfileBtn" style="display:none;margin:0 20px 16px" onclick="saveProfile()">Save Changes</button>
     <div class="prof-tabs">
       <div class="ptab active" id="pt-history" onclick="switchProfTab('history')">My Tank</div>
+      <div class="ptab" id="pt-analytics" onclick="switchProfTab('analytics')">Analytics</div>
       <div class="ptab" id="pt-recent" onclick="switchProfTab('recent')">Opponents</div>
     </div>
     <div class="prof-content">
       <div id="pt-content-history" class="prof-history-list"></div>
+      <div id="pt-content-analytics" style="display:none;padding-bottom:20px"></div>
       <div id="pt-content-recent" class="prof-friends" style="display:none"></div>
     </div>
   </div>
@@ -2087,10 +2089,11 @@ function loadRecentOpponents(){
 }
 
 window.switchProfTab=function(name){
-  ['history','recent'].forEach(t=>{
+  ['history','analytics','recent'].forEach(t=>{
     document.getElementById('pt-'+t).classList.toggle('active',t===name);
     document.getElementById('pt-content-'+t).style.display=t===name?'block':'none';
   });
+  if(name==='analytics')loadAnalytics();
 };
 
 // ══════════════════════════════════════════════
@@ -3518,6 +3521,232 @@ function applyTranslations(){
   if(authTagline)authTagline.textContent=t('by_nmedea');
   const authSub=document.querySelector('.welcome-text p');
   if(authSub)authSub.textContent=t('sign_in_play');
+}
+
+
+// ══════════════════════════════════════════════
+//   ANALYTICS — INTERACTIVE LINE GRAPH
+// ══════════════════════════════════════════════
+let _analyticsLoaded=false;
+
+function loadAnalytics(){
+  const el=document.getElementById('pt-content-analytics');
+  if(!el||!CU)return;
+  el.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--dim);font-size:13px">Loading analytics…</div>';
+  _analyticsLoaded=false;
+  onValue(ref(rtdb,'sw_history/'+CU.uid),snap=>{
+    if(_analyticsLoaded)return;
+    _analyticsLoaded=true;
+    const raw=Object.values(snap.val()||{}).sort((a,b)=>(a.ts||0)-(b.ts||0)).slice(-20);
+    renderAnalytics(el,raw);
+  },{onlyOnce:true});
+}
+
+function renderAnalytics(container,raw){
+  if(!raw.length){
+    container.innerHTML='<div style="text-align:center;padding:48px 20px;color:var(--dim)"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:10px;opacity:.4"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><div style="font-size:13px;margin-bottom:4px">No battles yet</div><div style="font-size:11px;opacity:.55">Play some games to see your analytics</div></div>';
+    return;
+  }
+
+  // Summary stats
+  const totalKills=raw.reduce((s,h)=>s+(h.kills||0),0);
+  const totalDeaths=raw.filter(h=>h.result==='loss').length;
+  const totalEarned=raw.reduce((s,h)=>s+(h.earned||0),0);
+  const totalLost=raw.reduce((s,h)=>s+(h.lost||0),0);
+  const netPnl=totalEarned-totalLost;
+  const winRate=raw.length?Math.round((raw.filter(h=>h.result==='win').length/raw.length)*100):0;
+
+  // Build canvas graph
+  const W=320,H=140,PAD={top:18,right:16,bottom:36,left:38};
+  const innerW=W-PAD.left-PAD.right;
+  const innerH=H-PAD.top-PAD.bottom;
+
+  // Data series: kills per game, net per game (earned-lost)
+  const killsData=raw.map(h=>h.kills||0);
+  const netData=raw.map(h=>(h.earned||0)-(h.lost||0));
+  const labels=raw.map((h,i)=>h.roomName?h.roomName.replace('Room #','#'):'G'+(i+1));
+
+  const maxKills=Math.max(...killsData,1);
+  const minNet=Math.min(...netData,0);
+  const maxNet=Math.max(...netData,1);
+  const netRange=Math.max(maxNet-minNet,1);
+
+  function px(i){return PAD.left+i*(innerW/(raw.length-1||1));}
+  function killY(v){return PAD.top+innerH-(v/maxKills)*innerH;}
+  function netY(v){return PAD.top+innerH-((v-minNet)/netRange)*innerH;}
+
+  // Build SVG path string
+  function buildPath(pts){
+    if(!pts.length)return'';
+    let d='M'+pts[0].x+','+pts[0].y;
+    for(let i=1;i<pts.length;i++){
+      const cx=(pts[i-1].x+pts[i].x)/2;
+      d+=' C'+cx+','+pts[i-1].y+' '+cx+','+pts[i].y+' '+pts[i].x+','+pts[i].y;
+    }
+    return d;
+  }
+
+  const killPts=killsData.map((v,i)=>({x:px(i),y:killY(v)}));
+  const netPts=netData.map((v,i)=>({x:px(i),y:netY(v)}));
+
+  // Zero line Y for net
+  const zeroY=netY(0);
+
+  const svgId='analyticsChart_'+Date.now();
+  const killPath=buildPath(killPts);
+  const netPath=buildPath(netPts);
+
+  // Gradient fill area for kills (under the line)
+  const killArea=killPath+' L'+px(raw.length-1)+','+(PAD.top+innerH)+' L'+px(0)+','+(PAD.top+innerH)+' Z';
+  const netArea=netPath+' L'+px(raw.length-1)+','+zeroY+' L'+px(0)+','+zeroY+' Z';
+
+  // Y axis labels
+  const yLabels=[0,Math.round(maxKills/2),maxKills].map(v=>({v,y:killY(v)}));
+
+  // Tooltip state
+  const tooltipId='aTooltip_'+Date.now();
+
+  const svgStr=`<svg id="${svgId}" viewBox="0 0 ${W} ${H}" width="100%" style="overflow:visible;cursor:pointer;display:block">
+  <defs>
+    <linearGradient id="kGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e63946" stop-opacity="0.32"/>
+      <stop offset="100%" stop-color="#e63946" stop-opacity="0.0"/>
+    </linearGradient>
+    <linearGradient id="nGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#22c55e" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#22c55e" stop-opacity="0.0"/>
+    </linearGradient>
+  </defs>
+  <!-- grid lines -->
+  ${[0.25,0.5,0.75,1].map(t=>`<line x1="${PAD.left}" y1="${PAD.top+innerH*t}" x2="${PAD.left+innerW}" y2="${PAD.top+innerH*t}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`).join('')}
+  <!-- zero line (net pnl) -->
+  <line x1="${PAD.left}" y1="${zeroY}" x2="${PAD.left+innerW}" y2="${zeroY}" stroke="rgba(255,255,255,0.12)" stroke-width="1" stroke-dasharray="4,3"/>
+  <!-- kill area fill -->
+  <path d="${killArea}" fill="url(#kGrad)"/>
+  <!-- net area fill -->
+  <path d="${netArea}" fill="url(#nGrad)" opacity="0.7"/>
+  <!-- kill line -->
+  <path d="${killPath}" fill="none" stroke="#e63946" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- net pnl line -->
+  <path d="${netPath}" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="none"/>
+  <!-- y axis labels -->
+  ${yLabels.map(({v,y})=>`<text x="${PAD.left-5}" y="${y+4}" font-size="8" fill="rgba(255,255,255,0.3)" text-anchor="end" font-family="Rajdhani,sans-serif">${v}</text>`).join('')}
+  <!-- x axis labels (every other if too many) -->
+  ${labels.map((l,i)=>{
+    if(raw.length>8&&i%2!==0)return'';
+    return`<text x="${px(i)}" y="${PAD.top+innerH+14}" font-size="7.5" fill="rgba(255,255,255,0.3)" text-anchor="middle" font-family="Rajdhani,sans-serif">${l.slice(0,6)}</text>`;
+  }).join('')}
+  <!-- hit targets (invisible, large for touch) -->
+  ${killPts.map((pt,i)=>`<circle cx="${pt.x}" cy="${pt.y}" r="14" fill="transparent" data-i="${i}" class="aHit"/>
+  <circle cx="${pt.x}" cy="${pt.y}" r="4" fill="#e63946" stroke="#0b0b14" stroke-width="2" class="aDot" data-i="${i}"/>`).join('')}
+</svg>`;
+
+  const html=`
+<style>
+.an-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;}
+.an-title{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--dim);margin-bottom:12px;}
+.an-stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px;}
+.an-stat{background:var(--muted);border-radius:12px;padding:10px;text-align:center;}
+.an-stat-val{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;line-height:1;}
+.an-stat-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-top:2px;}
+.an-stat-row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.an-leg{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim);}
+.an-leg-dot{width:10px;height:3px;border-radius:2px;flex-shrink:0;}
+.aHit{cursor:pointer;}
+.an-tooltip{position:absolute;background:rgba(8,8,16,.95);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:8px 12px;font-family:'Rajdhani',sans-serif;font-size:12px;color:#fff;pointer-events:none;z-index:99;min-width:130px;backdrop-filter:blur(10px);box-shadow:0 8px 24px rgba(0,0,0,.4);transition:opacity .15s;}
+</style>
+<div id="${tooltipId}" class="an-tooltip" style="display:none;opacity:0"></div>
+<div class="an-card">
+  <div class="an-title">BATTLE PERFORMANCE · LAST ${raw.length} GAMES</div>
+  <div style="position:relative">${svgStr}</div>
+  <div style="display:flex;align-items:center;gap:16px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+    <div class="an-leg"><div class="an-leg-dot" style="background:#e63946"></div>Kills / game</div>
+    <div class="an-leg"><div class="an-leg-dot" style="background:#22c55e"></div>Net P&amp;L (R)</div>
+  </div>
+</div>
+<div class="an-card">
+  <div class="an-title">OVERALL STATS</div>
+  <div class="an-stat-row">
+    <div class="an-stat">
+      <div class="an-stat-val" style="color:#e63946">${totalKills}</div>
+      <div class="an-stat-lbl">Total Kills</div>
+    </div>
+    <div class="an-stat">
+      <div class="an-stat-val" style="color:var(--dim)">${totalDeaths}</div>
+      <div class="an-stat-lbl">Deaths</div>
+    </div>
+    <div class="an-stat">
+      <div class="an-stat-val" style="color:#ffd700">${winRate}%</div>
+      <div class="an-stat-lbl">Win Rate</div>
+    </div>
+  </div>
+  <div class="an-stat-row2" style="margin-top:8px">
+    <div class="an-stat">
+      <div class="an-stat-val" style="color:#22c55e">+R${totalEarned.toFixed(2)}</div>
+      <div class="an-stat-lbl">Total Earned</div>
+    </div>
+    <div class="an-stat">
+      <div class="an-stat-val" style="color:${netPnl>=0?'#22c55e':'#ef4444'}">${netPnl>=0?'+R':'-R'}${Math.abs(netPnl).toFixed(2)}</div>
+      <div class="an-stat-lbl">Net P&amp;L</div>
+    </div>
+  </div>
+</div>`;
+
+  container.innerHTML=html;
+
+  // Wire up tap/click on hit targets
+  const svg=document.getElementById(svgId);
+  const tip=document.getElementById(tooltipId);
+  let activeIdx=-1;
+
+  function showTip(i,targetEl){
+    const h=raw[i];
+    const isWin=h.result==='win';
+    const net=(h.earned||0)-(h.lost||0);
+    const label=labels[i];
+    tip.innerHTML=`
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1.5px;margin-bottom:6px;color:#fff">${label}</div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;justify-content:space-between;gap:12px"><span style="color:rgba(255,255,255,.4)">Result</span><span style="color:${isWin?'#22c55e':'#ef4444'};font-weight:700">${isWin?'WIN':'LOSS'}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:12px"><span style="color:rgba(255,255,255,.4)">Kills</span><span style="color:#e63946;font-weight:700">${h.kills||0}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:12px"><span style="color:rgba(255,255,255,.4)">Earned</span><span style="color:#22c55e">+R${(h.earned||0).toFixed(2)}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:12px"><span style="color:rgba(255,255,255,.4)">Lost</span><span style="color:#ef4444">-R${(h.lost||0).toFixed(2)}</span></div>
+        <div style="border-top:1px solid rgba(255,255,255,.08);margin-top:3px;padding-top:3px;display:flex;justify-content:space-between;gap:12px"><span style="color:rgba(255,255,255,.4)">Net</span><span style="color:${net>=0?'#22c55e':'#ef4444'};font-weight:700">${net>=0?'+R':'-R'}${Math.abs(net).toFixed(2)}</span></div>
+      </div>`;
+    tip.style.display='block';
+    requestAnimationFrame(()=>tip.style.opacity='1');
+
+    // Position tooltip above dot
+    const rect=container.getBoundingClientRect();
+    const dotRect=targetEl.getBoundingClientRect();
+    let tx=dotRect.left-rect.left-65;
+    let ty=dotRect.top-rect.top-tip.offsetHeight-10;
+    tx=Math.max(4,Math.min(tx,rect.width-tip.offsetWidth-4));
+    ty=Math.max(4,ty);
+    tip.style.left=tx+'px';tip.style.top=ty+'px';
+  }
+
+  function hideTip(){
+    tip.style.opacity='0';
+    setTimeout(()=>{tip.style.display='none';},150);
+    activeIdx=-1;
+    svg.querySelectorAll('.aDot').forEach(d=>d.setAttribute('r','4'));
+  }
+
+  svg.querySelectorAll('.aHit').forEach(el=>{
+    el.addEventListener('click',e=>{
+      e.stopPropagation();
+      const i=+el.dataset.i;
+      if(activeIdx===i){hideTip();return;}
+      activeIdx=i;
+      svg.querySelectorAll('.aDot').forEach((d,j)=>{d.setAttribute('r',j===i?'6':'4');});
+      showTip(i,svg.querySelectorAll('.aDot')[i]);
+    });
+  });
+
+  document.addEventListener('click',function closeAn(e){
+    if(!container.contains(e.target)){hideTip();document.removeEventListener('click',closeAn);}
+  });
 }
 
 // Load saved language on start
