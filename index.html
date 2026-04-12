@@ -6,6 +6,7 @@
 <title>ShootWars — Nmedea</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+
 <style>
 /* ═══════ RESET & BASE ═══════ */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -119,6 +120,26 @@ body.dark-theme .play-header{background:rgba(8,8,16,.97)!important;}
 .play-bal-chip:hover{transform:scale(1.04);}
 .gold-chip{color:var(--gold);background:rgba(200,150,12,.1);border-color:rgba(200,150,12,.3);}
 .green-chip{color:var(--green);background:rgba(22,163,74,.1);border-color:rgba(22,163,74,.3);}
+
+/* ═══════ ADD FUNDS MODAL ═══════ */
+#addFundsOverlay{position:fixed;inset:0;z-index:99000;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;}
+#addFundsOverlay.open{opacity:1;pointer-events:all;}
+.funds-box{background:var(--card);border-radius:22px;border:1.5px solid var(--border);padding:28px 22px;width:92%;max-width:380px;box-shadow:0 32px 80px rgba(0,0,0,.4);}
+.funds-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--white);margin-bottom:4px;}
+.funds-sub{font-size:13px;color:var(--dim);margin-bottom:20px;line-height:1.5;}
+.funds-amounts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+.funds-amt-btn{padding:14px 8px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--white);font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:1px;cursor:pointer;transition:all .2s;text-align:center;}
+.funds-amt-btn:hover,.funds-amt-btn.selected{border-color:var(--brand);background:rgba(230,57,70,.1);color:var(--brand);}
+.funds-pay-btn{width:100%;padding:15px;border:none;border-radius:13px;background:var(--grad);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;cursor:pointer;transition:opacity .2s;margin-bottom:10px;}
+.funds-pay-btn:hover{opacity:.88;}
+.funds-pay-btn:disabled{opacity:.45;cursor:not-allowed;}
+.funds-cancel-btn{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:12px;background:transparent;color:var(--dim);font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;cursor:pointer;}
+.funds-status{font-size:13px;text-align:center;margin-top:12px;color:var(--dim);min-height:18px;}
+.funds-bal-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--muted);border-radius:10px;margin-bottom:18px;}
+.funds-bal-lbl{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);}
+.funds-bal-val{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--gold);}
+.add-funds-trigger{display:flex;align-items:center;gap:6px;padding:7px 14px;border:none;border-radius:10px;background:var(--grad);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1.5px;cursor:pointer;transition:opacity .2s;flex-shrink:0;}
+.add-funds-trigger:hover{opacity:.85;}
 
 /* ═══════ PLAY WIDE BUTTONS (Language + Tasks, same height as PLAY) ═══════ */
 .play-wide-btn{
@@ -749,11 +770,8 @@ body.dark-theme .slink.red{color:#f87171;}
         SHOOTWARS
       </div>
       <div class="play-header-bals">
-        <div class="play-bal-chip gold-chip">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-          <span id="playHeaderGameBal">R0.00</span>
-        </div>
-        <div class="play-bal-chip green-chip">
+        <span style="display:none" id="playHeaderGameBal"></span>
+        <div class="play-bal-chip gold-chip" onclick="openAddFunds()" style="cursor:pointer">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
           <span id="playHeaderMoneyBal">R0.00</span>
         </div>
@@ -801,7 +819,7 @@ body.dark-theme .slink.red{color:#f87171;}
                 <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:4px">Balance</div>
                 <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;color:var(--gold)" id="homeBalDisplay">R0.00</div>
               </div>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+              <button class="add-funds-trigger" onclick="openAddFunds()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>ADD FUNDS</button>
             </div>
 
             <!-- ANALYTICS -->
@@ -853,26 +871,14 @@ body.dark-theme .slink.red{color:#f87171;}
             <!-- STEP 1: Landing -->
             <div id="play-landing">
 
-              <!-- Balance Cards — visually distinct -->
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
-                <!-- Game Balance — gold coin style -->
-                <div style="background:linear-gradient(135deg,rgba(200,150,12,.2) 0%,rgba(200,150,12,.05) 100%);border:1.5px solid rgba(200,150,12,.4);border-radius:16px;padding:16px 14px;position:relative;overflow:hidden">
-                  <div style="position:absolute;top:-8px;right:-8px;width:52px;height:52px;border-radius:50%;background:rgba(200,150,12,.15);display:flex;align-items:center;justify-content:center">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v2m0 8v2M9 9.5C9 8.4 9.9 7.5 11 7.5h2a2 2 0 010 4h-1.5a2 2 0 000 4H14a1.5 1.5 0 001.5-1.5"/></svg>
-                  </div>
-                  <div style="font-size:8px;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);opacity:.75;margin-bottom:7px;font-weight:700">Game Bal.</div>
-                  <div style="font-family:'Bebas Neue',sans-serif;font-size:27px;color:var(--gold);letter-spacing:1px;line-height:1" id="playGameBal">R0.00</div>
-                  <div style="font-size:8px;color:var(--gold);opacity:.5;margin-top:5px;letter-spacing:1px">IN-GAME COINS</div>
+              <!-- Balance Card — Real Money -->
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:18px">
+                <div>
+                  <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:4px">Balance</div>
+                  <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;color:var(--gold)" id="playMoneyBal">R0.00</div>
+                  <span style="display:none" id="playGameBal"></span>
                 </div>
-                <!-- Money Balance — green wallet style -->
-                <div style="background:linear-gradient(135deg,rgba(22,163,74,.2) 0%,rgba(22,163,74,.05) 100%);border:1.5px solid rgba(22,163,74,.4);border-radius:16px;padding:16px 14px;position:relative;overflow:hidden">
-                  <div style="position:absolute;top:-8px;right:-8px;width:52px;height:52px;border-radius:50%;background:rgba(22,163,74,.15);display:flex;align-items:center;justify-content:center">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="3"/><circle cx="16" cy="12" r="1" fill="var(--green)"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                  </div>
-                  <div style="font-size:8px;letter-spacing:2.5px;text-transform:uppercase;color:var(--green);opacity:.75;margin-bottom:7px;font-weight:700">Real Money</div>
-                  <div style="font-family:'Bebas Neue',sans-serif;font-size:27px;color:var(--green);letter-spacing:1px;line-height:1" id="playMoneyBal">R0.00</div>
-                  <div style="font-size:8px;color:var(--green);opacity:.5;margin-top:5px;letter-spacing:1px">WITHDRAWABLE</div>
-                </div>
+                <button class="add-funds-trigger" onclick="openAddFunds()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>ADD FUNDS</button>
               </div>
 
               <!-- Language Selector — full width, above PLAY -->
@@ -1268,7 +1274,7 @@ const FB={apiKey:'AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ',authDomain:'globalcha
 const app=initializeApp(FB);
 const auth=getAuth(app),db=getFirestore(app),rtdb=getDatabase(app),storage=getStorage(app);
 const R2='https://r2-upload.katlegomashilwane0691.workers.dev/upload';
-const ENTRY_FEE=2,KILL_REWARD=2,PLATFORM_CUT=0,STARTING_BAL=50,MAX_BULLETS=10,BULLET_REGEN_MS=4000,TURN_DELAY_MS=15000;
+const ENTRY_FEE=2,KILL_REWARD=2,PLATFORM_CUT=0,STARTING_BAL=0,MAX_BULLETS=10,BULLET_REGEN_MS=4000,TURN_DELAY_MS=15000;
 const TANK_DAMAGE=86,TANK_MAX_HP=498;
 
 let CU=null,UD=null,_authDone=false;
@@ -1373,7 +1379,7 @@ document.getElementById('regName')?.addEventListener('input',()=>{
   if(!/^[a-zA-Z0-9_]{3,18}$/.test(val)){st.className='uname-status bad';document.getElementById('unameText').textContent='3–18 chars: letters, numbers or _';_unameValid=false;return;}
   st.className='uname-status checking';document.getElementById('unameText').textContent='Checking…';
   _unameTimer=setTimeout(async()=>{
-    try{const s=await getDocs(query(collection(db,'tw_users'),where('username','==',val.toLowerCase())));
+    try{const s=await getDocs(query(collection(db,'sw_users'),where('username','==',val.toLowerCase())));
     if(!s.empty){st.className='uname-status bad';document.getElementById('unameText').textContent='@'+val+' is taken';_unameValid=false;}
     else{st.className='uname-status ok';document.getElementById('unameText').textContent='@'+val+' is available ✓';_unameValid=true;}}
     catch{st.className='uname-status hidden';_unameValid=true;}
@@ -1402,11 +1408,11 @@ document.getElementById('registerForm')?.addEventListener('submit',async e=>{
   const btn=e.target.querySelector('.auth-submit'),sp=document.getElementById('regSpin');
   btn.disabled=true;sp.style.display='block';
   try{
-    const dup=await getDocs(query(collection(db,'tw_users'),where('username','==',name.toLowerCase())));
+    const dup=await getDocs(query(collection(db,'sw_users'),where('username','==',name.toLowerCase())));
     if(!dup.empty){errEl.textContent='Username already taken';errEl.style.display='block';btn.disabled=false;sp.style.display='none';return;}
     const cred=await createUserWithEmailAndPassword(auth,em,pw);
     await updateProfile(cred.user,{displayName:name});
-    await setDoc(doc(db,'tw_users',cred.user.uid),{uid:cred.user.uid,email:em,displayName:name,username:name.toLowerCase(),photoURL:'',coverURL:'',bio:'Tank commander on Nmedea',provider:'email',balance:STARTING_BAL,kills:0,deaths:0,gamesPlayed:0,totalEarned:0,createdAt:new Date().toISOString()});
+    await setDoc(doc(db,'sw_users',cred.user.uid),{uid:cred.user.uid,email:em,displayName:name,username:name.toLowerCase(),photoURL:'',coverURL:'',bio:'Tank commander on Nmedea',provider:'email',balance:STARTING_BAL,kills:0,deaths:0,gamesPlayed:0,totalEarned:0,createdAt:new Date().toISOString()});
     await loadOrCreateUD(cred.user);CU=cred.user;closeAuthModals();showLobby();
   }catch(ex){errEl.textContent=ex.code==='auth/email-already-in-use'?'Email already registered.':ex.message||'Registration failed.';errEl.style.display='block';}
   finally{btn.disabled=false;sp.style.display='none';}
@@ -1456,16 +1462,16 @@ onAuthStateChanged(auth,async user=>{
 });
 
 async function loadOrCreateUD(user){
-  const snap=await getDoc(doc(db,'tw_users',user.uid));
+  const snap=await getDoc(doc(db,'sw_users',user.uid));
   if(snap.exists()){UD={...snap.data()};if(UD.balance===undefined)UD.balance=STARTING_BAL;}
-  else{const un=(user.displayName||'tank').toLowerCase().replace(/[^a-z0-9_]/g,'_').replace(/_+/g,'_').slice(0,18)||'tank'+Date.now().toString(36).slice(-4);UD={uid:user.uid,email:user.email||'',displayName:user.displayName||'Commander',username:un,photoURL:user.photoURL||'',coverURL:'',bio:'Tank commander on Nmedea',provider:'unknown',balance:STARTING_BAL,kills:0,deaths:0,gamesPlayed:0,totalEarned:0,createdAt:new Date().toISOString()};await setDoc(doc(db,'tw_users',user.uid),UD);}
+  else{const un=(user.displayName||'tank').toLowerCase().replace(/[^a-z0-9_]/g,'_').replace(/_+/g,'_').slice(0,18)||'tank'+Date.now().toString(36).slice(-4);UD={uid:user.uid,email:user.email||'',displayName:user.displayName||'Commander',username:un,photoURL:user.photoURL||'',coverURL:'',bio:'Tank commander on Nmedea',provider:'unknown',balance:STARTING_BAL,kills:0,deaths:0,gamesPlayed:0,totalEarned:0,createdAt:new Date().toISOString()};await setDoc(doc(db,'sw_users',user.uid),UD);}
 }
 
 async function handleGoogleUser(user){
   showAuthLoading('Setting up your profile…','',60);
   authOverlay.classList.add('active');
-  const isNew=!(await getDoc(doc(db,'tw_users',user.uid))).exists();
-  if(isNew){const un=(user.displayName||'g').toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').slice(0,18)||'g'+Date.now().toString(36).slice(-4);await setDoc(doc(db,'tw_users',user.uid),{uid:user.uid,email:user.email,displayName:user.displayName||'',username:un,photoURL:user.photoURL||'',coverURL:'',bio:'Tank commander on Nmedea',provider:'google',balance:STARTING_BAL,kills:0,deaths:0,gamesPlayed:0,totalEarned:0,createdAt:new Date().toISOString()});}
+  const isNew=!(await getDoc(doc(db,'sw_users',user.uid))).exists();
+  if(isNew){const un=(user.displayName||'g').toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').slice(0,18)||'g'+Date.now().toString(36).slice(-4);await setDoc(doc(db,'sw_users',user.uid),{uid:user.uid,email:user.email,displayName:user.displayName||'',username:un,photoURL:user.photoURL||'',coverURL:'',bio:'Tank commander on Nmedea',provider:'google',balance:STARTING_BAL,kills:0,deaths:0,gamesPlayed:0,totalEarned:0,createdAt:new Date().toISOString()});}
   await loadOrCreateUD(user);CU=user;closeAuthModals();showLobby();
 }
 function showLobby(){loadSettings();
@@ -1525,7 +1531,7 @@ function loadInlineProfile(){
   if(!UD)return;
   refreshInlineProfileUI();
   // load history
-  onValue(ref(rtdb,'tw_history/'+CU.uid),snap=>{
+  onValue(ref(rtdb,'sw_history/'+CU.uid),snap=>{
     const all=Object.values(snap.val()||{}).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,20);
     const el=document.getElementById('inlineHistoryList');if(!el)return;
     if(!all.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--dim);font-size:12px">No battles yet — join a room!</div>';return;}
@@ -1574,7 +1580,7 @@ window.saveInlineProfile=async function(){
   showProc('Saving…');
   try{
     await updateProfile(CU,{displayName:name});
-    await setDoc(doc(db,'tw_users',CU.uid),{displayName:name,bio},{merge:true});
+    await setDoc(doc(db,'sw_users',CU.uid),{displayName:name,bio},{merge:true});
     UD.displayName=name;UD.bio=bio;
     refreshInlineProfileUI();refreshLobbyUI();refreshProfileUI();
     _inlineEditMode=false;
@@ -1647,7 +1653,7 @@ window.hidePlayServers=function(){
 
 function loadLobbyHistory(){
   if(!CU)return;
-  onValue(ref(rtdb,'tw_history/'+CU.uid),snap=>{
+  onValue(ref(rtdb,'sw_history/'+CU.uid),snap=>{
     const all=Object.values(snap.val()||{}).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,20);
     const el=document.getElementById('lobbyHistoryList');
 
@@ -1779,7 +1785,7 @@ window.doLogout=async function(){
 // ──────────────────────────────────────────────────────────────
 function listenRooms(){
   if(roomsOff){roomsOff();roomsOff=null;}
-  roomsOff=onValue(ref(rtdb,'tw_rooms'),snap=>{
+  roomsOff=onValue(ref(rtdb,'sw_rooms'),snap=>{
     const all=snap.val()||{};
     // Cleanup empty rooms automatically
     Object.entries(all).forEach(([id,room])=>{
@@ -1787,7 +1793,7 @@ function listenRooms(){
       const players=room.players?Object.keys(room.players):[];
       if(players.length===0){
         // Room has no players — remove it silently
-        remove(ref(rtdb,'tw_rooms/'+id)).catch(()=>{});
+        remove(ref(rtdb,'sw_rooms/'+id)).catch(()=>{});
         delete all[id];
       }
     });
@@ -1837,7 +1843,7 @@ function renderRooms(all){
 // ──────────────────────────────────────────────────────────────
 window.handleRoomClick=function(id){
   if(!CU)return;
-  get(ref(rtdb,'tw_rooms/'+id)).then(snap=>{
+  get(ref(rtdb,'sw_rooms/'+id)).then(snap=>{
     const d=snap.val();if(!d)return;
     // If already in this room, re-enter directly
     if(d.players&&d.players[CU.uid]){
@@ -1864,23 +1870,23 @@ window.confirmJoin=async function(){
   if(!pendingRoomId||!CU)return;
   const btn=document.getElementById('joinConfirmBtn');btn.classList.add('ld');btn.disabled=true;
   try{
-    const snap=await get(ref(rtdb,'tw_rooms/'+pendingRoomId));const d=snap.val();
+    const snap=await get(ref(rtdb,'sw_rooms/'+pendingRoomId));const d=snap.val();
     if(!d||d.status!=='waiting'){toast('Room no longer available','red');window.closeJoinModal();return;}
     const entryFee=d.entryFee||ENTRY_FEE;
     if((UD.balance||0)<entryFee){toast('Insufficient balance','red');window.closeJoinModal();return;}
     const players=Object.values(d.players||{});if(players.length>=(d.maxPlayers||8)){toast('Room just became full','red');window.closeJoinModal();return;}
     const newBal=(UD.balance||0)-entryFee;
-    await updateDoc(doc(db,'tw_users',CU.uid),{balance:newBal,gamesPlayed:increment(1)});
+    await updateDoc(doc(db,'sw_users',CU.uid),{balance:newBal,gamesPlayed:increment(1)});
     UD.balance=newBal;UD.gamesPlayed=(UD.gamesPlayed||0)+1;
     const colorIdx=players.length%TANK_COLORS.length;
-    await update(ref(rtdb,'tw_rooms/'+pendingRoomId+'/players/'+CU.uid),{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',colorIdx,hp:498,bullets:MAX_BULLETS,...safeSpawnPos(),angle:0,score:0,alive:true,lastActive:Date.now()});
+    await update(ref(rtdb,'sw_rooms/'+pendingRoomId+'/players/'+CU.uid),{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',colorIdx,hp:498,bullets:MAX_BULLETS,...safeSpawnPos(),angle:0,score:0,alive:true,lastActive:Date.now()});
     toast('-R'+entryFee+' entry fee paid','gold');
     const roomId=pendingRoomId;
     window.closeJoinModal();
     // Register onDisconnect — removes player if they close tab
-    onDisconnect(ref(rtdb,'tw_rooms/'+roomId+'/players/'+CU.uid)).remove();
+    onDisconnect(ref(rtdb,'sw_rooms/'+roomId+'/players/'+CU.uid)).remove();
     // Fetch fresh room data then enter game
-    const freshSnap=await get(ref(rtdb,'tw_rooms/'+roomId));
+    const freshSnap=await get(ref(rtdb,'sw_rooms/'+roomId));
     enterGame(roomId,freshSnap.val());
   }catch(e){console.error(e);toast('Failed to join','red');}
   finally{btn.classList.remove('ld');btn.disabled=false;}
@@ -1894,15 +1900,15 @@ window.createRoom=async function(){
   try{
     const id='TW'+Math.random().toString(36).slice(2,6).toUpperCase();
     const newBal=(UD.balance||0)-entryFee;
-    await updateDoc(doc(db,'tw_users',CU.uid),{balance:newBal,gamesPlayed:increment(1)});
+    await updateDoc(doc(db,'sw_users',CU.uid),{balance:newBal,gamesPlayed:increment(1)});
     UD.balance=newBal;UD.gamesPlayed=(UD.gamesPlayed||0)+1;
     const colorIdx=0;
     const spawnPos=safeSpawnPos();
-    await set(ref(rtdb,'tw_rooms/'+id),{id,status:'waiting',entryFee,killReward:KILL_REWARD,maxPlayers:8,hostUid:CU.uid,players:{[CU.uid]:{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',colorIdx,hp:498,bullets:MAX_BULLETS,...spawnPos,angle:0,score:0,alive:true,lastActive:Date.now()}},createdAt:serverTimestamp()});
+    await set(ref(rtdb,'sw_rooms/'+id),{id,status:'waiting',entryFee,killReward:KILL_REWARD,maxPlayers:8,hostUid:CU.uid,players:{[CU.uid]:{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',colorIdx,hp:498,bullets:MAX_BULLETS,...spawnPos,angle:0,score:0,alive:true,lastActive:Date.now()}},createdAt:serverTimestamp()});
     toast('Room created!');
     hideProc();
-    onDisconnect(ref(rtdb,'tw_rooms/'+id+'/players/'+CU.uid)).remove();
-    const snap=await get(ref(rtdb,'tw_rooms/'+id));
+    onDisconnect(ref(rtdb,'sw_rooms/'+id+'/players/'+CU.uid)).remove();
+    const snap=await get(ref(rtdb,'sw_rooms/'+id));
     enterGame(id,snap.val());
   }catch(e){hideProc();toast('Failed to create room','red');}
 };
@@ -1910,7 +1916,7 @@ window.createRoom=async function(){
 function listenGlobalFeed(){
   if(feedOff){feedOff();feedOff=null;}
   const container=document.getElementById('globalFeed');
-  feedOff=onValue(ref(rtdb,'tw_killfeed'),snap=>{
+  feedOff=onValue(ref(rtdb,'sw_killfeed'),snap=>{
     const all=Object.values(snap.val()||{}).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,30);
     if(!all.length){container.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--dim);font-size:12px">No kills yet… get in the game!</div>';return;}
     container.innerHTML=all.map(k=>`<div class="kill-item"><div class="ki-icon">💥</div><div class="ki-text"><b>${esc(k.killer)}</b> eliminated <b>${esc(k.killed)}</b></div><div class="ki-time">${fmtTime(k.ts)}</div></div>`).join('');
@@ -1920,7 +1926,7 @@ function listenGlobalFeed(){
 function listenGlobalChat(){
   if(gchatOff){gchatOff();gchatOff=null;}
   const box=document.getElementById('globalChat');
-  gchatOff=onValue(ref(rtdb,'tw_globalchat'),snap=>{
+  gchatOff=onValue(ref(rtdb,'sw_globalchat'),snap=>{
     const all=Object.values(snap.val()||{}).sort((a,b)=>(a.ts||0)-(b.ts||0)).slice(-40);
     if(!all.length){box.innerHTML='<div class="gchat-sys">Be the first to say something!</div>';return;}
     const atBottom=box.scrollTop+box.clientHeight>=box.scrollHeight-30;
@@ -1937,7 +1943,7 @@ window.sendGlobalChat=async function(){
   const inp=document.getElementById('globalChatInput');const t=(inp.value||'').trim();if(!t||!CU)return;
   inp.value='';
   const colorIdx=0;
-  await push(ref(rtdb,'tw_globalchat'),{uid:CU.uid,name:UD?.displayName||'Player',photo:UD?.photoURL||'',colorIdx,text:t,ts:Date.now()});
+  await push(ref(rtdb,'sw_globalchat'),{uid:CU.uid,name:UD?.displayName||'Player',photo:UD?.photoURL||'',colorIdx,text:t,ts:Date.now()});
 };
 document.getElementById('globalChatInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')window.sendGlobalChat();});
 
@@ -2009,7 +2015,7 @@ window.saveProfile=async function(){
   showProc('Saving…');
   try{
     await updateProfile(CU,{displayName:name});
-    await setDoc(doc(db,'tw_users',CU.uid),{displayName:name,bio},{merge:true});
+    await setDoc(doc(db,'sw_users',CU.uid),{displayName:name,bio},{merge:true});
     UD.displayName=name;UD.bio=bio;
     refreshProfileUI();refreshLobbyUI();
     editMode=false;
@@ -2028,8 +2034,8 @@ window.uploadAvatar=async function(input){
     let photoURL='';
     const fd=new FormData();fd.append('file',f,'avatars/'+CU.uid+'_'+Date.now()+'.'+f.name.split('.').pop());
     try{const res=await fetch(R2,{method:'POST',body:fd});if(res.ok){const d=await res.json();photoURL=d.url||d.fileUrl||d.publicUrl||'';}}
-    catch{const sr=sRef(storage,'tw_avatars/'+CU.uid);await uploadBytes(sr,f);photoURL=await getDownloadURL(sr);}
-    if(photoURL){await updateProfile(CU,{photoURL});await setDoc(doc(db,'tw_users',CU.uid),{photoURL},{merge:true});UD.photoURL=photoURL;refreshProfileUI();refreshLobbyUI();toast('Avatar updated!');}
+    catch{const sr=sRef(storage,'sw_avatars/'+CU.uid);await uploadBytes(sr,f);photoURL=await getDownloadURL(sr);}
+    if(photoURL){await updateProfile(CU,{photoURL});await setDoc(doc(db,'sw_users',CU.uid),{photoURL},{merge:true});UD.photoURL=photoURL;refreshProfileUI();refreshLobbyUI();toast('Avatar updated!');}
   }catch(e){toast('Upload failed','red');}finally{hideProc();}
 };
 
@@ -2041,13 +2047,13 @@ window.uploadCoverPhoto=async function(input){
     let coverURL='';
     const fd=new FormData();fd.append('file',f,'covers/'+CU.uid+'_'+Date.now()+'.'+f.name.split('.').pop());
     try{const res=await fetch(R2,{method:'POST',body:fd});if(res.ok){const d=await res.json();coverURL=d.url||d.fileUrl||d.publicUrl||'';}}
-    catch{const sr=sRef(storage,'tw_covers/'+CU.uid);await uploadBytes(sr,f);coverURL=await getDownloadURL(sr);}
-    if(coverURL){await setDoc(doc(db,'tw_users',CU.uid),{coverURL},{merge:true});UD.coverURL=coverURL;refreshProfileUI();toast('Cover updated!');}
+    catch{const sr=sRef(storage,'sw_covers/'+CU.uid);await uploadBytes(sr,f);coverURL=await getDownloadURL(sr);}
+    if(coverURL){await setDoc(doc(db,'sw_users',CU.uid),{coverURL},{merge:true});UD.coverURL=coverURL;refreshProfileUI();toast('Cover updated!');}
   }catch(e){toast('Upload failed','red');}finally{hideProc();}
 };
 
 function loadProfileHistory(){
-  onValue(ref(rtdb,'tw_history/'+CU?.uid),snap=>{
+  onValue(ref(rtdb,'sw_history/'+CU?.uid),snap=>{
     const all=Object.values(snap.val()||{}).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,20);
     const el=document.getElementById('pt-content-history');
     const winIcon=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>`;
@@ -2062,7 +2068,7 @@ function loadProfileHistory(){
 }
 
 function loadRecentOpponents(){
-  onValue(ref(rtdb,'tw_opponents/'+CU?.uid),snap=>{
+  onValue(ref(rtdb,'sw_opponents/'+CU?.uid),snap=>{
     const all=Object.values(snap.val()||{}).slice(0,20);
     const el=document.getElementById('pt-content-recent');
     if(!all.length){el.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--dim)"><div style="margin-bottom:10px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="19" cy="7" r="2"/><path d="M23 21v-1a2 2 0 0 0-2-2h-2"/></svg></div><div>No recent opponents yet</div></div>';return;}
@@ -2479,7 +2485,7 @@ async function handleBulletHit(bullet,targetUid,target){
   spawnDamageText(target.x-camX,target.y-camY-20,'-86','#ef4444');
   if(bullet.shooterUid!==myUid)return;
   const newHp=Math.max(0,(target.hp||0)-TANK_DAMAGE);
-  await update(ref(rtdb,'tw_rooms/'+currentRoomId+'/players/'+targetUid),{hp:newHp});
+  await update(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+targetUid),{hp:newHp});
   if(newHp<=0){await handleKill(targetUid,target);}
 }
 
@@ -2487,19 +2493,19 @@ async function handleKill(targetUid,target){
   playSound('kill');
   const killReward=currentRoomData?.killReward||KILL_REWARD;
   const newBal=(UD.balance||0)+killReward;
-  await updateDoc(doc(db,'tw_users',CU.uid),{balance:newBal,kills:increment(1),totalEarned:increment(killReward)});
+  await updateDoc(doc(db,'sw_users',CU.uid),{balance:newBal,kills:increment(1),totalEarned:increment(killReward)});
   UD.balance=newBal;UD.kills=(UD.kills||0)+1;UD.totalEarned=(UD.totalEarned||0)+killReward;
   _sessionKills++;
-  await update(ref(rtdb,'tw_rooms/'+currentRoomId+'/players/'+targetUid),{alive:false,hp:0});
-  await push(ref(rtdb,'tw_killfeed'),{killer:UD.displayName||'Player',killerUid:CU.uid,killed:target.name||'Player',killedUid:targetUid,roomId:currentRoomId,ts:Date.now()});
+  await update(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+targetUid),{alive:false,hp:0});
+  await push(ref(rtdb,'sw_killfeed'),{killer:UD.displayName||'Player',killerUid:CU.uid,killed:target.name||'Player',killedUid:targetUid,roomId:currentRoomId,ts:Date.now()});
   addIngameKillEvent(UD.displayName,target.name,'+R'+killReward);
-  const targetSnap=await getDoc(doc(db,'tw_users',targetUid));
+  const targetSnap=await getDoc(doc(db,'sw_users',targetUid));
   if(targetSnap.exists()){
     const td=targetSnap.data();const newTBal=Math.max(0,(td.balance||0)-killReward);
-    await updateDoc(doc(db,'tw_users',targetUid),{balance:newTBal,deaths:increment(1)});
+    await updateDoc(doc(db,'sw_users',targetUid),{balance:newTBal,deaths:increment(1)});
   }
-  await push(ref(rtdb,'tw_history/'+CU.uid),{result:'kill',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:1,earned:killReward,ts:Date.now()});
-  await update(ref(rtdb,'tw_opponents/'+CU.uid+'/'+targetUid),{uid:targetUid,name:target.name||'Player',handle:target.handle||'',photo:target.photo||'',result:'killed',ts:Date.now()});
+  await push(ref(rtdb,'sw_history/'+CU.uid),{result:'kill',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:1,earned:killReward,ts:Date.now()});
+  await update(ref(rtdb,'sw_opponents/'+CU.uid+'/'+targetUid),{uid:targetUid,name:target.name||'Player',handle:target.handle||'',photo:target.photo||'',result:'killed',ts:Date.now()});
   toast('Killed '+target.name+' +R'+killReward,'gold');
   spawnKillText(target.x-camX,target.y-camY,target.name);
   spawnDamageText(target.x-camX,target.y-camY-28,'+R'+killReward,'#ffd700');
@@ -2513,7 +2519,7 @@ function addIngameKillEvent(killer,killed,reward){
   item.innerHTML=`<span class="icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><span class="killer">${esc(killer)}</span><span style="color:var(--dim);margin:0 4px">killed</span><span class="killed">${esc(killed)}</span><span class="amount">${reward}</span>`;
   feed.insertBefore(item,feed.firstChild);
   setTimeout(()=>{item.style.opacity='0';item.style.transition='opacity 1s';setTimeout(()=>item.remove(),1000);},8000);
-  push(ref(rtdb,'tw_killfeed'),{killer,killed,ts:Date.now()});
+  push(ref(rtdb,'sw_killfeed'),{killer,killed,ts:Date.now()});
 }
 
 function updateSelfHUD(me){
@@ -2636,7 +2642,7 @@ function handleMovement(me,dt){
   // Push position to Firebase (throttled)
   _posUpdateThrottle++;
   if(_posUpdateThrottle%3===0){
-    update(ref(rtdb,'tw_rooms/'+currentRoomId+'/players/'+myUid),{x:me.x,y:me.y,angle:me.angle,lastActive:Date.now()});
+    update(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+myUid),{x:me.x,y:me.y,angle:me.angle,lastActive:Date.now()});
   }
 }
 
@@ -2778,13 +2784,13 @@ function enterGame(roomId,roomData){
 
 function listenRoom(id){
   if(roomOff){roomOff();roomOff=null;}
-  roomOff=onValue(ref(rtdb,'tw_rooms/'+id),snap=>{
+  roomOff=onValue(ref(rtdb,'sw_rooms/'+id),snap=>{
     const d=snap.val();
     if(!d){leaveGame();return;}
     // Remove room if no players left (server-side cleanup redundancy)
     if(d.players){
       const playerCount=Object.keys(d.players).length;
-      if(playerCount===0){remove(ref(rtdb,'tw_rooms/'+id)).catch(()=>{});}
+      if(playerCount===0){remove(ref(rtdb,'sw_rooms/'+id)).catch(()=>{});}
     }
     if(d.players){
       Object.entries(d.players).forEach(([uid,p])=>{
@@ -2817,9 +2823,9 @@ function listenRoom(id){
 async function handleMyDeath(){
   if(_soundEnabled)playSound('die');
   if(bulletRegenTimer){clearInterval(bulletRegenTimer);bulletRegenTimer=null;}
-  await updateDoc(doc(db,'tw_users',CU.uid),{deaths:increment(1)});
+  await updateDoc(doc(db,'sw_users',CU.uid),{deaths:increment(1)});
   UD.deaths=(UD.deaths||0)+1;
-  await push(ref(rtdb,'tw_history/'+CU.uid),{result:'loss',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:0,lost:ENTRY_FEE,ts:Date.now()});
+  await push(ref(rtdb,'sw_history/'+CU.uid),{result:'loss',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:0,lost:ENTRY_FEE,ts:Date.now()});
   const banner=document.getElementById('deathBanner');
   if(banner){banner.style.display='flex';setTimeout(()=>{banner.style.opacity='0';setTimeout(()=>{banner.style.display='none';banner.style.opacity='1';},600);},4000);}
   toast('You were eliminated! Spectating…','red');
@@ -2828,7 +2834,7 @@ async function handleMyDeath(){
 async function handleWin(){
   if(_soundEnabled)playSound('kill');
   const prize=(Object.values(gameState?.players||{}).length-1)*KILL_REWARD;
-  await push(ref(rtdb,'tw_history/'+CU.uid),{result:'win',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:1,earned:prize,ts:Date.now()});
+  await push(ref(rtdb,'sw_history/'+CU.uid),{result:'win',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:1,earned:prize,ts:Date.now()});
   toast(prize>0?'+R'+prize.toFixed(2)+' earned!':'Last tank standing!','gold');
 }
 
@@ -2933,7 +2939,7 @@ function cleanupGame(){
   if(chatOff){chatOff();chatOff=null;}
   // Remove self from room — triggers empty room cleanup
   if(currentRoomId&&CU){
-    remove(ref(rtdb,'tw_rooms/'+currentRoomId+'/players/'+CU.uid)).catch(()=>{});
+    remove(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+CU.uid)).catch(()=>{});
   }
   bullets=[];_treads=[];keys={w:false,a:false,s:false,d:false};firing=false;joystickActive=false;
   _speed=0;_bodyAngleRad=0;_treadDist=0;
@@ -2974,6 +2980,101 @@ window.addEventListener('beforeunload',e=>{
     else{setTimeout(attachScrollListener,500);}
   }
   attachScrollListener();
+})();
+
+// ═══════ ADD FUNDS / YOCO CHECKOUT ═══════
+const VAL_URL='https://katlegomashilwane--0cc35f74362e11f18cb942b51c65c3df.web.val.run';
+let _selAmt=0;
+
+window.openAddFunds=function(){
+  if(!CU){toast('Sign in first','red');return;}
+  document.getElementById('fundsCurrentBal').textContent='R'+(UD.balance||0).toFixed(2);
+  document.getElementById('fundsStatus').textContent='';
+  _selAmt=0;
+  document.querySelectorAll('.funds-amt-btn').forEach(b=>b.classList.remove('selected'));
+  const btn=document.getElementById('fundsPayBtn');
+  btn.disabled=true;btn.textContent='SELECT AN AMOUNT';btn.style.opacity='.45';
+  document.getElementById('addFundsOverlay').classList.add('open');
+};
+
+window.closeAddFunds=function(){
+  document.getElementById('addFundsOverlay').classList.remove('open');
+};
+
+window.selectFundsAmt=function(el,amount){
+  _selAmt=amount;
+  document.querySelectorAll('.funds-amt-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  const btn=document.getElementById('fundsPayBtn');
+  btn.disabled=false;btn.textContent='PAY R'+amount+' NOW';btn.style.opacity='1';
+};
+
+window.startYocoPayment=async function(){
+  if(!_selAmt||!CU)return;
+  const btn=document.getElementById('fundsPayBtn');
+  const status=document.getElementById('fundsStatus');
+  btn.disabled=true;btn.style.opacity='.6';
+  status.textContent='Creating payment…';
+  const amt=_selAmt;
+  const successUrl=window.location.href.split('?')[0];
+  const cancelUrl=window.location.href.split('?')[0];
+  try{
+    const res=await fetch(VAL_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        amount:amt*100,
+        uid:CU.uid,
+        successUrl,
+        cancelUrl
+      })
+    });
+    const data=await res.json();
+    if(data.success&&data.redirectUrl){
+      // Save pending payment to Firestore so we can verify on return
+      await updateDoc(doc(db,'sw_users',CU.uid),{
+        pendingPayment:{amount:amt,checkoutId:data.checkoutId,ts:Date.now()}
+      });
+      // Redirect user to Yoco hosted payment page
+      window.location.href=data.redirectUrl;
+    }else{
+      status.textContent=data.error||'Could not start payment. Try again.';
+      btn.disabled=false;btn.style.opacity='1';
+    }
+  }catch(e){
+    status.textContent='Network error. Try again.';
+    btn.disabled=false;btn.style.opacity='1';
+  }
+};
+
+// On page load — check if returning from successful Yoco payment
+(async function checkPaymentReturn(){
+  const params=new URLSearchParams(window.location.search);
+  const uid=params.get('uid');
+  const amount=parseInt(params.get('amount'));
+  if(!uid||!amount)return;
+  // Clean URL
+  window.history.replaceState({},'',window.location.pathname);
+  // Wait for auth then credit balance
+  const unsubscribe=onAuthStateChanged(auth,async user=>{
+    unsubscribe();
+    if(!user||user.uid!==uid)return;
+    try{
+      const snap=await getDoc(doc(db,'sw_users',uid));
+      if(!snap.exists())return;
+      const d=snap.data();
+      // Only credit if pending payment matches
+      if(d.pendingPayment&&d.pendingPayment.amount===amount/100){
+        const newBal=(d.balance||0)+(amount/100);
+        await updateDoc(doc(db,'sw_users',uid),{
+          balance:newBal,
+          totalDeposited:increment(amount/100),
+          pendingPayment:null
+        });
+        toast('💰 R'+(amount/100)+' added! Balance: R'+newBal.toFixed(2),'gold');
+      }
+    }catch(e){console.error('Payment return error:',e);}
+  });
 })();
 </script>
 
@@ -3377,6 +3478,35 @@ function applyTranslations(){
     </div>
   </div>
 </div>
+
+<!-- ═══════ ADD FUNDS MODAL ═══════ -->
+<div id="addFundsOverlay" style="position:fixed;inset:0;z-index:99000;background:rgba(0,0,0,.85);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;">
+  <div style="background:var(--card);border-radius:22px;border:1.5px solid var(--border);padding:28px 22px;width:92%;max-width:380px;box-shadow:0 32px 80px rgba(0,0,0,.5);">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--white);margin-bottom:4px;">💰 ADD FUNDS</div>
+    <div style="font-size:13px;color:var(--dim);margin-bottom:16px;line-height:1.5;">Top up your battle balance. Secure payment via Yoco.</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--muted);border-radius:10px;margin-bottom:18px;">
+      <span style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">Current Balance</span>
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold);" id="fundsCurrentBal">R0.00</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
+      <div class="funds-amt-btn" onclick="selectFundsAmt(this,10)">R10</div>
+      <div class="funds-amt-btn" onclick="selectFundsAmt(this,20)">R20</div>
+      <div class="funds-amt-btn" onclick="selectFundsAmt(this,50)">R50</div>
+      <div class="funds-amt-btn" onclick="selectFundsAmt(this,100)">R100</div>
+      <div class="funds-amt-btn" onclick="selectFundsAmt(this,200)">R200</div>
+      <div class="funds-amt-btn" onclick="selectFundsAmt(this,500)">R500</div>
+    </div>
+    <button id="fundsPayBtn" disabled onclick="startYocoPayment()" style="width:100%;padding:15px;border:none;border-radius:13px;background:var(--grad);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;cursor:pointer;margin-bottom:10px;opacity:.45;">SELECT AN AMOUNT</button>
+    <button onclick="closeAddFunds()" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:12px;background:transparent;color:var(--dim);font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Cancel</button>
+    <div id="fundsStatus" style="font-size:13px;text-align:center;margin-top:12px;color:var(--dim);min-height:18px;"></div>
+  </div>
+</div>
+
+<style>
+#addFundsOverlay.open{opacity:1!important;pointer-events:all!important;}
+.funds-amt-btn{padding:14px 8px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--white);font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:1px;cursor:pointer;text-align:center;transition:all .2s;}
+.funds-amt-btn.selected{border-color:var(--brand)!important;background:rgba(230,57,70,.12)!important;color:var(--brand)!important;}
+</style>
 
 </body>
 </html>
