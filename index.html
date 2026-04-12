@@ -1873,7 +1873,7 @@ window.handleRoomClick=function(id){
     const entryFee2=d.entryFee||ENTRY_FEE;
     const killReward2=d.killReward||KILL_REWARD;
     document.getElementById('joinModalTitle').textContent='JOIN ROOM #'+id.slice(-4).toUpperCase();
-    document.getElementById('joinModalSub').textContent=`Entry fee: R${entryFee2} · Earn R${killReward2} per kill. Entry deducted from your balance when you join.`;
+    document.getElementById('joinModalSub').textContent=`Earn R${killReward2} per kill. Entry fee of R${entryFee2} is only deducted if you get eliminated.`;
     document.getElementById('joinEntry').textContent='R'+entryFee2;
     document.getElementById('joinBal').textContent=fmtBal(UD.balance||0);
     document.getElementById('joinOverlay').classList.add('open');
@@ -1887,17 +1887,15 @@ window.confirmJoin=async function(){
     const snap=await get(ref(rtdb,'sw_rooms/'+pendingRoomId));const d=snap.val();
     if(!d||d.status!=='waiting'){toast('Room no longer available','red');window.closeJoinModal();return;}
     const entryFee=d.entryFee||ENTRY_FEE;
-    if((UD.balance||0)<entryFee){toast('Insufficient balance','red');window.closeJoinModal();return;}
+    // Only CHECK balance — do NOT deduct yet. Fee is only taken when killed by another player.
+    if((UD.balance||0)<entryFee){toast('Insufficient balance — you need at least R'+entryFee+' to play','red');window.closeJoinModal();return;}
     const players=Object.values(d.players||{});if(players.length>=(d.maxPlayers||8)){toast('Room just became full','red');window.closeJoinModal();return;}
-    const newBal=(UD.balance||0)-entryFee;
-    await updateDoc(doc(db,'sw_users',CU.uid),{balance:newBal,gamesPlayed:increment(1)});
-    UD.balance=newBal;UD.gamesPlayed=(UD.gamesPlayed||0)+1;
     const colorIdx=players.length%TANK_COLORS.length;
     await update(ref(rtdb,'sw_rooms/'+pendingRoomId+'/players/'+CU.uid),{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',colorIdx,hp:498,bullets:MAX_BULLETS,...safeSpawnPos(),angle:0,score:0,alive:true,lastActive:Date.now()});
-    toast('-R'+entryFee+' entry fee paid','gold');
+    // gamesPlayed only increments when they actually die (have played), not on entry
     const roomId=pendingRoomId;
     window.closeJoinModal();
-    // Register onDisconnect — removes player if they close tab
+    // Register onDisconnect — removes player if they close tab (no fee since they haven't played)
     onDisconnect(ref(rtdb,'sw_rooms/'+roomId+'/players/'+CU.uid)).remove();
     // Fetch fresh room data then enter game
     const freshSnap=await get(ref(rtdb,'sw_rooms/'+roomId));
@@ -1909,13 +1907,11 @@ window.confirmJoin=async function(){
 window.createRoom=async function(){
   if(!CU){toast('Sign in first','red');return;}
   const entryFee=ENTRY_FEE;
-  if((UD?.balance||0)<entryFee){toast('Insufficient balance','red');return;}
+  // Only CHECK balance — do NOT deduct. Fee is only taken when killed by another player.
+  if((UD?.balance||0)<entryFee){toast('Insufficient balance — you need at least R'+entryFee+' to play','red');return;}
   showProc('Creating room…');
   try{
     const id='TW'+Math.random().toString(36).slice(2,6).toUpperCase();
-    const newBal=(UD.balance||0)-entryFee;
-    await updateDoc(doc(db,'sw_users',CU.uid),{balance:newBal,gamesPlayed:increment(1)});
-    UD.balance=newBal;UD.gamesPlayed=(UD.gamesPlayed||0)+1;
     const colorIdx=0;
     const spawnPos=safeSpawnPos();
     await set(ref(rtdb,'sw_rooms/'+id),{id,status:'waiting',entryFee,killReward:KILL_REWARD,maxPlayers:8,hostUid:CU.uid,players:{[CU.uid]:{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',colorIdx,hp:498,bullets:MAX_BULLETS,...spawnPos,angle:0,score:0,alive:true,lastActive:Date.now()}},createdAt:serverTimestamp()});
@@ -2513,6 +2509,8 @@ async function handleBulletHit(bullet,targetUid,target){
 async function handleKill(targetUid,target){
   playSound('kill');
   const killReward=currentRoomData?.killReward||KILL_REWARD;
+  const entryFee=currentRoomData?.entryFee||ENTRY_FEE;
+  // Killer earns the kill reward
   const newBal=(UD.balance||0)+killReward;
   await updateDoc(doc(db,'sw_users',CU.uid),{balance:newBal,kills:increment(1),totalEarned:increment(killReward)});
   UD.balance=newBal;UD.kills=(UD.kills||0)+1;UD.totalEarned=(UD.totalEarned||0)+killReward;
@@ -2520,10 +2518,12 @@ async function handleKill(targetUid,target){
   await update(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+targetUid),{alive:false,hp:0});
   await push(ref(rtdb,'sw_killfeed'),{killer:UD.displayName||'Player',killerUid:CU.uid,killed:target.name||'Player',killedUid:targetUid,roomId:currentRoomId,ts:Date.now()});
   addIngameKillEvent(UD.displayName,target.name,'+R'+killReward);
+  // Deduct entry fee from the killed player — this is when their entry fee is actually charged
   const targetSnap=await getDoc(doc(db,'sw_users',targetUid));
   if(targetSnap.exists()){
-    const td=targetSnap.data();const newTBal=Math.max(0,(td.balance||0)-killReward);
-    await updateDoc(doc(db,'sw_users',targetUid),{balance:newTBal,deaths:increment(1)});
+    const td=targetSnap.data();
+    const newTBal=Math.max(0,(td.balance||0)-entryFee);
+    await updateDoc(doc(db,'sw_users',targetUid),{balance:newTBal,deaths:increment(1),gamesPlayed:increment(1)});
   }
   await push(ref(rtdb,'sw_history/'+CU.uid),{result:'kill',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:1,earned:killReward,ts:Date.now()});
   await update(ref(rtdb,'sw_opponents/'+CU.uid+'/'+targetUid),{uid:targetUid,name:target.name||'Player',handle:target.handle||'',photo:target.photo||'',result:'killed',ts:Date.now()});
@@ -2844,9 +2844,10 @@ function listenRoom(id){
 async function handleMyDeath(){
   if(_soundEnabled)playSound('die');
   if(bulletRegenTimer){clearInterval(bulletRegenTimer);bulletRegenTimer=null;}
+  const entryFee=currentRoomData?.entryFee||ENTRY_FEE;
   await updateDoc(doc(db,'sw_users',CU.uid),{deaths:increment(1)});
   UD.deaths=(UD.deaths||0)+1;
-  await push(ref(rtdb,'sw_history/'+CU.uid),{result:'loss',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:_sessionKills,lost:0,ts:Date.now()});
+  await push(ref(rtdb,'sw_history/'+CU.uid),{result:'loss',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:_sessionKills,lost:entryFee,ts:Date.now()});
   // Show eliminated screen with options
   const banner=document.getElementById('deathBanner');
   if(banner)banner.style.display='flex';
