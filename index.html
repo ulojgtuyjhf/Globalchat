@@ -1482,6 +1482,8 @@ function showLobby(){loadSettings();
   listenGlobalFeed();
   listenGlobalChat();
   applyTheme();
+  // Process any pending Yoco payment return
+  processPendingPayment();
 }
 
 function refreshLobbyUI(){
@@ -3025,8 +3027,8 @@ window.startYocoPayment=async function(){
       body:JSON.stringify({
         amount:amt*100,
         uid:CU.uid,
-        successUrl,
-        cancelUrl
+        successUrl:'https://nmedea.com/index.html',
+        cancelUrl:'https://nmedea.com/index.html'
       })
     });
     const data=await res.json();
@@ -3053,29 +3055,39 @@ window.startYocoPayment=async function(){
   const uid=params.get('uid');
   const amount=parseInt(params.get('amount'));
   if(!uid||!amount)return;
-  // Clean URL
+  // Clean URL immediately so refresh doesn't re-trigger
   window.history.replaceState({},'',window.location.pathname);
-  // Wait for auth then credit balance
-  const unsubscribe=onAuthStateChanged(auth,async user=>{
-    unsubscribe();
-    if(!user||user.uid!==uid)return;
-    try{
-      const snap=await getDoc(doc(db,'sw_users',uid));
-      if(!snap.exists())return;
-      const d=snap.data();
-      // Only credit if pending payment matches
-      if(d.pendingPayment&&d.pendingPayment.amount===amount/100){
-        const newBal=(d.balance||0)+(amount/100);
-        await updateDoc(doc(db,'sw_users',uid),{
-          balance:newBal,
-          totalDeposited:increment(amount/100),
-          pendingPayment:null
-        });
-        toast('💰 R'+(amount/100)+' added! Balance: R'+newBal.toFixed(2),'gold');
-      }
-    }catch(e){console.error('Payment return error:',e);}
-  });
+  // Store in sessionStorage so we can process after auth loads
+  sessionStorage.setItem('pendingPayment',JSON.stringify({uid,amount}));
 })();
+
+// Called after auth is confirmed — processes any pending payment from Yoco redirect
+async function processPendingPayment(){
+  const raw=sessionStorage.getItem('pendingPayment');
+  if(!raw)return;
+  sessionStorage.removeItem('pendingPayment');
+  let uid,amount;
+  try{const p=JSON.parse(raw);uid=p.uid;amount=p.amount;}catch(e){return;}
+  if(!CU||CU.uid!==uid){console.warn('Payment uid mismatch');return;}
+  try{
+    const snap=await getDoc(doc(db,'sw_users',uid));
+    if(!snap.exists())return;
+    const d=snap.data();
+    const amtRands=amount/100;
+    const newBal=(d.balance||0)+amtRands;
+    await updateDoc(doc(db,'sw_users',uid),{
+      balance:newBal,
+      totalDeposited:increment(amtRands),
+      pendingPayment:null
+    });
+    UD.balance=newBal;
+    refreshLobbyUI();
+    toast('💰 R'+amtRands+' added! Balance: R'+newBal.toFixed(2),'gold');
+  }catch(e){
+    console.error('Payment credit error:',e);
+    toast('Payment received but balance update failed — contact support','red');
+  }
+}
 </script>
 
 <!-- TANK SPECS FULL PAGE -->
