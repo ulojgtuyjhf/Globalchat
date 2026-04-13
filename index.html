@@ -2701,7 +2701,7 @@ async function handleKill(targetUid,target){
   playSound('kill');
   const killReward=currentRoomData?.killReward||KILL_REWARD;
   const entryFee=currentRoomData?.entryFee||ENTRY_FEE;
-  // Killer earns the kill reward
+  // Credit killer
   const newBal=(UD.balance||0)+killReward;
   await updateDoc(doc(db,'sw_users',CU.uid),{balance:newBal,kills:increment(1),totalEarned:increment(killReward)});
   UD.balance=newBal;UD.kills=(UD.kills||0)+1;UD.totalEarned=(UD.totalEarned||0)+killReward;
@@ -2709,13 +2709,15 @@ async function handleKill(targetUid,target){
   await update(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+targetUid),{alive:false,hp:0});
   await push(ref(rtdb,'sw_killfeed'),{killer:UD.displayName||'Player',killerUid:CU.uid,killed:target.name||'Player',killedUid:targetUid,roomId:currentRoomId,ts:Date.now()});
   addIngameKillEvent(UD.displayName,target.name,'+R'+killReward);
-  // Deduct entry fee from the killed player — this is when their entry fee is actually charged
-  const targetSnap=await getDoc(doc(db,'sw_users',targetUid));
-  if(targetSnap.exists()){
-    const td=targetSnap.data();
-    const newTBal=Math.max(0,(td.balance||0)-entryFee);
-    await updateDoc(doc(db,'sw_users',targetUid),{balance:newTBal,deaths:increment(1),gamesPlayed:increment(1)});
-  }
+  // Deduct entry fee from victim using targetUid (RTDB key = Firebase UID)
+  try{
+    const targetSnap=await getDoc(doc(db,'sw_users',targetUid));
+    if(targetSnap.exists()){
+      const td=targetSnap.data();
+      const newTBal=Math.max(0,(td.balance||0)-entryFee);
+      await updateDoc(doc(db,'sw_users',targetUid),{balance:newTBal,deaths:increment(1),gamesPlayed:increment(1)});
+    }
+  }catch(e){console.error('Failed to deduct from victim:',e);}
   await push(ref(rtdb,'sw_history/'+CU.uid),{result:'kill',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:1,earned:killReward,ts:Date.now()});
   await update(ref(rtdb,'sw_opponents/'+CU.uid+'/'+targetUid),{uid:targetUid,name:target.name||'Player',handle:target.handle||'',photo:target.photo||'',result:'killed',ts:Date.now()});
   toast('Killed '+target.name+' +R'+killReward,'gold');
@@ -3324,20 +3326,8 @@ window.startYocoPayment=async function(){
     const data=await res.json();
     if(data.success&&data.redirectUrl){
       window.closeAddFunds();
-      // Listen to Firebase — webhook will update balance when Yoco confirms payment
-      const prevBal=UD.balance||0;
-      if(_balListener){_balListener();_balListener=null;}
-      _balListener=onSnapshot(doc(db,'sw_users',CU.uid),snap=>{
-        if(!snap.exists())return;
-        const newBal=snap.data().balance||0;
-        if(newBal>prevBal){
-          UD.balance=newBal;
-          refreshLobbyUI();
-          const added=(newBal-prevBal).toFixed(2);
-          toast('💰 R'+added+' added! Balance: R'+newBal.toFixed(2),'gold');
-          if(_balListener){_balListener();_balListener=null;}
-        }
-      });
+      // Store prev balance in localStorage — survives page navigation
+      localStorage.setItem('sw_pending_pay',JSON.stringify({uid:CU.uid,prevBal:UD.balance||0,ts:Date.now()}));
       // Send user to Yoco payment page
       window.location.href=data.redirectUrl;
     }else{
@@ -3350,20 +3340,45 @@ window.startYocoPayment=async function(){
   }
 };
 
-// When user returns to page after paying — refresh balance from Firebase
-window.addEventListener('pageshow',async function(){
-  if(!CU)return;
-  const snap=await getDoc(doc(db,'sw_users',CU.uid));
-  if(!snap.exists())return;
-  const newBal=snap.data().balance||0;
-  if(newBal!==(UD.balance||0)){
-    UD.balance=newBal;
-    refreshLobbyUI();
-    toast('💰 Balance updated: R'+newBal.toFixed(2),'gold');
+// Called after auth is confirmed — check if returning from Yoco payment
+async function processPendingPayment(){
+  const raw=localStorage.getItem('sw_pending_pay');
+  if(!raw)return;
+  let pending;
+  try{pending=JSON.parse(raw);}catch(e){localStorage.removeItem('sw_pending_pay');return;}
+  // Only process if same user, and not older than 30 mins
+  if(!CU||pending.uid!==CU.uid||Date.now()-pending.ts>1800000){
+    localStorage.removeItem('sw_pending_pay');return;
   }
-});
-
-async function processPendingPayment(){}
+  localStorage.removeItem('sw_pending_pay');
+  // Fetch fresh balance from Firestore
+  try{
+    const snap=await getDoc(doc(db,'sw_users',CU.uid));
+    if(!snap.exists())return;
+    const newBal=snap.data().balance||0;
+    const prevBal=pending.prevBal||0;
+    if(newBal>prevBal){
+      UD.balance=newBal;
+      refreshLobbyUI();
+      const added=(newBal-prevBal).toFixed(2);
+      toast('💰 R'+added+' added! Balance: R'+newBal.toFixed(2),'gold');
+    } else {
+      // Webhook may not have fired yet — start a real-time listener for 2 mins
+      const listenStart=Date.now();
+      const unsub=onSnapshot(doc(db,'sw_users',CU.uid),snap2=>{
+        if(!snap2.exists())return;
+        const b=snap2.data().balance||0;
+        if(b>prevBal){
+          UD.balance=b;
+          refreshLobbyUI();
+          toast('💰 R'+(b-prevBal).toFixed(2)+' added! Balance: R'+b.toFixed(2),'gold');
+          unsub();
+        }
+        if(Date.now()-listenStart>120000)unsub(); // stop after 2 mins
+      });
+    }
+  }catch(e){console.error('processPendingPayment error:',e);}
+}
 
 </script>
 
