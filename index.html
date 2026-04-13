@@ -1099,31 +1099,51 @@ body.dark-theme .ph-ico.loss{background:rgba(255,255,255,0.08);}
                 </button>
                 <div>
                   <div class="pg-title" style="margin-bottom:0;font-size:22px">YOUR TANK</div>
-                  <div class="pg-sub" style="margin-bottom:0">Review stats · then spawn into battle</div>
+                  <div class="pg-sub" style="margin-bottom:0">Choose your war machine</div>
                 </div>
               </div>
 
-              <!-- UNIFIED TANK SELECT CARD (game character-select style) -->
-              <div style="background:linear-gradient(160deg,rgba(128,128,128,0.06) 0%,var(--card) 55%);border:2px solid var(--border);border-radius:20px;overflow:hidden;margin-bottom:16px;position:relative">
-                <!-- Top: tank showcase -->
-                <div style="display:flex;flex-direction:column;align-items:center;padding:24px 20px 14px;position:relative">
-                  <div style="position:absolute;top:12px;left:12px;background:var(--muted);border:1px solid var(--border);border-radius:100px;padding:3px 10px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--white);font-weight:700">● ACTIVE</div>
-                  <div style="position:absolute;top:12px;right:12px;background:var(--muted);border:1px solid var(--border);border-radius:100px;padding:3px 10px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);font-weight:700">MK-IV</div>
-                  <img src="https://i.ibb.co/twzDZKfp/images-4-removebg-preview.png" style="width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 12px 32px rgba(0,0,0,0.15));animation:tankRock 3s ease-in-out infinite;margin-bottom:10px" alt="Heavy Armor Tank">
-                  <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;color:var(--white)">HEAVY ARMOR</div>
-                  <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);opacity:.5;margin-top:2px">62 TONNES · CREW: 4 · SHELL: 1,200 M/S</div>
+              <!-- TANK SELECTOR -->
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+                <!-- Left arrow -->
+                <button onclick="switchTank(-1)" style="width:38px;height:38px;flex-shrink:0;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--white);display:grid;place-items:center;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="this.style.borderColor='var(--border)'">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+
+                <!-- Tank Card -->
+                <div id="tankCard" style="flex:1;background:linear-gradient(160deg,rgba(128,128,128,0.06) 0%,var(--card) 55%);border:2px solid var(--border);border-radius:20px;overflow:hidden;position:relative;transition:all .3s">
+                  <!-- Badges -->
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px 0">
+                    <div id="tankActiveBadge" style="background:var(--muted);border:1px solid var(--border);border-radius:100px;padding:3px 10px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--white);font-weight:700">● ACTIVE</div>
+                    <div id="tankVariantBadge" style="background:var(--muted);border:1px solid var(--border);border-radius:100px;padding:3px 10px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);font-weight:700">MK-IV</div>
+                  </div>
+                  <!-- Tank image -->
+                  <div style="display:flex;flex-direction:column;align-items:center;padding:16px 20px 14px">
+                    <img id="tankChooserImg" src="https://i.ibb.co/twzDZKfp/images-4-removebg-preview.png" style="width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 12px 32px rgba(0,0,0,0.15));animation:tankRock 3s ease-in-out infinite;margin-bottom:10px;transition:all .3s" alt="Tank">
+                    <div id="tankChooserName" style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;color:var(--white)">HEAVY ARMOR</div>
+                    <div id="tankChooserSub" style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);opacity:.5;margin-top:2px">62 TONNES · CREW: 4</div>
+                  </div>
+                  <!-- Divider -->
+                  <div style="height:1px;background:var(--border)"></div>
+                  <!-- Stats -->
+                  <div style="padding:14px 20px 16px">
+                    <div class="tank-stat-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg><span class="tank-stat-lbl">HP</span><div class="tank-stat-bar-wrap"><div id="statBarHP" class="tank-stat-bar" style="width:24.9%;background:#e74c3c"></div></div><span id="statValHP" class="tank-stat-val">498</span></div>
+                    <div class="tank-stat-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e67e22" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="tank-stat-lbl">DMG</span><div class="tank-stat-bar-wrap"><div id="statBarDMG" class="tank-stat-bar" style="width:43%;background:#e67e22"></div></div><span id="statValDMG" class="tank-stat-val">86</span></div>
+                    <div class="tank-stat-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tank-stat-lbl">SPD</span><div class="tank-stat-bar-wrap"><div id="statBarSPD" class="tank-stat-bar" style="width:72%;background:#3498db"></div></div><span id="statValSPD" class="tank-stat-val">72</span></div>
+                    <div class="tank-stat-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><span class="tank-stat-lbl">ARM</span><div class="tank-stat-bar-wrap"><div id="statBarARM" class="tank-stat-bar" style="width:90%;background:#27ae60"></div></div><span id="statValARM" class="tank-stat-val">90%</span></div>
+                  </div>
                 </div>
-                <!-- Divider -->
-                <div style="height:1px;background:var(--border)"></div>
-                <!-- Bottom: stats grid -->
-                <div style="padding:16px 20px 18px">
-                  <div class="tank-stat-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg><span class="tank-stat-lbl">HP</span><div class="tank-stat-bar-wrap"><div class="tank-stat-bar" style="width:24.9%;background:#e74c3c"></div></div><span class="tank-stat-val">498</span></div>
-                  <div class="tank-stat-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e67e22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="tank-stat-lbl">DMG</span><div class="tank-stat-bar-wrap"><div class="tank-stat-bar" style="width:72%;background:#e67e22"></div></div><span class="tank-stat-val">86</span></div>
-                  <div class="tank-stat-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tank-stat-lbl">SPD</span><div class="tank-stat-bar-wrap"><div class="tank-stat-bar" style="width:45%;background:#3498db"></div></div><span class="tank-stat-val">45</span></div>
-                  <div class="tank-stat-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><span class="tank-stat-lbl">ARM</span><div class="tank-stat-bar-wrap"><div class="tank-stat-bar" style="width:90%;background:#27ae60"></div></div><span class="tank-stat-val">90%</span></div>
-                  <div class="tank-stat-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span class="tank-stat-lbl">RATE</span><div class="tank-stat-bar-wrap"><div class="tank-stat-bar" style="width:55%;background:#a78bfa"></div></div><span class="tank-stat-val">1.2/s</span></div>
-                  <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:9px;color:var(--dim);line-height:1.9;letter-spacing:.3px;text-align:center">Range: 2.5 km · Max Speed: 45 km/h · Gun Elevation: -5° to +20°</div>
-                </div>
+
+                <!-- Right arrow -->
+                <button onclick="switchTank(1)" style="width:38px;height:38px;flex-shrink:0;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--white);display:grid;place-items:center;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="this.style.borderColor='var(--border)'">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+              </div>
+
+              <!-- Tank dots indicator -->
+              <div style="display:flex;justify-content:center;gap:6px;margin-bottom:16px">
+                <div id="tankDot0" style="width:8px;height:8px;border-radius:50%;background:var(--brand);transition:all .2s"></div>
+                <div id="tankDot1" style="width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .2s"></div>
               </div>
 
               <!-- SPAWN Button -->
@@ -1224,13 +1244,9 @@ body.dark-theme .ph-ico.loss{background:rgba(255,255,255,0.08);}
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
                 </div>
               </div>
-              <button onclick="openAddFunds()" style="width:100%;padding:12px;background:var(--grad);border:none;border-radius:11px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px" class="inline-funds-btn">
+              <button onclick="openAddFunds()" style="width:100%;padding:12px;background:var(--grad);border:none;border-radius:11px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px" class="inline-funds-btn">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 ADD FUNDS
-              </button>
-              <button onclick="openWithdrawFunds()" style="width:100%;padding:12px;background:transparent;border:1.5px solid var(--border);border-radius:11px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--white);transition:border-color .2s,background .2s" class="withdraw-trigger" onmouseover="this.style.borderColor='var(--brand)';this.style.background='rgba(128,128,128,0.08)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='transparent'">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><polyline points="5 12 12 5 19 12"/><line x1="5" y1="19" x2="19" y2="19"/></svg>
-                WITHDRAW FUNDS
               </button>
             </div>
 
@@ -1484,7 +1500,7 @@ const app=initializeApp(FB);
 const auth=getAuth(app),db=getFirestore(app),rtdb=getDatabase(app),storage=getStorage(app);
 const R2='https://r2-upload.katlegomashilwane0691.workers.dev/upload';
 const ENTRY_FEE=2,KILL_REWARD=2,PLATFORM_CUT=0,STARTING_BAL=0,MAX_BULLETS=10,BULLET_REGEN_MS=4000,TURN_DELAY_MS=15000;
-const TANK_DAMAGE=86,TANK_MAX_HP=498;
+const TANK_DAMAGE=86,TANK_MAX_HP=498; // defaults — overridden per player by selected tank
 
 let CU=null,UD=null,_authDone=false;
 let roomsOff=null,roomOff=null,chatOff=null,gchatOff=null,feedOff=null;
@@ -1851,6 +1867,13 @@ window.showPlayTank=function(){
   document.getElementById('play-tank-chooser').style.display='block';
   document.getElementById('play-servers').style.display='none';
   const nav=document.getElementById('mobNav');if(nav)nav.classList.add('hidden');
+  // Load saved tank preference
+  const savedId=UD?.tankSkin||'heavy';
+  const idx=TANKS.findIndex(t=>t.id===savedId);
+  _selectedTankIdx=idx>=0?idx:0;
+  _selectedTank=TANKS[_selectedTankIdx];
+  // Init chooser UI to saved tank
+  switchTank(0);
 };
 window.hidePlayTank=function(){
   document.getElementById('play-landing').style.display='block';
@@ -2097,7 +2120,7 @@ window.confirmJoin=async function(){
     if((UD.balance||0)<entryFee){toast('Insufficient balance — you need at least R'+entryFee+' to play','red');window.closeJoinModal();return;}
     const players=Object.values(d.players||{});if(players.length>=(d.maxPlayers||8)){toast('Room just became full','red');window.closeJoinModal();return;}
     const colorIdx=players.length%TANK_COLORS.length;
-    await update(ref(rtdb,'sw_rooms/'+pendingRoomId+'/players/'+CU.uid),{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',colorIdx,hp:498,bullets:MAX_BULLETS,...safeSpawnPos(),angle:0,score:0,alive:true,lastActive:Date.now()});
+    await update(ref(rtdb,'sw_rooms/'+pendingRoomId+'/players/'+CU.uid),{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',colorIdx,hp:_selectedTank.hp,tankId:_selectedTank.id,damage:_selectedTank.damage,bullets:MAX_BULLETS,...safeSpawnPos(),angle:0,score:0,alive:true,lastActive:Date.now()});
     // gamesPlayed only increments when they actually die (have played), not on entry
     const roomId=pendingRoomId;
     window.closeJoinModal();
@@ -2120,7 +2143,7 @@ window.createRoom=async function(){
     const id='TW'+Math.random().toString(36).slice(2,6).toUpperCase();
     const colorIdx=0;
     const spawnPos=safeSpawnPos();
-    await set(ref(rtdb,'sw_rooms/'+id),{id,status:'waiting',entryFee,killReward:KILL_REWARD,maxPlayers:8,hostUid:CU.uid,players:{[CU.uid]:{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',colorIdx,hp:498,bullets:MAX_BULLETS,...spawnPos,angle:0,score:0,alive:true,lastActive:Date.now()}},createdAt:serverTimestamp()});
+    await set(ref(rtdb,'sw_rooms/'+id),{id,status:'waiting',entryFee,killReward:KILL_REWARD,maxPlayers:8,hostUid:CU.uid,players:{[CU.uid]:{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',colorIdx,hp:_selectedTank.hp,tankId:_selectedTank.id,damage:_selectedTank.damage,bullets:MAX_BULLETS,...spawnPos,angle:0,score:0,alive:true,lastActive:Date.now()}},createdAt:serverTimestamp()});
     toast('Room created!');
     hideProc();
     onDisconnect(ref(rtdb,'sw_rooms/'+id+'/players/'+CU.uid)).remove();
@@ -2175,16 +2198,90 @@ window.switchSidebar=function(name){
   });
 };
 
-const SOLDIER_IMG=new Image();
-SOLDIER_IMG.src='https://i.ibb.co/twzDZKfp/images-4-removebg-preview.png';
-const _tankImg=new Image();
-_tankImg.src='https://i.ibb.co/twzDZKfp/images-4-removebg-preview.png';
+// ── TANK DEFINITIONS ──
+const TANKS=[
+  {
+    id:'heavy',
+    name:'HEAVY ARMOR',
+    variant:'MK-IV',
+    sub:'62 TONNES · CREW: 4',
+    img:'https://i.ibb.co/twzDZKfp/images-4-removebg-preview.png',
+    hp:498,
+    damage:86,
+    speed:3.8,       // faster than before
+    accel:0.18,
+    friction:0.78,
+    turnRate:0.09,
+    size:76,         // canvas draw size
+    arm:90,
+    // stat bar widths (out of 100)
+    bars:{hp:24.9,dmg:43,spd:72,arm:90}
+  },
+  {
+    id:'atlas',
+    name:'ATLAS RT',
+    variant:'RT-1',
+    sub:'98 TONNES · CREW: 6',
+    img:'https://i.ibb.co/W4Syqh3s/file-000000006c5871fda9d095b4eaccfb4d-removebg-preview.png',
+    hp:1965,
+    damage:108,
+    speed:1.4,       // slow — same as old heavy
+    accel:0.09,
+    friction:0.85,
+    turnRate:0.055,
+    size:96,         // bigger than heavy
+    arm:98,
+    bars:{hp:98.25,dmg:54,spd:28,arm:98}
+  }
+];
+const TANK_SKINS=TANKS.map(t=>({id:t.id,label:t.name}));
+
+let _selectedTankIdx=0; // 0=heavy, 1=atlas
+let _selectedTank=TANKS[0];
+
+// Pre-load both tank images
+const _tankImgs={};
+TANKS.forEach(t=>{
+  const img=new Image();
+  img.src=t.img;
+  _tankImgs[t.id]=img;
+});
+// backwards compat
+const _tankImg=_tankImgs.heavy;
 let _tankImgLoaded=false;
 _tankImg.onload=()=>{_tankImgLoaded=true;};
+const SOLDIER_IMG=_tankImgs.heavy;
 let _soldierLoaded=false;
 SOLDIER_IMG.onload=()=>{_soldierLoaded=true;};
 
-const TANK_SKINS=[{id:'heavy',label:'Heavy Armor',tint:null,price:0}];
+window.switchTank=function(dir){
+  if(dir!==0)_selectedTankIdx=(_selectedTankIdx+dir+TANKS.length)%TANKS.length;
+  _selectedTank=TANKS[_selectedTankIdx];
+  const t=_selectedTank;
+  const img=document.getElementById('tankChooserImg');
+  if(img)img.src=t.img;
+  const nm=document.getElementById('tankChooserName');if(nm)nm.textContent=t.name;
+  const sub=document.getElementById('tankChooserSub');if(sub)sub.textContent=t.sub;
+  const vb=document.getElementById('tankVariantBadge');if(vb)vb.textContent=t.variant;
+  const bHP=document.getElementById('statBarHP');if(bHP)bHP.style.width=t.bars.hp+'%';
+  const vHP=document.getElementById('statValHP');if(vHP)vHP.textContent=t.hp;
+  const bDMG=document.getElementById('statBarDMG');if(bDMG)bDMG.style.width=t.bars.dmg+'%';
+  const vDMG=document.getElementById('statValDMG');if(vDMG)vDMG.textContent=t.damage;
+  const bSPD=document.getElementById('statBarSPD');if(bSPD)bSPD.style.width=t.bars.spd+'%';
+  const vSPD=document.getElementById('statValSPD');if(vSPD)vSPD.textContent=Math.round(t.speed*18)+' km/h';
+  const bARM=document.getElementById('statBarARM');if(bARM)bARM.style.width=t.bars.arm+'%';
+  const vARM=document.getElementById('statValARM');if(vARM)vARM.textContent=t.arm+'%';
+  TANKS.forEach((_,i)=>{
+    const dot=document.getElementById('tankDot'+i);
+    if(dot)dot.style.background=i===_selectedTankIdx?'var(--brand)':'var(--border)';
+  });
+  if(UD&&CU){UD.tankSkin=t.id;setDoc(doc(db,'sw_users',CU.uid),{tankSkin:t.id},{merge:true}).catch(()=>{});}
+};
+
+function getPlayerSkin(uid){
+  if(uid===myUid)return _selectedTank;
+  return TANKS[0]; // remote players default — could be extended
+}
 
 function drawSkinPreview(canvas,skin){
   const ctx=canvas.getContext('2d');
@@ -2194,10 +2291,6 @@ function drawSkinPreview(canvas,skin){
   else{ctx.fillStyle='#5a5a5a';ctx.fillRect(10,10,W-20,H-20);}
 }
 
-function getPlayerSkin(uid){
-  if(uid===myUid&&UD?.tankSkin){return TANK_SKINS.find(s=>s.id===UD.tankSkin)||TANK_SKINS[0];}
-  return null;
-}
 
 window.openProfile=function(){showLobbySection('profile');};
 window.closeProfile=function(){showView('lobbyView');};
@@ -2357,10 +2450,10 @@ let _speed=0;              // current speed
 let _treadDist=0;
 let _treads=[];
 
-const MOVE_MAX_SPEED=2.3;
+const MOVE_MAX_SPEED=2.3; // base — overridden by tank
 const MOVE_ACCEL=0.11;
 const MOVE_FRICTION=0.82;
-const MOVE_TURN_RATE=0.075; // radians per frame — heavier feel
+const MOVE_TURN_RATE=0.075;
 
 const MAP_FEATURES=[
   {type:'wall',x:0,y:0,w:MAP_W,h:24,color:'#5c4a2a'},
@@ -2638,7 +2731,7 @@ function drawPlayers(){
     if(!p||!p.alive)return;
     const isMe=p.uid===myUid;
     const color=TANK_COLORS[p.colorIdx%TANK_COLORS.length];
-    drawTank(p.x,p.y,p.angle||0,color,p.name,p.hp||0,isMe,p.uid,isMe?false:p.hideHP);
+    drawTank(p.x,p.y,p.angle||0,color,p.name,p.hp||0,isMe,p.uid,isMe?false:p.hideHP,isMe?_selectedTank.id:(p.tankId||'heavy'));
   });
 }
 
@@ -2665,16 +2758,19 @@ function updateParticles(){
   });
 }
 
-function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP){
+function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP,tankId){
+  const tank=TANKS.find(t=>t.id===tankId)||TANKS[0];
+  const img=_tankImgs[tank.id];
+  const maxHp=tank.hp;
+  const sz=tank.size;
   ctx.save();ctx.translate(x,y);
   ctx.fillStyle='rgba(0,0,0,0.25)';
-  ctx.beginPath();ctx.ellipse(2,10,32,10,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(2,10,sz*0.42,sz*0.13,0,0,Math.PI*2);ctx.fill();
   ctx.save();ctx.rotate(bodyAngle);
-  const sz=76;
-  if(_tankImg&&_tankImg.complete){
-    ctx.scale(-1,1);ctx.drawImage(_tankImg,-sz/2,-sz/2,sz,sz);ctx.scale(-1,1);
+  if(img&&img.complete&&img.naturalWidth>0){
+    ctx.scale(-1,1);ctx.drawImage(img,-sz/2,-sz/2,sz,sz);ctx.scale(-1,1);
   } else {
-    ctx.fillStyle=color;ctx.fillRect(-22,-16,44,32);
+    ctx.fillStyle=color;ctx.fillRect(-sz*0.29,-sz*0.21,sz*0.58,sz*0.42);
   }
   ctx.restore();
   if(isMe&&firing&&_animEnabled){
@@ -2682,25 +2778,24 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP){
     const flashR=rand(6,10);
     ctx.shadowBlur=24;ctx.shadowColor='rgba(255,180,30,.95)';
     ctx.fillStyle='rgba(255,220,80,0.9)';
-    ctx.beginPath();ctx.arc(38,0,flashR,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(sz*0.5,0,flashR,0,Math.PI*2);ctx.fill();
     ctx.restore();
   }
   if(isMe){
     ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=2;
     ctx.setLineDash([5,4]);
-    ctx.beginPath();ctx.arc(0,0,40,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.arc(0,0,sz*0.53,0,Math.PI*2);ctx.stroke();
     ctx.setLineDash([]);
   }
-  const barW=52,barH=4,bx=-barW/2,by=-44;
+  const barW=52,barH=4,bx=-barW/2,by=-(sz*0.58+12);
   ctx.fillStyle='rgba(0,0,0,0.65)';
   roundRect2(ctx,bx-3,by-13,barW+6,14,3);ctx.fill();
   ctx.font='bold 9px \'Rajdhani\',sans-serif';ctx.textAlign='center';
   ctx.fillStyle=isMe?'#ffffff':'rgba(255,255,255,.8)';
   ctx.fillText((name||'Tank').slice(0,14),0,by-2);
-  // Only show HP bar if not hidden (hideHP only hides from others, not self)
   if(isMe||!hideHP){
     ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(bx,by+2,barW,barH);
-    const hpPct=Math.max(0,(hp||0)/498);
+    const hpPct=Math.max(0,(hp||0)/maxHp);
     ctx.fillStyle=hpPct>0.5?'#fff':hpPct>0.25?'#aaa':'#fff';
     ctx.fillRect(bx,by+2,barW*hpPct,barH);
   }
@@ -2731,9 +2826,10 @@ function drawBullets(dt){
 
 async function handleBulletHit(bullet,targetUid,target){
   playSound('hit');
-  spawnDamageText(target.x-camX,target.y-camY-20,'-86','#fff');
+  const dmg=_selectedTank?.damage||TANK_DAMAGE;
+  spawnDamageText(target.x-camX,target.y-camY-20,'-'+dmg,'#fff');
   if(bullet.shooterUid!==myUid)return;
-  const newHp=Math.max(0,(target.hp||0)-TANK_DAMAGE);
+  const newHp=Math.max(0,(target.hp||0)-dmg);
   await update(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+targetUid),{hp:newHp});
   if(newHp<=0&&!_killedSet.has(targetUid)){
     _killedSet.add(targetUid);
@@ -2812,11 +2908,13 @@ function addIngameKillEvent(killer,killed,reward){
 
 function updateSelfHUD(me){
   const hp=me.hp||0;
+  const maxHp=_selectedTank?.hp||498;
   document.getElementById('selfHpVal').textContent=hp;
-  document.getElementById('selfHpMax').textContent='/498';
+  document.getElementById('selfHpMax').textContent='/'+maxHp;
   const bar=document.getElementById('selfHpBar');
-  bar.style.width=Math.max(0,hp/498*100)+'%';
-  bar.className='hp-bar-fill '+(hp>200?'high':hp>100?'mid':'low');
+  bar.style.width=Math.max(0,hp/maxHp*100)+'%';
+  const pct=hp/maxHp;
+  bar.className='hp-bar-fill '+(pct>0.4?'high':pct>0.2?'mid':'low');
   document.getElementById('hudPlayerCount').textContent=Object.values(gameState?.players||{}).filter(p=>p&&p.alive).length+' alive';
 }
 
@@ -2878,25 +2976,24 @@ function handleMovement(me,dt){
   }
 
   if(hasInput){
-    // Target angle from input
     const targetAngle=Math.atan2(inputY,inputX);
-    // Shortest-path angle lerp
     let diff=targetAngle-_bodyAngleRad;
     while(diff>Math.PI)diff-=Math.PI*2;
     while(diff<-Math.PI)diff+=Math.PI*2;
-    _bodyAngleRad+=diff*MOVE_TURN_RATE*dt;
-
-    // Only accelerate when roughly facing the target
+    const turnRate=_selectedTank?.turnRate||MOVE_TURN_RATE;
+    _bodyAngleRad+=diff*turnRate*dt;
     const alignment=Math.abs(diff);
+    const accel=_selectedTank?.accel||MOVE_ACCEL;
+    const maxSpd=_selectedTank?.speed||MOVE_MAX_SPEED;
+    const fric=_selectedTank?.friction||MOVE_FRICTION;
     if(alignment<Math.PI*0.35){
-      _speed=Math.min(_speed+MOVE_ACCEL*dt,MOVE_MAX_SPEED);
+      _speed=Math.min(_speed+accel*dt,maxSpd);
     } else {
-      // Turning — bleed speed
-      _speed*=Math.pow(MOVE_FRICTION,dt);
+      _speed*=Math.pow(fric,dt);
     }
   } else {
-    // No input — friction
-    _speed*=Math.pow(MOVE_FRICTION,dt);
+    const fric=_selectedTank?.friction||MOVE_FRICTION;
+    _speed*=Math.pow(fric,dt);
     if(Math.abs(_speed)<0.01)_speed=0;
   }
 
@@ -3137,7 +3234,7 @@ window.respawnPlayer=async function(){
   await updateDoc(doc(db,'sw_users',CU.uid),{balance:newBal,gamesPlayed:increment(1)});
   UD.balance=newBal;UD.gamesPlayed=(UD.gamesPlayed||0)+1;
   const spawnPos=safeSpawnPos();
-  await update(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+CU.uid),{hp:498,bullets:MAX_BULLETS,...spawnPos,angle:0,alive:true,lastActive:Date.now()});
+  await update(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+CU.uid),{hp:_selectedTank.hp,tankId:_selectedTank.id,damage:_selectedTank.damage,bullets:MAX_BULLETS,...spawnPos,angle:0,alive:true,lastActive:Date.now()});
   _savedResult=false;_sessionKills=0;_killedSet=new Set();
   myBullets=MAX_BULLETS;updateBulletIcons();
   if(bulletRegenTimer)clearInterval(bulletRegenTimer);
@@ -3148,7 +3245,7 @@ window.respawnPlayer=async function(){
 
 function listenIngameChat(id){
   if(chatOff){chatOff();chatOff=null;}
-  chatOff=onValue(ref(rtdb,'tw_roomchat/'+id),snap=>{
+  chatOff=onValue(ref(rtdb,'sw_roomchat/'+id),snap=>{
     const all=Object.values(snap.val()||{}).sort((a,b)=>(a.ts||0)-(b.ts||0)).slice(-20);
     const box=document.getElementById('ingameChatMsgs');
     box.innerHTML=all.map(m=>{
@@ -3164,7 +3261,7 @@ window.sendIngameChat=async function(){
   const inp=document.getElementById('ingameChatInput');const t=(inp.value||'').trim();if(!t||!currentRoomId)return;
   inp.value='';
   const ci=gameState?.players?.[myUid]?.colorIdx||0;
-  await push(ref(rtdb,'tw_roomchat/'+currentRoomId),{uid:CU.uid,name:UD?.displayName||'Player',colorIdx:ci,text:t,ts:Date.now()});
+  await push(ref(rtdb,'sw_roomchat/'+currentRoomId),{uid:CU.uid,name:UD?.displayName||'Player',colorIdx:ci,text:t,ts:Date.now()});
 };
 document.getElementById('ingameChatInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')window.sendIngameChat();});
 
@@ -3344,151 +3441,6 @@ window.openAddFunds=function(){
 window.closeAddFunds=function(){
   document.getElementById('addFundsOverlay').classList.remove('open');
   if(_balListener){_balListener();_balListener=null;}
-};
-
-// ═══════ WITHDRAW FUNDS ═══════
-let _wdHistoryUnsub=null;
-
-window.openWithdrawFunds=function(){
-  if(!CU){toast('Sign in first','red');return;}
-  const bal=UD&&UD.balance?UD.balance:0;
-  document.getElementById('wdCurrentBal').textContent='R'+bal.toFixed(2);
-  document.getElementById('wdNetAmount').textContent='—';
-  document.getElementById('wdNetAmount').style.color='var(--dim)';
-  document.getElementById('wdAmountInput').value='';
-  document.getElementById('wdHolderName').value='';
-  document.getElementById('wdAccountNumber').value='';
-  document.getElementById('wdStatus').textContent='';
-  document.getElementById('wdStatus').style.color='var(--dim)';
-  const btn=document.getElementById('wdSubmitBtn');
-  btn.textContent='SUBMIT REQUEST';
-  btn.style.opacity='.4';btn.style.pointerEvents='none';
-  document.getElementById('withdrawOverlay').style.opacity='1';
-  document.getElementById('withdrawOverlay').style.pointerEvents='all';
-  _loadWdHistory();
-};
-
-window.closeWithdrawFunds=function(){
-  document.getElementById('withdrawOverlay').style.opacity='0';
-  document.getElementById('withdrawOverlay').style.pointerEvents='none';
-  if(_wdHistoryUnsub){_wdHistoryUnsub();_wdHistoryUnsub=null;}
-};
-
-window.onWdAmountChange=function(val){
-  const amt=parseFloat(val)||0;
-  const bal=UD&&UD.balance?UD.balance:0;
-  const net=amt>0?amt-(amt*0.1):0;
-  const netEl=document.getElementById('wdNetAmount');
-  if(amt>=50&&amt<=bal){
-    netEl.textContent='R'+net.toFixed(2);
-    netEl.style.color='var(--green)';
-  }else if(amt>0){
-    netEl.textContent=amt<50?'Min R50':'>Balance';
-    netEl.style.color='var(--red)';
-  }else{
-    netEl.textContent='—';
-    netEl.style.color='var(--dim)';
-  }
-  const holder=document.getElementById('wdHolderName').value.trim();
-  const acc=document.getElementById('wdAccountNumber').value.trim();
-  const btn=document.getElementById('wdSubmitBtn');
-  if(amt>=50&&amt<=bal&&holder.length>1&&acc.length>4){
-    btn.style.opacity='1';btn.style.pointerEvents='all';
-  }else{
-    btn.style.opacity='.4';btn.style.pointerEvents='none';
-  }
-};
-
-function _loadWdHistory(){
-  const listEl=document.getElementById('wdHistoryList');
-  listEl.innerHTML='<div style="font-size:12px;color:var(--dim);text-align:center;padding:12px 0">Loading…</div>';
-  if(!CU)return;
-  const db=firebase.firestore();
-  if(_wdHistoryUnsub)_wdHistoryUnsub();
-  _wdHistoryUnsub=db.collection('withdrawalRequests')
-    .where('uid','==',CU.uid)
-    .orderBy('requestedAt','desc')
-    .limit(10)
-    .onSnapshot(snap=>{
-      if(snap.empty){
-        listEl.innerHTML='<div style="font-size:12px;color:var(--dim);text-align:center;padding:12px 0">No withdrawal history yet.</div>';
-        return;
-      }
-      listEl.innerHTML='';
-      snap.forEach(doc=>{
-        const d=doc.data();
-        const status=d.status||'pending';
-        const ts=d.requestedAt?new Date(d.requestedAt.seconds*1000).toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'}):'—';
-        const statusColor=status==='granted'?'var(--green)':status==='pending'?'var(--gold)':'var(--red)';
-        const statusLabel=status==='granted'?'Received':status==='pending'?'Under Review':'Declined';
-        const statusIcon=status==='granted'?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>':status==='pending'?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>':'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-        const card=document.createElement('div');
-        card.style.cssText='background:var(--muted);border:1px solid var(--border);border-radius:11px;padding:12px 14px;';
-        card.innerHTML=`
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-            <div style="font-family:\'Bebas Neue\',sans-serif;font-size:17px;letter-spacing:1px;color:var(--white)">R${(d.netAmount||0).toFixed(2)}</div>
-            <div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;letter-spacing:1px;color:${statusColor}">${statusIcon}${statusLabel}</div>
-          </div>
-          <div style="font-size:11px;color:var(--dim)">Requested R${(d.requestedAmount||0).toFixed(2)} &nbsp;·&nbsp; ${ts}</div>
-          ${status==='granted'?`<div style="font-size:11px;color:var(--green);margin-top:4px">✓ Withdrawal granted — balance updated</div>`:''}
-          ${status==='pending'?`<div style="font-size:11px;color:var(--dim);margin-top:4px">Being reviewed · processed within 24 hrs</div>`:''}
-        `;
-        listEl.appendChild(card);
-      });
-    },err=>{
-      listEl.innerHTML='<div style="font-size:12px;color:var(--dim);text-align:center;padding:10px 0">Could not load history.</div>';
-    });
-}
-
-window.submitWithdrawal=async function(){
-  if(!CU)return;
-  const amt=parseFloat(document.getElementById('wdAmountInput').value)||0;
-  const holder=document.getElementById('wdHolderName').value.trim();
-  const accNum=document.getElementById('wdAccountNumber').value.trim();
-  const bal=UD&&UD.balance?UD.balance:0;
-  const statusEl=document.getElementById('wdStatus');
-  const btn=document.getElementById('wdSubmitBtn');
-
-  if(amt<50){statusEl.style.color='var(--red)';statusEl.textContent='Minimum withdrawal is R50.';return;}
-  if(amt>bal){statusEl.style.color='var(--red)';statusEl.textContent='Amount exceeds your available balance.';return;}
-  if(!holder||holder.length<2){statusEl.style.color='var(--red)';statusEl.textContent='Please enter the account holder name.';return;}
-  if(!accNum||accNum.length<5){statusEl.style.color='var(--red)';statusEl.textContent='Please enter a valid account number.';return;}
-
-  btn.style.opacity='.5';btn.style.pointerEvents='none';
-  btn.textContent='SUBMITTING…';
-  statusEl.style.color='var(--dim)';
-  statusEl.textContent='';
-
-  const net=parseFloat((amt-(amt*0.1)).toFixed(2));
-  try{
-    const db=firebase.firestore();
-    await db.collection('withdrawalRequests').add({
-      uid:CU.uid,
-      username:UD&&UD.username?UD.username:'',
-      displayName:UD&&UD.displayName?UD.displayName:'',
-      email:CU.email||'',
-      requestedAmount:amt,
-      netAmount:net,
-      fee:parseFloat((amt*0.1).toFixed(2)),
-      accountHolder:holder,
-      accountNumber:accNum,
-      status:'pending',
-      requestedAt:firebase.firestore.FieldValue.serverTimestamp(),
-      balanceAtRequest:bal
-    });
-    btn.textContent='REQUEST SUBMITTED ✓';
-    btn.style.opacity='.6';
-    statusEl.style.color='var(--green)';
-    statusEl.textContent='Your request is under review. You\'ll receive R'+net.toFixed(2)+' within 24 hours.';
-    // Reload history to show new entry
-    _loadWdHistory();
-  }catch(e){
-    console.error('Withdrawal error:',e);
-    statusEl.style.color='var(--red)';
-    statusEl.textContent='Something went wrong. Please try again.';
-    btn.textContent='SUBMIT REQUEST';
-    btn.style.opacity='1';btn.style.pointerEvents='all';
-  }
 };
 
 window.selectFundsAmt=function(el,amount){
@@ -4225,75 +4177,6 @@ function renderAnalytics(container,raw){
 })();
 </script>
 
-<!-- ═══════ WITHDRAW FUNDS MODAL ═══════ -->
-<div id="withdrawOverlay" style="position:fixed;inset:0;z-index:99100;background:rgba(0,0,0,.85);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;padding:16px;">
-  <div style="background:var(--card);border-radius:22px;border:1.5px solid var(--border);padding:24px 20px;width:100%;max-width:390px;box-shadow:0 32px 80px rgba(0,0,0,.5);max-height:88vh;overflow-y:auto;">
-
-    <!-- Header -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-      <div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;color:var(--white)">WITHDRAW FUNDS</div>
-        <div style="font-size:11px;color:var(--dim);margin-top:2px">Processed within 24 hours for security</div>
-      </div>
-      <div style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--border);display:grid;place-items:center;flex-shrink:0">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--white)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><polyline points="5 12 12 5 19 12"/><line x1="5" y1="19" x2="19" y2="19"/></svg>
-      </div>
-    </div>
-
-    <!-- Balance + payout preview -->
-    <div style="background:var(--muted);border-radius:13px;padding:14px 16px;margin-bottom:16px;border:1px solid var(--border)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <span style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim)">Available Balance</span>
-        <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold)" id="wdCurrentBal">R0.00</span>
-      </div>
-      <div style="height:1px;background:var(--border);margin-bottom:10px"></div>
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <span style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim)">You Will Receive</span>
-        <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px" id="wdNetAmount" style="color:var(--dim)">—</span>
-      </div>
-      <div style="font-size:10px;color:var(--dim);margin-top:6px">Minimum withdrawal: <strong style="color:var(--white)">R50</strong></div>
-    </div>
-
-    <!-- Amount input -->
-    <div style="margin-bottom:12px">
-      <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:6px">Amount to Withdraw (R)</div>
-      <input type="number" id="wdAmountInput" placeholder="e.g. 100" min="50" style="width:100%;background:var(--muted);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:600;color:var(--white);outline:none;transition:border-color .2s" oninput="onWdAmountChange(this.value)" onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border)'">
-    </div>
-
-    <!-- Account holder -->
-    <div style="margin-bottom:12px">
-      <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:6px">Account Holder Name</div>
-      <input type="text" id="wdHolderName" placeholder="Full name on the account" style="width:100%;background:var(--muted);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:600;color:var(--white);outline:none;transition:border-color .2s" oninput="onWdAmountChange(document.getElementById('wdAmountInput').value)" onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border)'">
-    </div>
-
-    <!-- Account number -->
-    <div style="margin-bottom:18px">
-      <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:6px">Bank Account Number</div>
-      <input type="text" id="wdAccountNumber" placeholder="e.g. 1234567890" inputmode="numeric" style="width:100%;background:var(--muted);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:600;color:var(--white);outline:none;transition:border-color .2s" oninput="onWdAmountChange(document.getElementById('wdAmountInput').value)" onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border)'">
-    </div>
-
-    <!-- Security notice -->
-    <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,200,0,.05);border:1px solid rgba(255,200,0,.15);border-radius:10px;padding:11px;margin-bottom:16px">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <div style="font-size:11px;color:var(--dim);line-height:1.6">For security, all requests are manually reviewed and processed within <strong style="color:var(--white)">24 hours</strong>.</div>
-    </div>
-
-    <!-- Submit -->
-    <button id="wdSubmitBtn" onclick="submitWithdrawal()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--grad);font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;cursor:pointer;margin-bottom:10px;opacity:.4;pointer-events:none;transition:opacity .2s" class="inline-funds-btn">SUBMIT REQUEST</button>
-    <button onclick="closeWithdrawFunds()" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:12px;background:transparent;color:var(--dim);font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Cancel</button>
-    <div id="wdStatus" style="font-size:12px;text-align:center;margin-top:10px;min-height:16px;line-height:1.5"></div>
-
-    <!-- ── Withdrawal History ── -->
-    <div style="margin-top:22px;border-top:1px solid var(--border);padding-top:18px">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--white);margin-bottom:12px">WITHDRAWAL HISTORY</div>
-      <div id="wdHistoryList" style="display:flex;flex-direction:column;gap:8px">
-        <div style="font-size:12px;color:var(--dim);text-align:center;padding:12px 0">Loading…</div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
 <!-- SIGN OUT CONFIRMATION MODAL -->
 <div class="overlay" id="signOutModal" style="z-index:9600">
   <div class="modal-box" style="max-width:340px;text-align:center">
@@ -4331,8 +4214,6 @@ function renderAnalytics(container,raw){
 
 <style>
 #addFundsOverlay.open{opacity:1!important;pointer-events:all!important;}
-body.dark-theme .withdraw-trigger{border-color:rgba(255,255,255,.15)!important;color:#f0f0ff!important;}
-body:not(.dark-theme) .withdraw-trigger{border-color:rgba(0,0,0,.12)!important;color:#0f0f0f!important;}
 .funds-amt-btn{padding:14px 8px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--white);font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:1px;cursor:pointer;text-align:center;transition:all .2s;}
 .funds-amt-btn.selected{border-color:var(--brand)!important;background:rgba(128,128,128,0.12)!important;color:var(--brand)!important;}
 .signout-confirm-btn{padding:12px 20px;background:var(--grad);border:none;border-radius:9px;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:#fff;}
