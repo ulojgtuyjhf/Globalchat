@@ -1,1 +1,431 @@
-<a href="https://ibb.co/HTr51nm2"><img src="https://i.ibb.co/fdCjB4mS/file-00000000d40c71fda0a43fcbc677dad6.png" alt="file-00000000d40c71fda0a43fcbc677dad6" border="0"></a>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Withdrawals — Nmedea Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0b0b14;--card:#12121f;--border:rgba(255,255,255,.08);
+  --white:#f0f0ff;--dim:#6060a0;--muted:#1a1a2e;--black:#080810;
+  --brand:#fff;--gold:#e8c94a;--green:#4ade80;--red:#f87171;--amber:#fbbf24;
+  --grad:linear-gradient(135deg,#ffffff 0%,#d0d0f0 100%);
+  --shadow:0 2px 24px rgba(0,0,0,.5);
+}
+html,body{width:100%;min-height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--white);}
+
+/* ── AUTH SCREEN ── */
+#authScreen{
+  position:fixed;inset:0;z-index:9999;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;
+}
+#authScreen.hidden{display:none;}
+.auth-logo{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:6px;margin-bottom:6px;}
+.auth-sub{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:40px;}
+.auth-box{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px 24px;width:100%;max-width:360px;}
+.auth-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:6px;}
+.auth-inp{width:100%;background:var(--muted);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--white);outline:none;margin-bottom:14px;transition:border-color .2s;}
+.auth-inp:focus{border-color:var(--brand);}
+.auth-btn{width:100%;padding:13px;border:none;border-radius:11px;background:var(--grad);font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;color:#0b0b14;transition:opacity .2s;}
+.auth-btn:hover{opacity:.88;}
+.auth-err{font-size:12px;color:var(--red);text-align:center;margin-top:10px;min-height:16px;}
+
+/* ── MAIN LAYOUT ── */
+#mainScreen{display:none;flex-direction:column;min-height:100vh;}
+#mainScreen.visible{display:flex;}
+.topbar{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;height:56px;
+  background:rgba(8,8,16,.97);border-bottom:1px solid var(--border);
+  backdrop-filter:blur(14px);
+}
+.topbar-logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:4px;color:var(--white);}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.topbar-badge{font-size:10px;letter-spacing:2px;text-transform:uppercase;background:rgba(255,255,255,.08);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--dim);}
+.signout-btn{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:transparent;border:1px solid var(--border);border-radius:7px;padding:5px 11px;color:var(--dim);cursor:pointer;transition:border-color .2s,color .2s;}
+.signout-btn:hover{border-color:var(--red);color:var(--red);}
+
+.page-content{padding:20px 16px;max-width:700px;margin:0 auto;width:100%;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:20px;}
+.tab{flex:1;padding:9px;border-radius:9px;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1.5px;text-align:center;cursor:pointer;color:var(--dim);transition:background .2s,color .2s;}
+.tab.active{background:var(--muted);color:var(--white);}
+
+/* ── STATS ROW ── */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:14px 16px;}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:2px;}
+.stat-lbl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);}
+
+/* ── REQUEST CARDS ── */
+.requests-list{display:flex;flex-direction:column;gap:12px;}
+.req-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  overflow:hidden;transition:border-color .2s;
+}
+.req-card.granted{border-color:rgba(74,222,128,.2);}
+.req-header{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);}
+.req-avatar{width:40px;height:40px;border-radius:50%;background:var(--muted);border:1px solid var(--border);display:grid;place-items:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--dim);flex-shrink:0;}
+.req-meta{flex:1;min-width:0;}
+.req-name{font-size:14px;font-weight:700;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.req-username{font-size:11px;color:var(--dim);margin-top:1px;}
+.req-status-badge{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:100px;flex-shrink:0;}
+.status-pending{background:rgba(251,191,36,.1);color:var(--amber);border:1px solid rgba(251,191,36,.2);}
+.status-granted{background:rgba(74,222,128,.1);color:var(--green);border:1px solid rgba(74,222,128,.2);}
+.req-body{padding:14px 16px;}
+.req-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.req-row:last-child{margin-bottom:0;}
+.req-key{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);}
+.req-val{font-size:13px;font-weight:600;color:var(--white);text-align:right;word-break:break-all;max-width:55%;}
+.req-payout{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--green);}
+.req-footer{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:10px;}
+.approve-btn{
+  flex:1;padding:12px;border:none;border-radius:10px;
+  background:var(--grad);color:#0b0b14;
+  font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:opacity .2s;
+}
+.approve-btn:hover{opacity:.85;}
+.approve-btn:disabled{opacity:.35;cursor:not-allowed;}
+.granted-label{
+  flex:1;padding:12px;border-radius:10px;
+  background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);
+  color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+
+/* ── EMPTY / LOADING ── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--dim);}
+.empty-icon{font-size:40px;margin-bottom:12px;opacity:.4;}
+.empty-txt{font-size:13px;}
+.loading-dots{display:flex;gap:8px;justify-content:center;padding:40px 0;}
+.loading-dots span{width:8px;height:8px;border-radius:50%;background:var(--dim);animation:ldot 1.2s ease-in-out infinite;}
+.loading-dots span:nth-child(2){animation-delay:.2s;}
+.loading-dots span:nth-child(3){animation-delay:.4s;}
+@keyframes ldot{0%,100%{transform:scale(.6);opacity:.2}50%{transform:scale(1.3);opacity:1}}
+
+/* ── TOAST ── */
+.adm-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(15,15,26,.97);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:11px 20px;font-size:13px;font-weight:600;z-index:9999;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;white-space:nowrap;color:#f0f0ff;backdrop-filter:blur(12px);}
+.adm-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── CONFIRM OVERLAY ── */
+#confirmOverlay{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px;}
+#confirmOverlay.open{display:flex;}
+.confirm-box{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px 24px;width:100%;max-width:340px;text-align:center;}
+.confirm-icon{width:56px;height:56px;border-radius:50%;background:rgba(74,222,128,.1);border:1.5px solid rgba(74,222,128,.2);display:grid;place-items:center;margin:0 auto 16px;}
+.confirm-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;margin-bottom:8px;}
+.confirm-body{font-size:13px;color:var(--dim);line-height:1.6;margin-bottom:22px;}
+.confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn-cancel{padding:12px;background:var(--muted);border:1px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:var(--white);}
+.btn-confirm-green{padding:12px;background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.3);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:var(--green);}
+</style>
+</head>
+<body>
+
+<!-- ── AUTH SCREEN ── -->
+<div id="authScreen">
+  <div class="auth-logo">NMEDEA</div>
+  <div class="auth-sub">Developer Admin · Withdrawals</div>
+  <div class="auth-box">
+    <div class="auth-label">Email</div>
+    <input class="auth-inp" id="adminEmail" type="email" placeholder="admin@nmedea.com" autocomplete="username">
+    <div class="auth-label">Password</div>
+    <input class="auth-inp" id="adminPass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAdminLogin()">
+    <button class="auth-btn" onclick="doAdminLogin()">SIGN IN</button>
+    <div class="auth-err" id="authErr"></div>
+  </div>
+</div>
+
+<!-- ── MAIN SCREEN ── -->
+<div id="mainScreen">
+  <div class="topbar">
+    <div class="topbar-logo">NMEDEA ADMIN</div>
+    <div class="topbar-right">
+      <div class="topbar-badge">WITHDRAWALS</div>
+      <button class="signout-btn" onclick="doAdminLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="page-content">
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-val" id="statPending" style="color:var(--amber)">—</div>
+        <div class="stat-lbl">Pending</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="statGranted" style="color:var(--green)">—</div>
+        <div class="stat-lbl">Granted</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="statTotal" style="color:var(--white)">—</div>
+        <div class="stat-lbl">Total Paid (R)</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" id="tabPending" onclick="switchTab('pending')">PENDING</div>
+      <div class="tab" id="tabGranted" onclick="switchTab('granted')">GRANTED</div>
+      <div class="tab" id="tabAll" onclick="switchTab('all')">ALL</div>
+    </div>
+
+    <!-- List -->
+    <div class="requests-list" id="requestsList">
+      <div class="loading-dots"><span></span><span></span><span></span></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── CONFIRM OVERLAY ── -->
+<div id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="confirm-title">GRANT WITHDRAWAL?</div>
+    <div class="confirm-body" id="confirmBody">This will mark the request as granted and deduct the withdrawal amount from the user's balance.</div>
+    <div class="confirm-actions">
+      <button class="btn-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-confirm-green" id="confirmDoBtn" onclick="executeGrant()">Grant & Deduct</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ── -->
+<div class="adm-toast" id="admToast"></div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+// ── Firebase init ──
+const FB={
+  apiKey:'AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ',
+  authDomain:'globalchat-2d669.firebaseapp.com',
+  projectId:'globalchat-2d669',
+  storageBucket:'globalchat-2d669.firebasestorage.app',
+  messagingSenderId:'178714711978',
+  appId:'1:178714711978:web:fb831188be23e62a4bbdd3'
+};
+firebase.initializeApp(FB);
+const auth=firebase.auth();
+const db=firebase.firestore();
+
+let _currentTab='pending';
+let _unsubRequests=null;
+let _pendingGrantDoc=null; // {docId, uid, amount, displayName, netAmount}
+let _toastTimer=null;
+
+// ── TOAST ──
+function admToast(msg,type='green'){
+  const el=document.getElementById('admToast');
+  el.textContent=msg;
+  el.style.borderColor=type==='red'?'rgba(248,113,113,.3)':'rgba(74,222,128,.3)';
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+// ── AUTH ──
+firebase.auth().onAuthStateChanged(user=>{
+  if(user){
+    document.getElementById('authScreen').classList.add('hidden');
+    document.getElementById('mainScreen').classList.add('visible');
+    loadRequests();
+  }else{
+    document.getElementById('authScreen').classList.remove('hidden');
+    document.getElementById('mainScreen').classList.remove('visible');
+    if(_unsubRequests){_unsubRequests();_unsubRequests=null;}
+  }
+});
+
+window.doAdminLogin=async function(){
+  const email=document.getElementById('adminEmail').value.trim();
+  const pass=document.getElementById('adminPass').value;
+  const errEl=document.getElementById('authErr');
+  errEl.textContent='';
+  if(!email||!pass){errEl.textContent='Enter email and password.';return;}
+  try{
+    await auth.signInWithEmailAndPassword(email,pass);
+  }catch(e){
+    errEl.textContent=e.code==='auth/wrong-password'||e.code==='auth/user-not-found'?'Invalid credentials.':'Error: '+e.message;
+  }
+};
+
+window.doAdminLogout=function(){
+  auth.signOut();
+};
+
+// ── TABS ──
+window.switchTab=function(tab){
+  _currentTab=tab;
+  ['pending','granted','all'].forEach(t=>{
+    document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active',t===tab);
+  });
+  loadRequests();
+};
+
+// ── LOAD REQUESTS ──
+function loadRequests(){
+  const listEl=document.getElementById('requestsList');
+  listEl.innerHTML='<div class="loading-dots"><span></span><span></span><span></span></div>';
+  if(_unsubRequests){_unsubRequests();_unsubRequests=null;}
+
+  let query=db.collection('withdrawalRequests').orderBy('requestedAt','desc');
+  if(_currentTab==='pending')query=query.where('status','==','pending');
+  if(_currentTab==='granted')query=query.where('status','==','granted');
+
+  _unsubRequests=query.onSnapshot(snap=>{
+    // Update stats from all docs (only if on pending or loading all)
+    updateStats();
+
+    if(snap.empty){
+      listEl.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-txt">No ${_currentTab==='all'?'':_currentTab} requests yet.</div></div>`;
+      return;
+    }
+    listEl.innerHTML='';
+    snap.forEach(doc=>{
+      listEl.appendChild(buildCard(doc.id,doc.data()));
+    });
+  },err=>{
+    listEl.innerHTML='<div class="empty-state"><div class="empty-txt" style="color:var(--red)">Failed to load: '+err.message+'</div></div>';
+  });
+}
+
+function updateStats(){
+  // Pending count
+  db.collection('withdrawalRequests').where('status','==','pending').get().then(s=>{
+    document.getElementById('statPending').textContent=s.size;
+  });
+  // Granted count + total paid
+  db.collection('withdrawalRequests').where('status','==','granted').get().then(s=>{
+    document.getElementById('statGranted').textContent=s.size;
+    let total=0;s.forEach(d=>total+=d.data().netAmount||0);
+    document.getElementById('statTotal').textContent='R'+total.toFixed(2);
+  });
+}
+
+function buildCard(docId,d){
+  const wrapper=document.createElement('div');
+  wrapper.className='req-card'+(d.status==='granted'?' granted':'');
+  wrapper.id='card-'+docId;
+
+  const ts=d.requestedAt?new Date(d.requestedAt.seconds*1000).toLocaleString('en-ZA',{
+    day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'
+  }):'—';
+  const grantedTs=d.grantedAt?new Date(d.grantedAt.seconds*1000).toLocaleString('en-ZA',{
+    day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'
+  }):null;
+
+  const initials=(d.displayName||d.username||'?').charAt(0).toUpperCase();
+
+  wrapper.innerHTML=`
+    <div class="req-header">
+      <div class="req-avatar">${initials}</div>
+      <div class="req-meta">
+        <div class="req-name">${d.displayName||'—'}</div>
+        <div class="req-username">@${d.username||'unknown'} &nbsp;·&nbsp; ${d.email||''}</div>
+      </div>
+      <div class="req-status-badge ${d.status==='granted'?'status-granted':'status-pending'}">
+        ${d.status==='granted'?'Granted':'Pending'}
+      </div>
+    </div>
+    <div class="req-body">
+      <div class="req-row">
+        <span class="req-key">Amount Requested</span>
+        <span class="req-val">R${(d.requestedAmount||0).toFixed(2)}</span>
+      </div>
+      <div class="req-row">
+        <span class="req-key">Payout to User</span>
+        <span class="req-val req-payout">R${(d.netAmount||0).toFixed(2)}</span>
+      </div>
+      <div class="req-row">
+        <span class="req-key">Account Holder</span>
+        <span class="req-val">${d.accountHolder||'—'}</span>
+      </div>
+      <div class="req-row">
+        <span class="req-key">Account Number</span>
+        <span class="req-val" style="font-family:monospace;font-size:14px">${d.accountNumber||'—'}</span>
+      </div>
+      <div class="req-row">
+        <span class="req-key">Balance at Request</span>
+        <span class="req-val">R${(d.balanceAtRequest||0).toFixed(2)}</span>
+      </div>
+      <div class="req-row">
+        <span class="req-key">Requested</span>
+        <span class="req-val" style="font-size:11px">${ts}</span>
+      </div>
+      ${grantedTs?`<div class="req-row"><span class="req-key">Granted At</span><span class="req-val" style="font-size:11px;color:var(--green)">${grantedTs}</span></div>`:''}
+    </div>
+    <div class="req-footer">
+      ${d.status==='granted'
+        ?`<div class="granted-label"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>WITHDRAWAL GRANTED</div>`
+        :`<button class="approve-btn" onclick="confirmGrant('${docId}','${d.uid}',${d.requestedAmount||0},'${(d.displayName||d.username||'User').replace(/'/g,"\\'")}',${d.netAmount||0})">
+           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+           MARK AS GRANTED
+         </button>`
+      }
+    </div>
+  `;
+  return wrapper;
+}
+
+// ── GRANT FLOW ──
+window.confirmGrant=function(docId,uid,amount,name,netAmount){
+  _pendingGrantDoc={docId,uid,amount,name,netAmount};
+  document.getElementById('confirmBody').innerHTML=
+    `Marking <strong>${name}</strong>'s request as granted.<br>
+     Their balance will be reduced by <strong>R${amount.toFixed(2)}</strong> and the request will be closed.`;
+  document.getElementById('confirmOverlay').classList.add('open');
+};
+
+window.closeConfirm=function(){
+  document.getElementById('confirmOverlay').classList.remove('open');
+  _pendingGrantDoc=null;
+};
+
+window.executeGrant=async function(){
+  if(!_pendingGrantDoc)return;
+  const {docId,uid,amount,name,netAmount}=_pendingGrantDoc;
+  const btn=document.getElementById('confirmDoBtn');
+  btn.disabled=true;btn.textContent='Processing…';
+
+  try{
+    // Use Firestore batch: update request doc + decrement user balance atomically
+    const batch=db.batch();
+
+    // 1. Mark request as granted
+    const reqRef=db.collection('withdrawalRequests').doc(docId);
+    batch.update(reqRef,{
+      status:'granted',
+      grantedAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // 2. Deduct balance from user's doc (users collection — same as ShootWars)
+    const userRef=db.collection('users').doc(uid);
+    batch.update(userRef,{
+      balance:firebase.firestore.FieldValue.increment(-amount)
+    });
+
+    await batch.commit();
+
+    closeConfirm();
+    admToast('Granted! R'+amount.toFixed(2)+' deducted from '+name+'\'s balance.');
+  }catch(e){
+    admToast('Error: '+e.message,'red');
+    btn.disabled=false;btn.textContent='Grant & Deduct';
+  }
+};
+</script>
+</body>
+</html>
