@@ -1511,25 +1511,68 @@ let editMode=false;
 // ── SOUNDS ──
 let audioCtx=null;
 function getAudioCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
-function playSound(type){
+
+function _makeNoise(ac,dur){
+  const buf=ac.createBuffer(1,ac.sampleRate*dur,ac.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+  const src=ac.createBufferSource();src.buffer=buf;return src;
+}
+
+function playSound(type,tankId){
   if(!_soundEnabled)return;
+  const isAtlas=(tankId||_selectedTank?.id)==='atlas';
   try{
     const ac=getAudioCtx();
-    const osc=ac.createOscillator(),gain=ac.createGain();
-    osc.connect(gain);gain.connect(ac.destination);
+    const now=ac.currentTime;
+
     if(type==='shoot'){
-      const osc2=ac.createOscillator(),g2=ac.createGain();
-      osc2.connect(g2);g2.connect(ac.destination);
-      osc2.type='sawtooth';osc2.frequency.setValueAtTime(180,ac.currentTime);osc2.frequency.exponentialRampToValueAtTime(30,ac.currentTime+0.25);
-      g2.gain.setValueAtTime(1.0,ac.currentTime);g2.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.35);
-      osc2.start();osc2.stop(ac.currentTime+0.35);
-      osc.type='square';osc.frequency.setValueAtTime(400,ac.currentTime);osc.frequency.exponentialRampToValueAtTime(60,ac.currentTime+0.1);
-      gain.gain.setValueAtTime(0.6,ac.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.15);
-      osc.start();osc.stop(ac.currentTime+0.15);
+      if(isAtlas){
+        // Atlas RT — deep heavy BOOM
+        const noise=_makeNoise(ac,0.5);
+        const filt=ac.createBiquadFilter();filt.type='lowpass';filt.frequency.setValueAtTime(300,now);filt.frequency.exponentialRampToValueAtTime(60,now+0.4);
+        const g=ac.createGain();g.gain.setValueAtTime(1.8,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.5);
+        noise.connect(filt);filt.connect(g);g.connect(ac.destination);noise.start();noise.stop(now+0.5);
+        // Sub thump
+        const osc=ac.createOscillator(),og=ac.createGain();
+        osc.type='sine';osc.frequency.setValueAtTime(80,now);osc.frequency.exponentialRampToValueAtTime(25,now+0.3);
+        og.gain.setValueAtTime(1.2,now);og.gain.exponentialRampToValueAtTime(0.001,now+0.3);
+        osc.connect(og);og.connect(ac.destination);osc.start();osc.stop(now+0.3);
+      } else {
+        // Heavy Armor — sharp CRACK
+        const noise=_makeNoise(ac,0.25);
+        const filt=ac.createBiquadFilter();filt.type='bandpass';filt.frequency.setValueAtTime(1200,now);filt.Q.value=0.8;
+        const g=ac.createGain();g.gain.setValueAtTime(1.2,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.25);
+        noise.connect(filt);filt.connect(g);g.connect(ac.destination);noise.start();noise.stop(now+0.25);
+        const osc=ac.createOscillator(),og=ac.createGain();
+        osc.type='sawtooth';osc.frequency.setValueAtTime(220,now);osc.frequency.exponentialRampToValueAtTime(40,now+0.15);
+        og.gain.setValueAtTime(0.8,now);og.gain.exponentialRampToValueAtTime(0.001,now+0.15);
+        osc.connect(og);og.connect(ac.destination);osc.start();osc.stop(now+0.15);
+      }
     }
-    else if(type==='hit'){osc.type='sawtooth';osc.frequency.setValueAtTime(150,ac.currentTime);gain.gain.setValueAtTime(0.4,ac.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.2);osc.start();osc.stop(ac.currentTime+0.2);}
-    else if(type==='kill'){osc.type='square';osc.frequency.setValueAtTime(440,ac.currentTime);osc.frequency.setValueAtTime(660,ac.currentTime+0.1);gain.gain.setValueAtTime(0.3,ac.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.4);osc.start();osc.stop(ac.currentTime+0.4);}
-    else if(type==='die'){osc.type='sawtooth';osc.frequency.setValueAtTime(300,ac.currentTime);osc.frequency.exponentialRampToValueAtTime(50,ac.currentTime+0.5);gain.gain.setValueAtTime(0.5,ac.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.5);osc.start();osc.stop(ac.currentTime+0.5);}
+    else if(type==='hit'){
+      const noise=_makeNoise(ac,0.18);
+      const filt=ac.createBiquadFilter();filt.type='bandpass';filt.frequency.value=800;filt.Q.value=1.5;
+      const g=ac.createGain();g.gain.setValueAtTime(0.9,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.18);
+      noise.connect(filt);filt.connect(g);g.connect(ac.destination);noise.start();noise.stop(now+0.18);
+    }
+    else if(type==='kill'){
+      // Explosion
+      const noise=_makeNoise(ac,0.6);
+      const filt=ac.createBiquadFilter();filt.type='lowpass';filt.frequency.setValueAtTime(500,now);filt.frequency.exponentialRampToValueAtTime(50,now+0.5);
+      const g=ac.createGain();g.gain.setValueAtTime(2.0,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.6);
+      noise.connect(filt);filt.connect(g);g.connect(ac.destination);noise.start();noise.stop(now+0.6);
+      const osc=ac.createOscillator(),og=ac.createGain();
+      osc.type='sine';osc.frequency.setValueAtTime(60,now);osc.frequency.exponentialRampToValueAtTime(20,now+0.4);
+      og.gain.setValueAtTime(1.5,now);og.gain.exponentialRampToValueAtTime(0.001,now+0.4);
+      osc.connect(og);og.connect(ac.destination);osc.start();osc.stop(now+0.4);
+    }
+    else if(type==='die'){
+      const noise=_makeNoise(ac,0.8);
+      const filt=ac.createBiquadFilter();filt.type='lowpass';filt.frequency.setValueAtTime(400,now);filt.frequency.exponentialRampToValueAtTime(30,now+0.7);
+      const g=ac.createGain();g.gain.setValueAtTime(1.4,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.8);
+      noise.connect(filt);filt.connect(g);g.connect(ac.destination);noise.start();noise.stop(now+0.8);
+    }
   }catch(e){}
 }
 
@@ -2566,6 +2609,7 @@ function gameFrame(ts){
   drawMap();
   drawTreads();
   drawBullets(dt);
+  drawRemoteBullets(dt);
   drawPlayers();
   ctx.restore();
   updateParticles();
@@ -2810,29 +2854,94 @@ function roundRect2(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(
 
 function drawBullets(dt){
   bullets=bullets.filter(b=>{
-    b.x+=Math.cos(b.angle)*8*dt;b.y+=Math.sin(b.angle)*8*dt;
+    const spd=b.speed||8;
+    b.x+=Math.cos(b.angle)*spd*dt;
+    b.y+=Math.sin(b.angle)*spd*dt;
     b.life=(b.life||0)+1;
-    if(b.life>80||b.x<0||b.x>MAP_W||b.y<0||b.y>MAP_H)return false;
+    const maxLife=b.tankId==='atlas'?120:80;
+    if(b.life>maxLife||b.x<0||b.x>MAP_W||b.y<0||b.y>MAP_H)return false;
     if(collidesWithMap(b.x,b.y,4))return false;
     if(gameState?.players){
       for(const[uid,p] of Object.entries(gameState.players)){
         if(!p||!p.alive||uid===b.shooterUid)continue;
         const dx=p.x-b.x,dy=p.y-b.y;
-        if(dx*dx+dy*dy<(20*20)){handleBulletHit(b,uid,p);return false;}
+        const hitR=b.tankId==='atlas'?28:20;
+        if(dx*dx+dy*dy<(hitR*hitR)){handleBulletHit(b,uid,p);return false;}
       }
     }
     ctx.save();
-    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(b.x,b.y,4,0,Math.PI*2);ctx.fill();
+    if(b.tankId==='atlas'){
+      // Atlas: big slow red shell with glow
+      ctx.shadowBlur=12;ctx.shadowColor='rgba(255,60,60,0.9)';
+      ctx.fillStyle='#ff3030';
+      ctx.beginPath();ctx.arc(b.x,b.y,6,0,Math.PI*2);ctx.fill();
+      // Shell casing trail
+      ctx.shadowBlur=0;ctx.fillStyle='rgba(255,120,30,0.5)';
+      ctx.beginPath();ctx.arc(b.x-Math.cos(b.angle)*10,b.y-Math.sin(b.angle)*10,3,0,Math.PI*2);ctx.fill();
+    } else {
+      // Heavy: small fast yellow bullet
+      ctx.shadowBlur=8;ctx.shadowColor='rgba(255,220,80,0.8)';
+      ctx.fillStyle='#ffe040';
+      ctx.save();ctx.translate(b.x,b.y);ctx.rotate(b.angle);
+      ctx.beginPath();ctx.ellipse(0,0,7,3,0,0,Math.PI*2);ctx.fill();
+      ctx.restore();
+    }
     ctx.restore();
     return true;
   });
 }
 
+// Listen for remote bullets from RTDB and draw them locally
+let _remoteBullets={};
+function listenRemoteBullets(roomId){
+  onValue(ref(rtdb,'sw_rooms/'+roomId+'/bullets'),snap=>{
+    const data=snap.val()||{};
+    // Add new remote bullets (not from me)
+    Object.entries(data).forEach(([key,b])=>{
+      if(!b||b.shooterUid===myUid||_remoteBullets[key])return;
+      _remoteBullets[key]={...b,key,life:0};
+    });
+    // Remove bullets no longer in RTDB
+    Object.keys(_remoteBullets).forEach(k=>{if(!data[k])delete _remoteBullets[k];});
+  });
+}
+
+function drawRemoteBullets(dt){
+  Object.values(_remoteBullets).forEach(b=>{
+    const spd=b.speed||8;
+    b.x+=Math.cos(b.angle)*spd*dt;
+    b.y+=Math.sin(b.angle)*spd*dt;
+    b.life=(b.life||0)+1;
+    ctx.save();
+    if(b.tankId==='atlas'){
+      ctx.shadowBlur=12;ctx.shadowColor='rgba(255,60,60,0.9)';
+      ctx.fillStyle='#ff3030';
+      ctx.beginPath();ctx.arc(b.x,b.y,6,0,Math.PI*2);ctx.fill();
+      ctx.shadowBlur=0;ctx.fillStyle='rgba(255,120,30,0.5)';
+      ctx.beginPath();ctx.arc(b.x-Math.cos(b.angle)*10,b.y-Math.sin(b.angle)*10,3,0,Math.PI*2);ctx.fill();
+    } else {
+      ctx.shadowBlur=8;ctx.shadowColor='rgba(255,220,80,0.8)';
+      ctx.fillStyle='#ffe040';
+      ctx.save();ctx.translate(b.x,b.y);ctx.rotate(b.angle);
+      ctx.beginPath();ctx.ellipse(0,0,7,3,0,0,Math.PI*2);ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+  });
+}
+
 async function handleBulletHit(bullet,targetUid,target){
   playSound('hit');
-  const dmg=_selectedTank?.damage||TANK_DAMAGE;
-  spawnDamageText(target.x-camX,target.y-camY-20,'-'+dmg,'#fff');
   if(bullet.shooterUid!==myUid)return;
+  // Distance-based damage — full damage up close, 40% at max range
+  const dx=bullet.x-(bullet.spawnX||bullet.x);
+  const dy=bullet.y-(bullet.spawnY||bullet.y);
+  const distTravelled=Math.sqrt(dx*dx+dy*dy);
+  const maxRange=800;
+  const distFactor=Math.max(0.4,1-(distTravelled/maxRange)*0.6);
+  const baseDmg=_selectedTank?.damage||TANK_DAMAGE;
+  const dmg=Math.round(baseDmg*distFactor);
+  spawnDamageText(target.x-camX,target.y-camY-20,'-'+dmg,'#fff');
   const newHp=Math.max(0,(target.hp||0)-dmg);
   await update(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+targetUid),{hp:newHp});
   if(newHp<=0&&!_killedSet.has(targetUid)){
@@ -3038,14 +3147,34 @@ function handleMovement(me,dt){
 function handleFiring(me){
   if(!firing)return;
   const now=Date.now();
-  if(now-lastFireTime<400)return;
+  const fireRate=_selectedTank?.id==='atlas'?700:380; // atlas fires slower
+  if(now-lastFireTime<fireRate)return;
   if(myBullets<=0){toast('No ammo! Reloading…','gold');return;}
   lastFireTime=now;myBullets--;updateBulletIcons();
-  playSound('shoot');
-  // Fire from barrel tip (forward direction = _bodyAngleRad)
+  playSound('shoot',_selectedTank?.id);
   const barrelAngle=_bodyAngleRad;
-  const color=TANK_COLORS[(gameState?.players?.[myUid]?.colorIdx||0)%TANK_COLORS.length];
-  bullets.push({x:me.x+Math.cos(barrelAngle)*40,y:me.y+Math.sin(barrelAngle)*40,angle:barrelAngle,shooterUid:myUid,color,life:0});
+  const isAtlas=_selectedTank?.id==='atlas';
+  const bx=me.x+Math.cos(barrelAngle)*40;
+  const by=me.y+Math.sin(barrelAngle)*40;
+  const bullet={
+    x:bx,y:by,
+    angle:barrelAngle,
+    shooterUid:myUid,
+    tankId:_selectedTank?.id||'heavy',
+    spawnX:bx,spawnY:by, // for distance damage
+    speed:isAtlas?5:9,   // atlas shell slower, heavy faster
+    life:0
+  };
+  bullets.push(bullet);
+  // Push bullet to RTDB so other players can see it
+  const bulletRef=push(ref(rtdb,'sw_rooms/'+currentRoomId+'/bullets'),{
+    x:bx,y:by,angle:barrelAngle,
+    shooterUid:myUid,tankId:bullet.tankId,
+    spawnX:bx,spawnY:by,speed:bullet.speed,
+    ts:now
+  });
+  // Auto-remove from RTDB after bullet expires
+  setTimeout(()=>remove(bulletRef).catch(()=>{}),3000);
 }
 
 function setupKeyboard(){
@@ -3168,6 +3297,8 @@ function enterGame(roomId,roomData){
     initGame(roomId,roomData);
     listenRoom(roomId);
     listenIngameChat(roomId);
+    _remoteBullets={};
+    listenRemoteBullets(roomId);
   });
 }
 
@@ -3385,7 +3516,7 @@ function cleanupGame(){
   if(currentRoomId&&CU){
     remove(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+CU.uid)).catch(()=>{});
   }
-  bullets=[];_treads=[];keys={w:false,a:false,s:false,d:false};firing=false;joystickActive=false;
+  bullets=[];_treads=[];_remoteBullets={};keys={w:false,a:false,s:false,d:false};firing=false;joystickActive=false;
   _speed=0;_bodyAngleRad=0;_treadDist=0;
   currentRoomId=null;currentRoomData=null;gameState=null;_savedResult=false;
   window.onkeydown=null;window.onkeyup=null;
