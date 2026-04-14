@@ -2245,7 +2245,7 @@ window.switchSidebar=function(name){
 const TANKS=[
   {
     id:'heavy',
-    name:'HEAVY ARMOR',
+    name:'SWITTI',
     variant:'MK-IV',
     sub:'62 TONNES · CREW: 4',
     img:'https://i.ibb.co/twzDZKfp/images-4-removebg-preview.png',
@@ -2870,21 +2870,62 @@ function drawBullets(dt){
       }
     }
     ctx.save();
+    ctx.translate(b.x,b.y);
+    ctx.rotate(b.angle);
     if(b.tankId==='atlas'){
-      // Atlas: big slow red shell with glow
-      ctx.shadowBlur=12;ctx.shadowColor='rgba(255,60,60,0.9)';
-      ctx.fillStyle='#ff3030';
-      ctx.beginPath();ctx.arc(b.x,b.y,6,0,Math.PI*2);ctx.fill();
-      // Shell casing trail
-      ctx.shadowBlur=0;ctx.fillStyle='rgba(255,120,30,0.5)';
-      ctx.beginPath();ctx.arc(b.x-Math.cos(b.angle)*10,b.y-Math.sin(b.angle)*10,3,0,Math.PI*2);ctx.fill();
+      // Atlas: large steel shell — big and heavy
+      // Smoke trail
+      ctx.globalAlpha=0.18;ctx.fillStyle='#aaa';
+      ctx.beginPath();ctx.ellipse(-18,0,14,5,0,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+      // Shell body
+      const sg=ctx.createLinearGradient(0,-6,0,6);
+      sg.addColorStop(0,'#9a9a9a');sg.addColorStop(0.4,'#d0d0d0');sg.addColorStop(1,'#5a5a5a');
+      ctx.fillStyle=sg;
+      ctx.beginPath();
+      ctx.moveTo(12,0);
+      ctx.bezierCurveTo(12,-7,4,-8,-10,-7);
+      ctx.lineTo(-10,7);
+      ctx.bezierCurveTo(4,8,12,7,12,0);
+      ctx.fill();
+      // Nose tip — dark steel
+      ctx.fillStyle='#333';
+      ctx.beginPath();ctx.moveTo(12,0);ctx.bezierCurveTo(14,-2,16,0,14,0);ctx.bezierCurveTo(16,0,14,2,12,0);ctx.fill();
+      // Belt ring
+      ctx.strokeStyle='#666';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(-4,-8);ctx.lineTo(-4,8);ctx.stroke();
+      // Base cap — brass
+      const bg=ctx.createLinearGradient(-14,-6,-14,6);
+      bg.addColorStop(0,'#b87333');bg.addColorStop(0.5,'#e8a040');bg.addColorStop(1,'#8a5010');
+      ctx.fillStyle=bg;
+      ctx.fillRect(-14,-6,5,12);
     } else {
-      // Heavy: small fast yellow bullet
-      ctx.shadowBlur=8;ctx.shadowColor='rgba(255,220,80,0.8)';
-      ctx.fillStyle='#ffe040';
-      ctx.save();ctx.translate(b.x,b.y);ctx.rotate(b.angle);
-      ctx.beginPath();ctx.ellipse(0,0,7,3,0,0,Math.PI*2);ctx.fill();
-      ctx.restore();
+      // SWITTI: small fast brass/copper bullet shell
+      // Motion blur trail
+      ctx.globalAlpha=0.15;ctx.fillStyle='#c88020';
+      ctx.beginPath();ctx.ellipse(-12,0,10,2.5,0,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+      // Shell body — brass
+      const bg2=ctx.createLinearGradient(0,-4,0,4);
+      bg2.addColorStop(0,'#c88020');bg2.addColorStop(0.4,'#f0c060');bg2.addColorStop(1,'#8a5010');
+      ctx.fillStyle=bg2;
+      ctx.beginPath();
+      ctx.moveTo(8,0);
+      ctx.bezierCurveTo(8,-4,2,-4.5,-6,-4);
+      ctx.lineTo(-6,4);
+      ctx.bezierCurveTo(2,4.5,8,4,8,0);
+      ctx.fill();
+      // Nose tip — copper
+      ctx.fillStyle='#7a3a08';
+      ctx.beginPath();ctx.moveTo(8,0);ctx.bezierCurveTo(10,-1.5,11,0,10,0);ctx.bezierCurveTo(11,0,10,1.5,8,0);ctx.fill();
+      // Belt
+      ctx.strokeStyle='#8a5010';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(-2,-4.5);ctx.lineTo(-2,4.5);ctx.stroke();
+      // Base — darker brass
+      const bbase=ctx.createLinearGradient(-8,-4,-8,4);
+      bbase.addColorStop(0,'#a06010');bbase.addColorStop(0.5,'#d08030');bbase.addColorStop(1,'#6a3808');
+      ctx.fillStyle=bbase;
+      ctx.fillRect(-8,-3.5,3,7);
     }
     ctx.restore();
     return true;
@@ -2913,18 +2954,48 @@ function drawRemoteBullets(dt){
     b.y+=Math.sin(b.angle)*spd*dt;
     b.life=(b.life||0)+1;
     ctx.save();
+    ctx.translate(b.x,b.y);
+    ctx.rotate(b.angle);
     if(b.tankId==='atlas'){
-      ctx.shadowBlur=12;ctx.shadowColor='rgba(255,60,60,0.9)';
-      ctx.fillStyle='#ff3030';
-      ctx.beginPath();ctx.arc(b.x,b.y,6,0,Math.PI*2);ctx.fill();
-      ctx.shadowBlur=0;ctx.fillStyle='rgba(255,120,30,0.5)';
-      ctx.beginPath();ctx.arc(b.x-Math.cos(b.angle)*10,b.y-Math.sin(b.angle)*10,3,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=0.18;ctx.fillStyle='#aaa';
+      ctx.beginPath();ctx.ellipse(-18,0,14,5,0,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+      const sg=ctx.createLinearGradient(0,-6,0,6);
+      sg.addColorStop(0,'#9a9a9a');sg.addColorStop(0.4,'#d0d0d0');sg.addColorStop(1,'#5a5a5a');
+      ctx.fillStyle=sg;
+      ctx.beginPath();
+      ctx.moveTo(12,0);
+      ctx.bezierCurveTo(12,-7,4,-8,-10,-7);
+      ctx.lineTo(-10,7);
+      ctx.bezierCurveTo(4,8,12,7,12,0);
+      ctx.fill();
+      ctx.fillStyle='#333';
+      ctx.beginPath();ctx.moveTo(12,0);ctx.bezierCurveTo(14,-2,16,0,14,0);ctx.bezierCurveTo(16,0,14,2,12,0);ctx.fill();
+      ctx.strokeStyle='#666';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(-4,-8);ctx.lineTo(-4,8);ctx.stroke();
+      const bg=ctx.createLinearGradient(-14,-6,-14,6);
+      bg.addColorStop(0,'#b87333');bg.addColorStop(0.5,'#e8a040');bg.addColorStop(1,'#8a5010');
+      ctx.fillStyle=bg;ctx.fillRect(-14,-6,5,12);
     } else {
-      ctx.shadowBlur=8;ctx.shadowColor='rgba(255,220,80,0.8)';
-      ctx.fillStyle='#ffe040';
-      ctx.save();ctx.translate(b.x,b.y);ctx.rotate(b.angle);
-      ctx.beginPath();ctx.ellipse(0,0,7,3,0,0,Math.PI*2);ctx.fill();
-      ctx.restore();
+      ctx.globalAlpha=0.15;ctx.fillStyle='#c88020';
+      ctx.beginPath();ctx.ellipse(-12,0,10,2.5,0,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+      const bg2=ctx.createLinearGradient(0,-4,0,4);
+      bg2.addColorStop(0,'#c88020');bg2.addColorStop(0.4,'#f0c060');bg2.addColorStop(1,'#8a5010');
+      ctx.fillStyle=bg2;
+      ctx.beginPath();
+      ctx.moveTo(8,0);
+      ctx.bezierCurveTo(8,-4,2,-4.5,-6,-4);
+      ctx.lineTo(-6,4);
+      ctx.bezierCurveTo(2,4.5,8,4,8,0);
+      ctx.fill();
+      ctx.fillStyle='#7a3a08';
+      ctx.beginPath();ctx.moveTo(8,0);ctx.bezierCurveTo(10,-1.5,11,0,10,0);ctx.bezierCurveTo(11,0,10,1.5,8,0);ctx.fill();
+      ctx.strokeStyle='#8a5010';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(-2,-4.5);ctx.lineTo(-2,4.5);ctx.stroke();
+      const bbase=ctx.createLinearGradient(-8,-4,-8,4);
+      bbase.addColorStop(0,'#a06010');bbase.addColorStop(0.5,'#d08030');bbase.addColorStop(1,'#6a3808');
+      ctx.fillStyle=bbase;ctx.fillRect(-8,-3.5,3,7);
     }
     ctx.restore();
   });
@@ -2963,12 +3034,13 @@ async function handleKill(targetUid,target){
   await push(ref(rtdb,'sw_killfeed'),{killer:UD.displayName||'Player',killerUid:CU.uid,killed:target.name||'Player',killedUid:targetUid,roomId:currentRoomId,ts:Date.now()});
   addIngameKillEvent(UD.displayName,target.name,'+R'+killReward);
   // Deduct entry fee from victim using targetUid (RTDB key = Firebase UID)
+  // Note: do NOT increment deaths/gamesPlayed here — the victim's handleMyDeath does that
   try{
     const targetSnap=await getDoc(doc(db,'sw_users',targetUid));
     if(targetSnap.exists()){
       const td=targetSnap.data();
       const newTBal=Math.max(0,(td.balance||0)-entryFee);
-      await updateDoc(doc(db,'sw_users',targetUid),{balance:newTBal,deaths:increment(1),gamesPlayed:increment(1)});
+      await updateDoc(doc(db,'sw_users',targetUid),{balance:newTBal});
     }
   }catch(e){console.error('Failed to deduct from victim:',e);}
   await push(ref(rtdb,'sw_history/'+CU.uid),{result:'kill',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:1,earned:killReward,ts:Date.now()});
@@ -3344,8 +3416,22 @@ async function handleMyDeath(){
   if(_soundEnabled)playSound('die');
   if(bulletRegenTimer){clearInterval(bulletRegenTimer);bulletRegenTimer=null;}
   const entryFee=currentRoomData?.entryFee||ENTRY_FEE;
-  await updateDoc(doc(db,'sw_users',CU.uid),{deaths:increment(1)});
-  UD.deaths=(UD.deaths||0)+1;
+  // Update deaths counter (gamesPlayed also ticks here)
+  await updateDoc(doc(db,'sw_users',CU.uid),{deaths:increment(1),gamesPlayed:increment(1)});
+  UD.deaths=(UD.deaths||0)+1;UD.gamesPlayed=(UD.gamesPlayed||0)+1;
+  // Sync balance from Firestore — the killer already deducted it via handleKill
+  // We do this so the victim's local UD.balance stays accurate and the UI updates
+  try{
+    const snap=await getDoc(doc(db,'sw_users',CU.uid));
+    if(snap.exists()){
+      const d=snap.data();
+      UD.balance=d.balance||0;
+    }
+  }catch(e){
+    // Fallback: deduct locally if Firestore read fails
+    UD.balance=Math.max(0,(UD.balance||0)-entryFee);
+  }
+  refreshLobbyUI();
   await push(ref(rtdb,'sw_history/'+CU.uid),{result:'loss',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:_sessionKills,lost:entryFee,ts:Date.now()});
   // Show eliminated screen with options
   const banner=document.getElementById('deathBanner');
@@ -3356,6 +3442,7 @@ async function handleWin(){
   if(_soundEnabled)playSound('kill');
   const prize=_sessionKills*KILL_REWARD;
   await push(ref(rtdb,'sw_history/'+CU.uid),{result:'win',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:_sessionKills,earned:prize,ts:Date.now()});
+  refreshLobbyUI();
   toast(prize>0?'+R'+prize.toFixed(2)+' earned!':'Last tank standing!','gold');
 }
 
