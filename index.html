@@ -1144,6 +1144,7 @@ body.dark-theme .ph-ico.loss{background:rgba(255,255,255,0.08);}
               <div style="display:flex;justify-content:center;gap:6px;margin-bottom:16px">
                 <div id="tankDot0" style="width:8px;height:8px;border-radius:50%;background:var(--brand);transition:all .2s"></div>
                 <div id="tankDot1" style="width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .2s"></div>
+                <div id="tankDot2" style="width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .2s"></div>
               </div>
 
               <!-- SPAWN Button -->
@@ -1522,12 +1523,24 @@ function _makeNoise(ac,dur){
 function playSound(type,tankId){
   if(!_soundEnabled)return;
   const isAtlas=(tankId||_selectedTank?.id)==='atlas';
+  const isF22=(tankId||_selectedTank?.id)==='f22';
   try{
     const ac=getAudioCtx();
     const now=ac.currentTime;
 
     if(type==='shoot'){
-      if(isAtlas){
+      if(isF22){
+        // F-22 — high-pitch missile WHOOSH + ignition crack
+        const noise=_makeNoise(ac,0.18);
+        const filt=ac.createBiquadFilter();filt.type='highpass';filt.frequency.setValueAtTime(2000,now);filt.frequency.exponentialRampToValueAtTime(400,now+0.22);
+        const g=ac.createGain();g.gain.setValueAtTime(1.0,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.22);
+        noise.connect(filt);filt.connect(g);g.connect(ac.destination);noise.start();noise.stop(now+0.22);
+        // Ignition tone — rising whine
+        const osc=ac.createOscillator(),og=ac.createGain();
+        osc.type='sawtooth';osc.frequency.setValueAtTime(600,now);osc.frequency.exponentialRampToValueAtTime(1800,now+0.12);
+        og.gain.setValueAtTime(0.5,now);og.gain.exponentialRampToValueAtTime(0.001,now+0.18);
+        osc.connect(og);og.connect(ac.destination);osc.start();osc.stop(now+0.18);
+      } else if(isAtlas){
         // Atlas RT — deep heavy BOOM
         const noise=_makeNoise(ac,0.5);
         const filt=ac.createBiquadFilter();filt.type='lowpass';filt.frequency.setValueAtTime(300,now);filt.frequency.exponentialRampToValueAtTime(60,now+0.4);
@@ -2275,6 +2288,23 @@ const TANKS=[
     size:76,
     arm:98,
     bars:{hp:98.25,dmg:54,spd:28,arm:98}
+  },
+  {
+    id:'f22',
+    name:'F-22 RAPTOR',
+    variant:'5TH GEN',
+    sub:'19.7 TONNES · CREW: 1',
+    img:'https://i.ibb.co/FLkNDHYP/de8266dbf8e12d35f64a089efa69fae5-removebg-preview.png',
+    hp:457,
+    damage:190,
+    speed:9.5,        // much faster than any tank
+    accel:0.38,       // snappy acceleration
+    friction:0.94,    // high — jet glides/slides, low drag
+    turnRate:0.048,   // wide sweeping turns like a real jet
+    size:82,
+    arm:35,
+    isJet:true,       // flag for special rendering
+    bars:{hp:22.8,dmg:95,spd:100,arm:35}
   }
 ];
 const TANK_SKINS=TANKS.map(t=>({id:t.id,label:t.name}));
@@ -2747,9 +2777,16 @@ function drawTreads(){
     if(t.life<=0||t.alpha<=0){_treads.splice(i,1);continue;}
     ctx.save();ctx.translate(t.x,t.y);ctx.rotate(t.rot);
     ctx.globalAlpha=t.alpha;
-    ctx.fillStyle='rgba(20,14,6,0.85)';
-    ctx.fillRect(-22,-15,44,6);
-    ctx.fillRect(-22,9,44,6);
+    if(t.isJet){
+      // Jet contrail — two thin exhaust streaks from engine positions
+      ctx.fillStyle='rgba(160,200,255,0.7)';
+      ctx.beginPath();ctx.ellipse(-28,8,5,2,0,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(-28,-8,5,2,0,0,Math.PI*2);ctx.fill();
+    } else {
+      ctx.fillStyle='rgba(20,14,6,0.85)';
+      ctx.fillRect(-22,-15,44,6);
+      ctx.fillRect(-22,9,44,6);
+    }
     ctx.restore();
   }
 }
@@ -2807,10 +2844,35 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP,tankId){
   const img=_tankImgs[tank.id];
   const maxHp=tank.hp;
   ctx.save();ctx.translate(x,y);
-  ctx.fillStyle='rgba(0,0,0,0.25)';
-  ctx.beginPath();ctx.ellipse(2,10,32,10,0,0,Math.PI*2);ctx.fill();
+
+  // Ground shadow — jets float, no shadow
+  if(!tank.isJet){
+    ctx.fillStyle='rgba(0,0,0,0.25)';
+    ctx.beginPath();ctx.ellipse(2,10,32,10,0,0,Math.PI*2);ctx.fill();
+  }
+
   ctx.save();ctx.rotate(bodyAngle);
-  const sz=76;
+
+  // Jet engine afterburner trail
+  if(tank.isJet&&isMe&&_animEnabled&&_speed>0.5){
+    const trailAlpha=Math.min(0.7,_speed/tank.speed);
+    // Left engine
+    ctx.save();ctx.translate(-28,8);
+    const lg=ctx.createRadialGradient(0,0,0,0,0,22);
+    lg.addColorStop(0,'rgba(100,180,255,'+trailAlpha+')');
+    lg.addColorStop(0.4,'rgba(50,100,255,'+(trailAlpha*0.6)+')');
+    lg.addColorStop(1,'rgba(0,0,255,0)');
+    ctx.fillStyle=lg;
+    ctx.beginPath();ctx.ellipse(-12,0,22,5,0,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+    // Right engine
+    ctx.save();ctx.translate(-28,-8);
+    ctx.fillStyle=lg;
+    ctx.beginPath();ctx.ellipse(-12,0,22,5,0,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+
+  const sz=tank.isJet?82:76;
   if(img&&img.complete&&img.naturalWidth>0){
     const nw=img.naturalWidth,nh=img.naturalHeight;
     const scale=Math.min(sz/nw,sz/nh);
@@ -2821,7 +2883,9 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP,tankId){
     ctx.fillStyle=color;ctx.fillRect(-22,-16,44,32);
   }
   ctx.restore();
-  if(isMe&&firing&&_animEnabled){
+
+  // Muzzle flash — tanks only, jets fire missiles differently
+  if(!tank.isJet&&isMe&&firing&&_animEnabled){
     ctx.save();ctx.rotate(bodyAngle);
     const flashR=rand(6,10);
     ctx.shadowBlur=24;ctx.shadowColor='rgba(255,180,30,.95)';
@@ -2829,13 +2893,23 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP,tankId){
     ctx.beginPath();ctx.arc(38,0,flashR,0,Math.PI*2);ctx.fill();
     ctx.restore();
   }
+
+  // Jet missile launch flash — from nose
+  if(tank.isJet&&isMe&&firing&&_animEnabled){
+    ctx.save();ctx.rotate(bodyAngle);
+    ctx.shadowBlur=20;ctx.shadowColor='rgba(180,220,255,.9)';
+    ctx.fillStyle='rgba(200,230,255,0.85)';
+    ctx.beginPath();ctx.arc(44,0,rand(4,7),0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+
   if(isMe){
     ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=2;
     ctx.setLineDash([5,4]);
     ctx.beginPath();ctx.arc(0,0,40,0,Math.PI*2);ctx.stroke();
     ctx.setLineDash([]);
   }
-  const barW=52,barH=4,bx=-barW/2,by=-44;
+  const barW=52,barH=4,bx=-barW/2,by=tank.isJet?-50:-44;
   ctx.fillStyle='rgba(0,0,0,0.65)';
   roundRect2(ctx,bx-3,by-13,barW+6,14,3);ctx.fill();
   ctx.font='bold 9px \'Rajdhani\',sans-serif';ctx.textAlign='center';
@@ -2858,14 +2932,14 @@ function drawBullets(dt){
     b.x+=Math.cos(b.angle)*spd*dt;
     b.y+=Math.sin(b.angle)*spd*dt;
     b.life=(b.life||0)+1;
-    const maxLife=b.tankId==='atlas'?120:80;
+    const maxLife=b.tankId==='atlas'?120:b.tankId==='f22'?150:80;
     if(b.life>maxLife||b.x<0||b.x>MAP_W||b.y<0||b.y>MAP_H)return false;
     if(collidesWithMap(b.x,b.y,4))return false;
     if(gameState?.players){
       for(const[uid,p] of Object.entries(gameState.players)){
         if(!p||!p.alive||uid===b.shooterUid)continue;
         const dx=p.x-b.x,dy=p.y-b.y;
-        const hitR=b.tankId==='atlas'?28:20;
+        const hitR=b.tankId==='atlas'?28:b.tankId==='f22'?22:20;
         if(dx*dx+dy*dy<(hitR*hitR)){handleBulletHit(b,uid,p);return false;}
       }
     }
@@ -2899,6 +2973,42 @@ function drawBullets(dt){
       bg.addColorStop(0,'#b87333');bg.addColorStop(0.5,'#e8a040');bg.addColorStop(1,'#8a5010');
       ctx.fillStyle=bg;
       ctx.fillRect(-14,-6,5,12);
+    } else if(b.tankId==='f22'){
+      // F-22: slim AIM-120 air-to-air missile
+      // Rocket exhaust plume
+      ctx.globalAlpha=0.22;
+      const plumeG=ctx.createRadialGradient(-16,0,0,-16,0,14);
+      plumeG.addColorStop(0,'rgba(100,180,255,0.9)');
+      plumeG.addColorStop(0.5,'rgba(60,100,255,0.4)');
+      plumeG.addColorStop(1,'rgba(0,0,255,0)');
+      ctx.fillStyle=plumeG;
+      ctx.beginPath();ctx.ellipse(-20,0,16,4,0,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+      // Missile body — white/grey
+      const mg=ctx.createLinearGradient(0,-3,0,3);
+      mg.addColorStop(0,'#c8c8c8');mg.addColorStop(0.4,'#f0f0f0');mg.addColorStop(1,'#888');
+      ctx.fillStyle=mg;
+      ctx.beginPath();
+      ctx.moveTo(14,0);
+      ctx.bezierCurveTo(14,-2.5,6,-3,-10,-2.5);
+      ctx.lineTo(-10,2.5);
+      ctx.bezierCurveTo(6,3,14,2.5,14,0);
+      ctx.fill();
+      // Sharp nose cone — dark grey
+      ctx.fillStyle='#444';
+      ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(20,0);ctx.lineTo(14,1.5);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(20,0);ctx.lineTo(14,-1.5);ctx.closePath();ctx.fill();
+      // Front fin
+      ctx.fillStyle='#aaa';
+      ctx.beginPath();ctx.moveTo(8,-3);ctx.lineTo(12,-7);ctx.lineTo(12,-3);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.moveTo(8,3);ctx.lineTo(12,7);ctx.lineTo(12,3);ctx.closePath();ctx.fill();
+      // Rear fins
+      ctx.fillStyle='#999';
+      ctx.beginPath();ctx.moveTo(-6,-2.5);ctx.lineTo(-12,-8);ctx.lineTo(-10,-2.5);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.moveTo(-6,2.5);ctx.lineTo(-12,8);ctx.lineTo(-10,2.5);ctx.closePath();ctx.fill();
+      // Rocket nozzle — orange glow
+      ctx.fillStyle='#ff8020';
+      ctx.beginPath();ctx.ellipse(-10,0,3,2.2,0,0,Math.PI*2);ctx.fill();
     } else {
       // SWITTI: small fast brass/copper bullet shell
       // Motion blur trail
@@ -2976,6 +3086,35 @@ function drawRemoteBullets(dt){
       const bg=ctx.createLinearGradient(-14,-6,-14,6);
       bg.addColorStop(0,'#b87333');bg.addColorStop(0.5,'#e8a040');bg.addColorStop(1,'#8a5010');
       ctx.fillStyle=bg;ctx.fillRect(-14,-6,5,12);
+    } else if(b.tankId==='f22'){
+      ctx.globalAlpha=0.22;
+      const plumeG=ctx.createRadialGradient(-16,0,0,-16,0,14);
+      plumeG.addColorStop(0,'rgba(100,180,255,0.9)');
+      plumeG.addColorStop(0.5,'rgba(60,100,255,0.4)');
+      plumeG.addColorStop(1,'rgba(0,0,255,0)');
+      ctx.fillStyle=plumeG;
+      ctx.beginPath();ctx.ellipse(-20,0,16,4,0,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+      const mg=ctx.createLinearGradient(0,-3,0,3);
+      mg.addColorStop(0,'#c8c8c8');mg.addColorStop(0.4,'#f0f0f0');mg.addColorStop(1,'#888');
+      ctx.fillStyle=mg;
+      ctx.beginPath();
+      ctx.moveTo(14,0);
+      ctx.bezierCurveTo(14,-2.5,6,-3,-10,-2.5);
+      ctx.lineTo(-10,2.5);
+      ctx.bezierCurveTo(6,3,14,2.5,14,0);
+      ctx.fill();
+      ctx.fillStyle='#444';
+      ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(20,0);ctx.lineTo(14,1.5);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(20,0);ctx.lineTo(14,-1.5);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#aaa';
+      ctx.beginPath();ctx.moveTo(8,-3);ctx.lineTo(12,-7);ctx.lineTo(12,-3);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.moveTo(8,3);ctx.lineTo(12,7);ctx.lineTo(12,3);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#999';
+      ctx.beginPath();ctx.moveTo(-6,-2.5);ctx.lineTo(-12,-8);ctx.lineTo(-10,-2.5);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.moveTo(-6,2.5);ctx.lineTo(-12,8);ctx.lineTo(-10,2.5);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#ff8020';
+      ctx.beginPath();ctx.ellipse(-10,0,3,2.2,0,0,Math.PI*2);ctx.fill();
     } else {
       ctx.globalAlpha=0.15;ctx.fillStyle='#c88020';
       ctx.beginPath();ctx.ellipse(-12,0,10,2.5,0,0,Math.PI*2);ctx.fill();
@@ -3182,8 +3321,15 @@ function handleMovement(me,dt){
     if(Math.abs(_speed)<0.01)_speed=0;
   }
 
-  // Apply water penalty
-  const inWater=ptInWater(me.x,me.y);
+  // Jet physics: always moving forward at minimum speed (can't stop like a tank)
+  const isJet=_selectedTank?.isJet;
+  if(isJet){
+    const minJetSpeed=_selectedTank.speed*0.3;
+    if(_speed<minJetSpeed)_speed=minJetSpeed;
+  }
+
+  // Water penalty — jets fly over water, tanks slow down
+  const inWater=!isJet&&ptInWater(me.x,me.y);
   const speedMult=inWater?0.45:1.0;
   const moveX=Math.cos(_bodyAngleRad)*_speed*speedMult;
   const moveY=Math.sin(_bodyAngleRad)*_speed*speedMult;
@@ -3193,20 +3339,24 @@ function handleMovement(me,dt){
   nx=Math.max(40,Math.min(MAP_W-40,nx));
   ny=Math.max(40,Math.min(MAP_H-40,ny));
 
-  if(!collidesWithMap(nx,ny,22)){me.x=nx;me.y=ny;}
+  // Jets fly over map obstacles (walls/trees) — tanks collide
+  if(isJet){
+    me.x=nx;me.y=ny;
+  } else if(!collidesWithMap(nx,ny,22)){me.x=nx;me.y=ny;}
   else if(!collidesWithMap(nx,me.y,22)){me.x=nx;}
   else if(!collidesWithMap(me.x,ny,22)){me.y=ny;}
-  else{_speed*=0.3;} // wall — kill speed faster
+  else{_speed*=0.3;}
 
   // Store angle in radians for canvas rendering
   me.angle=_bodyAngleRad;
 
   // Tread marks
   _treadDist+=Math.abs(_speed)*speedMult;
-  if(_treadDist>18){
-    _treads.push({x:me.x,y:me.y,rot:_bodyAngleRad,alpha:0.22,life:600});
+  const treadInterval=isJet?8:18; // jets leave more frequent contrails
+  if(_treadDist>treadInterval){
+    _treads.push({x:me.x,y:me.y,rot:_bodyAngleRad,alpha:isJet?0.35:0.22,life:isJet?300:600,isJet:!!isJet});
     _treadDist=0;
-    if(_treads.length>400)_treads.shift();
+    if(_treads.length>500)_treads.shift();
   }
 
   // Push position to Firebase (throttled)
@@ -3219,22 +3369,24 @@ function handleMovement(me,dt){
 function handleFiring(me){
   if(!firing)return;
   const now=Date.now();
-  const fireRate=_selectedTank?.id==='atlas'?700:380; // atlas fires slower
+  const fireRate=_selectedTank?.id==='atlas'?700:_selectedTank?.id==='f22'?500:380; // atlas slow, f22 medium, switti fast
   if(now-lastFireTime<fireRate)return;
   if(myBullets<=0){toast('No ammo! Reloading…','gold');return;}
   lastFireTime=now;myBullets--;updateBulletIcons();
   playSound('shoot',_selectedTank?.id);
   const barrelAngle=_bodyAngleRad;
   const isAtlas=_selectedTank?.id==='atlas';
-  const bx=me.x+Math.cos(barrelAngle)*40;
-  const by=me.y+Math.sin(barrelAngle)*40;
+  const isF22=_selectedTank?.id==='f22';
+  const barrelReach=isF22?52:40;
+  const bx=me.x+Math.cos(barrelAngle)*barrelReach;
+  const by=me.y+Math.sin(barrelAngle)*barrelReach;
   const bullet={
     x:bx,y:by,
     angle:barrelAngle,
     shooterUid:myUid,
     tankId:_selectedTank?.id||'heavy',
-    spawnX:bx,spawnY:by, // for distance damage
-    speed:isAtlas?5:9,   // atlas shell slower, heavy faster
+    spawnX:bx,spawnY:by,
+    speed:isAtlas?5:isF22?16:9,
     life:0
   };
   bullets.push(bullet);
