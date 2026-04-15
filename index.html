@@ -1516,7 +1516,7 @@ const FB={apiKey:'AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ',authDomain:'globalcha
 const app=initializeApp(FB);
 const auth=getAuth(app),db=getFirestore(app),rtdb=getDatabase(app),storage=getStorage(app);
 const R2='https://r2-upload.katlegomashilwane0691.workers.dev/upload';
-const ENTRY_FEE=2,KILL_REWARD=2,PLATFORM_CUT=0,STARTING_BAL=0,MAX_BULLETS=10,BULLET_REGEN_MS=4000,TURN_DELAY_MS=15000;
+const ENTRY_FEE=2,KILL_REWARD=2,PLATFORM_CUT=0,STARTING_BAL=0,MAX_BULLETS=100,BULLET_REGEN_MS=4000,TURN_DELAY_MS=15000;
 const TANK_DAMAGE=86,TANK_MAX_HP=498; // defaults — overridden per player by selected tank
 
 let CU=null,UD=null,_authDone=false;
@@ -2323,7 +2323,7 @@ const TANKS=[
     img:'https://i.ibb.co/KcKdCFBY/images-6-removebg-preview.png',
     hp:457,
     damage:5,         // GAU-8 cannon — 5 dmg per round, fires rapidly
-    speed:7.5,        // subsonic but agile
+    speed:4.5,        // subsonic but agile
     accel:0.32,
     friction:0.93,
     turnRate:0.055,   // tighter turns than F-22
@@ -2638,12 +2638,13 @@ function initGame(roomId,roomData){
 
 function initBulletIcons(){
   const el=document.getElementById('bulletIcons');
-  el.innerHTML=Array.from({length:MAX_BULLETS},()=>'<div class="bullet-icon"></div>').join('');
+  el.innerHTML=Array.from({length:10},()=>'<div class="bullet-icon"></div>').join('');
   updateBulletIcons();
 }
 function updateBulletIcons(){
   const icons=document.querySelectorAll('.bullet-icon');
-  icons.forEach((ic,i)=>ic.classList.toggle('spent',i>=myBullets));
+  const barsActive=Math.ceil(myBullets/10); // each bar = 10 bullets
+  icons.forEach((ic,i)=>ic.classList.toggle('spent',i>=barsActive));
   document.getElementById('bulletsLeftLabel').textContent=myBullets+' rounds';
 }
 
@@ -2904,7 +2905,8 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP,tankId){
     const nw=img.naturalWidth,nh=img.naturalHeight;
     const scale=Math.min(sz/nw,sz/nh);
     const dw=nw*scale,dh=nh*scale;
-    if(tank.id==='heavy'||tank.id==='f22'){ctx.save();ctx.scale(-1,1);ctx.drawImage(img,-dw/2,-dh/2,dw,dh);ctx.restore();}
+    if(tank.id==='heavy'){ctx.scale(-1,1);ctx.drawImage(img,-dw/2,-dh/2,dw,dh);ctx.scale(-1,1);}
+    else if(tank.id==='f22'){ctx.drawImage(img,dw/2,-dh/2,-dw,dh);}
     else{ctx.drawImage(img,-dw/2,-dh/2,dw,dh);}
   } else {
     ctx.fillStyle=color;ctx.fillRect(-22,-16,44,32);
@@ -3356,7 +3358,7 @@ function handleMovement(me,dt){
 function handleFiring(me){
   if(!firing)return;
   const now=Date.now();
-  const fireRate=_selectedTank?.id==='atlas'?700:_selectedTank?.id==='f22'?40:380; // atlas slow, A-10 cannon ultra-fast, switti medium
+  const fireRate=_selectedTank?.id==='atlas'?700:_selectedTank?.id==='f22'?150:380; // atlas slow, A-10 cannon moderate, switti medium
   if(now-lastFireTime<fireRate)return;
   if(myBullets<=0){toast('No ammo! Reloading…','gold');return;}
   lastFireTime=now;myBullets--;updateBulletIcons();
