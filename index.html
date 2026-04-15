@@ -1547,24 +1547,25 @@ function startEngineSound(tankId){
     const ac=getAudioCtx();
     stopEngineSound();
     if(tankId==='f22'){
-      // F-35 style: deep turbofan core + high compressor whine + airflow
-      // Layer 1: deep turbofan core rumble (low freq)
-      const osc1=ac.createOscillator();osc1.type='sawtooth';osc1.frequency.value=58;
-      const f1=ac.createBiquadFilter();f1.type='lowpass';f1.frequency.value=320;f1.Q.value=1.2;
+      // F-16 Fighting Falcon — single Pratt & Whitney F100 turbofan
+      // Characteristic: aggressive mid-high whine + raw exhaust roar + airflow hiss
+      // Layer 1: F100 core turbine — sawtooth mid-bass, sharper than twin-engine jets
+      const osc1=ac.createOscillator();osc1.type='sawtooth';osc1.frequency.value=82;
+      const f1=ac.createBiquadFilter();f1.type='bandpass';f1.frequency.value=420;f1.Q.value=1.8;
       const g1=ac.createGain();g1.gain.value=0.0;
-      g1.gain.linearRampToValueAtTime(0.18,ac.currentTime+1.5);
+      g1.gain.linearRampToValueAtTime(0.22,ac.currentTime+1.2);
       osc1.connect(f1);f1.connect(g1);g1.connect(ac.destination);osc1.start();
-      // Layer 2: compressor whine (mid freq)
-      const osc2=ac.createOscillator();osc2.type='sawtooth';osc2.frequency.value=340;
-      const f2=ac.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1100;f2.Q.value=0.5;
+      // Layer 2: F-16 signature high compressor scream — sharp & aggressive
+      const osc2=ac.createOscillator();osc2.type='sawtooth';osc2.frequency.value=520;
+      const f2=ac.createBiquadFilter();f2.type='bandpass';f2.frequency.value=2400;f2.Q.value=0.9;
       const g2=ac.createGain();g2.gain.value=0.0;
-      g2.gain.linearRampToValueAtTime(0.07,ac.currentTime+1.8);
+      g2.gain.linearRampToValueAtTime(0.10,ac.currentTime+1.6);
       osc2.connect(f2);f2.connect(g2);g2.connect(ac.destination);osc2.start();
-      // Layer 3: high-freq airflow rush noise
+      // Layer 3: exhaust roar — broadband noise, gritty & raw
       const noise=_makeNoise(ac,99);
-      const nf=ac.createBiquadFilter();nf.type='highpass';nf.frequency.value=2200;
+      const nf=ac.createBiquadFilter();nf.type='bandpass';nf.frequency.value=1100;nf.Q.value=0.4;
       const ng=ac.createGain();ng.gain.value=0.0;
-      ng.gain.linearRampToValueAtTime(0.04,ac.currentTime+1.2);
+      ng.gain.linearRampToValueAtTime(0.07,ac.currentTime+0.9);
       noise.connect(nf);nf.connect(ng);ng.connect(ac.destination);noise.start();
       _jetEngineNode=[osc1,osc2,noise];_jetEngineGain=[g1,g2,ng,f1,f2];
     } else if(tankId==='atlas'){
@@ -1592,19 +1593,18 @@ function updateEngineSound(speed,maxSpeed,tankId){
     const ratio=Math.min(speed/maxSpeed,1);
     if(tankId==='f22'){
       if(_jetEngineNode&&_jetEngineGain){
-        // Idle (ratio<0.4): smooth deep hum, barely audible
-        // Throttle (ratio>0.6): aggressive turbine scream, AB crackle
-        const abEngaged=ratio>0.55;
-        // Core turbofan: deeper at idle, massive roar at throttle
-        _jetEngineNode[0].frequency.setTargetAtTime(58+ratio*90,ac.currentTime,abEngaged?0.1:0.4);
-        _jetEngineGain[0].gain.setTargetAtTime(abEngaged?0.08+ratio*0.32:0.04+ratio*0.06,ac.currentTime,abEngaged?0.08:0.35);
-        // Compressor whine: rises sharply with throttle
-        _jetEngineNode[1].frequency.setTargetAtTime(280+ratio*520,ac.currentTime,abEngaged?0.08:0.3);
-        _jetEngineGain[1].gain.setTargetAtTime(abEngaged?0.04+ratio*0.18:0.02+ratio*0.03,ac.currentTime,abEngaged?0.08:0.3);
-        // Airflow rush: screams at high speed
-        _jetEngineGain[2].gain.setTargetAtTime(abEngaged?0.03+ratio*0.14:0.01+ratio*0.02,ac.currentTime,abEngaged?0.1:0.4);
-        // Filter cutoff opens up aggressively at throttle
-        _jetEngineGain[3].frequency.setTargetAtTime(abEngaged?600+ratio*1800:180+ratio*200,ac.currentTime,0.2);
+        // F-16 F100 engine response — single engine, aggressive & loud
+        const abEngaged=ratio>0.52;
+        // Core turbine: ramps aggressively from mid-bass to screaming roar
+        _jetEngineNode[0].frequency.setTargetAtTime(82+ratio*140,ac.currentTime,abEngaged?0.07:0.3);
+        _jetEngineGain[0].gain.setTargetAtTime(abEngaged?0.12+ratio*0.38:0.05+ratio*0.09,ac.currentTime,abEngaged?0.07:0.28);
+        // Compressor scream: F-16's signature shriek rises fast with throttle
+        _jetEngineNode[1].frequency.setTargetAtTime(520+ratio*900,ac.currentTime,abEngaged?0.06:0.22);
+        _jetEngineGain[1].gain.setTargetAtTime(abEngaged?0.07+ratio*0.22:0.02+ratio*0.04,ac.currentTime,abEngaged?0.06:0.22);
+        // Exhaust roar: raw gritty broadband, max at AB
+        _jetEngineGain[2].gain.setTargetAtTime(abEngaged?0.06+ratio*0.18:0.01+ratio*0.03,ac.currentTime,abEngaged?0.08:0.35);
+        // Bandpass filter opens wide at high throttle
+        _jetEngineGain[3].frequency.setTargetAtTime(abEngaged?1100+ratio*2200:320+ratio*300,ac.currentTime,0.18);
       }
     } else if(tankId==='atlas'){
       if(_atlaEngineNode&&_atlasEngineGain){
@@ -2923,10 +2923,9 @@ function drawTreads(){
     ctx.save();ctx.translate(t.x,t.y);ctx.rotate(t.rot);
     ctx.globalAlpha=t.alpha;
     if(t.isJet){
-      // Jet contrail — two thin exhaust streaks from engine positions
+      // Jet contrail — single exhaust streak from center nozzle (F-16 has one engine)
       ctx.fillStyle='rgba(160,200,255,0.7)';
-      ctx.beginPath();ctx.ellipse(-28,8,5,2,0,0,Math.PI*2);ctx.fill();
-      ctx.beginPath();ctx.ellipse(-28,-8,5,2,0,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(-28,0,5,2,0,0,Math.PI*2);ctx.fill();
     } else {
       ctx.fillStyle='rgba(20,14,6,0.85)';
       ctx.fillRect(-22,-15,44,6);
@@ -2998,7 +2997,29 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP,tankId){
 
   ctx.save();ctx.rotate(bodyAngle);
 
-  // F-16 single-engine afterburner — flame at rear nozzle only, smoke stays tight at exit
+  const sz=tank.isJet?82:76;
+  if(img&&img.complete&&img.naturalWidth>0){
+    const nw=img.naturalWidth,nh=img.naturalHeight;
+    const scale=Math.min(sz/nw,sz/nh);
+    const dw=nw*scale,dh=nh*scale;
+    if(tank.id==='heavy'){ctx.scale(-1,1);ctx.drawImage(img,-dw/2,-dh/2,dw,dh);ctx.scale(-1,1);}
+    else if(tank.id==='f22'){
+      // Apply banking tilt — jet leans into turns
+      const bankTilt=isMe?_bankAngle:0;
+      ctx.rotate(-Math.PI/2);
+      if(Math.abs(bankTilt)>0.01){ctx.scale(1,1+Math.abs(bankTilt)*0.18);ctx.rotate(bankTilt);}
+      ctx.scale(1,-1);
+      ctx.drawImage(img,-dw/2,-dh/2,dw,dh);
+      ctx.scale(1,-1);
+      if(Math.abs(bankTilt)>0.01){ctx.rotate(-bankTilt);ctx.scale(1,1/(1+Math.abs(bankTilt)*0.18));}
+      ctx.rotate(Math.PI/2);
+    }
+    else{ctx.drawImage(img,-dw/2,-dh/2,dw,dh);}
+  } else {
+    ctx.fillStyle=color;ctx.fillRect(-22,-16,44,32);
+  }
+
+  // F-16 afterburner flame — drawn AFTER image so it always sticks to nozzle during banking
   if(tank.isJet&&_animEnabled&&_speed>0.1){
     const speedRatio=Math.min(_speed/tank.speed,1);
     const flameT=Date.now()*0.018;
@@ -3006,21 +3027,19 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP,tankId){
     const nozzleX=-36;
     ctx.save();
 
-    // ── Smoke — ONLY at nozzle exit, stays tight, not spreading ──
-    // At idle: thin grey wisp. At full throttle: dense black AB smoke
+    // ── Smoke — tight puff right at nozzle exit ──
     const smokeR=2.5+speedRatio*3.5;
     const smokeAlpha=0.18+speedRatio*0.55;
     ctx.globalAlpha=smokeAlpha;
     ctx.fillStyle=speedRatio>0.7?'rgba(8,8,8,0.95)':'rgba(100,100,100,0.7)';
-    // Single puff right at nozzle — no trailing smear
     ctx.beginPath();
     ctx.ellipse(nozzleX-smokeR*0.6,0,smokeR,smokeR*0.55,0,0,Math.PI*2);
     ctx.fill();
 
     // ── Afterburner flame — grows dramatically with throttle ──
     const flameLen=speedRatio>0.55
-      ? 12+speedRatio*32+Math.sin(flameT)*4+Math.sin(flameT*2.7)*2  // AB engaged: long wild flame
-      : 4+speedRatio*8+Math.sin(flameT)*1.5;                         // idle: short blue stub
+      ? 12+speedRatio*32+Math.sin(flameT)*4+Math.sin(flameT*2.7)*2
+      : 4+speedRatio*8+Math.sin(flameT)*1.5;
     const flameW=speedRatio>0.55
       ? 4+speedRatio*4+Math.sin(flameT*1.8)*1.5
       : 2+speedRatio*2;
@@ -3063,27 +3082,6 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP,tankId){
     ctx.restore();
   }
 
-  const sz=tank.isJet?82:76;
-  if(img&&img.complete&&img.naturalWidth>0){
-    const nw=img.naturalWidth,nh=img.naturalHeight;
-    const scale=Math.min(sz/nw,sz/nh);
-    const dw=nw*scale,dh=nh*scale;
-    if(tank.id==='heavy'){ctx.scale(-1,1);ctx.drawImage(img,-dw/2,-dh/2,dw,dh);ctx.scale(-1,1);}
-    else if(tank.id==='f22'){
-      // Apply banking tilt — jet leans into turns
-      const bankTilt=isMe?_bankAngle:0;
-      ctx.rotate(-Math.PI/2);
-      if(Math.abs(bankTilt)>0.01){ctx.scale(1,1+Math.abs(bankTilt)*0.18);ctx.rotate(bankTilt);}
-      ctx.scale(1,-1);
-      ctx.drawImage(img,-dw/2,-dh/2,dw,dh);
-      ctx.scale(1,-1);
-      if(Math.abs(bankTilt)>0.01){ctx.rotate(-bankTilt);ctx.scale(1,1/(1+Math.abs(bankTilt)*0.18));}
-      ctx.rotate(Math.PI/2);
-    }
-    else{ctx.drawImage(img,-dw/2,-dh/2,dw,dh);}
-  } else {
-    ctx.fillStyle=color;ctx.fillRect(-22,-16,44,32);
-  }
   ctx.restore();
 
   // Muzzle flash — tanks only, jets fire missiles differently
