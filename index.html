@@ -1445,10 +1445,8 @@ body.dark-theme .ph-ico.loss{background:rgba(255,255,255,0.08);}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         </div>
         <div class="bullets-left" id="bulletsLeftLabel">10 rounds</div>
-        <!-- LAND button — only shown when playing as F-22 jet -->
-        <div id="landBtn" onclick="tryLandJet()" style="display:none;position:absolute;top:-52px;right:0;left:0;margin:0 auto;width:108px;padding:9px 0;border-radius:10px;background:rgba(30,80,200,0.85);border:1.5px solid rgba(100,160,255,0.55);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;text-align:center;cursor:pointer;backdrop-filter:blur(6px);box-shadow:0 2px 12px rgba(0,80,255,0.3);user-select:none;">
-          ✈ LAND
-        </div>
+        <!-- LAND icon button — only for F-22, positioned above joystick area -->
+        <div id="landBtn" onclick="tryLandJet()" style="display:none;position:fixed;bottom:170px;right:175px;width:44px;height:44px;border-radius:50%;background:rgba(20,60,180,0.88);border:1.5px solid rgba(120,170,255,0.6);color:#fff;font-size:18px;display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px rgba(0,60,255,0.35);z-index:200;user-select:none;" title="Land">✈</div>
       </div>
     </div>
   </div>
@@ -2517,7 +2515,7 @@ window.switchProfTab=function(name){
 // ══════════════════════════════════════════════
 const MAP_W=4800,MAP_H=3600;
 // Runway for F-22 landing — center-right of map, horizontal strip
-const RUNWAY={x:3000,y:MAP_H/2-40,w:700,h:80,cx:3350,cy:MAP_H/2};
+const RUNWAY={x:MAP_W/2-350,y:MAP_H/2-40,w:700,h:80,cx:MAP_W/2,cy:MAP_H/2};
 let canvas,ctx,miniCanvas,miniCtx;
 let gameLoop=null,gameState=null,myUid=null;
 let camX=0,camY=0;
@@ -2618,7 +2616,7 @@ function initGame(roomId,roomData){
   myUid=CU.uid;gameState=roomData;currentRoomId=roomId;
   _savedResult=false;_sessionKills=0;_killedSet=new Set();
   bullets=[];myBullets=MAX_BULLETS;
-  _speed=0;_bodyAngleRad=0;_treadDist=0;_treads=[];_jetLanded=false;
+  _speed=0;_bodyAngleRad=0;_treadDist=0;_treads=[];_jetLanded=false;_landingAnim=0;_landingAnimT=0;
   initBulletIcons();
   document.getElementById('selfHudName').textContent=UD?.displayName||'Commander';
   document.getElementById('hudRoomName').textContent='ROOM #'+roomId.slice(-4).toUpperCase();
@@ -2666,6 +2664,7 @@ function gameFrame(ts){
   updateParticles();
   drawMinimap();
   if(me){updateSelfHUD(me);updateLandBtn(me);}
+  tickLandingAnim(dt);
 }
 
 const WATER_HOLES=[
@@ -2933,7 +2932,7 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP,tankId){
     const scale=Math.min(sz/nw,sz/nh);
     const dw=nw*scale,dh=nh*scale;
     if(tank.id==='heavy'){ctx.scale(-1,1);ctx.drawImage(img,-dw/2,-dh/2,dw,dh);ctx.scale(-1,1);}
-    else if(tank.id==='f22'){ctx.rotate(-Math.PI/2);ctx.drawImage(img,-dw/2,-dh/2,dw,dh);ctx.rotate(Math.PI/2);}
+    else if(tank.id==='f22'){ctx.rotate(Math.PI/2);ctx.drawImage(img,-dw/2,-dh/2,dw,dh);ctx.rotate(-Math.PI/2);}
     else{ctx.drawImage(img,-dw/2,-dh/2,dw,dh);}
   } else {
     ctx.fillStyle=color;ctx.fillRect(-22,-16,44,32);
@@ -3781,49 +3780,66 @@ window.cancelLeave=function(){
 
 // ── JET LANDING SYSTEM ──
 let _jetLanded=false;
-let _jetLandingChecked=false;
+let _landingAnim=0; // 0=none 1=landing 2=takeoff
+let _landingAnimT=0;
 
 function isOnRunway(me){
   if(!me)return false;
   return me.x>=RUNWAY.x&&me.x<=RUNWAY.x+RUNWAY.w&&me.y>=RUNWAY.y&&me.y<=RUNWAY.y+RUNWAY.h;
 }
 
-// Show/hide the LAND button based on jet proximity to runway
 function updateLandBtn(me){
   const isJet=_selectedTank?.isJet;
   const btn=document.getElementById('landBtn');
   if(!btn)return;
-  if(!isJet||!me||!me.alive){btn.style.display='none';return;}
-  const nearRunway=Math.abs(me.x-RUNWAY.cx)<500&&Math.abs(me.y-RUNWAY.cy)<300;
-  btn.style.display=nearRunway?'block':'none';
+  if(!isJet||!me||!me.alive||_jetLanded){btn.style.display='none';return;}
+  const nearRunway=Math.abs(me.x-RUNWAY.cx)<600&&Math.abs(me.y-RUNWAY.cy)<400;
+  btn.style.display=nearRunway?'flex':'none';
+}
+
+function tickLandingAnim(dt){
+  if(_landingAnim===0)return;
+  _landingAnimT+=dt*0.04;
+  const cvs=document.getElementById('gameCanvas');
+  if(_landingAnim===1){
+    // Landing: screen dims + shake + flash
+    const p=Math.min(_landingAnimT,1);
+    const shake=p<0.5?(Math.random()-0.5)*8*(1-p*2):0;
+    if(cvs){cvs.style.filter=`brightness(${1-p*0.35}) contrast(${1+p*0.2})`;cvs.style.transform=`translate(${shake}px,${shake*0.5}px)`;}
+    if(_landingAnimT>=1){
+      _landingAnim=0;_landingAnimT=0;
+      if(cvs){cvs.style.filter='';cvs.style.transform='';}
+      document.getElementById('landingModal').style.display='flex';
+    }
+  } else if(_landingAnim===2){
+    // Takeoff: screen brightens + zoom
+    const p=Math.min(_landingAnimT,1);
+    if(cvs){cvs.style.filter=`brightness(${1+p*0.4})`;cvs.style.transform=`scale(${1+p*0.03})`;}
+    if(_landingAnimT>=1){
+      _landingAnim=0;_landingAnimT=0;
+      if(cvs){cvs.style.filter='';cvs.style.transform='';}
+      toast('🚀 Taking off!','gold');
+    }
+  }
 }
 
 window.tryLandJet=function(){
   const me=gameState?.players?.[myUid];
   if(!me||!me.alive)return;
-  if(!isOnRunway(me)){
-    toast('Fly over the runway to land!','gold');
-    return;
-  }
-  // Land the jet — stop it and show popup
-  _jetLanded=true;
-  _speed=0;
-  const modal=document.getElementById('landingModal');
-  if(modal){modal.style.display='flex';}
+  if(!isOnRunway(me)){toast('Fly over the runway first!','gold');return;}
+  _jetLanded=true;_speed=0;
+  _landingAnim=1;_landingAnimT=0;
 };
 
 window.jetTakeoff=function(){
+  document.getElementById('landingModal').style.display='none';
   _jetLanded=false;
-  const modal=document.getElementById('landingModal');
-  if(modal)modal.style.display='none';
-  // Give the jet a push forward (takeoff boost)
+  _landingAnim=2;_landingAnimT=0;
   _speed=(_selectedTank?.speed||9)*0.5;
-  toast('Taking off!','gold');
 };
 
 window.closeLandingModal=function(){
-  const modal=document.getElementById('landingModal');
-  if(modal)modal.style.display='none';
+  document.getElementById('landingModal').style.display='none';
 };
 
 window.leaveGame=function(){
