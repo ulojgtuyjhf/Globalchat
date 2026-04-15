@@ -1547,24 +1547,27 @@ function startEngineSound(tankId){
     const ac=getAudioCtx();
     stopEngineSound();
     if(tankId==='f22'){
-      // F-16 jet: high turbine whine + airflow rush
-      const osc=ac.createOscillator();
-      osc.type='sawtooth';
-      osc.frequency.value=280;
-      const filt=ac.createBiquadFilter();filt.type='bandpass';filt.frequency.value=900;filt.Q.value=0.6;
-      const g=ac.createGain();g.gain.value=0.0;
-      g.gain.linearRampToValueAtTime(0.12,ac.currentTime+1.2);
-      // Airflow noise layer
+      // F-35 style: deep turbofan core + high compressor whine + airflow
+      // Layer 1: deep turbofan core rumble (low freq)
+      const osc1=ac.createOscillator();osc1.type='sawtooth';osc1.frequency.value=58;
+      const f1=ac.createBiquadFilter();f1.type='lowpass';f1.frequency.value=320;f1.Q.value=1.2;
+      const g1=ac.createGain();g1.gain.value=0.0;
+      g1.gain.linearRampToValueAtTime(0.18,ac.currentTime+1.5);
+      osc1.connect(f1);f1.connect(g1);g1.connect(ac.destination);osc1.start();
+      // Layer 2: compressor whine (mid freq)
+      const osc2=ac.createOscillator();osc2.type='sawtooth';osc2.frequency.value=340;
+      const f2=ac.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1100;f2.Q.value=0.5;
+      const g2=ac.createGain();g2.gain.value=0.0;
+      g2.gain.linearRampToValueAtTime(0.07,ac.currentTime+1.8);
+      osc2.connect(f2);f2.connect(g2);g2.connect(ac.destination);osc2.start();
+      // Layer 3: high-freq airflow rush noise
       const noise=_makeNoise(ac,99);
-      const nf=ac.createBiquadFilter();nf.type='highpass';nf.frequency.value=1800;
+      const nf=ac.createBiquadFilter();nf.type='highpass';nf.frequency.value=2200;
       const ng=ac.createGain();ng.gain.value=0.0;
-      ng.gain.linearRampToValueAtTime(0.06,ac.currentTime+1.0);
-      noise.connect(nf);nf.connect(ng);ng.connect(ac.destination);
-      noise.start();
-      osc.connect(filt);filt.connect(g);g.connect(ac.destination);osc.start();
-      _jetEngineNode=[osc,noise];_jetEngineGain=[g,ng];
+      ng.gain.linearRampToValueAtTime(0.04,ac.currentTime+1.2);
+      noise.connect(nf);nf.connect(ng);ng.connect(ac.destination);noise.start();
+      _jetEngineNode=[osc1,osc2,noise];_jetEngineGain=[g1,g2,ng,f1,f2];
     } else if(tankId==='atlas'){
-      // Atlas: deep diesel rumble
       const osc=ac.createOscillator();osc.type='sawtooth';osc.frequency.value=42;
       const filt=ac.createBiquadFilter();filt.type='lowpass';filt.frequency.value=180;filt.Q.value=2;
       const g=ac.createGain();g.gain.value=0.0;
@@ -1572,7 +1575,6 @@ function startEngineSound(tankId){
       osc.connect(filt);filt.connect(g);g.connect(ac.destination);osc.start();
       _atlaEngineNode=osc;_atlasEngineGain=g;
     } else {
-      // SWITTI: medium diesel engine chug
       const osc=ac.createOscillator();osc.type='sawtooth';osc.frequency.value=68;
       const filt=ac.createBiquadFilter();filt.type='lowpass';filt.frequency.value=280;filt.Q.value=1.5;
       const g=ac.createGain();g.gain.value=0.0;
@@ -1590,10 +1592,19 @@ function updateEngineSound(speed,maxSpeed,tankId){
     const ratio=Math.min(speed/maxSpeed,1);
     if(tankId==='f22'){
       if(_jetEngineNode&&_jetEngineGain){
-        // Pitch rises with speed — jet turbine scream
-        _jetEngineNode[0].frequency.setTargetAtTime(200+ratio*400,ac.currentTime,0.3);
-        _jetEngineGain[0].gain.setTargetAtTime(0.06+ratio*0.18,ac.currentTime,0.3);
-        _jetEngineGain[1].gain.setTargetAtTime(0.03+ratio*0.10,ac.currentTime,0.3);
+        // Idle (ratio<0.4): smooth deep hum, barely audible
+        // Throttle (ratio>0.6): aggressive turbine scream, AB crackle
+        const abEngaged=ratio>0.55;
+        // Core turbofan: deeper at idle, massive roar at throttle
+        _jetEngineNode[0].frequency.setTargetAtTime(58+ratio*90,ac.currentTime,abEngaged?0.1:0.4);
+        _jetEngineGain[0].gain.setTargetAtTime(abEngaged?0.08+ratio*0.32:0.04+ratio*0.06,ac.currentTime,abEngaged?0.08:0.35);
+        // Compressor whine: rises sharply with throttle
+        _jetEngineNode[1].frequency.setTargetAtTime(280+ratio*520,ac.currentTime,abEngaged?0.08:0.3);
+        _jetEngineGain[1].gain.setTargetAtTime(abEngaged?0.04+ratio*0.18:0.02+ratio*0.03,ac.currentTime,abEngaged?0.08:0.3);
+        // Airflow rush: screams at high speed
+        _jetEngineGain[2].gain.setTargetAtTime(abEngaged?0.03+ratio*0.14:0.01+ratio*0.02,ac.currentTime,abEngaged?0.1:0.4);
+        // Filter cutoff opens up aggressively at throttle
+        _jetEngineGain[3].frequency.setTargetAtTime(abEngaged?600+ratio*1800:180+ratio*200,ac.currentTime,0.2);
       }
     } else if(tankId==='atlas'){
       if(_atlaEngineNode&&_atlasEngineGain){
@@ -2987,35 +2998,68 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP,tankId){
 
   ctx.save();ctx.rotate(bodyAngle);
 
-  // F-16 single-engine afterburner — flame + black smoke at rear
-  if(tank.isJet&&_animEnabled&&_speed>0.2){
+  // F-16 single-engine afterburner — flame at rear nozzle only, smoke stays tight at exit
+  if(tank.isJet&&_animEnabled&&_speed>0.1){
     const speedRatio=Math.min(_speed/tank.speed,1);
-    const flameT=Date.now()*0.012;
-    // Black exhaust smoke puffs (afterburner signature)
+    const flameT=Date.now()*0.018;
+    // Nozzle exit point (rear center of jet body)
+    const nozzleX=-36;
     ctx.save();
-    const smokeAlpha=speedRatio*0.55;
+
+    // ── Smoke — ONLY at nozzle exit, stays tight, not spreading ──
+    // At idle: thin grey wisp. At full throttle: dense black AB smoke
+    const smokeR=2.5+speedRatio*3.5;
+    const smokeAlpha=0.18+speedRatio*0.55;
     ctx.globalAlpha=smokeAlpha;
-    ctx.fillStyle='rgba(12,12,12,0.9)';
-    const smokeOff=Math.sin(flameT*1.3)*3;
-    ctx.beginPath();ctx.ellipse(-40+smokeOff*0.5,0,10+speedRatio*4,4+speedRatio*2,0,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(-52+smokeOff,0,8,3,0,0,Math.PI*2);ctx.fill();
-    // Core flame — white/blue hot center
-    ctx.globalAlpha=0.9*speedRatio;
-    const flameG=ctx.createRadialGradient(-32,0,1,-32,0,7+speedRatio*5);
-    flameG.addColorStop(0,'rgba(255,255,255,1)');
-    flameG.addColorStop(0.25,'rgba(180,220,255,0.95)');
-    flameG.addColorStop(0.55,'rgba(255,140,20,0.8)');
-    flameG.addColorStop(0.8,'rgba(255,60,0,0.5)');
-    flameG.addColorStop(1,'rgba(255,30,0,0)');
-    ctx.fillStyle=flameG;
-    const flameLen=10+speedRatio*16+Math.sin(flameT)*3;
-    ctx.beginPath();ctx.ellipse(-32-flameLen*0.4,0,flameLen*0.7,4+speedRatio*2+Math.sin(flameT*1.7)*1.5,0,0,Math.PI*2);ctx.fill();
-    // Outer orange glow
-    ctx.globalAlpha=0.35*speedRatio;
-    const glowG=ctx.createRadialGradient(-36,0,0,-36,0,14+speedRatio*10);
-    glowG.addColorStop(0,'rgba(255,120,0,0.9)');glowG.addColorStop(1,'rgba(255,80,0,0)');
+    ctx.fillStyle=speedRatio>0.7?'rgba(8,8,8,0.95)':'rgba(100,100,100,0.7)';
+    // Single puff right at nozzle — no trailing smear
+    ctx.beginPath();
+    ctx.ellipse(nozzleX-smokeR*0.6,0,smokeR,smokeR*0.55,0,0,Math.PI*2);
+    ctx.fill();
+
+    // ── Afterburner flame — grows dramatically with throttle ──
+    const flameLen=speedRatio>0.55
+      ? 12+speedRatio*32+Math.sin(flameT)*4+Math.sin(flameT*2.7)*2  // AB engaged: long wild flame
+      : 4+speedRatio*8+Math.sin(flameT)*1.5;                         // idle: short blue stub
+    const flameW=speedRatio>0.55
+      ? 4+speedRatio*4+Math.sin(flameT*1.8)*1.5
+      : 2+speedRatio*2;
+
+    // Outer glow
+    ctx.globalAlpha=speedRatio>0.55?0.45:0.2;
+    const glowG=ctx.createRadialGradient(nozzleX,0,0,nozzleX,0,flameLen*0.9);
+    if(speedRatio>0.7){
+      glowG.addColorStop(0,'rgba(255,180,0,0.9)');
+      glowG.addColorStop(0.5,'rgba(255,80,0,0.5)');
+      glowG.addColorStop(1,'rgba(255,40,0,0)');
+    } else {
+      glowG.addColorStop(0,'rgba(120,160,255,0.7)');
+      glowG.addColorStop(1,'rgba(80,100,255,0)');
+    }
     ctx.fillStyle=glowG;
-    ctx.beginPath();ctx.ellipse(-36,0,14+speedRatio*10,6,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(nozzleX-flameLen*0.5,0,flameLen*0.8,flameW*1.8,0,0,Math.PI*2);ctx.fill();
+
+    // Mid flame
+    ctx.globalAlpha=speedRatio>0.55?0.85:0.6;
+    const midG=ctx.createLinearGradient(nozzleX,0,nozzleX-flameLen,0);
+    if(speedRatio>0.7){
+      midG.addColorStop(0,'rgba(255,255,200,1)');
+      midG.addColorStop(0.2,'rgba(255,200,50,0.95)');
+      midG.addColorStop(0.6,'rgba(255,80,10,0.75)');
+      midG.addColorStop(1,'rgba(200,30,0,0)');
+    } else {
+      midG.addColorStop(0,'rgba(200,220,255,0.9)');
+      midG.addColorStop(0.5,'rgba(100,140,255,0.6)');
+      midG.addColorStop(1,'rgba(60,80,200,0)');
+    }
+    ctx.fillStyle=midG;
+    ctx.beginPath();ctx.ellipse(nozzleX-flameLen*0.45,0,flameLen*0.75,flameW+Math.sin(flameT*2.2)*0.8,0,0,Math.PI*2);ctx.fill();
+
+    // White-hot core at nozzle
+    ctx.globalAlpha=0.95;
+    ctx.fillStyle='rgba(255,255,255,0.98)';
+    ctx.beginPath();ctx.ellipse(nozzleX-1.5,0,3.5,2,0,0,Math.PI*2);ctx.fill();
+
     ctx.restore();
   }
 
@@ -3462,8 +3506,14 @@ function handleMovement(me,dt){
     let diff=targetAngle-_bodyAngleRad;
     while(diff>Math.PI)diff-=Math.PI*2;
     while(diff<-Math.PI)diff+=Math.PI*2;
-    const turnRate=_selectedTank?.turnRate||MOVE_TURN_RATE;
-    _bodyAngleRad+=diff*turnRate*dt;
+    const baseTurnRate=_selectedTank?.turnRate||MOVE_TURN_RATE;
+    const isJetTurn=_selectedTank?.isJet;
+    // Jets: turn rate scales with speed — faster = wider turn radius (real physics)
+    // At min speed: tight but not instant. At max: wide sweeping arc. No spin on spot.
+    const speedRatioTurn=isJetTurn?Math.max(0.25,Math.min(_speed/(_selectedTank?.speed||1),1)):1;
+    const jetTurnScale=isJetTurn?(0.55+speedRatioTurn*0.45):1; // slower turn at higher speed
+    const effectiveTurnRate=baseTurnRate*jetTurnScale;
+    _bodyAngleRad+=diff*effectiveTurnRate*dt;
     const alignment=Math.abs(diff);
     const accel=_selectedTank?.accel||MOVE_ACCEL;
     const maxSpd=_selectedTank?.speed||MOVE_MAX_SPEED;
@@ -3523,12 +3573,12 @@ function handleMovement(me,dt){
     let angleDelta=_bodyAngleRad-_lastBodyAngle;
     while(angleDelta>Math.PI)angleDelta-=Math.PI*2;
     while(angleDelta<-Math.PI)angleDelta+=Math.PI*2;
-    // Bank toward turn direction, decay back to 0 when straight
-    const targetBank=angleDelta*28; // scale turn rate into tilt
-    _bankAngle+=(targetBank-_bankAngle)*0.18*dt;
-    _bankAngle=Math.max(-0.38,Math.min(0.38,_bankAngle)); // cap at ~22 degrees
+    // Bank toward turn direction — more aggressive tilt, smoother decay
+    const targetBank=angleDelta*55; // stronger tilt response
+    _bankAngle+=(targetBank-_bankAngle)*0.22*dt;
+    _bankAngle=Math.max(-0.52,Math.min(0.52,_bankAngle)); // ~30 degree max bank
   } else {
-    _bankAngle*=0.85; // tanks don't bank
+    _bankAngle*=0.80;
   }
   _lastBodyAngle=_bodyAngleRad;
 
