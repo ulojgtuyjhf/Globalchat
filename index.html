@@ -1906,9 +1906,20 @@ function showLobby(){loadSettings();
   listenGlobalFeed();
   listenGlobalChat();
   applyTheme();
+  // Real-time balance listener — updates UI whenever balance changes in Firestore (e.g. when opponent kills you)
+  if(_balanceUnsub){_balanceUnsub();}
+  _balanceUnsub=onSnapshot(doc(db,'sw_users',CU.uid),snap=>{
+    if(!snap.exists()||!UD)return;
+    const d=snap.data();
+    if(typeof d.balance==='number'&&d.balance!==UD.balance){
+      UD.balance=d.balance;
+      refreshLobbyUI();
+    }
+  });
   // Process any pending Yoco payment return
   processPendingPayment();
 }
+let _balanceUnsub=null;
 
 function refreshLobbyUI(){
   if(!UD)return;
@@ -2826,13 +2837,36 @@ function gameFrame(ts){
   tickLandingAnim(dt);
 }
 
+// WATER_HOLES — coordinates matched to actual Panjura map image (4800x3600 game units)
+// Large central lake cluster ~55% across, ~38% down; smaller pools scattered
 const WATER_HOLES=[
-  {cx:860,cy:620,rx:140,ry:100},{cx:2460,cy:530,rx:120,ry:85},
-  {cx:1640,cy:1230,rx:160,ry:115},{cx:620,cy:1840,rx:130,ry:95},
-  {cx:2860,cy:1760,rx:150,ry:110},{cx:1280,cy:2180,rx:115,ry:84},
-  {cx:3800,cy:800,rx:130,ry:95},{cx:4200,cy:2200,rx:140,ry:100},
-  {cx:3100,cy:3000,rx:125,ry:90},{cx:900,cy:3100,rx:135,ry:95},
-  {cx:2100,cy:3300,rx:120,ry:88},{cx:4500,cy:1500,rx:110,ry:80},
+  // Central large lake (heart-shaped, upper-center of map)
+  {cx:2560,cy:1160,rx:220,ry:170},
+  // Second central pool just below/right
+  {cx:2900,cy:1360,rx:160,ry:120},
+  // Upper-left small pool
+  {cx:960,cy:520,rx:100,ry:75},
+  // Upper-right cluster
+  {cx:3600,cy:680,rx:115,ry:85},
+  {cx:3980,cy:820,rx:90,ry:68},
+  // Mid-left pools
+  {cx:580,cy:1620,rx:105,ry:78},
+  {cx:780,cy:1980,rx:95,ry:70},
+  // Mid-right pools
+  {cx:3820,cy:1540,rx:120,ry:90},
+  {cx:4280,cy:1900,rx:100,ry:76},
+  // Lower-center pools
+  {cx:2100,cy:2560,rx:115,ry:85},
+  {cx:2680,cy:2880,rx:105,ry:78},
+  // Lower-left pool
+  {cx:740,cy:2940,rx:110,ry:82},
+  // Lower-right pool
+  {cx:3900,cy:2960,rx:100,ry:75},
+  // Small scattered ponds
+  {cx:1480,cy:1040,rx:80,ry:60},
+  {cx:4100,cy:480,rx:80,ry:58},
+  {cx:1260,cy:2980,rx:85,ry:62},
+  {cx:4540,cy:2500,rx:78,ry:58},
 ];
 const ROCK_CLUSTERS=[
   {cx:450,cy:320,rx:100,ry:75},{cx:1700,cy:420,rx:120,ry:90},
@@ -2849,10 +2883,13 @@ function ptInWater(px,py){for(const h of WATER_HOLES){const dx=(px-h.cx)/h.rx,dy
 function ptInRock(px,py,margin=0){for(const r of ROCK_CLUSTERS){const dx=(px-r.cx)/(r.rx+margin),dy=(py-r.cy)/(r.ry+margin);if(dx*dx+dy*dy<1)return true;}return false;}
 
 const SAFE_SPAWN_POINTS=[
-  {x:2400,y:1800},{x:2400,y:2200},{x:2000,y:1500},{x:2800,y:1500},
-  {x:1600,y:2400},{x:3200,y:2400},{x:1200,y:1200},{x:3600,y:1200},
-  {x:3600,y:2800},{x:1200,y:2800},{x:2400,y:3000},{x:2400,y:700},
-  {x:700,y:1700},{x:4100,y:1700},{x:4400,y:3000},{x:700,y:3200},
+  // Four corners (far from center water)
+  {x:400,y:400},{x:4400,y:400},{x:400,y:3200},{x:4400,y:3200},
+  // Mid edges
+  {x:2400,y:300},{x:2400,y:3300},{x:300,y:1800},{x:4500,y:1800},
+  // Mid quadrant safe zones (checked against water)
+  {x:1400,y:800},{x:3600,y:300},{x:1200,y:2400},{x:3400,y:2600},
+  {x:700,y:1300},{x:4200,y:1200},{x:1800,y:3100},{x:3200,y:3100},
 ];
 function _posBlocked(tx,ty){
   if(tx<80||tx>MAP_W-80||ty<80||ty>MAP_H-80)return true;
@@ -2882,61 +2919,21 @@ function safeSpawnPos(){
 
 function drawMap(){
   _savannahAnim+=0.014;
-  // Draw Panjura map image as background — scaled to fill MAP_W x MAP_H
+  // Draw Panjura map image — it IS the ground. No overlays needed.
   if(_mapBgImg.complete&&_mapBgImg.naturalWidth>0){
     ctx.drawImage(_mapBgImg,0,0,MAP_W,MAP_H);
-    // Slight dark overlay to make it feel more battlefield-gritty
-    ctx.fillStyle='rgba(10,6,0,0.18)';ctx.fillRect(0,0,MAP_W,MAP_H);
   } else {
-    // Fallback ground while image loads
-    const groundGrad=ctx.createLinearGradient(0,0,MAP_W,MAP_H);
-    groundGrad.addColorStop(0,'#7a6428');groundGrad.addColorStop(0.5,'#785e28');groundGrad.addColorStop(1,'#725828');
-    ctx.fillStyle=groundGrad;ctx.fillRect(0,0,MAP_W,MAP_H);
+    // Fallback sandy ground while image loads
+    ctx.fillStyle='#c8a96a';ctx.fillRect(0,0,MAP_W,MAP_H);
   }
+  // Water holes are collision zones only — NOT drawn on top of the map image.
+  // The map image already shows the water/terrain visually.
 
-  for(const h of WATER_HOLES){
-    const shoreG=ctx.createRadialGradient(h.cx,h.cy,h.ry,h.cx,h.cy,h.rx+40);
-    shoreG.addColorStop(0,'rgba(110,80,30,0.6)');shoreG.addColorStop(1,'rgba(110,80,30,0)');
-    ctx.beginPath();ctx.ellipse(h.cx,h.cy,h.rx+40,h.ry+40,0,0,Math.PI*2);ctx.fillStyle=shoreG;ctx.fill();
-    ctx.beginPath();ctx.ellipse(h.cx,h.cy,h.rx+10,h.ry+10,0,0,Math.PI*2);
-    ctx.fillStyle='#5c4020';ctx.fill();
-    ctx.beginPath();ctx.ellipse(h.cx,h.cy,h.rx,h.ry,0,0,Math.PI*2);
-    const wg=ctx.createRadialGradient(h.cx-h.rx*0.3,h.cy-h.ry*0.3,4,h.cx,h.cy,h.rx);
-    wg.addColorStop(0,'#3080c0');wg.addColorStop(0.3,'#1a5fa0');wg.addColorStop(0.7,'#0e3d78');wg.addColorStop(1,'#071e45');
-    ctx.fillStyle=wg;ctx.fill();
-    // Animated ocean waves
-    const waveT=Date.now()*0.0015;
-    ctx.save();
-    ctx.beginPath();ctx.ellipse(h.cx,h.cy,h.rx,h.ry,0,0,Math.PI*2);ctx.clip();
-    // Wave shimmer lines
-    ctx.globalAlpha=0.18+Math.sin(waveT)*0.06;
-    ctx.strokeStyle='#7bbfee';ctx.lineWidth=2.5;
-    for(let wi=-3;wi<=3;wi++){
-      const wy=h.cy+wi*(h.ry/3.5)+Math.sin(waveT*1.3+wi)*5;
-      ctx.beginPath();
-      ctx.moveTo(h.cx-h.rx*0.85,wy);
-      ctx.bezierCurveTo(h.cx-h.rx*0.4,wy-6+Math.sin(waveT*2+wi)*4,h.cx+h.rx*0.3,wy+4+Math.sin(waveT*1.7+wi+1)*3,h.cx+h.rx*0.85,wy+Math.sin(waveT+wi)*4);
-      ctx.stroke();
-    }
-    ctx.restore();
-    ctx.save();ctx.globalAlpha=0.52;ctx.font='bold 11px Rajdhani,sans-serif';
-    ctx.fillStyle='#aaddff';ctx.textAlign='center';ctx.fillText('≈ OCEAN ≈',h.cx,h.cy+4);ctx.restore();
-  }
-
-  for(const r of ROCK_CLUSTERS){
-    ctx.beginPath();ctx.ellipse(r.cx+14,r.cy+12,r.rx,r.ry,0,0,Math.PI*2);
-    ctx.fillStyle='rgba(60,40,10,0.32)';ctx.fill();
-    const rg=ctx.createRadialGradient(r.cx-r.rx*0.3,r.cy-r.ry*0.3,r.rx*0.1,r.cx,r.cy,r.rx);
-    rg.addColorStop(0,'#b0987a');rg.addColorStop(0.5,'#907558');rg.addColorStop(1,'#6a5035');
-    ctx.beginPath();ctx.ellipse(r.cx,r.cy,r.rx,r.ry,0,0,Math.PI*2);ctx.fillStyle=rg;ctx.fill();
-    ctx.save();ctx.globalAlpha=0.55;ctx.font='bold 10px Rajdhani,sans-serif';
-    ctx.fillStyle='#c8a878';ctx.textAlign='center';ctx.fillText('⛰',r.cx,r.cy+4);ctx.restore();
-  }
+  // Rock clusters are collision zones only — not drawn, the map image shows them.
 
   for(const f of MAP_FEATURES){
     if(f.type==='road'){
-      ctx.save();ctx.globalAlpha=0.55;ctx.fillStyle='#9a7840';ctx.fillRect(f.x,f.y,f.w,f.h);
-      ctx.restore();
+      // Roads are on the map image — no need to draw them
     } else if(f.type==='wall'){
       ctx.fillStyle='#8b7045';ctx.fillRect(f.x,f.y,f.w,f.h);
       ctx.fillStyle='rgba(220,185,100,0.35)';ctx.fillRect(f.x,f.y,f.w,2);
@@ -3437,6 +3434,8 @@ async function handleKill(targetUid,target){
       const td=targetSnap.data();
       const newTBal=Math.max(0,(td.balance||0)-entryFee);
       await updateDoc(doc(db,'sw_users',targetUid),{balance:newTBal});
+      // Also record the loss in the victim's history so their balance history is accurate
+      await push(ref(rtdb,'sw_history/'+targetUid),{result:'loss',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:0,lost:entryFee,ts:Date.now()});
     }
   }catch(e){console.error('Failed to deduct from victim:',e);}
   await push(ref(rtdb,'sw_history/'+CU.uid),{result:'kill',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:1,earned:killReward,ts:Date.now()});
@@ -3502,14 +3501,12 @@ function updateSelfHUD(me){
 function drawMinimap(){
   const mW=miniCanvas.width,mH=miniCanvas.height;
   const sx=mW/MAP_W,sy=mH/MAP_H;
-  miniCtx.fillStyle='#5a4a1c';miniCtx.fillRect(0,0,mW,mH);
-  for(const h of WATER_HOLES){
-    miniCtx.fillStyle='rgba(46,110,136,0.85)';
-    miniCtx.beginPath();miniCtx.ellipse(h.cx*sx,h.cy*sy,h.rx*sx,h.ry*sy,0,0,Math.PI*2);miniCtx.fill();
-  }
-  for(const r of ROCK_CLUSTERS){
-    miniCtx.fillStyle='rgba(120,100,65,0.75)';
-    miniCtx.beginPath();miniCtx.ellipse(r.cx*sx,r.cy*sy,r.rx*sx,r.ry*sy,0,0,Math.PI*2);miniCtx.fill();
+  // Minimap background — draw scaled map image if available, else sandy fallback
+  if(_mapBgImg.complete&&_mapBgImg.naturalWidth>0){
+    miniCtx.drawImage(_mapBgImg,0,0,mW,mH);
+    miniCtx.fillStyle='rgba(0,0,0,0.25)';miniCtx.fillRect(0,0,mW,mH);
+  } else {
+    miniCtx.fillStyle='#b8955a';miniCtx.fillRect(0,0,mW,mH);
   }
   if(gameState?.players){
     Object.values(gameState.players).forEach(p=>{
@@ -4254,6 +4251,61 @@ async function processPendingPayment(){
   }catch(e){console.error('processPendingPayment error:',e);}
 }
 
+// ═══════ WITHDRAW FUNDS ═══════
+let _withdrawAmt=0;
+window.openWithdraw=function(){
+  if(!CU||!UD){toast('Sign in first','red');return;}
+  const bal=UD.balance||0;
+  document.getElementById('wdCurrentBal').textContent='R'+bal.toFixed(2);
+  document.getElementById('wdAmount').value='';
+  document.getElementById('wdPhone').value='';
+  document.getElementById('wdStatus').textContent='';
+  const btn=document.getElementById('wdSubmitBtn');
+  btn.disabled=false;btn.style.opacity='1';btn.textContent='WITHDRAW';
+  document.getElementById('withdrawOverlay').classList.add('open');
+};
+window.closeWithdraw=function(){
+  document.getElementById('withdrawOverlay').classList.remove('open');
+};
+window.submitWithdraw=async function(){
+  if(!CU||!UD)return;
+  const amtStr=(document.getElementById('wdAmount').value||'').trim();
+  const phone=(document.getElementById('wdPhone').value||'').trim();
+  const amt=parseFloat(amtStr);
+  const status=document.getElementById('wdStatus');
+  const btn=document.getElementById('wdSubmitBtn');
+  if(!amt||amt<5){status.textContent='Minimum withdrawal is R5.';return;}
+  if(amt>(UD.balance||0)){status.textContent='Insufficient balance.';return;}
+  if(!phone||phone.length<9){status.textContent='Enter a valid phone number.';return;}
+  btn.disabled=true;btn.style.opacity='.6';btn.textContent='Processing…';
+  status.textContent='Submitting withdrawal request…';
+  try{
+    const res=await fetch(VAL_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'withdraw',amount:Math.round(amt*100),uid:CU.uid,phone})
+    });
+    const data=await res.json();
+    if(data.success){
+      // Deduct from Firestore immediately
+      const newBal=Math.max(0,(UD.balance||0)-amt);
+      await updateDoc(doc(db,'sw_users',CU.uid),{balance:newBal});
+      UD.balance=newBal;
+      refreshLobbyUI();
+      await push(ref(rtdb,'sw_history/'+CU.uid),{result:'withdraw',detail:'Withdrawal to '+phone,lost:amt,ts:Date.now()});
+      status.textContent='';
+      closeWithdraw();
+      toast('💸 Withdrawal of R'+amt.toFixed(2)+' submitted!','gold');
+    }else{
+      status.textContent=data.error||'Withdrawal failed. Try again.';
+      btn.disabled=false;btn.style.opacity='1';btn.textContent='WITHDRAW';
+    }
+  }catch(e){
+    status.textContent='Network error. Try again.';
+    btn.disabled=false;btn.style.opacity='1';btn.textContent='WITHDRAW';
+  }
+};
+
 </script>
 
 <!-- TANK SPECS FULL PAGE -->
@@ -4956,6 +5008,36 @@ body.dark-theme .signout-confirm-btn{color:#0b0b14;}
 body:not(.dark-theme) .play-wide-btn--lang{background:#fff;border-color:rgba(0,0,0,.12);color:#0f0f0f;box-shadow:0 2px 8px rgba(0,0,0,.06);}
 </style>
 
+<!-- ═══════ WITHDRAW MODAL ═══════ -->
+<div id="withdrawOverlay" style="position:fixed;inset:0;z-index:99100;background:rgba(0,0,0,.85);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;">
+  <div style="background:var(--card);border-radius:22px;border:1.5px solid var(--border);padding:28px 22px;width:92%;max-width:380px;box-shadow:0 32px 80px rgba(0,0,0,.5);">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--white);margin-bottom:4px;">💸 WITHDRAW</div>
+    <div style="font-size:13px;color:var(--dim);margin-bottom:16px;line-height:1.5;">Withdraw your winnings to your mobile wallet.</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--muted);border-radius:10px;margin-bottom:18px;">
+      <span style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">Available Balance</span>
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold);" id="wdCurrentBal">R0.00</span>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);display:block;margin-bottom:6px;">Amount (min R5)</label>
+      <input id="wdAmount" type="number" min="5" step="1" placeholder="e.g. 20" style="width:100%;padding:12px 14px;border-radius:11px;border:1.5px solid var(--border);background:var(--muted);color:var(--white);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:600;outline:none;">
+    </div>
+    <div style="margin-bottom:18px;">
+      <label style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);display:block;margin-bottom:6px;">Mobile Number</label>
+      <input id="wdPhone" type="tel" placeholder="e.g. 0821234567" style="width:100%;padding:12px 14px;border-radius:11px;border:1.5px solid var(--border);background:var(--muted);color:var(--white);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:600;outline:none;">
+    </div>
+    <button id="wdSubmitBtn" onclick="submitWithdraw()" style="width:100%;padding:15px;border:none;border-radius:13px;background:var(--grad);font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;cursor:pointer;margin-bottom:10px;">WITHDRAW</button>
+    <button onclick="closeWithdraw()" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:12px;background:transparent;color:var(--dim);font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Cancel</button>
+    <div id="wdStatus" style="font-size:13px;text-align:center;margin-top:12px;color:#c0392b;min-height:18px;"></div>
+  </div>
+</div>
+
+<style>
+#withdrawOverlay.open{opacity:1!important;pointer-events:all!important;}
+body.dark-theme #wdSubmitBtn{color:#000!important;}
+body:not(.dark-theme) #wdSubmitBtn{color:#fff!important;}
+#wdAmount,#wdPhone{transition:border-color .2s;}
+#wdAmount:focus,#wdPhone:focus{border-color:var(--brand);}
+</style>
 
 </body>
 </html>
