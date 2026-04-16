@@ -2920,13 +2920,24 @@ function drawTreads(){
     const t=_treads[i];
     t.life--;t.alpha=Math.max(0,t.alpha-0.00035);
     if(t.life<=0||t.alpha<=0){_treads.splice(i,1);continue;}
-    ctx.save();ctx.translate(t.x,t.y);ctx.rotate(t.rot);
-    ctx.globalAlpha=t.alpha;
+    ctx.save();
     if(t.isJet){
-      // Jet contrail — single exhaust streak from center nozzle (F-16 has one engine)
-      ctx.fillStyle='rgba(160,200,255,0.7)';
-      ctx.beginPath();ctx.ellipse(-28,0,5,2,0,0,Math.PI*2);ctx.fill();
+      // Contrail puff at stored nozzle world pos - frozen, never pivots
+      ctx.translate(t.nx,t.ny);
+      ctx.rotate(t.rot); // angle frozen at spawn
+      ctx.globalAlpha=t.alpha;
+      const age=1-(t.life/t.maxLife);
+      const puffR=2.5+age*3.5;
+      // Teardrop: round body, sharp pointed tip in flight direction
+      ctx.fillStyle='rgba(190,215,255,0.9)';
+      ctx.beginPath();
+      ctx.moveTo(puffR*1.3,0);
+      ctx.bezierCurveTo(puffR*0.5,puffR*0.85,-puffR*0.9,puffR*0.65,-puffR*1.5,0);
+      ctx.bezierCurveTo(-puffR*0.9,-puffR*0.65,puffR*0.5,-puffR*0.85,puffR*1.3,0);
+      ctx.closePath();ctx.fill();
     } else {
+      ctx.translate(t.x,t.y);ctx.rotate(t.rot);
+      ctx.globalAlpha=t.alpha;
       ctx.fillStyle='rgba(20,14,6,0.85)';
       ctx.fillRect(-22,-15,44,6);
       ctx.fillRect(-22,9,44,6);
@@ -3506,17 +3517,26 @@ function handleMovement(me,dt){
     while(diff<-Math.PI)diff+=Math.PI*2;
     const baseTurnRate=_selectedTank?.turnRate||MOVE_TURN_RATE;
     const isJetTurn=_selectedTank?.isJet;
-    // Jets: turn rate scales with speed — faster = wider turn radius (real physics)
-    // At min speed: tight but not instant. At max: wide sweeping arc. No spin on spot.
-    const speedRatioTurn=isJetTurn?Math.max(0.25,Math.min(_speed/(_selectedTank?.speed||1),1)):1;
-    const jetTurnScale=isJetTurn?(0.55+speedRatioTurn*0.45):1; // slower turn at higher speed
-    const effectiveTurnRate=baseTurnRate*jetTurnScale;
-    _bodyAngleRad+=diff*effectiveTurnRate*dt;
+    let effectiveTurnRate;
+    if(isJetTurn){
+      // F-16 aircraft turning: turn rate is limited and smooth, not instant like a tank
+      // Real aircraft: gradual bank-and-turn, can't spin on the spot
+      // Turn rate is a fixed gentle rate — pilot smoothly rolls into a turn
+      const jetMaxTurn=0.028; // ~1.6 deg/frame max — realistic coordinated turn
+      const stepSize=Math.min(Math.abs(diff),jetMaxTurn*dt)*Math.sign(diff);
+      _bodyAngleRad+=stepSize;
+    } else {
+      effectiveTurnRate=baseTurnRate;
+      _bodyAngleRad+=diff*effectiveTurnRate*dt;
+    }
     const alignment=Math.abs(diff);
     const accel=_selectedTank?.accel||MOVE_ACCEL;
     const maxSpd=_selectedTank?.speed||MOVE_MAX_SPEED;
     const fric=_selectedTank?.friction||MOVE_FRICTION;
-    if(alignment<Math.PI*0.35){
+    if(isJetTurn){
+      // Jets always accelerate forward — they don't brake to turn like tanks
+      _speed=Math.min(_speed+accel*dt,maxSpd);
+    } else if(alignment<Math.PI*0.35){
       _speed=Math.min(_speed+accel*dt,maxSpd);
     } else {
       _speed*=Math.pow(fric,dt);
@@ -3584,7 +3604,16 @@ function handleMovement(me,dt){
   _treadDist+=Math.abs(_speed)*speedMult;
   const treadInterval=isJet?8:18; // jets leave more frequent contrails
   if(_treadDist>treadInterval){
-    _treads.push({x:me.x,y:me.y,rot:_bodyAngleRad,alpha:isJet?0.35:0.22,life:isJet?300:600,isJet:!!isJet});
+    if(isJet){
+      // Store actual nozzle world position — offset behind jet by nozzle distance
+      const nozzleOffset=36;
+      const nx=me.x+Math.cos(_bodyAngleRad+Math.PI)*nozzleOffset;
+      const ny=me.y+Math.sin(_bodyAngleRad+Math.PI)*nozzleOffset;
+      const maxLife=220;
+      _treads.push({nx,ny,x:me.x,y:me.y,rot:_bodyAngleRad,alpha:0.42,life:maxLife,maxLife,isJet:true});
+    } else {
+      _treads.push({x:me.x,y:me.y,rot:_bodyAngleRad,alpha:0.22,life:600,maxLife:600,isJet:false});
+    }
     _treadDist=0;
     if(_treads.length>500)_treads.shift();
   }
