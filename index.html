@@ -3027,7 +3027,7 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP,tankId){
     ctx.fillStyle=color;ctx.fillRect(-22,-16,44,32);
   }
 
-  // F-16 afterburner flame — only shows at high speed (AB engaged), very intense
+  // F-16 afterburner flame — small, sharp, tapered to a point where smoke begins
   if(tank.isJet&&_animEnabled&&_speed>0.1){
     const speedRatio=Math.min(_speed/tank.speed,1);
     const flameT=Date.now()*0.022;
@@ -3036,49 +3036,38 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP,tankId){
     if(speedRatio>0.50){
       const abRatio=(speedRatio-0.50)/0.50; // 0→1 as speed goes 50%→100%
       ctx.save();
-      // Flame length and width scale with abRatio — very dramatic at full speed
-      const flameLen=18+abRatio*52+Math.sin(flameT)*5+Math.sin(flameT*2.3)*3;
-      const flameW=5+abRatio*7+Math.sin(flameT*1.9)*2;
+      // Small flame: short length, narrow width, sharp taper
+      const flameLen=8+abRatio*14+Math.sin(flameT)*1.2;
+      const flameW=2.2+abRatio*2.0+Math.sin(flameT*1.9)*0.4;
 
-      // Outer orange/red glow halo
-      ctx.globalAlpha=0.35+abRatio*0.30;
-      const glowG=ctx.createRadialGradient(nozzleX,0,0,nozzleX,0,flameLen*1.1);
-      glowG.addColorStop(0,'rgba(255,160,0,1)');
-      glowG.addColorStop(0.4,'rgba(255,60,0,0.6)');
-      glowG.addColorStop(1,'rgba(200,20,0,0)');
-      ctx.fillStyle=glowG;
-      ctx.beginPath();ctx.ellipse(nozzleX-flameLen*0.55,0,flameLen*0.95,flameW*2.2,0,0,Math.PI*2);ctx.fill();
-
-      // Main flame body — bright yellow-white core tapering to orange
-      ctx.globalAlpha=0.90+abRatio*0.08;
-      const mainG=ctx.createLinearGradient(nozzleX,0,nozzleX-flameLen,0);
-      mainG.addColorStop(0,'rgba(255,255,230,1)');
-      mainG.addColorStop(0.15,'rgba(255,220,60,1)');
-      mainG.addColorStop(0.45,'rgba(255,100,10,0.85)');
-      mainG.addColorStop(0.75,'rgba(220,40,0,0.5)');
-      mainG.addColorStop(1,'rgba(180,20,0,0)');
-      ctx.fillStyle=mainG;
-      ctx.beginPath();ctx.ellipse(nozzleX-flameLen*0.42,0,flameLen*0.82,flameW+Math.sin(flameT*2.5)*1.2,0,0,Math.PI*2);ctx.fill();
-
-      // Inner bright core — white-hot at nozzle exit
-      ctx.globalAlpha=1.0;
-      const coreG=ctx.createRadialGradient(nozzleX,0,0,nozzleX,0,flameW*1.4);
+      // Tight inner glow — hot blue-white core at nozzle exit
+      ctx.globalAlpha=0.95;
+      const coreG=ctx.createLinearGradient(nozzleX,0,nozzleX-flameLen,0);
       coreG.addColorStop(0,'rgba(255,255,255,1)');
-      coreG.addColorStop(0.5,'rgba(255,240,180,0.95)');
-      coreG.addColorStop(1,'rgba(255,180,0,0)');
+      coreG.addColorStop(0.18,'rgba(255,240,160,1)');
+      coreG.addColorStop(0.55,'rgba(255,120,10,0.75)');
+      coreG.addColorStop(1,'rgba(180,40,0,0)');
       ctx.fillStyle=coreG;
-      ctx.beginPath();ctx.ellipse(nozzleX-2,0,flameW*1.2,flameW*0.65,0,0,Math.PI*2);ctx.fill();
+      // Sharp teardrop: wide at nozzle, pinches to a point at the tip
+      ctx.beginPath();
+      ctx.moveTo(nozzleX,0);
+      ctx.bezierCurveTo(nozzleX-flameLen*0.35,flameW,nozzleX-flameLen*0.75,flameW*0.45,nozzleX-flameLen,0);
+      ctx.bezierCurveTo(nozzleX-flameLen*0.75,-flameW*0.45,nozzleX-flameLen*0.35,-flameW,nozzleX,0);
+      ctx.fill();
 
-      // Diamond shock pattern at very high speed (visible AB shockwave diamonds)
-      if(abRatio>0.7){
-        ctx.globalAlpha=0.25+abRatio*0.2;
-        ctx.fillStyle='rgba(255,255,200,0.8)';
-        for(let d=0;d<3;d++){
-          const dx=nozzleX-10-d*(flameLen*0.22)+Math.sin(flameT+d)*1.5;
-          const dr=flameW*0.38*(1-d*0.18);
-          ctx.beginPath();ctx.ellipse(dx,0,dr*1.4,dr,0,0,Math.PI*2);ctx.fill();
-        }
-      }
+      // Subtle outer warmth — thin orange halo around the flame
+      ctx.globalAlpha=0.28+abRatio*0.18;
+      const haloG=ctx.createLinearGradient(nozzleX,0,nozzleX-flameLen*1.1,0);
+      haloG.addColorStop(0,'rgba(255,160,0,0.8)');
+      haloG.addColorStop(0.6,'rgba(255,60,0,0.3)');
+      haloG.addColorStop(1,'rgba(200,20,0,0)');
+      ctx.fillStyle=haloG;
+      ctx.beginPath();
+      ctx.moveTo(nozzleX,0);
+      ctx.bezierCurveTo(nozzleX-flameLen*0.35,flameW*1.6,nozzleX-flameLen*0.8,flameW*0.6,nozzleX-flameLen*1.05,0);
+      ctx.bezierCurveTo(nozzleX-flameLen*0.8,-flameW*0.6,nozzleX-flameLen*0.35,-flameW*1.6,nozzleX,0);
+      ctx.fill();
+
       ctx.restore();
     }
   }
