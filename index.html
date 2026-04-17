@@ -2465,8 +2465,10 @@ TANKS.forEach(t=>{
 // Map background image
 const _mapBgImg = new Image();
 _mapBgImg.src = 'https://i.ibb.co/Z12dVMfP/green-grass-with-green-background-1157106-11.jpg';
-const _oceanImg = new Image();
-_oceanImg.src = 'https://i.ibb.co/nq7LxfB3/images-7.jpg';
+// PNG tree image — the nice tree to replace drawn trees
+const _treePngImg = new Image();
+_treePngImg.src = 'https://i.ibb.co/XfQFtRqP/c-HJpdm-F0-ZS9sci9pb-WFn-ZXMvd2-Vic2l0-ZS8y-MDI0-LTEx-L3-Jhd3-Bpe-GVsb2-Zma-WNl-M190b3-Bfdmlld19wa-G90b19v-Z.png';
+_treePngImg.crossOrigin='anonymous';
 // backwards compat
 const _tankImg=_tankImgs.heavy;
 let _tankImgLoaded=false;
@@ -2645,7 +2647,7 @@ window.switchProfTab=function(name){
 // ══════════════════════════════════════════════
 //   GAME ENGINE
 // ══════════════════════════════════════════════
-const MAP_W=7200,MAP_H=5400;
+const MAP_W=4800,MAP_H=3600;
 let canvas,ctx,miniCanvas,miniCtx;
 let gameLoop=null,gameState=null,myUid=null;
 let camX=0,camY=0;
@@ -2902,40 +2904,48 @@ function drawMap(){
     ctx.fillStyle='#c8a878';ctx.textAlign='center';ctx.fillText('⛰',r.cx,r.cy+4);ctx.restore();
   }
 
-  // ── Ocean border — image tiled around all 4 edges ──
-  const oceanW = 600; // wide ocean band so you really have to travel to reach it
-  if(_oceanImg.complete&&_oceanImg.naturalWidth>0){
-    const oPat=ctx.createPattern(_oceanImg,'repeat');
-    if(oPat){
-      ctx.fillStyle=oPat;
-      ctx.fillRect(0,0,MAP_W,oceanW);           // top
-      ctx.fillRect(0,MAP_H-oceanW,MAP_W,oceanW); // bottom
-      ctx.fillRect(0,oceanW,oceanW,MAP_H-oceanW*2);           // left
-      ctx.fillRect(MAP_W-oceanW,oceanW,oceanW,MAP_H-oceanW*2); // right
-    }
-  } else {
-    // fallback while loading
-    ctx.fillStyle='#0e3d78';
-    ctx.fillRect(0,0,MAP_W,oceanW);ctx.fillRect(0,MAP_H-oceanW,MAP_W,oceanW);
-    ctx.fillRect(0,oceanW,oceanW,MAP_H-oceanW*2);ctx.fillRect(MAP_W-oceanW,oceanW,oceanW,MAP_H-oceanW*2);
+  // ── Ocean border — surrounds the entire map, no walls, just water ──
+  const oceanW = 200; // width of ocean band around edges
+  // Draw deep ocean fill around all 4 edges
+  const oceanGrad = ctx.createLinearGradient(0,0,oceanW,0);
+  oceanGrad.addColorStop(0,'#071e45');
+  oceanGrad.addColorStop(0.5,'#0e3d78');
+  oceanGrad.addColorStop(1,'rgba(14,61,120,0)');
+
+  // Left ocean
+  const ogL=ctx.createLinearGradient(0,0,oceanW,0);
+  ogL.addColorStop(0,'#071e45');ogL.addColorStop(0.6,'#1a5fa0');ogL.addColorStop(1,'rgba(26,95,160,0)');
+  ctx.fillStyle=ogL; ctx.fillRect(0,0,oceanW,MAP_H);
+  // Right ocean
+  const ogR=ctx.createLinearGradient(MAP_W,0,MAP_W-oceanW,0);
+  ogR.addColorStop(0,'#071e45');ogR.addColorStop(0.6,'#1a5fa0');ogR.addColorStop(1,'rgba(26,95,160,0)');
+  ctx.fillStyle=ogR; ctx.fillRect(MAP_W-oceanW,0,oceanW,MAP_H);
+  // Top ocean
+  const ogT=ctx.createLinearGradient(0,0,0,oceanW);
+  ogT.addColorStop(0,'#071e45');ogT.addColorStop(0.6,'#1a5fa0');ogT.addColorStop(1,'rgba(26,95,160,0)');
+  ctx.fillStyle=ogT; ctx.fillRect(0,0,MAP_W,oceanW);
+  // Bottom ocean
+  const ogB=ctx.createLinearGradient(0,MAP_H,0,MAP_H-oceanW);
+  ogB.addColorStop(0,'#071e45');ogB.addColorStop(0.6,'#1a5fa0');ogB.addColorStop(1,'rgba(26,95,160,0)');
+  ctx.fillStyle=ogB; ctx.fillRect(0,MAP_H-oceanW,MAP_W,oceanW);
+
+  // Animated wave lines on the ocean border
+  const wt=Date.now()*0.0012;
+  ctx.save();
+  ctx.globalAlpha=0.22;
+  ctx.strokeStyle='#7bbfee';ctx.lineWidth=2;
+  for(let wi=0;wi<5;wi++){
+    const offset=wi*36+Math.sin(wt+wi)*8;
+    // Top waves
+    ctx.beginPath();ctx.moveTo(0,offset);
+    for(let wx=0;wx<MAP_W;wx+=80){ctx.quadraticCurveTo(wx+40,offset+Math.sin(wt*1.3+wx*0.02+wi)*6,wx+80,offset);}
+    ctx.stroke();
+    // Bottom waves
+    ctx.beginPath();ctx.moveTo(0,MAP_H-offset);
+    for(let wx=0;wx<MAP_W;wx+=80){ctx.quadraticCurveTo(wx+40,MAP_H-offset-Math.sin(wt*1.3+wx*0.02+wi)*6,wx+80,MAP_H-offset);}
+    ctx.stroke();
   }
-  // Soft blend edge — grass fades into ocean
-  const blendW=120;
-  const bEdges=[
-    {x:0,y:oceanW-blendW,w:MAP_W,h:blendW,d:'down'},
-    {x:0,y:MAP_H-oceanW,w:MAP_W,h:blendW,d:'up'},
-    {x:oceanW-blendW,y:0,w:blendW,h:MAP_H,d:'right'},
-    {x:MAP_W-oceanW,y:0,w:blendW,h:MAP_H,d:'left'},
-  ];
-  for(const e of bEdges){
-    let g;
-    if(e.d==='down') g=ctx.createLinearGradient(0,e.y,0,e.y+e.h);
-    else if(e.d==='up') g=ctx.createLinearGradient(0,e.y+e.h,0,e.y);
-    else if(e.d==='right') g=ctx.createLinearGradient(e.x,0,e.x+e.w,0);
-    else g=ctx.createLinearGradient(e.x+e.w,0,e.x,0);
-    g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,20,60,0.55)');
-    ctx.fillStyle=g;ctx.fillRect(e.x,e.y,e.w,e.h);
-  }
+  ctx.restore();
 
   for(const f of MAP_FEATURES){
     if(f.type==='road'){
@@ -3615,7 +3625,7 @@ function handleMovement(me,dt){
   updateEngineSound(Math.abs(_speed),_selectedTank?.speed||MOVE_MAX_SPEED,_selectedTank?.id||'heavy');
 
   // Water/ocean penalty — jets fly over freely, tanks slow down
-  const oceanBorder=600;
+  const oceanBorder=200;
   const inOceanBorder=!isJet&&(me.x<oceanBorder||me.x>MAP_W-oceanBorder||me.y<oceanBorder||me.y>MAP_H-oceanBorder);
   const inWater=!isJet&&ptInWater(me.x,me.y);
   const speedMult=(inWater||inOceanBorder)?0.30:1.0; // ocean border is even slower — deep water
