@@ -1547,26 +1547,27 @@ function startEngineSound(tankId){
     const ac=getAudioCtx();
     stopEngineSound();
     if(tankId==='f22'){
-      // F-35 style: deep turbofan core + high compressor whine + airflow
-      // Layer 1: deep turbofan core rumble (low freq)
-      const osc1=ac.createOscillator();osc1.type='sawtooth';osc1.frequency.value=58;
-      const f1=ac.createBiquadFilter();f1.type='lowpass';f1.frequency.value=320;f1.Q.value=1.2;
+      // F-16 — deep turbofan roar: sub-bass thump + mid exhaust rush + high turbine scream
+      // NO oscillators alone — pure noise layers shaped to sound like a real jet
+      // Layer 1: deep sub-bass exhaust THUMP — the chest-hitting low end
+      const n1=_makeNoise(ac,99);
+      const lp1=ac.createBiquadFilter();lp1.type='lowpass';lp1.frequency.value=120;lp1.Q.value=0.8;
       const g1=ac.createGain();g1.gain.value=0.0;
-      g1.gain.linearRampToValueAtTime(0.18,ac.currentTime+1.5);
-      osc1.connect(f1);f1.connect(g1);g1.connect(ac.destination);osc1.start();
-      // Layer 2: compressor whine (mid freq)
-      const osc2=ac.createOscillator();osc2.type='sawtooth';osc2.frequency.value=340;
-      const f2=ac.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1100;f2.Q.value=0.5;
+      g1.gain.linearRampToValueAtTime(0.55,ac.currentTime+1.4);
+      n1.connect(lp1);lp1.connect(g1);g1.connect(ac.destination);n1.start();
+      // Layer 2: mid exhaust body — the continuous roar rush
+      const n2=_makeNoise(ac,99);
+      const bp2=ac.createBiquadFilter();bp2.type='bandpass';bp2.frequency.value=380;bp2.Q.value=0.6;
       const g2=ac.createGain();g2.gain.value=0.0;
-      g2.gain.linearRampToValueAtTime(0.07,ac.currentTime+1.8);
-      osc2.connect(f2);f2.connect(g2);g2.connect(ac.destination);osc2.start();
-      // Layer 3: high-freq airflow rush noise
-      const noise=_makeNoise(ac,99);
-      const nf=ac.createBiquadFilter();nf.type='highpass';nf.frequency.value=2200;
-      const ng=ac.createGain();ng.gain.value=0.0;
-      ng.gain.linearRampToValueAtTime(0.04,ac.currentTime+1.2);
-      noise.connect(nf);nf.connect(ng);ng.connect(ac.destination);noise.start();
-      _jetEngineNode=[osc1,osc2,noise];_jetEngineGain=[g1,g2,ng,f1,f2];
+      g2.gain.linearRampToValueAtTime(0.35,ac.currentTime+1.0);
+      n2.connect(bp2);bp2.connect(g2);g2.connect(ac.destination);n2.start();
+      // Layer 3: high turbine whine — the jet scream on top
+      const n3=_makeNoise(ac,99);
+      const hp3=ac.createBiquadFilter();hp3.type='bandpass';hp3.frequency.value=1800;hp3.Q.value=1.2;
+      const g3=ac.createGain();g3.gain.value=0.0;
+      g3.gain.linearRampToValueAtTime(0.12,ac.currentTime+1.8);
+      n3.connect(hp3);hp3.connect(g3);g3.connect(ac.destination);n3.start();
+      _jetEngineNode=[n1,n2,n3];_jetEngineGain=[g1,g2,g3,lp1,bp2];
     } else if(tankId==='atlas'){
       const osc=ac.createOscillator();osc.type='sawtooth';osc.frequency.value=42;
       const filt=ac.createBiquadFilter();filt.type='lowpass';filt.frequency.value=180;filt.Q.value=2;
@@ -1592,19 +1593,19 @@ function updateEngineSound(speed,maxSpeed,tankId){
     const ratio=Math.min(speed/maxSpeed,1);
     if(tankId==='f22'){
       if(_jetEngineNode&&_jetEngineGain){
-        // Idle (ratio<0.4): smooth deep hum, barely audible
-        // Throttle (ratio>0.6): aggressive turbine scream, AB crackle
         const abEngaged=ratio>0.55;
-        // Core turbofan: deeper at idle, massive roar at throttle
-        _jetEngineNode[0].frequency.setTargetAtTime(58+ratio*90,ac.currentTime,abEngaged?0.1:0.4);
-        _jetEngineGain[0].gain.setTargetAtTime(abEngaged?0.08+ratio*0.32:0.04+ratio*0.06,ac.currentTime,abEngaged?0.08:0.35);
-        // Compressor whine: rises sharply with throttle
-        _jetEngineNode[1].frequency.setTargetAtTime(280+ratio*520,ac.currentTime,abEngaged?0.08:0.3);
-        _jetEngineGain[1].gain.setTargetAtTime(abEngaged?0.04+ratio*0.18:0.02+ratio*0.03,ac.currentTime,abEngaged?0.08:0.3);
-        // Airflow rush: screams at high speed
-        _jetEngineGain[2].gain.setTargetAtTime(abEngaged?0.03+ratio*0.14:0.01+ratio*0.02,ac.currentTime,abEngaged?0.1:0.4);
-        // Filter cutoff opens up aggressively at throttle
-        _jetEngineGain[3].frequency.setTargetAtTime(abEngaged?600+ratio*1800:180+ratio*200,ac.currentTime,0.2);
+        // In a turn the pilot bleeds energy — engine pitch drops slightly, roar gets heavier/muffled
+        const turnLoad=Math.abs(_bankAngle||0); // 0 = straight, ~0.5 = hard turn
+        const turnPitchDrop=turnLoad*0.35; // how much to suppress the high whine
+        const turnRoarBoost=turnLoad*0.12; // mid roar gets fuller in the turn
+        // Sub-bass thump: gets heavier with throttle, fuller in turns
+        _jetEngineGain[0].gain.setTargetAtTime(0.35+ratio*0.45+turnRoarBoost,ac.currentTime,abEngaged?0.06:0.25);
+        _jetEngineGain[3].frequency.setTargetAtTime(abEngaged?80+ratio*120:60+ratio*40,ac.currentTime,0.2);
+        // Mid roar body: surges with throttle, boosted in turns (grunt of the engine working harder)
+        _jetEngineGain[1].gain.setTargetAtTime(abEngaged?0.25+ratio*0.35+turnRoarBoost:0.08+ratio*0.12+turnRoarBoost*0.5,ac.currentTime,abEngaged?0.07:0.3);
+        _jetEngineGain[4].frequency.setTargetAtTime(abEngaged?500+ratio*400:280+ratio*100,ac.currentTime,0.2);
+        // High turbine whine: drops in turns (pilot pulls back throttle in coordinated turn)
+        _jetEngineGain[2].gain.setTargetAtTime(Math.max(0.01,(abEngaged?0.10+ratio*0.22:0.02+ratio*0.04)-turnPitchDrop),ac.currentTime,abEngaged?0.06:0.35);
       }
     } else if(tankId==='atlas'){
       if(_atlaEngineNode&&_atlasEngineGain){
@@ -1658,23 +1659,34 @@ function playSound(type,tankId){
 
     if(type==='shoot'){
       if(isF22){
-        // F-16 missile: ssssss hiss ignition + rocket whoosh
-        // Hiss — like ssssssss pressure release
-        const noise=_makeNoise(ac,0.55);
-        const filt=ac.createBiquadFilter();filt.type='bandpass';filt.frequency.setValueAtTime(3800,now);filt.Q.value=0.5;
-        filt.frequency.exponentialRampToValueAtTime(800,now+0.55);
-        const g=ac.createGain();g.gain.setValueAtTime(0.7,now);g.gain.setValueAtTime(0.85,now+0.04);g.gain.exponentialRampToValueAtTime(0.001,now+0.55);
-        noise.connect(filt);filt.connect(g);g.connect(ac.destination);noise.start();noise.stop(now+0.55);
-        // Rocket ignition crackle
-        const noise2=_makeNoise(ac,0.2);
-        const filt2=ac.createBiquadFilter();filt2.type='lowpass';filt2.frequency.setValueAtTime(900,now+0.05);filt2.frequency.exponentialRampToValueAtTime(100,now+0.25);
-        const g2=ac.createGain();g2.gain.setValueAtTime(0.0,now);g2.gain.setValueAtTime(1.2,now+0.05);g2.gain.exponentialRampToValueAtTime(0.001,now+0.25);
-        noise2.connect(filt2);filt2.connect(g2);g2.connect(ac.destination);noise2.start();noise2.stop(now+0.25);
-        // Rising whine as missile accelerates
-        const osc=ac.createOscillator(),og=ac.createGain();
-        osc.type='sawtooth';osc.frequency.setValueAtTime(400,now+0.05);osc.frequency.exponentialRampToValueAtTime(2400,now+0.5);
-        og.gain.setValueAtTime(0.0,now);og.gain.setValueAtTime(0.3,now+0.06);og.gain.exponentialRampToValueAtTime(0.001,now+0.5);
-        osc.connect(og);og.connect(ac.destination);osc.start();osc.stop(now+0.5);
+        // AIM-120 AMRAAM missile launch — deep ejection thump + solid rocket motor ignition + sustainer whoosh
+        // 1. Ejection THUMP — the pneumatic kick launching the missile off the rail
+        const ejNoise=_makeNoise(ac,0.4);
+        const ejFilt=ac.createBiquadFilter();ejFilt.type='lowpass';ejFilt.frequency.setValueAtTime(320,now);ejFilt.frequency.exponentialRampToValueAtTime(40,now+0.18);
+        const ejG=ac.createGain();ejG.gain.setValueAtTime(2.2,now);ejG.gain.exponentialRampToValueAtTime(0.001,now+0.20);
+        ejNoise.connect(ejFilt);ejFilt.connect(ejG);ejG.connect(ac.destination);ejNoise.start();ejNoise.stop(now+0.22);
+        // Sub-bass body thud
+        const subOsc=ac.createOscillator(),subG=ac.createGain();
+        subOsc.type='sine';subOsc.frequency.setValueAtTime(55,now);subOsc.frequency.exponentialRampToValueAtTime(22,now+0.16);
+        subG.gain.setValueAtTime(1.4,now);subG.gain.exponentialRampToValueAtTime(0.001,now+0.18);
+        subOsc.connect(subG);subG.connect(ac.destination);subOsc.start();subOsc.stop(now+0.20);
+        // 2. Solid rocket motor ignition — harsh burst of broadband fire
+        const ignNoise=_makeNoise(ac,0.35);
+        const ignFilt=ac.createBiquadFilter();ignFilt.type='bandpass';ignFilt.frequency.setValueAtTime(1800,now+0.08);ignFilt.Q.value=0.4;
+        ignFilt.frequency.exponentialRampToValueAtTime(400,now+0.40);
+        const ignG=ac.createGain();ignG.gain.setValueAtTime(0.0,now);ignG.gain.linearRampToValueAtTime(1.6,now+0.10);ignG.gain.exponentialRampToValueAtTime(0.001,now+0.42);
+        ignNoise.connect(ignFilt);ignFilt.connect(ignG);ignG.connect(ac.destination);ignNoise.start();ignNoise.stop(now+0.45);
+        // 3. Sustainer whoosh — the missile accelerating away, doppler-style fade
+        const whooshNoise=_makeNoise(ac,0.45);
+        const whooshFilt=ac.createBiquadFilter();whooshFilt.type='bandpass';whooshFilt.frequency.setValueAtTime(600,now+0.12);whooshFilt.Q.value=0.55;
+        whooshFilt.frequency.exponentialRampToValueAtTime(220,now+0.85);
+        const whooshG=ac.createGain();whooshG.gain.setValueAtTime(0.0,now);whooshG.gain.linearRampToValueAtTime(0.9,now+0.15);whooshG.gain.exponentialRampToValueAtTime(0.001,now+0.9);
+        whooshNoise.connect(whooshFilt);whooshFilt.connect(whooshG);whooshG.connect(ac.destination);whooshNoise.start();whooshNoise.stop(now+0.95);
+        // 4. High-frequency rocket scream fading into distance
+        const screamOsc=ac.createOscillator(),screamG=ac.createGain();
+        screamOsc.type='sawtooth';screamOsc.frequency.setValueAtTime(1600,now+0.10);screamOsc.frequency.exponentialRampToValueAtTime(280,now+0.85);
+        screamG.gain.setValueAtTime(0.0,now);screamG.gain.setValueAtTime(0.22,now+0.12);screamG.gain.exponentialRampToValueAtTime(0.001,now+0.88);
+        screamOsc.connect(screamG);screamG.connect(ac.destination);screamOsc.start();screamOsc.stop(now+0.90);
       } else if(isAtlas){
         const noise=_makeNoise(ac,0.5);
         const filt=ac.createBiquadFilter();filt.type='lowpass';filt.frequency.setValueAtTime(300,now);filt.frequency.exponentialRampToValueAtTime(60,now+0.4);
@@ -2450,6 +2462,13 @@ TANKS.forEach(t=>{
   img.src=t.img;
   _tankImgs[t.id]=img;
 });
+// Map background image
+const _mapBgImg = new Image();
+_mapBgImg.src = 'https://i.ibb.co/Z12dVMfP/green-grass-with-green-background-1157106-11.jpg';
+// PNG tree image — the nice tree to replace drawn trees
+const _treePngImg = new Image();
+_treePngImg.src = 'https://i.ibb.co/XfQFtRqP/c-HJpdm-F0-ZS9sci9pb-WFn-ZXMvd2-Vic2l0-ZS8y-MDI0-LTEx-L3-Jhd3-Bpe-GVsb2-Zma-WNl-M190b3-Bfdmlld19wa-G90b19v-Z.png';
+_treePngImg.crossOrigin='anonymous';
 // backwards compat
 const _tankImg=_tankImgs.heavy;
 let _tankImgLoaded=false;
@@ -2662,10 +2681,7 @@ let _bankAngle=0; // jet banking tilt — visual only
 let _lastBodyAngle=0;
 
 const MAP_FEATURES=[
-  {type:'wall',x:0,y:0,w:MAP_W,h:24,color:'#5c4a2a'},
-  {type:'wall',x:0,y:MAP_H-24,w:MAP_W,h:24,color:'#5c4a2a'},
-  {type:'wall',x:0,y:0,w:24,h:MAP_H,color:'#5c4a2a'},
-  {type:'wall',x:MAP_W-24,y:0,w:24,h:MAP_H,color:'#5c4a2a'},
+  // No border walls — ocean surrounds the map edges (drawn separately)
   {type:'wall',x:500,y:900,w:200,h:20,color:'#8b6535'},{type:'wall',x:500,y:1100,w:200,h:20,color:'#8b6535'},
   {type:'wall',x:500,y:900,w:20,h:220,color:'#8b6535'},{type:'wall',x:680,y:900,w:20,h:220,color:'#8b6535'},
   {type:'wall',x:1800,y:600,w:220,h:20,color:'#8b6535'},{type:'wall',x:1800,y:820,w:220,h:20,color:'#8b6535'},
@@ -2705,13 +2721,13 @@ const MAP_FEATURES=[
   {type:'road',x:MAP_W/2-14,y:0,w:28,h:MAP_H,color:'#9a7840'},
 ];
 
-function collidesWithMap(x,y,r){
+function collidesWithMap(x,y,r,checkTrees=true){
   if(x<20||x>MAP_W-20||y<20||y>MAP_H-20)return true;
   if(ptInRock(x,y,r))return true;
   for(const f of MAP_FEATURES){
     if(f.type==='wall'){
       if(x-r<f.x+f.w&&x+r>f.x&&y-r<f.y+f.h&&y+r>f.y)return true;
-    } else if(f.type==='acacia'||f.type==='baobab'||f.type==='palm'){
+    } else if(checkTrees&&(f.type==='acacia'||f.type==='baobab'||f.type==='palm')){
       const dx=x-f.x,dy=y-f.y;
       if(dx*dx+dy*dy<(r+f.r*0.55)*(r+f.r*0.55))return true;
     }
@@ -2840,18 +2856,13 @@ function safeSpawnPos(){
 
 function drawMap(){
   _savannahAnim+=0.014;
-  // Darker, grittier battlefield ground
-  const groundGrad=ctx.createLinearGradient(0,0,MAP_W,MAP_H);
-  groundGrad.addColorStop(0,'#7a6428');groundGrad.addColorStop(0.2,'#6d5a22');
-  groundGrad.addColorStop(0.45,'#785e28');groundGrad.addColorStop(0.7,'#614e1c');
-  groundGrad.addColorStop(1,'#725828');
-  ctx.fillStyle=groundGrad;ctx.fillRect(0,0,MAP_W,MAP_H);
-  // Scorched earth patches — battlefield craters/burn marks
-  const patches=[{x:800,y:900,r:180},{x:2200,y:1400,r:150},{x:3600,y:2200,r:200},{x:1500,y:2800,r:160},{x:4000,y:1000,r:130},{x:600,y:2200,r:120}];
-  for(const p of patches){
-    const pg=ctx.createRadialGradient(p.x,p.y,10,p.x,p.y,p.r);
-    pg.addColorStop(0,'rgba(20,12,4,0.55)');pg.addColorStop(0.5,'rgba(40,24,8,0.25)');pg.addColorStop(1,'rgba(40,24,8,0)');
-    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=pg;ctx.fill();
+  // Grass background — tile the image across the full map for fast loading
+  if(_mapBgImg.complete&&_mapBgImg.naturalWidth>0){
+    const pat=ctx.createPattern(_mapBgImg,'repeat');
+    if(pat){ctx.fillStyle=pat;ctx.fillRect(0,0,MAP_W,MAP_H);}
+    else{ctx.fillStyle='#4a7c2f';ctx.fillRect(0,0,MAP_W,MAP_H);}
+  } else {
+    ctx.fillStyle='#4a7c2f';ctx.fillRect(0,0,MAP_W,MAP_H);
   }
 
   for(const h of WATER_HOLES){
@@ -2862,10 +2873,25 @@ function drawMap(){
     ctx.fillStyle='#5c4020';ctx.fill();
     ctx.beginPath();ctx.ellipse(h.cx,h.cy,h.rx,h.ry,0,0,Math.PI*2);
     const wg=ctx.createRadialGradient(h.cx-h.rx*0.3,h.cy-h.ry*0.3,4,h.cx,h.cy,h.rx);
-    wg.addColorStop(0,'#5aa8c0');wg.addColorStop(0.5,'#348090');wg.addColorStop(1,'#1c5568');
+    wg.addColorStop(0,'#3080c0');wg.addColorStop(0.3,'#1a5fa0');wg.addColorStop(0.7,'#0e3d78');wg.addColorStop(1,'#071e45');
     ctx.fillStyle=wg;ctx.fill();
-    ctx.save();ctx.globalAlpha=0.55;ctx.font='bold 11px Rajdhani,sans-serif';
-    ctx.fillStyle='#b0e8ff';ctx.textAlign='center';ctx.fillText('≋ WATER ≋',h.cx,h.cy+4);ctx.restore();
+    // Animated ocean waves
+    const waveT=Date.now()*0.0015;
+    ctx.save();
+    ctx.beginPath();ctx.ellipse(h.cx,h.cy,h.rx,h.ry,0,0,Math.PI*2);ctx.clip();
+    // Wave shimmer lines
+    ctx.globalAlpha=0.18+Math.sin(waveT)*0.06;
+    ctx.strokeStyle='#7bbfee';ctx.lineWidth=2.5;
+    for(let wi=-3;wi<=3;wi++){
+      const wy=h.cy+wi*(h.ry/3.5)+Math.sin(waveT*1.3+wi)*5;
+      ctx.beginPath();
+      ctx.moveTo(h.cx-h.rx*0.85,wy);
+      ctx.bezierCurveTo(h.cx-h.rx*0.4,wy-6+Math.sin(waveT*2+wi)*4,h.cx+h.rx*0.3,wy+4+Math.sin(waveT*1.7+wi+1)*3,h.cx+h.rx*0.85,wy+Math.sin(waveT+wi)*4);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.save();ctx.globalAlpha=0.52;ctx.font='bold 11px Rajdhani,sans-serif';
+    ctx.fillStyle='#aaddff';ctx.textAlign='center';ctx.fillText('≈ OCEAN ≈',h.cx,h.cy+4);ctx.restore();
   }
 
   for(const r of ROCK_CLUSTERS){
@@ -2878,6 +2904,49 @@ function drawMap(){
     ctx.fillStyle='#c8a878';ctx.textAlign='center';ctx.fillText('⛰',r.cx,r.cy+4);ctx.restore();
   }
 
+  // ── Ocean border — surrounds the entire map, no walls, just water ──
+  const oceanW = 200; // width of ocean band around edges
+  // Draw deep ocean fill around all 4 edges
+  const oceanGrad = ctx.createLinearGradient(0,0,oceanW,0);
+  oceanGrad.addColorStop(0,'#071e45');
+  oceanGrad.addColorStop(0.5,'#0e3d78');
+  oceanGrad.addColorStop(1,'rgba(14,61,120,0)');
+
+  // Left ocean
+  const ogL=ctx.createLinearGradient(0,0,oceanW,0);
+  ogL.addColorStop(0,'#071e45');ogL.addColorStop(0.6,'#1a5fa0');ogL.addColorStop(1,'rgba(26,95,160,0)');
+  ctx.fillStyle=ogL; ctx.fillRect(0,0,oceanW,MAP_H);
+  // Right ocean
+  const ogR=ctx.createLinearGradient(MAP_W,0,MAP_W-oceanW,0);
+  ogR.addColorStop(0,'#071e45');ogR.addColorStop(0.6,'#1a5fa0');ogR.addColorStop(1,'rgba(26,95,160,0)');
+  ctx.fillStyle=ogR; ctx.fillRect(MAP_W-oceanW,0,oceanW,MAP_H);
+  // Top ocean
+  const ogT=ctx.createLinearGradient(0,0,0,oceanW);
+  ogT.addColorStop(0,'#071e45');ogT.addColorStop(0.6,'#1a5fa0');ogT.addColorStop(1,'rgba(26,95,160,0)');
+  ctx.fillStyle=ogT; ctx.fillRect(0,0,MAP_W,oceanW);
+  // Bottom ocean
+  const ogB=ctx.createLinearGradient(0,MAP_H,0,MAP_H-oceanW);
+  ogB.addColorStop(0,'#071e45');ogB.addColorStop(0.6,'#1a5fa0');ogB.addColorStop(1,'rgba(26,95,160,0)');
+  ctx.fillStyle=ogB; ctx.fillRect(0,MAP_H-oceanW,MAP_W,oceanW);
+
+  // Animated wave lines on the ocean border
+  const wt=Date.now()*0.0012;
+  ctx.save();
+  ctx.globalAlpha=0.22;
+  ctx.strokeStyle='#7bbfee';ctx.lineWidth=2;
+  for(let wi=0;wi<5;wi++){
+    const offset=wi*36+Math.sin(wt+wi)*8;
+    // Top waves
+    ctx.beginPath();ctx.moveTo(0,offset);
+    for(let wx=0;wx<MAP_W;wx+=80){ctx.quadraticCurveTo(wx+40,offset+Math.sin(wt*1.3+wx*0.02+wi)*6,wx+80,offset);}
+    ctx.stroke();
+    // Bottom waves
+    ctx.beginPath();ctx.moveTo(0,MAP_H-offset);
+    for(let wx=0;wx<MAP_W;wx+=80){ctx.quadraticCurveTo(wx+40,MAP_H-offset-Math.sin(wt*1.3+wx*0.02+wi)*6,wx+80,MAP_H-offset);}
+    ctx.stroke();
+  }
+  ctx.restore();
+
   for(const f of MAP_FEATURES){
     if(f.type==='road'){
       ctx.save();ctx.globalAlpha=0.55;ctx.fillStyle='#9a7840';ctx.fillRect(f.x,f.y,f.w,f.h);
@@ -2886,30 +2955,34 @@ function drawMap(){
       ctx.fillStyle='#8b7045';ctx.fillRect(f.x,f.y,f.w,f.h);
       ctx.fillStyle='rgba(220,185,100,0.35)';ctx.fillRect(f.x,f.y,f.w,2);
       ctx.fillStyle='rgba(40,20,5,0.45)';ctx.fillRect(f.x,f.y+f.h-2,f.w,2);
-    } else if(f.type==='acacia'){
-      const sway=_animEnabled?Math.sin(_savannahAnim*0.9+f.x*0.011)*3:0;
+    } else if(f.type==='acacia'||f.type==='baobab'||f.type==='palm'){
+      // Draw PNG tree — big, sharp, nice. Falls back to colored circle if not loaded.
       const tx=f.x,ty=f.y,tr=f.r;
-      ctx.fillStyle='rgba(70,48,8,0.22)';ctx.beginPath();ctx.ellipse(tx+14,ty+tr*0.95,tr*0.9,tr*0.22,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#6a4a18';ctx.beginPath();ctx.moveTo(tx-5,ty+tr*0.75);ctx.lineTo(tx+5,ty+tr*0.75);ctx.lineTo(tx+3,ty-tr*0.05);ctx.lineTo(tx-3,ty-tr*0.05);ctx.closePath();ctx.fill();
-      ctx.fillStyle='#2a6208';ctx.beginPath();ctx.ellipse(tx+sway,ty-tr*0.15,tr*1.5,tr*0.5,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#42a018';ctx.beginPath();ctx.ellipse(tx+sway*0.5-2,ty-tr*0.42,tr*0.95,tr*0.28,0,0,Math.PI*2);ctx.fill();
-    } else if(f.type==='baobab'){
-      const tx=f.x,ty=f.y,tr=f.r;
-      ctx.fillStyle='rgba(60,40,5,0.28)';ctx.beginPath();ctx.ellipse(tx+18,ty+tr*1.05,tr*1.1,tr*0.3,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#7a5830';
-      ctx.beginPath();ctx.moveTo(tx-tr*0.35,ty+tr*0.95);ctx.bezierCurveTo(tx-tr*0.75,ty+tr*0.4,tx-tr*0.8,ty-tr*0.1,tx-tr*0.28,ty-tr*0.55);ctx.bezierCurveTo(tx,ty-tr*0.7,tx,ty-tr*0.7,tx+tr*0.28,ty-tr*0.55);ctx.bezierCurveTo(tx+tr*0.8,ty-tr*0.1,tx+tr*0.75,ty+tr*0.4,tx+tr*0.35,ty+tr*0.95);ctx.closePath();ctx.fill();
-      ctx.fillStyle='#267010';ctx.beginPath();ctx.arc(tx,ty-tr*0.6,tr*0.65,0,Math.PI*2);ctx.fill();
-    } else if(f.type==='palm'){
-      const tx=f.x,ty=f.y,tr=f.r;
-      const sway=_animEnabled?Math.sin(_savannahAnim*1.2+f.x*0.015)*5:0;
-      ctx.strokeStyle='#8a6a30';ctx.lineWidth=tr*0.22;ctx.lineCap='round';
-      ctx.beginPath();ctx.moveTo(tx,ty+tr);ctx.quadraticCurveTo(tx+sway*0.5,ty,tx+sway,ty-tr*0.8);ctx.stroke();
-      const frondColors=['#1a7828','#228034','#2a8840','#1e7030'];
-      for(let fi=0;fi<8;fi++){
-        const fa=(fi/8)*Math.PI*2;
-        const fx=tx+sway+Math.cos(fa)*tr*1.4,fy=ty-tr*0.8+Math.sin(fa)*tr*0.65;
-        ctx.strokeStyle=frondColors[fi%4];ctx.lineWidth=tr*0.18;ctx.lineCap='round';
-        ctx.beginPath();ctx.moveTo(tx+sway,ty-tr*0.8);ctx.quadraticCurveTo((tx+sway+fx)/2,(ty-tr*0.8+fy)/2-10,fx,fy);ctx.stroke();
+      // Gentle sway animation offset
+      const sway=_animEnabled?Math.sin(_savannahAnim*(f.type==='palm'?1.2:0.9)+f.x*0.011)*(f.type==='palm'?4:2):0;
+      // Shadow under tree
+      ctx.save();
+      ctx.globalAlpha=0.28;
+      ctx.fillStyle='rgba(0,0,0,0.5)';
+      ctx.beginPath();ctx.ellipse(tx+tr*0.3+10,ty+tr*0.85,tr*1.1,tr*0.28,0,0,Math.PI*2);ctx.fill();
+      ctx.restore();
+      if(_treePngImg.complete&&_treePngImg.naturalWidth>0){
+        // PNG tree: size scales with f.r, bigger for baobab
+        const scale = f.type==='baobab'?1.6 : f.type==='palm'?0.9 : 1.2;
+        const drawSize = tr * 2.8 * scale;
+        ctx.save();
+        ctx.translate(tx+sway, ty);
+        // Slight random rotation per tree (seeded by position)
+        const rot = ((tx*7+ty*13)%628)/100 - Math.PI; // -pi to pi spread
+        ctx.rotate(rot * 0.08); // just a tiny variation
+        ctx.drawImage(_treePngImg, -drawSize/2, -drawSize*0.75, drawSize, drawSize);
+        ctx.restore();
+      } else {
+        // Fallback canvas tree while PNG loads
+        ctx.fillStyle=f.type==='baobab'?'#267010':f.type==='palm'?'#1a7828':'#2a6208';
+        ctx.beginPath();ctx.arc(tx+sway,ty,tr*1.2,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=f.type==='baobab'?'#42b020':'#42a018';
+        ctx.beginPath();ctx.arc(tx+sway,ty-tr*0.3,tr*0.7,0,Math.PI*2);ctx.fill();
       }
     }
   }
@@ -2918,16 +2991,26 @@ function drawMap(){
 function drawTreads(){
   for(let i=_treads.length-1;i>=0;i--){
     const t=_treads[i];
-    t.life--;t.alpha=Math.max(0,t.alpha-0.00035);
+    t.life--;t.alpha=Math.max(0,t.alpha-(t.isJet?0.0022:0.00035));
     if(t.life<=0||t.alpha<=0){_treads.splice(i,1);continue;}
-    ctx.save();ctx.translate(t.x,t.y);ctx.rotate(t.rot);
-    ctx.globalAlpha=t.alpha;
+    ctx.save();
     if(t.isJet){
-      // Jet contrail — two thin exhaust streaks from engine positions
-      ctx.fillStyle='rgba(160,200,255,0.7)';
-      ctx.beginPath();ctx.ellipse(-28,8,5,2,0,0,Math.PI*2);ctx.fill();
-      ctx.beginPath();ctx.ellipse(-28,-8,5,2,0,0,Math.PI*2);ctx.fill();
+      // Contrail puff at stored nozzle world pos - frozen, never pivots
+      ctx.translate(t.nx,t.ny);
+      ctx.rotate(t.rot); // angle frozen at spawn
+      ctx.globalAlpha=t.alpha;
+      const age=1-(t.life/t.maxLife);
+      const puffR=2.5+age*3.5;
+      // Teardrop: round body, sharp pointed tip in flight direction
+      ctx.fillStyle='rgba(190,215,255,0.9)';
+      ctx.beginPath();
+      ctx.moveTo(puffR*1.3,0);
+      ctx.bezierCurveTo(puffR*0.5,puffR*0.85,-puffR*0.9,puffR*0.65,-puffR*1.5,0);
+      ctx.bezierCurveTo(-puffR*0.9,-puffR*0.65,puffR*0.5,-puffR*0.85,puffR*1.3,0);
+      ctx.closePath();ctx.fill();
     } else {
+      ctx.translate(t.x,t.y);ctx.rotate(t.rot);
+      ctx.globalAlpha=t.alpha;
       ctx.fillStyle='rgba(20,14,6,0.85)';
       ctx.fillRect(-22,-15,44,6);
       ctx.fillRect(-22,9,44,6);
@@ -2998,71 +3081,6 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP,tankId){
 
   ctx.save();ctx.rotate(bodyAngle);
 
-  // F-16 single-engine afterburner — flame at rear nozzle only, smoke stays tight at exit
-  if(tank.isJet&&_animEnabled&&_speed>0.1){
-    const speedRatio=Math.min(_speed/tank.speed,1);
-    const flameT=Date.now()*0.018;
-    // Nozzle exit point (rear center of jet body)
-    const nozzleX=-36;
-    ctx.save();
-
-    // ── Smoke — ONLY at nozzle exit, stays tight, not spreading ──
-    // At idle: thin grey wisp. At full throttle: dense black AB smoke
-    const smokeR=2.5+speedRatio*3.5;
-    const smokeAlpha=0.18+speedRatio*0.55;
-    ctx.globalAlpha=smokeAlpha;
-    ctx.fillStyle=speedRatio>0.7?'rgba(8,8,8,0.95)':'rgba(100,100,100,0.7)';
-    // Single puff right at nozzle — no trailing smear
-    ctx.beginPath();
-    ctx.ellipse(nozzleX-smokeR*0.6,0,smokeR,smokeR*0.55,0,0,Math.PI*2);
-    ctx.fill();
-
-    // ── Afterburner flame — grows dramatically with throttle ──
-    const flameLen=speedRatio>0.55
-      ? 12+speedRatio*32+Math.sin(flameT)*4+Math.sin(flameT*2.7)*2  // AB engaged: long wild flame
-      : 4+speedRatio*8+Math.sin(flameT)*1.5;                         // idle: short blue stub
-    const flameW=speedRatio>0.55
-      ? 4+speedRatio*4+Math.sin(flameT*1.8)*1.5
-      : 2+speedRatio*2;
-
-    // Outer glow
-    ctx.globalAlpha=speedRatio>0.55?0.45:0.2;
-    const glowG=ctx.createRadialGradient(nozzleX,0,0,nozzleX,0,flameLen*0.9);
-    if(speedRatio>0.7){
-      glowG.addColorStop(0,'rgba(255,180,0,0.9)');
-      glowG.addColorStop(0.5,'rgba(255,80,0,0.5)');
-      glowG.addColorStop(1,'rgba(255,40,0,0)');
-    } else {
-      glowG.addColorStop(0,'rgba(120,160,255,0.7)');
-      glowG.addColorStop(1,'rgba(80,100,255,0)');
-    }
-    ctx.fillStyle=glowG;
-    ctx.beginPath();ctx.ellipse(nozzleX-flameLen*0.5,0,flameLen*0.8,flameW*1.8,0,0,Math.PI*2);ctx.fill();
-
-    // Mid flame
-    ctx.globalAlpha=speedRatio>0.55?0.85:0.6;
-    const midG=ctx.createLinearGradient(nozzleX,0,nozzleX-flameLen,0);
-    if(speedRatio>0.7){
-      midG.addColorStop(0,'rgba(255,255,200,1)');
-      midG.addColorStop(0.2,'rgba(255,200,50,0.95)');
-      midG.addColorStop(0.6,'rgba(255,80,10,0.75)');
-      midG.addColorStop(1,'rgba(200,30,0,0)');
-    } else {
-      midG.addColorStop(0,'rgba(200,220,255,0.9)');
-      midG.addColorStop(0.5,'rgba(100,140,255,0.6)');
-      midG.addColorStop(1,'rgba(60,80,200,0)');
-    }
-    ctx.fillStyle=midG;
-    ctx.beginPath();ctx.ellipse(nozzleX-flameLen*0.45,0,flameLen*0.75,flameW+Math.sin(flameT*2.2)*0.8,0,0,Math.PI*2);ctx.fill();
-
-    // White-hot core at nozzle
-    ctx.globalAlpha=0.95;
-    ctx.fillStyle='rgba(255,255,255,0.98)';
-    ctx.beginPath();ctx.ellipse(nozzleX-1.5,0,3.5,2,0,0,Math.PI*2);ctx.fill();
-
-    ctx.restore();
-  }
-
   const sz=tank.isJet?82:76;
   if(img&&img.complete&&img.naturalWidth>0){
     const nw=img.naturalWidth,nh=img.naturalHeight;
@@ -3070,21 +3088,72 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP,tankId){
     const dw=nw*scale,dh=nh*scale;
     if(tank.id==='heavy'){ctx.scale(-1,1);ctx.drawImage(img,-dw/2,-dh/2,dw,dh);ctx.scale(-1,1);}
     else if(tank.id==='f22'){
-      // Apply banking tilt — jet leans into turns
+      // Subtle pivot tilt — small lean into turns, no scale distortion, PNG stays clean
       const bankTilt=isMe?_bankAngle:0;
       ctx.rotate(-Math.PI/2);
-      if(Math.abs(bankTilt)>0.01){ctx.scale(1,1+Math.abs(bankTilt)*0.18);ctx.rotate(bankTilt);}
+      if(Math.abs(bankTilt)>0.01){ctx.rotate(bankTilt*0.28);} // gentle lean only
       ctx.scale(1,-1);
       ctx.drawImage(img,-dw/2,-dh/2,dw,dh);
       ctx.scale(1,-1);
-      if(Math.abs(bankTilt)>0.01){ctx.rotate(-bankTilt);ctx.scale(1,1/(1+Math.abs(bankTilt)*0.18));}
+      if(Math.abs(bankTilt)>0.01){ctx.rotate(-bankTilt*0.28);}
       ctx.rotate(Math.PI/2);
     }
     else{ctx.drawImage(img,-dw/2,-dh/2,dw,dh);}
   } else {
     ctx.fillStyle=color;ctx.fillRect(-22,-16,44,32);
   }
+
   ctx.restore();
+
+  // F-16 afterburner flame — drawn after body restore, in bodyAngle space only (no banking tilt)
+  // Tip deflects into the turn so flame visually shows which way the jet is heading
+  if(tank.isJet&&_animEnabled&&_speed>0.1){
+    const speedRatio=Math.min(_speed/tank.speed,1);
+    const flameT=Date.now()*0.022;
+    const nozzleX=-36;
+    if(speedRatio>0.50){
+      const abRatio=(speedRatio-0.50)/0.50;
+      // Tip drifts in turn direction (bank left = tip drifts left)
+      const tipDeflect=isMe?(_bankAngle*16):0;
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.rotate(bodyAngle); // bodyAngle only — no banking transform
+
+      const flameLen=8+abRatio*14+Math.sin(flameT)*1.2;
+      const flameW=2.2+abRatio*2.0+Math.sin(flameT*1.9)*0.4;
+      const tipX=nozzleX-flameLen;
+      const tipY=tipDeflect;
+
+      // Core flame — sharp teardrop, tip curves into the turn
+      ctx.globalAlpha=0.95;
+      const coreG=ctx.createLinearGradient(nozzleX,0,tipX,tipY);
+      coreG.addColorStop(0,'rgba(255,255,255,1)');
+      coreG.addColorStop(0.18,'rgba(255,240,160,1)');
+      coreG.addColorStop(0.55,'rgba(255,120,10,0.75)');
+      coreG.addColorStop(1,'rgba(180,40,0,0)');
+      ctx.fillStyle=coreG;
+      ctx.beginPath();
+      ctx.moveTo(nozzleX,0);
+      ctx.bezierCurveTo(nozzleX-flameLen*0.3,flameW,tipX+flameLen*0.28,tipY+flameW*0.3,tipX,tipY);
+      ctx.bezierCurveTo(tipX+flameLen*0.28,tipY-flameW*0.3,nozzleX-flameLen*0.3,-flameW,nozzleX,0);
+      ctx.fill();
+
+      // Outer warm halo
+      ctx.globalAlpha=0.25+abRatio*0.15;
+      const haloG=ctx.createLinearGradient(nozzleX,0,tipX,tipY);
+      haloG.addColorStop(0,'rgba(255,160,0,0.8)');
+      haloG.addColorStop(0.6,'rgba(255,60,0,0.3)');
+      haloG.addColorStop(1,'rgba(200,20,0,0)');
+      ctx.fillStyle=haloG;
+      ctx.beginPath();
+      ctx.moveTo(nozzleX,0);
+      ctx.bezierCurveTo(nozzleX-flameLen*0.3,flameW*1.7,tipX+flameLen*0.3,tipY+flameW*0.55,tipX,tipY);
+      ctx.bezierCurveTo(tipX+flameLen*0.3,tipY-flameW*0.55,nozzleX-flameLen*0.3,-flameW*1.7,nozzleX,0);
+      ctx.fill();
+
+      ctx.restore();
+    }
+  }
 
   // Muzzle flash — tanks only, jets fire missiles differently
   if(!tank.isJet&&isMe&&firing&&_animEnabled){
@@ -3136,7 +3205,7 @@ function drawBullets(dt){
     b.life=(b.life||0)+1;
     const maxLife=b.tankId==='atlas'?120:b.tankId==='f22'?150:80;
     if(b.life>maxLife||b.x<0||b.x>MAP_W||b.y<0||b.y>MAP_H)return false;
-    if(collidesWithMap(b.x,b.y,4))return false;
+    if(collidesWithMap(b.x,b.y,4,false))return false; // bullets pass through trees
     if(gameState?.players){
       for(const[uid,p] of Object.entries(gameState.players)){
         if(!p||!p.alive||uid===b.shooterUid)continue;
@@ -3508,17 +3577,26 @@ function handleMovement(me,dt){
     while(diff<-Math.PI)diff+=Math.PI*2;
     const baseTurnRate=_selectedTank?.turnRate||MOVE_TURN_RATE;
     const isJetTurn=_selectedTank?.isJet;
-    // Jets: turn rate scales with speed — faster = wider turn radius (real physics)
-    // At min speed: tight but not instant. At max: wide sweeping arc. No spin on spot.
-    const speedRatioTurn=isJetTurn?Math.max(0.25,Math.min(_speed/(_selectedTank?.speed||1),1)):1;
-    const jetTurnScale=isJetTurn?(0.55+speedRatioTurn*0.45):1; // slower turn at higher speed
-    const effectiveTurnRate=baseTurnRate*jetTurnScale;
-    _bodyAngleRad+=diff*effectiveTurnRate*dt;
+    let effectiveTurnRate;
+    if(isJetTurn){
+      // F-16 aircraft turning: turn rate is limited and smooth, not instant like a tank
+      // Real aircraft: gradual bank-and-turn, can't spin on the spot
+      // Turn rate is a fixed gentle rate — pilot smoothly rolls into a turn
+      const jetMaxTurn=0.028; // ~1.6 deg/frame max — realistic coordinated turn
+      const stepSize=Math.min(Math.abs(diff),jetMaxTurn*dt)*Math.sign(diff);
+      _bodyAngleRad+=stepSize;
+    } else {
+      effectiveTurnRate=baseTurnRate;
+      _bodyAngleRad+=diff*effectiveTurnRate*dt;
+    }
     const alignment=Math.abs(diff);
     const accel=_selectedTank?.accel||MOVE_ACCEL;
     const maxSpd=_selectedTank?.speed||MOVE_MAX_SPEED;
     const fric=_selectedTank?.friction||MOVE_FRICTION;
-    if(alignment<Math.PI*0.35){
+    if(isJetTurn){
+      // Jets always accelerate forward — they don't brake to turn like tanks
+      _speed=Math.min(_speed+accel*dt,maxSpd);
+    } else if(alignment<Math.PI*0.35){
       _speed=Math.min(_speed+accel*dt,maxSpd);
     } else {
       _speed*=Math.pow(fric,dt);
@@ -3546,9 +3624,11 @@ function handleMovement(me,dt){
   // Update engine sound pitch/volume with speed
   updateEngineSound(Math.abs(_speed),_selectedTank?.speed||MOVE_MAX_SPEED,_selectedTank?.id||'heavy');
 
-  // Water penalty — jets fly over water, tanks slow down
+  // Water/ocean penalty — jets fly over freely, tanks slow down
+  const oceanBorder=200;
+  const inOceanBorder=!isJet&&(me.x<oceanBorder||me.x>MAP_W-oceanBorder||me.y<oceanBorder||me.y>MAP_H-oceanBorder);
   const inWater=!isJet&&ptInWater(me.x,me.y);
-  const speedMult=inWater?0.45:1.0;
+  const speedMult=(inWater||inOceanBorder)?0.30:1.0; // ocean border is even slower — deep water
   const moveX=Math.cos(_bodyAngleRad)*_speed*speedMult;
   const moveY=Math.sin(_bodyAngleRad)*_speed*speedMult;
 
@@ -3586,7 +3666,16 @@ function handleMovement(me,dt){
   _treadDist+=Math.abs(_speed)*speedMult;
   const treadInterval=isJet?8:18; // jets leave more frequent contrails
   if(_treadDist>treadInterval){
-    _treads.push({x:me.x,y:me.y,rot:_bodyAngleRad,alpha:isJet?0.35:0.22,life:isJet?300:600,isJet:!!isJet});
+    if(isJet){
+      // Store actual nozzle world position — offset behind jet by nozzle distance
+      const nozzleOffset=36;
+      const nx=me.x+Math.cos(_bodyAngleRad+Math.PI)*nozzleOffset;
+      const ny=me.y+Math.sin(_bodyAngleRad+Math.PI)*nozzleOffset;
+      const maxLife=220;
+      _treads.push({nx,ny,x:me.x,y:me.y,rot:_bodyAngleRad,alpha:0.42,life:maxLife,maxLife,isJet:true});
+    } else {
+      _treads.push({x:me.x,y:me.y,rot:_bodyAngleRad,alpha:0.22,life:600,maxLife:600,isJet:false});
+    }
     _treadDist=0;
     if(_treads.length>500)_treads.shift();
   }
