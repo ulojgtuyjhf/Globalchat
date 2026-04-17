@@ -2858,11 +2858,12 @@ function gameFrame(ts){
   camX=Math.max(0,Math.min(MAP_W-canvas.width,camX));
   camY=Math.max(0,Math.min(MAP_H-canvas.height,camY));
   ctx.save();ctx.translate(-camX,-camY);
-  drawMap();
+  drawMap();        // ground, water, rocks, ocean, roads, walls, tree shadows
   drawTreads();
   drawBullets(dt);
   drawRemoteBullets(dt);
-  drawPlayers();
+  drawPlayers();    // tanks drawn here — UNDER trees
+  drawTrees();      // trees drawn last — cover tanks underneath them
   ctx.restore();
   updateParticles();
   drawMinimap();
@@ -2926,7 +2927,12 @@ function safeSpawnPos(){
 
 function drawMap(){
   _savannahAnim+=0.014;
-  // Grass background — tile the image across the full map for fast loading
+  drawMapBase();
+}
+
+// ── Pass 1: everything EXCEPT trees (drawn before players) ──
+function drawMapBase(){
+  // Grass background
   if(_mapBgImg.complete&&_mapBgImg.naturalWidth>0){
     const pat=ctx.createPattern(_mapBgImg,'repeat');
     if(pat){ctx.fillStyle=pat;ctx.fillRect(0,0,MAP_W,MAP_H);}
@@ -2945,11 +2951,9 @@ function drawMap(){
     const wg=ctx.createRadialGradient(h.cx-h.rx*0.3,h.cy-h.ry*0.3,4,h.cx,h.cy,h.rx);
     wg.addColorStop(0,'#3080c0');wg.addColorStop(0.3,'#1a5fa0');wg.addColorStop(0.7,'#0e3d78');wg.addColorStop(1,'#071e45');
     ctx.fillStyle=wg;ctx.fill();
-    // Animated ocean waves
     const waveT=Date.now()*0.0015;
     ctx.save();
     ctx.beginPath();ctx.ellipse(h.cx,h.cy,h.rx,h.ry,0,0,Math.PI*2);ctx.clip();
-    // Wave shimmer lines
     ctx.globalAlpha=0.18+Math.sin(waveT)*0.06;
     ctx.strokeStyle='#7bbfee';ctx.lineWidth=2.5;
     for(let wi=-3;wi<=3;wi++){
@@ -2974,49 +2978,34 @@ function drawMap(){
     ctx.fillStyle='#c8a878';ctx.textAlign='center';ctx.fillText('⛰',r.cx,r.cy+4);ctx.restore();
   }
 
-  // ── Ocean border — surrounds the entire map, no walls, just water ──
-  const oceanW = 200; // width of ocean band around edges
-  // Draw deep ocean fill around all 4 edges
-  const oceanGrad = ctx.createLinearGradient(0,0,oceanW,0);
-  oceanGrad.addColorStop(0,'#071e45');
-  oceanGrad.addColorStop(0.5,'#0e3d78');
-  oceanGrad.addColorStop(1,'rgba(14,61,120,0)');
-
-  // Left ocean
+  const oceanW=200;
   const ogL=ctx.createLinearGradient(0,0,oceanW,0);
   ogL.addColorStop(0,'#071e45');ogL.addColorStop(0.6,'#1a5fa0');ogL.addColorStop(1,'rgba(26,95,160,0)');
-  ctx.fillStyle=ogL; ctx.fillRect(0,0,oceanW,MAP_H);
-  // Right ocean
+  ctx.fillStyle=ogL;ctx.fillRect(0,0,oceanW,MAP_H);
   const ogR=ctx.createLinearGradient(MAP_W,0,MAP_W-oceanW,0);
   ogR.addColorStop(0,'#071e45');ogR.addColorStop(0.6,'#1a5fa0');ogR.addColorStop(1,'rgba(26,95,160,0)');
-  ctx.fillStyle=ogR; ctx.fillRect(MAP_W-oceanW,0,oceanW,MAP_H);
-  // Top ocean
+  ctx.fillStyle=ogR;ctx.fillRect(MAP_W-oceanW,0,oceanW,MAP_H);
   const ogT=ctx.createLinearGradient(0,0,0,oceanW);
   ogT.addColorStop(0,'#071e45');ogT.addColorStop(0.6,'#1a5fa0');ogT.addColorStop(1,'rgba(26,95,160,0)');
-  ctx.fillStyle=ogT; ctx.fillRect(0,0,MAP_W,oceanW);
-  // Bottom ocean
+  ctx.fillStyle=ogT;ctx.fillRect(0,0,MAP_W,oceanW);
   const ogB=ctx.createLinearGradient(0,MAP_H,0,MAP_H-oceanW);
   ogB.addColorStop(0,'#071e45');ogB.addColorStop(0.6,'#1a5fa0');ogB.addColorStop(1,'rgba(26,95,160,0)');
-  ctx.fillStyle=ogB; ctx.fillRect(0,MAP_H-oceanW,MAP_W,oceanW);
+  ctx.fillStyle=ogB;ctx.fillRect(0,MAP_H-oceanW,MAP_W,oceanW);
 
-  // Animated wave lines on the ocean border
   const wt=Date.now()*0.0012;
-  ctx.save();
-  ctx.globalAlpha=0.22;
-  ctx.strokeStyle='#7bbfee';ctx.lineWidth=2;
+  ctx.save();ctx.globalAlpha=0.22;ctx.strokeStyle='#7bbfee';ctx.lineWidth=2;
   for(let wi=0;wi<5;wi++){
     const offset=wi*36+Math.sin(wt+wi)*8;
-    // Top waves
     ctx.beginPath();ctx.moveTo(0,offset);
     for(let wx=0;wx<MAP_W;wx+=80){ctx.quadraticCurveTo(wx+40,offset+Math.sin(wt*1.3+wx*0.02+wi)*6,wx+80,offset);}
     ctx.stroke();
-    // Bottom waves
     ctx.beginPath();ctx.moveTo(0,MAP_H-offset);
     for(let wx=0;wx<MAP_W;wx+=80){ctx.quadraticCurveTo(wx+40,MAP_H-offset-Math.sin(wt*1.3+wx*0.02+wi)*6,wx+80,MAP_H-offset);}
     ctx.stroke();
   }
   ctx.restore();
 
+  // Roads and walls only — NO trees here
   for(const f of MAP_FEATURES){
     if(f.type==='road'){
       ctx.save();ctx.globalAlpha=0.55;ctx.fillStyle='#9a7840';ctx.fillRect(f.x,f.y,f.w,f.h);
@@ -3025,35 +3014,40 @@ function drawMap(){
       ctx.fillStyle='#8b7045';ctx.fillRect(f.x,f.y,f.w,f.h);
       ctx.fillStyle='rgba(220,185,100,0.35)';ctx.fillRect(f.x,f.y,f.w,2);
       ctx.fillStyle='rgba(40,20,5,0.45)';ctx.fillRect(f.x,f.y+f.h-2,f.w,2);
-    } else if(f.type==='acacia'||f.type==='baobab'||f.type==='palm'){
-      // Draw PNG tree — big, sharp, nice. Falls back to colored circle if not loaded.
+    }
+  }
+
+  // Tree SHADOWS only — drawn before players so shadow is under the tank too
+  for(const f of MAP_FEATURES){
+    if(f.type==='acacia'||f.type==='baobab'||f.type==='palm'){
       const tx=f.x,ty=f.y,tr=f.r;
-      // Gentle sway animation offset
-      const sway=_animEnabled?Math.sin(_savannahAnim*(f.type==='palm'?1.2:0.9)+f.x*0.011)*(f.type==='palm'?4:2):0;
-      // Shadow under tree
-      ctx.save();
-      ctx.globalAlpha=0.28;
-      ctx.fillStyle='rgba(0,0,0,0.5)';
+      ctx.save();ctx.globalAlpha=0.28;ctx.fillStyle='rgba(0,0,0,0.5)';
       ctx.beginPath();ctx.ellipse(tx+tr*0.3+10,ty+tr*0.85,tr*1.1,tr*0.28,0,0,Math.PI*2);ctx.fill();
       ctx.restore();
-      if(_treePngImg.complete&&_treePngImg.naturalWidth>0){
-        // PNG tree: size scales with f.r, bigger for baobab
-        const scale = f.type==='baobab'?1.6 : f.type==='palm'?0.9 : 1.2;
-        const drawSize = tr * 2.8 * scale;
-        ctx.save();
-        ctx.translate(tx+sway, ty);
-        // Slight random rotation per tree (seeded by position)
-        const rot = ((tx*7+ty*13)%628)/100 - Math.PI; // -pi to pi spread
-        ctx.rotate(rot * 0.08); // just a tiny variation
-        ctx.drawImage(_treePngImg, -drawSize/2, -drawSize*0.75, drawSize, drawSize);
-        ctx.restore();
-      } else {
-        // Fallback canvas tree while PNG loads
-        ctx.fillStyle=f.type==='baobab'?'#267010':f.type==='palm'?'#1a7828':'#2a6208';
-        ctx.beginPath();ctx.arc(tx+sway,ty,tr*1.2,0,Math.PI*2);ctx.fill();
-        ctx.fillStyle=f.type==='baobab'?'#42b020':'#42a018';
-        ctx.beginPath();ctx.arc(tx+sway,ty-tr*0.3,tr*0.7,0,Math.PI*2);ctx.fill();
-      }
+    }
+  }
+}
+
+// ── Pass 2: trees drawn AFTER players so tanks hide underneath ──
+function drawTrees(){
+  for(const f of MAP_FEATURES){
+    if(f.type!=='acacia'&&f.type!=='baobab'&&f.type!=='palm')continue;
+    const tx=f.x,ty=f.y,tr=f.r;
+    const sway=_animEnabled?Math.sin(_savannahAnim*(f.type==='palm'?1.2:0.9)+f.x*0.011)*(f.type==='palm'?4:2):0;
+    if(_treePngImg.complete&&_treePngImg.naturalWidth>0){
+      const scale=f.type==='baobab'?1.6:f.type==='palm'?0.9:1.2;
+      const drawSize=tr*2.8*scale;
+      ctx.save();
+      ctx.translate(tx+sway,ty);
+      const rot=((tx*7+ty*13)%628)/100-Math.PI;
+      ctx.rotate(rot*0.08);
+      ctx.drawImage(_treePngImg,-drawSize/2,-drawSize*0.75,drawSize,drawSize);
+      ctx.restore();
+    } else {
+      ctx.fillStyle=f.type==='baobab'?'#267010':f.type==='palm'?'#1a7828':'#2a6208';
+      ctx.beginPath();ctx.arc(tx+sway,ty,tr*1.2,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=f.type==='baobab'?'#42b020':'#42a018';
+      ctx.beginPath();ctx.arc(tx+sway,ty-tr*0.3,tr*0.7,0,Math.PI*2);ctx.fill();
     }
   }
 }
