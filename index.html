@@ -689,8 +689,9 @@ body.dark-theme .ph-ico.loss{background:rgba(255,255,255,0.08);}
 .ic-msgs{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:4px;max-height:140px;}
 @media(max-width:600px){.ic-msgs{max-height:90px;}}
 .ic-msgs::-webkit-scrollbar{width:2px;}
-.ic-msg{font-size:11px;line-height:1.4;word-break:break-word;}
-.ic-msg .ic-name{font-weight:700;margin-right:4px;}
+.ic-msg{font-size:11px;line-height:1.4;word-break:break-word;display:flex;align-items:flex-start;gap:5px;}
+.ic-avatar{width:18px;height:18px;border-radius:50%;object-fit:cover;flex-shrink:0;margin-top:1px;border:1px solid rgba(255,255,255,0.15);}
+.ic-msg .ic-name{font-weight:700;margin-right:4px;flex-shrink:0;}
 .ic-msg .ic-text{color:rgba(240,240,255,.55);}
 .ic-sys{font-size:10px;color:rgba(255,255,255,.3);text-align:center;font-style:italic;}
 .ic-input-wrap{display:flex;border-top:1px solid rgba(255,255,255,.08);pointer-events:auto;}
@@ -2740,7 +2741,7 @@ function initGame(roomId,roomData){
   miniCanvas=document.getElementById('minimapCanvas');
   canvas.width=window.innerWidth;
   canvas.height=window.innerHeight;
-  miniCanvas.width=160;miniCanvas.height=120;
+  miniCanvas.width=180;miniCanvas.height=138;
   ctx=canvas.getContext('2d');
   miniCtx=miniCanvas.getContext('2d');
   myUid=CU.uid;gameState=roomData;currentRoomId=roomId;
@@ -2760,6 +2761,73 @@ function initGame(roomId,roomData){
   },BULLET_REGEN_MS);
   // Start engine sound after brief delay (allow AudioContext unlock)
   setTimeout(()=>startEngineSound(_selectedTank?.id||'heavy'),600);
+  // Style the attack button uniquely per tank
+  updateFireBtn(_selectedTank?.id||'heavy');
+}
+
+// ── Unique ATTACK button per tank model ──
+function updateFireBtn(tankId){
+  const fb=document.getElementById('fireBtn');
+  const lbl=document.getElementById('bulletsLeftLabel');
+  if(!fb)return;
+  if(tankId==='f22'){
+    // F-16: missile launch button — blue/electric, missile icon
+    fb.style.background='rgba(20,80,200,0.18)';
+    fb.style.border='2px solid rgba(80,160,255,0.55)';
+    fb.style.boxShadow='0 0 18px rgba(60,140,255,0.25)';
+    fb.innerHTML=`<svg viewBox="0 0 48 24" width="44" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Missile body -->
+      <rect x="6" y="10" width="28" height="4" rx="2" fill="rgba(180,220,255,0.9)"/>
+      <!-- Nose cone -->
+      <polygon points="34,12 42,12 34,10" fill="rgba(220,240,255,0.95)"/>
+      <polygon points="34,12 42,12 34,14" fill="rgba(200,230,255,0.8)"/>
+      <!-- Tail fins -->
+      <polygon points="6,12 2,8 6,10" fill="rgba(150,200,255,0.7)"/>
+      <polygon points="6,12 2,16 6,14" fill="rgba(150,200,255,0.7)"/>
+      <!-- Rocket flame -->
+      <ellipse cx="4" cy="12" rx="4" ry="2" fill="rgba(255,180,30,0.85)"/>
+      <ellipse cx="3" cy="12" rx="2" ry="1" fill="rgba(255,240,180,0.95)"/>
+      <!-- Wing strakes -->
+      <polygon points="18,10 22,6 24,10" fill="rgba(160,210,255,0.6)"/>
+      <polygon points="18,14 22,18 24,14" fill="rgba(160,210,255,0.6)"/>
+    </svg>`;
+    if(lbl){lbl.style.color='rgba(100,180,255,0.8)';lbl.textContent='missiles';}
+  } else if(tankId==='atlas'){
+    // Atlas RT: heavy cannon shell — red/orange, thick shell icon
+    fb.style.background='rgba(180,40,0,0.15)';
+    fb.style.border='2px solid rgba(255,100,40,0.5)';
+    fb.style.boxShadow='0 0 18px rgba(255,80,0,0.2)';
+    fb.innerHTML=`<svg viewBox="0 0 48 48" width="38" height="38" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Cannon barrel -->
+      <rect x="10" y="20" width="26" height="8" rx="4" fill="rgba(200,160,80,0.9)"/>
+      <!-- Shell tip -->
+      <ellipse cx="38" cy="24" rx="4" ry="4" fill="rgba(255,120,40,0.95)"/>
+      <!-- Casing ring -->
+      <rect x="10" y="21" width="4" height="6" rx="2" fill="rgba(180,120,40,0.8)"/>
+      <!-- Impact stars -->
+      <circle cx="6" cy="24" r="3" fill="rgba(255,160,40,0.6)"/>
+      <line x1="3" y1="24" x2="9" y2="24" stroke="rgba(255,200,80,0.7)" stroke-width="1.5"/>
+      <line x1="6" y1="21" x2="6" y2="27" stroke="rgba(255,200,80,0.7)" stroke-width="1.5"/>
+      <line x1="4" y1="22" x2="8" y2="26" stroke="rgba(255,200,80,0.5)" stroke-width="1"/>
+      <line x1="8" y1="22" x2="4" y2="26" stroke="rgba(255,200,80,0.5)" stroke-width="1"/>
+    </svg>`;
+    if(lbl){lbl.style.color='rgba(255,130,50,0.8)';lbl.textContent='shells';}
+  } else {
+    // SWITTI (heavy): standard tank shell — white/clean, target/crosshair icon
+    fb.style.background='rgba(255,255,255,0.08)';
+    fb.style.border='2px solid rgba(255,255,255,0.18)';
+    fb.style.boxShadow='none';
+    fb.innerHTML=`<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <circle cx="12" cy="12" r="4"/>
+      <line x1="12" y1="2" x2="12" y2="6"/>
+      <line x1="12" y1="18" x2="12" y2="22"/>
+      <line x1="2" y1="12" x2="6" y2="12"/>
+      <line x1="18" y1="12" x2="22" y2="12"/>
+      <circle cx="12" cy="12" r="1.5" fill="rgba(255,255,255,0.85)" stroke="none"/>
+    </svg>`;
+    if(lbl){lbl.style.color='rgba(180,180,180,0.7)';lbl.textContent='rounds';}
+  }
 }
 
 function initBulletIcons(){
@@ -2770,7 +2838,9 @@ function initBulletIcons(){
 function updateBulletIcons(){
   const icons=document.querySelectorAll('.bullet-icon');
   icons.forEach((ic,i)=>ic.classList.toggle('spent',i>=myBullets));
-  document.getElementById('bulletsLeftLabel').textContent=myBullets+' rounds';
+  const tankId=_selectedTank?.id||'heavy';
+  const suffix=tankId==='f22'?'missiles':tankId==='atlas'?'shells':'rounds';
+  document.getElementById('bulletsLeftLabel').textContent=myBullets+' '+suffix;
 }
 
 let _lastFrameTime=0;
@@ -3516,15 +3586,79 @@ function updateSelfHUD(me){
 function drawMinimap(){
   const mW=miniCanvas.width,mH=miniCanvas.height;
   const sx=mW/MAP_W,sy=mH/MAP_H;
-  miniCtx.fillStyle='#5a4a1c';miniCtx.fillRect(0,0,mW,mH);
+
+  // ── Grass background — match the real map green ──
+  miniCtx.fillStyle='#4a7c2f';
+  miniCtx.fillRect(0,0,mW,mH);
+
+  // ── Ocean borders (all 4 edges, like the real map) ──
+  const oceanW=Math.round(200*sx);
+  const oceanW2=Math.round(200*sy);
+  // Left
+  const ogL=miniCtx.createLinearGradient(0,0,oceanW,0);
+  ogL.addColorStop(0,'#071e45');ogL.addColorStop(0.7,'#1a5fa0');ogL.addColorStop(1,'rgba(26,95,160,0)');
+  miniCtx.fillStyle=ogL;miniCtx.fillRect(0,0,oceanW,mH);
+  // Right
+  const ogR=miniCtx.createLinearGradient(mW,0,mW-oceanW,0);
+  ogR.addColorStop(0,'#071e45');ogR.addColorStop(0.7,'#1a5fa0');ogR.addColorStop(1,'rgba(26,95,160,0)');
+  miniCtx.fillStyle=ogR;miniCtx.fillRect(mW-oceanW,0,oceanW,mH);
+  // Top
+  const ogT=miniCtx.createLinearGradient(0,0,0,oceanW2);
+  ogT.addColorStop(0,'#071e45');ogT.addColorStop(0.7,'#1a5fa0');ogT.addColorStop(1,'rgba(26,95,160,0)');
+  miniCtx.fillStyle=ogT;miniCtx.fillRect(0,0,mW,oceanW2);
+  // Bottom
+  const ogB=miniCtx.createLinearGradient(0,mH,0,mH-oceanW2);
+  ogB.addColorStop(0,'#071e45');ogB.addColorStop(0.7,'#1a5fa0');ogB.addColorStop(1,'rgba(26,95,160,0)');
+  miniCtx.fillStyle=ogB;miniCtx.fillRect(0,mH-oceanW2,mW,oceanW2);
+
+  // ── Roads ──
+  for(const f of MAP_FEATURES){
+    if(f.type==='road'){
+      miniCtx.save();miniCtx.globalAlpha=0.55;
+      miniCtx.fillStyle='#9a7840';
+      miniCtx.fillRect(f.x*sx,f.y*sy,f.w*sx,f.h*sy);
+      miniCtx.restore();
+    }
+  }
+
+  // ── Walls ──
+  for(const f of MAP_FEATURES){
+    if(f.type==='wall'){
+      miniCtx.fillStyle='#8b7045';
+      miniCtx.fillRect(f.x*sx,f.y*sy,f.w*sx,f.h*sy);
+    }
+  }
+
+  // ── Water holes — deep blue with shore ring ──
   for(const h of WATER_HOLES){
-    miniCtx.fillStyle='rgba(46,110,136,0.85)';
+    // Shore
+    miniCtx.fillStyle='rgba(90,60,20,0.55)';
+    miniCtx.beginPath();miniCtx.ellipse(h.cx*sx,h.cy*sy,(h.rx+28)*sx,(h.ry+22)*sy,0,0,Math.PI*2);miniCtx.fill();
+    // Water
+    const wg=miniCtx.createRadialGradient(h.cx*sx-h.rx*sx*0.25,h.cy*sy-h.ry*sy*0.25,1,h.cx*sx,h.cy*sy,h.rx*sx);
+    wg.addColorStop(0,'#3080c0');wg.addColorStop(0.5,'#1a5fa0');wg.addColorStop(1,'#0e3d78');
+    miniCtx.fillStyle=wg;
     miniCtx.beginPath();miniCtx.ellipse(h.cx*sx,h.cy*sy,h.rx*sx,h.ry*sy,0,0,Math.PI*2);miniCtx.fill();
   }
+
+  // ── Rock clusters ──
   for(const r of ROCK_CLUSTERS){
-    miniCtx.fillStyle='rgba(120,100,65,0.75)';
+    const rg=miniCtx.createRadialGradient(r.cx*sx-r.rx*sx*0.25,r.cy*sy-r.ry*sy*0.25,1,r.cx*sx,r.cy*sy,r.rx*sx);
+    rg.addColorStop(0,'#b0987a');rg.addColorStop(0.5,'#907558');rg.addColorStop(1,'#6a5035');
+    miniCtx.fillStyle=rg;
     miniCtx.beginPath();miniCtx.ellipse(r.cx*sx,r.cy*sy,r.rx*sx,r.ry*sy,0,0,Math.PI*2);miniCtx.fill();
   }
+
+  // ── Trees (acacia/baobab/palm) — small green dots ──
+  for(const f of MAP_FEATURES){
+    if(f.type==='acacia'||f.type==='baobab'||f.type==='palm'){
+      const treeR=Math.max(1.5,f.r*sx*1.1);
+      miniCtx.fillStyle=f.type==='baobab'?'#267010':f.type==='palm'?'#1a7828':'#2a6208';
+      miniCtx.beginPath();miniCtx.arc(f.x*sx,f.y*sy,treeR,0,Math.PI*2);miniCtx.fill();
+    }
+  }
+
+  // ── Players ──
   if(gameState?.players){
     Object.values(gameState.players).forEach(p=>{
       if(!p||!p.alive)return;
@@ -3543,7 +3677,9 @@ function drawMinimap(){
       }
     });
   }
-  miniCtx.strokeStyle='rgba(255,255,255,0.08)';miniCtx.lineWidth=1;
+
+  // ── Viewport rectangle ──
+  miniCtx.strokeStyle='rgba(255,255,255,0.15)';miniCtx.lineWidth=1;
   miniCtx.strokeRect(camX*sx,camY*sy,canvas.width*sx,canvas.height*sy);
 }
 
@@ -3939,15 +4075,28 @@ window.respawnPlayer=async function(){
   refreshLobbyUI();
 };
 
+const DEFAULT_LEVEL1_AVATAR='https://i.ibb.co/fdCjB4mS/file-00000000d40c71fda0a43fcbc677dad6.png';
+// Keep at most 8 chat messages in Firebase per room — auto-prune on write
+const MAX_CHAT_MSGS=8;
+
 function listenIngameChat(id){
   if(chatOff){chatOff();chatOff=null;}
   chatOff=onValue(ref(rtdb,'sw_roomchat/'+id),snap=>{
-    const all=Object.values(snap.val()||{}).sort((a,b)=>(a.ts||0)-(b.ts||0)).slice(-20);
+    const raw=snap.val()||{};
+    const entries=Object.entries(raw).sort((a,b)=>(a[1].ts||0)-(b[1].ts||0));
+    // Auto-delete messages beyond the last 8
+    if(entries.length>MAX_CHAT_MSGS){
+      entries.slice(0,entries.length-MAX_CHAT_MSGS).forEach(([key])=>{
+        remove(ref(rtdb,'sw_roomchat/'+id+'/'+key)).catch(()=>{});
+      });
+    }
+    const all=entries.slice(-MAX_CHAT_MSGS).map(([,v])=>v);
     const box=document.getElementById('ingameChatMsgs');
     box.innerHTML=all.map(m=>{
       if(m.system)return`<div class="ic-sys">${esc(m.text)}</div>`;
       const clr=TANK_COLORS[(m.colorIdx||0)%TANK_COLORS.length];
-      return`<div class="ic-msg"><span class="ic-name" style="color:${clr}">${esc(m.name||'?')}:</span><span class="ic-text">${esc(m.text)}</span></div>`;
+      const photo=m.photo||DEFAULT_LEVEL1_AVATAR;
+      return`<div class="ic-msg"><img class="ic-avatar" src="${esc(photo)}" onerror="this.src='${DEFAULT_LEVEL1_AVATAR}'" alt=""><span class="ic-name" style="color:${clr}">${esc(m.name||'?')}:</span><span class="ic-text">${esc(m.text)}</span></div>`;
     }).join('');
     box.scrollTop=box.scrollHeight;
   });
@@ -3957,7 +4106,8 @@ window.sendIngameChat=async function(){
   const inp=document.getElementById('ingameChatInput');const t=(inp.value||'').trim();if(!t||!currentRoomId)return;
   inp.value='';
   const ci=gameState?.players?.[myUid]?.colorIdx||0;
-  await push(ref(rtdb,'sw_roomchat/'+currentRoomId),{uid:CU.uid,name:UD?.displayName||'Player',colorIdx:ci,text:t,ts:Date.now()});
+  const photo=UD?.photoURL||DEFAULT_LEVEL1_AVATAR;
+  await push(ref(rtdb,'sw_roomchat/'+currentRoomId),{uid:CU.uid,name:UD?.displayName||'Player',colorIdx:ci,photo,text:t,ts:Date.now()});
 };
 document.getElementById('ingameChatInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')window.sendIngameChat();});
 
