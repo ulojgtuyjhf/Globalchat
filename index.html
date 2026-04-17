@@ -3028,8 +3028,10 @@ function drawMapBase(){
   }
 }
 
-// ── Pass 2: trees drawn AFTER players so tanks hide underneath ──
+// ── Pass 2: trees drawn AFTER ground tanks so they hide underneath ──
+// Jets (F-16) fly ABOVE trees — they get redrawn on top after the canopy pass
 function drawTrees(){
+  // Step 1: draw all tree foliage
   for(const f of MAP_FEATURES){
     if(f.type!=='acacia'&&f.type!=='baobab'&&f.type!=='palm')continue;
     const tx=f.x,ty=f.y,tr=f.r;
@@ -3049,6 +3051,18 @@ function drawTrees(){
       ctx.fillStyle=f.type==='baobab'?'#42b020':'#42a018';
       ctx.beginPath();ctx.arc(tx+sway,ty-tr*0.3,tr*0.7,0,Math.PI*2);ctx.fill();
     }
+  }
+  // Step 2: redraw jet players above the tree canopy — jets fly over trees
+  if(gameState?.players){
+    Object.values(gameState.players).forEach(p=>{
+      if(!p||!p.alive)return;
+      const tid=p.uid===myUid?(_selectedTank?.id||'heavy'):(p.tankId||'heavy');
+      const tank=TANKS.find(t=>t.id===tid)||TANKS[0];
+      if(!tank.isJet)return;
+      const isMe=p.uid===myUid;
+      const color=TANK_COLORS[p.colorIdx%TANK_COLORS.length];
+      drawTank(p.x,p.y,p.angle||0,color,p.name,p.hp||0,isMe,p.uid,isMe?false:p.hideHP,tank.id);
+    });
   }
 }
 
