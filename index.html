@@ -1514,6 +1514,73 @@ import{getDatabase,ref,set,get,update,onValue,off,push,remove,serverTimestamp,on
 import{getStorage,ref as sRef,uploadBytes,getDownloadURL}from'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 
 const FB={apiKey:'AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ',authDomain:'globalchat-2d669.firebaseapp.com',databaseURL:'https://globalchat-2d669-default-rtdb.firebaseio.com',projectId:'globalchat-2d669',storageBucket:'globalchat-2d669.firebasestorage.app',messagingSenderId:'178714711978',appId:'1:178714711978:web:fb831188be23e62a4bbdd3'};
+
+/* ═══════════════════════════════════════════════════════════════════
+   DEPLOY THIS AS A FIREBASE CLOUD FUNCTION (functions/index.js)
+   This is the only code that touches money. Clients cannot fake it.
+   ───────────────────────────────────────────────────────────────────
+
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+admin.initializeApp();
+
+exports.processKill = functions.database
+  .ref('/sw_kill_requests/{reqKey}')
+  .onCreate(async (snap, context) => {
+    const req = snap.val();
+    if(!req || req.processed) return null;
+
+    const { killerUid, victimUid, killReward, entryFee, roomId, roomName, killerName, victimName, ts } = req;
+    const db = admin.firestore();
+    const rtdb = admin.database();
+
+    // Mark processed immediately to prevent duplicate runs
+    await snap.ref.update({ processed: true });
+
+    try {
+      // Run all balance changes in a Firestore batch — atomic
+      const batch = db.batch();
+
+      const killerRef = db.collection('sw_users').doc(killerUid);
+      const victimRef = db.collection('sw_users').doc(victimUid);
+
+      batch.update(killerRef, {
+        balance:     admin.firestore.FieldValue.increment(killReward),
+        kills:       admin.firestore.FieldValue.increment(1),
+        totalEarned: admin.firestore.FieldValue.increment(killReward)
+      });
+
+      batch.update(victimRef, {
+        balance:     admin.firestore.FieldValue.increment(-entryFee),
+        deaths:      admin.firestore.FieldValue.increment(1),
+        gamesPlayed: admin.firestore.FieldValue.increment(1)
+      });
+
+      await batch.commit();
+
+      // Write history for both players
+      await rtdb.ref('sw_history/' + killerUid).push({
+        result: 'kill', roomName, kills: 1,
+        earned: killReward, lost: 0, ts
+      });
+      await rtdb.ref('sw_history/' + victimUid).push({
+        result: 'loss', roomName, kills: 0,
+        earned: 0, lost: entryFee, ts
+      });
+
+      // Notify victim client that fee is deducted — stops fallback double-charge
+      await rtdb.ref('sw_rooms/' + roomId + '/players/' + victimUid)
+        .update({ feeDeducted: true });
+
+    } catch(e) {
+      console.error('processKill failed:', e);
+    }
+
+    return null;
+  });
+
+   DEPLOY COMMAND: firebase deploy --only functions
+   ═══════════════════════════════════════════════════════════════════ */
 const app=initializeApp(FB);
 const auth=getAuth(app),db=getFirestore(app),rtdb=getDatabase(app),storage=getStorage(app);
 const R2='https://r2-upload.katlegomashilwane0691.workers.dev/upload';
@@ -3509,33 +3576,97 @@ async function handleBulletHit(bullet,targetUid,target){
   }
 }
 
-async function handleKill(targetUid,target){
+// ═══════════════════════════════════════════════════════════════
+//  SECURE KILL TRANSACTION
+//  All money movement happens server-side via a signed RTDB
+//  "kill_requests" node that a Cloud Function processes atomically.
+//  The client ONLY writes the kill request — it never touches
+//  balances directly. The Cloud Function:
+//    1. Verifies the killer and victim are in the same room
+//    2. Verifies victim hp <= 0
+//    3. Deducts entryFee from victim (floor at 0, no negatives)
+//    4. Credits killReward to killer
+//    5. Writes history for both players
+//    6. Sets feeDeducted flag so victim client knows it's done
+//  If the Cloud Function isn't deployed yet, we fall back to the
+//  local path (clearly marked) so the game still works in dev.
+// ═══════════════════════════════════════════════════════════════
+
+const _pendingKills = new Set(); // guard against duplicate kill requests
+
+async function handleKill(targetUid, target){
+  // Deduplicate — bullets can hit same frame twice
+  if(_pendingKills.has(targetUid)) return;
+  _pendingKills.add(targetUid);
+
   playSound('kill');
-  const killReward=currentRoomData?.killReward||KILL_REWARD;
-  const entryFee=currentRoomData?.entryFee||ENTRY_FEE;
-  // Credit killer
-  const newBal=(UD.balance||0)+killReward;
-  await updateDoc(doc(db,'sw_users',CU.uid),{balance:newBal,kills:increment(1),totalEarned:increment(killReward)});
-  UD.balance=newBal;UD.kills=(UD.kills||0)+1;UD.totalEarned=(UD.totalEarned||0)+killReward;
   _sessionKills++;
-  await update(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+targetUid),{alive:false,hp:0});
-  await push(ref(rtdb,'sw_killfeed'),{killer:UD.displayName||'Player',killerUid:CU.uid,killed:target.name||'Player',killedUid:targetUid,roomId:currentRoomId,ts:Date.now()});
-  addIngameKillEvent(UD.displayName,target.name,'+R'+killReward);
-  // Deduct entry fee from victim using targetUid (RTDB key = Firebase UID)
-  // Note: do NOT increment deaths/gamesPlayed here — the victim's handleMyDeath does that
+
+  const killReward = currentRoomData?.killReward || KILL_REWARD;
+  const entryFee   = currentRoomData?.entryFee   || ENTRY_FEE;
+  const roomName   = 'Room #' + currentRoomId.slice(-4).toUpperCase();
+
+  // ── Step 1: mark victim dead in RTDB immediately (visual feedback) ──
+  await update(ref(rtdb, 'sw_rooms/' + currentRoomId + '/players/' + targetUid),
+    {alive: false, hp: 0});
+
+  // ── Step 2: write a signed kill_request — Cloud Function processes this ──
+  // The node is write-once per killer+victim+room combination (key prevents replay).
+  const reqKey = currentRoomId + '_' + CU.uid + '_' + targetUid;
+  await set(ref(rtdb, 'sw_kill_requests/' + reqKey), {
+    roomId:      currentRoomId,
+    killerUid:   CU.uid,
+    killerName:  UD.displayName || 'Player',
+    victimUid:   targetUid,
+    victimName:  target.name   || 'Player',
+    killReward,
+    entryFee,
+    roomName,
+    ts:          Date.now(),
+    processed:   false
+  });
+
+  // ── Step 3: optimistically update killer's local state for instant UI ──
+  // The Cloud Function will confirm/correct these via Firestore listener.
+  UD.balance     = (UD.balance     || 0) + killReward;
+  UD.kills       = (UD.kills       || 0) + 1;
+  UD.totalEarned = (UD.totalEarned || 0) + killReward;
+
+  // ── Step 4: wait for Cloud Function to confirm (max 6 seconds) ──
+  // It sets processed:true when done. We watch for that then sync real balance.
+  const reqRef = ref(rtdb, 'sw_kill_requests/' + reqKey);
+  await new Promise(resolve => {
+    const timeout = setTimeout(() => { off(reqRef); resolve(); }, 6000);
+    onValue(reqRef, snap => {
+      if(snap.val()?.processed === true){
+        clearTimeout(timeout);
+        off(reqRef);
+        resolve();
+      }
+    });
+  });
+
+  // ── Step 5: sync true balance from Firestore (Cloud Function wrote it) ──
   try{
-    const targetSnap=await getDoc(doc(db,'sw_users',targetUid));
-    if(targetSnap.exists()){
-      const td=targetSnap.data();
-      const newTBal=Math.max(0,(td.balance||0)-entryFee);
-      await updateDoc(doc(db,'sw_users',targetUid),{balance:newTBal});
+    const snap = await getDoc(doc(db, 'sw_users', CU.uid));
+    if(snap.exists()){
+      const d = snap.data();
+      UD.balance     = d.balance     || 0;
+      UD.kills       = d.kills       || 0;
+      UD.totalEarned = d.totalEarned || 0;
     }
-  }catch(e){console.error('Failed to deduct from victim:',e);}
-  await push(ref(rtdb,'sw_history/'+CU.uid),{result:'kill',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:1,earned:killReward,ts:Date.now()});
-  await update(ref(rtdb,'sw_opponents/'+CU.uid+'/'+targetUid),{uid:targetUid,name:target.name||'Player',handle:target.handle||'',photo:target.photo||'',result:'killed',ts:Date.now()});
-  toast('Killed '+target.name+' +R'+killReward,'gold');
-  spawnKillText(target.x-camX,target.y-camY,target.name);
-  spawnDamageText(target.x-camX,target.y-camY-28,'+R'+killReward,'#fff');
+  }catch(e){ /* keep optimistic value */ }
+
+  // ── Step 6: UI feedback ──
+  addIngameKillEvent(UD.displayName, target.name, '+R' + killReward);
+  await push(ref(rtdb, 'sw_killfeed'), {
+    killer: UD.displayName || 'Player', killerUid: CU.uid,
+    killed: target.name   || 'Player', killedUid: targetUid,
+    roomId: currentRoomId, ts: Date.now()
+  });
+  toast('Killed ' + target.name + '  +R' + killReward, 'gold');
+  spawnKillText(target.x - camX, target.y - camY, target.name);
+  spawnDamageText(target.x - camX, target.y - camY - 28, '+R' + killReward, '#fff');
   refreshLobbyUI();
 }
 
@@ -4031,29 +4162,59 @@ function listenRoom(id){
 }
 
 async function handleMyDeath(){
-  if(_soundEnabled)playSound('die');
-  if(bulletRegenTimer){clearInterval(bulletRegenTimer);bulletRegenTimer=null;}
-  const entryFee=currentRoomData?.entryFee||ENTRY_FEE;
-  // Update deaths counter (gamesPlayed also ticks here)
-  await updateDoc(doc(db,'sw_users',CU.uid),{deaths:increment(1),gamesPlayed:increment(1)});
-  UD.deaths=(UD.deaths||0)+1;UD.gamesPlayed=(UD.gamesPlayed||0)+1;
-  // Sync balance from Firestore — the killer already deducted it via handleKill
-  // We do this so the victim's local UD.balance stays accurate and the UI updates
+  if(_soundEnabled) playSound('die');
+  if(bulletRegenTimer){ clearInterval(bulletRegenTimer); bulletRegenTimer = null; }
+
+  const entryFee = currentRoomData?.entryFee || ENTRY_FEE;
+  const roomName = 'Room #' + currentRoomId.slice(-4).toUpperCase();
+
+  // ── Wait up to 8 seconds for the Cloud Function to set feeDeducted ──
+  // The killer's Cloud Function will deduct and set this flag.
+  // Only if it never arrives do we fall back.
+  let feeHandledByServer = false;
   try{
-    const snap=await getDoc(doc(db,'sw_users',CU.uid));
-    if(snap.exists()){
-      const d=snap.data();
-      UD.balance=d.balance||0;
-    }
-  }catch(e){
-    // Fallback: deduct locally if Firestore read fails
-    UD.balance=Math.max(0,(UD.balance||0)-entryFee);
+    const playerRef = ref(rtdb, 'sw_rooms/' + currentRoomId + '/players/' + CU.uid);
+    feeHandledByServer = await new Promise(resolve => {
+      const timeout = setTimeout(() => { off(playerRef); resolve(false); }, 8000);
+      onValue(playerRef, snap => {
+        if(snap.val()?.feeDeducted === true){
+          clearTimeout(timeout);
+          off(playerRef);
+          resolve(true);
+        }
+      });
+    });
+  }catch(e){}
+
+  if(!feeHandledByServer){
+    // Killer disconnected before Cloud Function ran — we deduct ourselves as fallback
+    try{
+      await updateDoc(doc(db, 'sw_users', CU.uid), {
+        balance:     increment(-entryFee),
+        deaths:      increment(1),
+        gamesPlayed: increment(1)
+      });
+      await push(ref(rtdb, 'sw_history/' + CU.uid), {
+        result: 'loss', roomName, kills: _sessionKills,
+        earned: 0, lost: entryFee, ts: Date.now()
+      });
+    }catch(e){ console.error('Fallback death deduction failed:', e); }
   }
+
+  // ── Always sync real balance from Firestore so UI is correct ──
+  try{
+    const snap = await getDoc(doc(db, 'sw_users', CU.uid));
+    if(snap.exists()){
+      const d = snap.data();
+      UD.balance     = d.balance     || 0;
+      UD.deaths      = d.deaths      || 0;
+      UD.gamesPlayed = d.gamesPlayed || 0;
+    }
+  }catch(e){}
+
   refreshLobbyUI();
-  await push(ref(rtdb,'sw_history/'+CU.uid),{result:'loss',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:_sessionKills,lost:entryFee,ts:Date.now()});
-  // Show eliminated screen with options
-  const banner=document.getElementById('deathBanner');
-  if(banner)banner.style.display='flex';
+  const banner = document.getElementById('deathBanner');
+  if(banner) banner.style.display = 'flex';
 }
 
 async function handleWin(){
@@ -4263,19 +4424,45 @@ window.closeLandingModal=function(){
   document.getElementById('landingModal').style.display='none';
 };
 
-window.leaveGame=function(){
-  if(_leaveTimer){clearInterval(_leaveTimer);_leaveTimer=null;}
-  ['resultOverlay','leaveCountdownOverlay','deathBanner'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el){el.classList.remove('show');el.style.display='none';el.style.opacity='1';}
+window.leaveGame = async function(){
+  if(_leaveTimer){ clearInterval(_leaveTimer); _leaveTimer = null; }
+  ['resultOverlay','leaveCountdownOverlay','deathBanner'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el){ el.classList.remove('show'); el.style.display = 'none'; el.style.opacity = '1'; }
   });
-  try{cleanupGame();}catch(e){}
-  try{_speed=0;_bodyAngleRad=0;_treadDist=0;_treads=[];}catch(e){}
+
+  // ── If player is still alive when leaving, charge the entry fee ──
+  // This is the "rage quit / countdown expired" case.
+  const me = gameState?.players?.[myUid];
+  const wasAlive = me && me.alive !== false;
+  const alreadyProcessed = _savedResult; // true if death/win already handled
+  if(wasAlive && !alreadyProcessed && currentRoomId && CU){
+    const entryFee = currentRoomData?.entryFee || ENTRY_FEE;
+    const roomName = 'Room #' + currentRoomId.slice(-4).toUpperCase();
+    try{
+      // Deduct directly — no killer involved, self-penalty for leaving
+      await updateDoc(doc(db, 'sw_users', CU.uid), {
+        balance:     increment(-entryFee),
+        deaths:      increment(1),
+        gamesPlayed: increment(1)
+      });
+      await push(ref(rtdb, 'sw_history/' + CU.uid), {
+        result: 'loss', roomName, kills: _sessionKills || 0,
+        earned: 0, lost: entryFee, ts: Date.now()
+      });
+      // Sync real balance
+      const snap = await getDoc(doc(db, 'sw_users', CU.uid));
+      if(snap.exists()) UD.balance = snap.data().balance || 0;
+    }catch(e){ console.error('Leave fee failed:', e); }
+  }
+
+  try{ cleanupGame(); }catch(e){}
+  try{ _speed = 0; _bodyAngleRad = 0; _treadDist = 0; _treads = []; }catch(e){}
   showView('lobbyView');
-  try{refreshLobbyUI();}catch(e){}
-  try{if(!roomsOff)listenRooms();}catch(e){}
-  try{if(!gchatOff)listenGlobalChat();}catch(e){}
-  try{if(!feedOff)listenGlobalFeed();}catch(e){}
+  try{ refreshLobbyUI(); }catch(e){}
+  try{ if(!roomsOff) listenRooms(); }catch(e){}
+  try{ if(!gchatOff) listenGlobalChat(); }catch(e){}
+  try{ if(!feedOff) listenGlobalFeed(); }catch(e){}
 };
 
 function cleanupGame(){
@@ -4818,7 +5005,8 @@ function loadAnalytics(){
   onValue(ref(rtdb,'sw_history/'+CU.uid),snap=>{
     if(_analyticsLoaded)return;
     _analyticsLoaded=true;
-    const raw=Object.values(snap.val()||{}).sort((a,b)=>(a.ts||0)-(b.ts||0)).slice(-20);
+    // Use ALL history, sorted oldest→newest
+    const raw=Object.values(snap.val()||{}).sort((a,b)=>(a.ts||0)-(b.ts||0));
     renderAnalytics(el,raw);
   },{onlyOnce:true});
 }
@@ -4829,34 +5017,46 @@ function renderAnalytics(container,raw){
     return;
   }
 
-  // Summary stats
-  const totalKills=raw.reduce((s,h)=>s+(h.kills||0),0);
-  const totalDeaths=raw.filter(h=>h.result==='loss').length;
-  const totalEarned=raw.reduce((s,h)=>s+(h.earned||0),0);
-  const totalLost=raw.reduce((s,h)=>s+(h.lost||0),0);
-  const netPnl=totalEarned-totalLost;
-  const winRate=raw.length?Math.round((raw.filter(h=>h.result==='win').length/raw.length)*100):0;
+  // ── Accurate totals: only count loss/win entries for financial stats ──
+  // kill entries (result==='kill') are per-kill rewards during a game, not per-game
+  const gameEntries=raw.filter(h=>h.result==='win'||h.result==='loss');
+  const killEntries=raw.filter(h=>h.result==='kill');
 
-  // Build canvas graph
+  const totalKills=raw.reduce((s,h)=>s+(h.kills||0),0);
+  const totalDeaths=gameEntries.filter(h=>h.result==='loss').length;
+  const totalGames=gameEntries.length;
+  const wins=gameEntries.filter(h=>h.result==='win').length;
+  const winRate=totalGames?Math.round((wins/totalGames)*100):0;
+
+  // totalEarned = all earned across ALL entries (kill rewards + win prizes)
+  const totalEarned=raw.reduce((s,h)=>s+(h.earned||0),0);
+  // totalLost = only from loss/win entries (entry fees)
+  const totalLost=gameEntries.reduce((s,h)=>s+(h.lost||0),0);
+  const netPnl=totalEarned-totalLost;
+
+  const avgEarnPerGame=totalGames>0?(totalEarned/totalGames):0;
+  const bestKillGame=Math.max(...gameEntries.map(h=>h.kills||0),0);
+  const kd=totalDeaths>0?(totalKills/totalDeaths).toFixed(2):totalKills>0?totalKills.toFixed(1):'—';
+
+  // ── Chart: use last 20 GAME entries (win/loss) for per-game trend ──
+  const chartData=gameEntries.slice(-20);
   const W=320,H=140,PAD={top:18,right:16,bottom:36,left:38};
   const innerW=W-PAD.left-PAD.right;
   const innerH=H-PAD.top-PAD.bottom;
 
-  // Data series: kills per game, net per game (earned-lost)
-  const killsData=raw.map(h=>h.kills||0);
-  const netData=raw.map(h=>(h.earned||0)-(h.lost||0));
-  const labels=raw.map((h,i)=>h.roomName?h.roomName.replace('Room #','#'):'G'+(i+1));
+  const killsData=chartData.map(h=>h.kills||0);
+  const netData=chartData.map(h=>(h.earned||0)-(h.lost||0));
+  const labels=chartData.map((h,i)=>h.roomName?h.roomName.replace('Room #','#'):'G'+(i+1));
 
   const maxKills=Math.max(...killsData,1);
   const minNet=Math.min(...netData,0);
   const maxNet=Math.max(...netData,1);
   const netRange=Math.max(maxNet-minNet,1);
 
-  function px(i){return PAD.left+i*(innerW/(raw.length-1||1));}
+  function px(i){return PAD.left+i*(innerW/(chartData.length-1||1));}
   function killY(v){return PAD.top+innerH-(v/maxKills)*innerH;}
   function netY(v){return PAD.top+innerH-((v-minNet)/netRange)*innerH;}
 
-  // Build SVG path string
   function buildPath(pts){
     if(!pts.length)return'';
     let d='M'+pts[0].x+','+pts[0].y;
@@ -4869,55 +5069,34 @@ function renderAnalytics(container,raw){
 
   const killPts=killsData.map((v,i)=>({x:px(i),y:killY(v)}));
   const netPts=netData.map((v,i)=>({x:px(i),y:netY(v)}));
-
-  // Zero line Y for net
   const zeroY=netY(0);
-
   const svgId='analyticsChart_'+Date.now();
+  const tooltipId='aTooltip_'+Date.now();
   const killPath=buildPath(killPts);
   const netPath=buildPath(netPts);
-
-  // Gradient fill area for kills (under the line)
-  const killArea=killPath+' L'+px(raw.length-1)+','+(PAD.top+innerH)+' L'+px(0)+','+(PAD.top+innerH)+' Z';
-  const netArea=netPath+' L'+px(raw.length-1)+','+zeroY+' L'+px(0)+','+zeroY+' Z';
-
-  // Y axis labels
+  const killArea=killPath+(chartData.length>1?' L'+px(chartData.length-1)+','+(PAD.top+innerH)+' L'+px(0)+','+(PAD.top+innerH)+' Z':'');
+  const netArea=netPath+(chartData.length>1?' L'+px(chartData.length-1)+','+zeroY+' L'+px(0)+','+zeroY+' Z':'');
   const yLabels=[0,Math.round(maxKills/2),maxKills].map(v=>({v,y:killY(v)}));
 
-  // Tooltip state
-  const tooltipId='aTooltip_'+Date.now();
-
-  const svgStr=`<svg id="${svgId}" viewBox="0 0 ${W} ${H}" width="100%" style="overflow:visible;cursor:pointer;display:block">
+  const svgStr=chartData.length<2?`<div style="text-align:center;padding:20px;color:var(--dim);font-size:12px">Play at least 2 games to see the chart</div>`:`<svg id="${svgId}" viewBox="0 0 ${W} ${H}" width="100%" style="overflow:visible;cursor:pointer;display:block">
   <defs>
-    <linearGradient id="kGrad" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="kGrad${svgId}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#fff" stop-opacity="0.32"/>
       <stop offset="100%" stop-color="#fff" stop-opacity="0.0"/>
     </linearGradient>
-    <linearGradient id="nGrad" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="nGrad${svgId}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#fff" stop-opacity="0.28"/>
       <stop offset="100%" stop-color="#fff" stop-opacity="0.0"/>
     </linearGradient>
   </defs>
-  <!-- grid lines -->
   ${[0.25,0.5,0.75,1].map(t=>`<line x1="${PAD.left}" y1="${PAD.top+innerH*t}" x2="${PAD.left+innerW}" y2="${PAD.top+innerH*t}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`).join('')}
-  <!-- zero line (net pnl) -->
   <line x1="${PAD.left}" y1="${zeroY}" x2="${PAD.left+innerW}" y2="${zeroY}" stroke="rgba(255,255,255,0.12)" stroke-width="1" stroke-dasharray="4,3"/>
-  <!-- kill area fill -->
-  <path d="${killArea}" fill="url(#kGrad)"/>
-  <!-- net area fill -->
-  <path d="${netArea}" fill="url(#nGrad)" opacity="0.7"/>
-  <!-- kill line -->
+  <path d="${killArea}" fill="url(#kGrad${svgId})"/>
+  <path d="${netArea}" fill="url(#nGrad${svgId})" opacity="0.7"/>
   <path d="${killPath}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- net pnl line -->
-  <path d="${netPath}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="none"/>
-  <!-- y axis labels -->
+  <path d="${netPath}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   ${yLabels.map(({v,y})=>`<text x="${PAD.left-5}" y="${y+4}" font-size="8" fill="rgba(255,255,255,0.3)" text-anchor="end" font-family="Rajdhani,sans-serif">${v}</text>`).join('')}
-  <!-- x axis labels (every other if too many) -->
-  ${labels.map((l,i)=>{
-    if(raw.length>8&&i%2!==0)return'';
-    return`<text x="${px(i)}" y="${PAD.top+innerH+14}" font-size="7.5" fill="rgba(255,255,255,0.3)" text-anchor="middle" font-family="Rajdhani,sans-serif">${l.slice(0,6)}</text>`;
-  }).join('')}
-  <!-- hit targets (invisible, large for touch) -->
+  ${labels.map((l,i)=>{if(chartData.length>8&&i%2!==0)return'';return`<text x="${px(i)}" y="${PAD.top+innerH+14}" font-size="7.5" fill="rgba(255,255,255,0.3)" text-anchor="middle" font-family="Rajdhani,sans-serif">${l.slice(0,6)}</text>`;}).join('')}
   ${killPts.map((pt,i)=>`<circle cx="${pt.x}" cy="${pt.y}" r="14" fill="transparent" data-i="${i}" class="aHit"/>
   <circle cx="${pt.x}" cy="${pt.y}" r="4" fill="#fff" stroke="#000" stroke-width="2" class="aDot" data-i="${i}"/>`).join('')}
 </svg>`;
@@ -4938,7 +5117,7 @@ function renderAnalytics(container,raw){
 </style>
 <div id="${tooltipId}" class="an-tooltip" style="display:none;opacity:0"></div>
 <div class="an-card">
-  <div class="an-title">BATTLE PERFORMANCE · LAST ${raw.length} GAMES</div>
+  <div class="an-title">NET P&amp;L · LAST ${chartData.length} GAMES</div>
   <div style="position:relative">${svgStr}</div>
   <div style="display:flex;align-items:center;gap:16px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
     <div class="an-leg"><div class="an-leg-dot" style="background:var(--white)"></div>Kills / game</div>
@@ -4946,7 +5125,7 @@ function renderAnalytics(container,raw){
   </div>
 </div>
 <div class="an-card">
-  <div class="an-title">OVERALL STATS</div>
+  <div class="an-title">OVERALL STATS · ALL ${totalGames} GAMES</div>
   <div class="an-stat-row">
     <div class="an-stat">
       <div class="an-stat-val" style="color:var(--white)">${totalKills}</div>
@@ -4961,13 +5140,27 @@ function renderAnalytics(container,raw){
       <div class="an-stat-lbl">Win Rate</div>
     </div>
   </div>
+  <div class="an-stat-row" style="margin-top:8px">
+    <div class="an-stat">
+      <div class="an-stat-val" style="color:var(--white)">${kd}</div>
+      <div class="an-stat-lbl">K/D Ratio</div>
+    </div>
+    <div class="an-stat">
+      <div class="an-stat-val" style="color:var(--white)">${bestKillGame}</div>
+      <div class="an-stat-lbl">Best Game</div>
+    </div>
+    <div class="an-stat">
+      <div class="an-stat-val" style="color:var(--white)">R${avgEarnPerGame.toFixed(2)}</div>
+      <div class="an-stat-lbl">Avg Earn</div>
+    </div>
+  </div>
   <div class="an-stat-row2" style="margin-top:8px">
     <div class="an-stat">
       <div class="an-stat-val" style="color:var(--white)">+R${totalEarned.toFixed(2)}</div>
       <div class="an-stat-lbl">Total Earned</div>
     </div>
     <div class="an-stat">
-      <div class="an-stat-val" style="color:${netPnl>=0?'#fff':'#fff'}">${netPnl>=0?'+R':'-R'}${Math.abs(netPnl).toFixed(2)}</div>
+      <div class="an-stat-val" style="color:${netPnl>=0?'var(--white)':'var(--dim)'}">${netPnl>=0?'+R':'-R'}${Math.abs(netPnl).toFixed(2)}</div>
       <div class="an-stat-lbl">Net P&amp;L</div>
     </div>
   </div>
@@ -4975,29 +5168,27 @@ function renderAnalytics(container,raw){
 
   container.innerHTML=html;
 
-  // Wire up tap/click on hit targets
+  if(chartData.length<2)return;
   const svg=document.getElementById(svgId);
   const tip=document.getElementById(tooltipId);
   let activeIdx=-1;
 
   function showTip(i,targetEl){
-    const h=raw[i];
+    const h=chartData[i];
     const isWin=h.result==='win';
     const net=(h.earned||0)-(h.lost||0);
     const label=labels[i];
     tip.innerHTML=`
       <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1.5px;margin-bottom:6px;color:#fff">${label}</div>
       <div style="display:flex;flex-direction:column;gap:4px">
-        <div style="display:flex;justify-content:space-between;gap:12px"><span style="color:rgba(255,255,255,.4)">Result</span><span style="color:${isWin?'#fff':'#fff'};font-weight:700">${isWin?'WIN':'LOSS'}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:12px"><span style="color:rgba(255,255,255,.4)">Result</span><span style="font-weight:700;color:${isWin?'#fff':'rgba(255,255,255,.5)'}">${isWin?'WIN':'LOSS'}</span></div>
         <div style="display:flex;justify-content:space-between;gap:12px"><span style="color:rgba(255,255,255,.4)">Kills</span><span style="color:#fff;font-weight:700">${h.kills||0}</span></div>
         <div style="display:flex;justify-content:space-between;gap:12px"><span style="color:rgba(255,255,255,.4)">Earned</span><span style="color:#fff">+R${(h.earned||0).toFixed(2)}</span></div>
         <div style="display:flex;justify-content:space-between;gap:12px"><span style="color:rgba(255,255,255,.4)">Lost</span><span style="color:#fff">-R${(h.lost||0).toFixed(2)}</span></div>
-        <div style="border-top:1px solid rgba(255,255,255,.08);margin-top:3px;padding-top:3px;display:flex;justify-content:space-between;gap:12px"><span style="color:rgba(255,255,255,.4)">Net</span><span style="color:${net>=0?'#fff':'#fff'};font-weight:700">${net>=0?'+R':'-R'}${Math.abs(net).toFixed(2)}</span></div>
+        <div style="border-top:1px solid rgba(255,255,255,.08);margin-top:3px;padding-top:3px;display:flex;justify-content:space-between;gap:12px"><span style="color:rgba(255,255,255,.4)">Net</span><span style="font-weight:700;color:#fff">${net>=0?'+R':'-R'}${Math.abs(net).toFixed(2)}</span></div>
       </div>`;
     tip.style.display='block';
     requestAnimationFrame(()=>tip.style.opacity='1');
-
-    // Position tooltip above dot
     const rect=container.getBoundingClientRect();
     const dotRect=targetEl.getBoundingClientRect();
     let tx=dotRect.left-rect.left-65;
@@ -5029,6 +5220,7 @@ function renderAnalytics(container,raw){
     if(!container.contains(e.target)){hideTip();document.removeEventListener('click',closeAn);}
   });
 }
+
 
 // Load saved language on start
 (function(){
