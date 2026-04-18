@@ -1993,6 +1993,9 @@ function refreshLobbyUI(){
   const playMoneyBal=document.getElementById('playMoneyBal');if(playMoneyBal)playMoneyBal.textContent='R'+bal.toFixed(2);
   const phgb=document.getElementById('playHeaderGameBal');if(phgb)phgb.textContent='R'+bal.toFixed(2);
   const phmb=document.getElementById('playHeaderMoneyBal');if(phmb)phmb.textContent='R'+bal.toFixed(2);
+  // ── Keep deposit & withdraw overlays in sync ──
+  const fundsBalEl=document.getElementById('fundsCurrentBal');if(fundsBalEl)fundsBalEl.textContent='R'+bal.toFixed(2);
+  const wdBalEl=document.getElementById('wdCurrentBal');if(wdBalEl)wdBalEl.textContent='R'+bal.toFixed(2);
   const DEFAULT_AVATAR='https://i.ibb.co/fdCjB4mS/file-00000000d40c71fda0a43fcbc677dad6.png';
   const img=document.getElementById('lobbyAvImg'),init=document.getElementById('lobbyAvInit');
   if(img){img.src=UD.photoURL||DEFAULT_AVATAR;img.style.display='block';}
@@ -4932,8 +4935,12 @@ async function processPendingPayment(){
 // Display a clear, professional result notification for the payment
 function showPaymentResult(status, addedAmt, newBal){
   if(status === 'success'){
+    // Ensure UD.balance is set to the confirmed new balance before refreshing all UI
+    if(newBal > 0) UD.balance = newBal;
+    refreshLobbyUI();
     _showPaymentBanner('Payment Successful','R'+(addedAmt>0?addedAmt.toFixed(2):'—')+' added to your balance.','New balance: R'+(newBal||0).toFixed(2),'success');
   } else {
+    refreshLobbyUI();
     _showPaymentBanner('Payment Declined','Your card was not charged.','Please try again or use a different card.','declined');
   }
 }
