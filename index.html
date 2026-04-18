@@ -1246,10 +1246,16 @@ body.dark-theme .ph-ico.loss{background:rgba(255,255,255,0.08);}
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
                 </div>
               </div>
-              <button onclick="openAddFunds()" style="width:100%;padding:12px;background:var(--grad);border:none;border-radius:11px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px" class="inline-funds-btn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                ADD FUNDS
-              </button>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <button onclick="openAddFunds()" style="padding:12px;background:var(--grad);border:none;border-radius:11px;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px" class="inline-funds-btn">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  ADD
+                </button>
+                <button onclick="openWithdraw()" style="padding:12px;background:transparent;border:1.5px solid var(--border);border-radius:11px;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;color:var(--white)">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                  WITHDRAW
+                </button>
+              </div>
             </div>
 
             <!-- Edit fields -->
@@ -4537,6 +4543,184 @@ window.closeAddFunds=function(){
   if(_balListener){_balListener();_balListener=null;}
 };
 
+// ═══════════════════════════════════════════════════════
+//  WITHDRAW SYSTEM
+//  1. User fills in amount + payout method
+//  2. Amount is locked (deducted) from balance immediately
+//  3. A withdrawal request is written to Firestore
+//     sw_withdrawals/{uid}/{requestId} — you see this as admin
+//  4. You manually pay out and mark it processed
+//  5. If you reject it, you refund by updating status to 'rejected'
+//     and the client listener refunds the balance automatically
+// ═══════════════════════════════════════════════════════
+
+let _wdMethod = 'bank';
+
+window.openWithdraw = function(){
+  if(!CU){ toast('Sign in first','red'); return; }
+  const bal = UD.balance || 0;
+  document.getElementById('wdCurrentBal').textContent = 'R' + bal.toFixed(2);
+  document.getElementById('wdAfterBal').textContent   = 'R' + bal.toFixed(2);
+  document.getElementById('wdAmtInput').value  = '';
+  document.getElementById('wdAmtError').textContent   = '';
+  document.getElementById('wdStatus').textContent     = '';
+  document.getElementById('wdBankName').value  = '';
+  document.getElementById('wdAccNum').value    = '';
+  document.getElementById('wdAccHolder').value = '';
+  document.getElementById('wdPhone').value     = '';
+  const btn = document.getElementById('wdSubmitBtn');
+  btn.disabled = true; btn.style.opacity = '.45';
+  // Reset method to bank
+  _wdMethod = 'bank';
+  document.querySelectorAll('.wd-method-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-method="bank"]').classList.add('active');
+  document.getElementById('wdFieldsBank').style.display  = 'block';
+  document.getElementById('wdFieldsPhone').style.display = 'none';
+  document.getElementById('withdrawOverlay').classList.add('open');
+};
+
+window.closeWithdraw = function(){
+  document.getElementById('withdrawOverlay').classList.remove('open');
+};
+
+window.selectWdMethod = function(el, method){
+  _wdMethod = method;
+  document.querySelectorAll('.wd-method-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  const isPhone = method === 'ewallet' || method === 'capitec';
+  document.getElementById('wdFieldsBank').style.display  = isPhone ? 'none'  : 'block';
+  document.getElementById('wdFieldsPhone').style.display = isPhone ? 'block' : 'none';
+  _validateWd();
+};
+
+window.onWdAmtChange = function(val){
+  const bal = UD.balance || 0;
+  const amt = parseFloat(val) || 0;
+  const after = bal - amt;
+  document.getElementById('wdAfterBal').textContent = 'R' + Math.max(0, after).toFixed(2);
+  _validateWd();
+};
+
+function _validateWd(){
+  const bal  = UD.balance || 0;
+  const amt  = parseFloat(document.getElementById('wdAmtInput').value) || 0;
+  const errEl = document.getElementById('wdAmtError');
+  const btn  = document.getElementById('wdSubmitBtn');
+
+  if(amt <= 0){ errEl.textContent = ''; btn.disabled = true; btn.style.opacity = '.45'; return; }
+  if(amt < 10){ errEl.textContent = 'Minimum withdrawal is R10.'; btn.disabled = true; btn.style.opacity = '.45'; return; }
+  if(amt > bal){ errEl.textContent = 'Amount exceeds your balance (R' + bal.toFixed(2) + ').'; btn.disabled = true; btn.style.opacity = '.45'; return; }
+  errEl.textContent = '';
+  btn.disabled = false; btn.style.opacity = '1';
+}
+
+window.submitWithdraw = async function(){
+  if(!CU || !UD) return;
+  const amt  = parseFloat(document.getElementById('wdAmtInput').value) || 0;
+  const bal  = UD.balance || 0;
+  if(amt < 10 || amt > bal){ toast('Invalid amount','red'); return; }
+
+  // Collect payout details
+  let payoutDetails = {};
+  if(_wdMethod === 'bank'){
+    const bankName  = document.getElementById('wdBankName').value.trim();
+    const accNum    = document.getElementById('wdAccNum').value.trim();
+    const accHolder = document.getElementById('wdAccHolder').value.trim();
+    if(!bankName || !accNum || !accHolder){ toast('Fill in all bank details','red'); return; }
+    payoutDetails = { bankName, accNum, accHolder };
+  } else {
+    const phone = document.getElementById('wdPhone').value.trim();
+    if(!phone || phone.length < 10){ toast('Enter a valid cell number','red'); return; }
+    payoutDetails = { phone };
+  }
+
+  const btn    = document.getElementById('wdSubmitBtn');
+  const status = document.getElementById('wdStatus');
+  btn.disabled = true; btn.style.opacity = '.6';
+  status.textContent = 'Submitting…';
+
+  try{
+    // ── 1. Deduct from balance immediately (funds held) ──
+    await updateDoc(doc(db, 'sw_users', CU.uid), {
+      balance: increment(-amt)
+    });
+    UD.balance = Math.max(0, bal - amt);
+
+    // ── 2. Write withdrawal request to Firestore for admin review ──
+    const reqData = {
+      uid:          CU.uid,
+      name:         UD.displayName || 'Player',
+      email:        CU.email || '',
+      amount:       amt,
+      method:       _wdMethod,
+      payout:       payoutDetails,
+      status:       'pending',       // pending → paid | rejected
+      balanceBefore: bal,
+      balanceAfter:  UD.balance,
+      requestedAt:  serverTimestamp(),
+      processedAt:  null,
+      note:         ''
+    };
+    const wdRef = await addDoc(collection(db, 'sw_withdrawals'), reqData);
+
+    // ── 3. Also write to user's own subcollection for history display ──
+    await setDoc(doc(db, 'sw_users', CU.uid, 'withdrawals', wdRef.id), {
+      ...reqData, requestId: wdRef.id
+    });
+
+    // ── 4. Write to RTDB history so it shows in battle history ──
+    await push(ref(rtdb, 'sw_history/' + CU.uid), {
+      result:   'withdraw',
+      roomName: 'Withdrawal',
+      kills:    0,
+      earned:   0,
+      lost:     amt,
+      ts:       Date.now()
+    });
+
+    // ── 5. Listen for admin to process (refund if rejected) ──
+    _listenWithdrawStatus(wdRef.id, amt);
+
+    refreshLobbyUI();
+    status.textContent = '✓ Request submitted! You will be paid within 24 hours.';
+    status.style.color = '#4ade80';
+    btn.textContent = 'SUBMITTED';
+    setTimeout(() => window.closeWithdraw(), 3000);
+
+  }catch(e){
+    console.error('Withdraw failed:', e);
+    // Refund locally if write failed before deduction confirmed
+    try{
+      await updateDoc(doc(db,'sw_users',CU.uid),{balance:increment(amt)});
+      UD.balance = bal;
+    }catch(e2){}
+    status.textContent = 'Failed to submit. Try again.';
+    status.style.color = '#f87171';
+    btn.disabled = false; btn.style.opacity = '1';
+  }
+};
+
+// Listen for admin to mark withdrawal as paid or rejected
+function _listenWithdrawStatus(requestId, amt){
+  const wdDocRef = doc(db, 'sw_withdrawals', requestId);
+  const unsub = onSnapshot(wdDocRef, snap => {
+    if(!snap.exists()) return;
+    const d = snap.data();
+    if(d.status === 'paid'){
+      toast('✓ Withdrawal of R' + amt.toFixed(2) + ' has been paid!', 'gold');
+      unsub();
+    } else if(d.status === 'rejected'){
+      // Refund the amount back to balance
+      updateDoc(doc(db,'sw_users',CU.uid),{balance:increment(amt)}).then(()=>{
+        UD.balance = (UD.balance||0) + amt;
+        refreshLobbyUI();
+        toast('Withdrawal rejected — R' + amt.toFixed(2) + ' refunded to balance.', 'gold');
+      });
+      unsub();
+    }
+  });
+}
+
 window.selectFundsAmt=function(el,amount){
   _selAmt=amount;
   document.querySelectorAll('.funds-amt-btn').forEach(b=>b.classList.remove('selected'));
@@ -5311,7 +5495,56 @@ function renderAnalytics(container,raw){
   </div>
 </div>
 
+<!-- ═══════ WITHDRAW MODAL ═══════ -->
+<div id="withdrawOverlay" style="position:fixed;inset:0;z-index:99000;background:rgba(0,0,0,.85);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;">
+  <div style="background:var(--card);border-radius:22px;border:1.5px solid var(--border);padding:28px 22px;width:92%;max-width:380px;box-shadow:0 32px 80px rgba(0,0,0,.5);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--white)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/><line x1="5" y1="19" x2="19" y2="19"/></svg>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;color:var(--white)">WITHDRAW FUNDS</div>
+    </div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:18px;line-height:1.6">Withdrawals are processed within 24 hours. Minimum R10. Funds held from your balance immediately.</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--muted);border-radius:10px;margin-bottom:6px">
+      <span style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim)">Available Balance</span>
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold)" id="wdCurrentBal">R0.00</span>
+    </div>
+    <div style="font-size:10px;color:var(--dim);margin-bottom:18px;text-align:right">After withdrawal: <span id="wdAfterBal" style="color:var(--white)">R0.00</span></div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:6px">Amount to Withdraw</div>
+      <div style="position:relative">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--dim)">R</span>
+        <input id="wdAmtInput" type="number" min="10" step="1" placeholder="0" style="width:100%;padding:12px 12px 12px 28px;background:var(--muted);border:1.5px solid var(--border);border-radius:11px;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--white);outline:none;transition:border-color .2s" oninput="onWdAmtChange(this.value)" onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div id="wdAmtError" style="font-size:11px;color:#f87171;margin-top:5px;min-height:14px"></div>
+    </div>
+    <div style="margin-bottom:18px">
+      <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:8px">Pay To</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="wd-method-btn active" onclick="selectWdMethod(this,'bank')" data-method="bank">🏦 Bank</button>
+        <button class="wd-method-btn" onclick="selectWdMethod(this,'ewallet')" data-method="ewallet">📱 eWallet</button>
+        <button class="wd-method-btn" onclick="selectWdMethod(this,'capitec')" data-method="capitec">💳 Capitec Pay</button>
+      </div>
+      <div id="wdFieldsBank">
+        <input class="wd-inp" id="wdBankName" placeholder="Bank name (e.g. FNB, Standard Bank)">
+        <input class="wd-inp" id="wdAccNum" placeholder="Account number" type="number">
+        <input class="wd-inp" id="wdAccHolder" placeholder="Account holder full name">
+      </div>
+      <div id="wdFieldsPhone" style="display:none">
+        <input class="wd-inp" id="wdPhone" placeholder="Cell number (e.g. 0821234567)" type="tel">
+      </div>
+    </div>
+    <button id="wdSubmitBtn" onclick="submitWithdraw()" disabled style="width:100%;padding:15px;border:none;border-radius:13px;background:var(--grad);font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;cursor:pointer;margin-bottom:10px;opacity:.45;transition:opacity .2s">SUBMIT REQUEST</button>
+    <button onclick="closeWithdraw()" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:12px;background:transparent;color:var(--dim);font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;cursor:pointer">Cancel</button>
+    <div id="wdStatus" style="font-size:13px;text-align:center;margin-top:12px;color:var(--dim);min-height:18px"></div>
+  </div>
+</div>
+
 <style>
+#withdrawOverlay.open{opacity:1!important;pointer-events:all!important;}
+.wd-method-btn{flex:1;padding:9px 6px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--dim);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.wd-method-btn.active{border-color:var(--brand);background:rgba(128,128,128,.1);color:var(--white);}
+.wd-inp{width:100%;padding:10px 12px;background:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:600;color:var(--white);outline:none;transition:border-color .2s;margin-bottom:8px;display:block;}
+.wd-inp:focus{border-color:var(--brand);}
+.wd-inp::placeholder{color:var(--dim);}
 #addFundsOverlay.open{opacity:1!important;pointer-events:all!important;}
 .funds-amt-btn{padding:14px 8px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--white);font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:1px;cursor:pointer;text-align:center;transition:all .2s;}
 .funds-amt-btn.selected{border-color:var(--brand)!important;background:rgba(128,128,128,0.12)!important;color:var(--brand)!important;}
