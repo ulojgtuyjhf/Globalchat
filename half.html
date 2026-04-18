@@ -2,429 +2,567 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>Withdrawals — Nmedea Admin</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ShootWars — Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 :root{
-  --bg:#0b0b14;--card:#12121f;--border:rgba(255,255,255,.08);
-  --white:#f0f0ff;--dim:#6060a0;--muted:#1a1a2e;--black:#080810;
-  --brand:#fff;--gold:#e8c94a;--green:#4ade80;--red:#f87171;--amber:#fbbf24;
-  --grad:linear-gradient(135deg,#ffffff 0%,#d0d0f0 100%);
+  --bg:#0b0b14;--card:#12121f;--card2:#1a1a2e;--border:rgba(255,255,255,.08);
+  --white:#f0f0ff;--dim:#7070a0;--muted:#1a1a2e;
+  --brand:#ffffff;--gold:#fbbf24;--green:#4ade80;--red:#f87171;--blue:#60a5fa;
   --shadow:0 2px 24px rgba(0,0,0,.5);
+  --radius:14px;
 }
-html,body{width:100%;min-height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--white);}
+body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--white);min-height:100vh;}
 
-/* ── AUTH SCREEN ── */
-#authScreen{
-  position:fixed;inset:0;z-index:9999;background:var(--bg);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;
-}
-#authScreen.hidden{display:none;}
-.auth-logo{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:6px;margin-bottom:6px;}
-.auth-sub{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:40px;}
-.auth-box{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px 24px;width:100%;max-width:360px;}
-.auth-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:6px;}
-.auth-inp{width:100%;background:var(--muted);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--white);outline:none;margin-bottom:14px;transition:border-color .2s;}
-.auth-inp:focus{border-color:var(--brand);}
-.auth-btn{width:100%;padding:13px;border:none;border-radius:11px;background:var(--grad);font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;color:#0b0b14;transition:opacity .2s;}
-.auth-btn:hover{opacity:.88;}
-.auth-err{font-size:12px;color:var(--red);text-align:center;margin-top:10px;min-height:16px;}
+/* ── LAYOUT ── */
+.admin-wrap{max-width:1100px;margin:0 auto;padding:0 18px 60px;}
 
-/* ── MAIN LAYOUT ── */
-#mainScreen{display:none;flex-direction:column;min-height:100vh;}
-#mainScreen.visible{display:flex;}
+/* ── TOP BAR ── */
 .topbar{
-  position:sticky;top:0;z-index:100;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 20px;height:56px;
   background:rgba(8,8,16,.97);border-bottom:1px solid var(--border);
-  backdrop-filter:blur(14px);
+  padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
 }
-.topbar-logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:4px;color:var(--white);}
+.topbar-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:4px;color:var(--white);display:flex;align-items:center;gap:10px;}
+.topbar-logo svg{opacity:.7;}
+.admin-badge{font-size:9px;letter-spacing:2px;text-transform:uppercase;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;color:var(--dim);}
 .topbar-right{display:flex;align-items:center;gap:12px;}
-.topbar-badge{font-size:10px;letter-spacing:2px;text-transform:uppercase;background:rgba(255,255,255,.08);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--dim);}
-.signout-btn{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:transparent;border:1px solid var(--border);border-radius:7px;padding:5px 11px;color:var(--dim);cursor:pointer;transition:border-color .2s,color .2s;}
-.signout-btn:hover{border-color:var(--red);color:var(--red);}
+#adminUser{font-size:12px;color:var(--dim);}
+.btn-signout{padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--dim);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;}
+.btn-signout:hover{border-color:var(--red);color:var(--red);}
 
-.page-content{padding:20px 16px;max-width:700px;margin:0 auto;width:100%;}
+/* ── AUTH GATE ── */
+#authGate{display:flex;align-items:center;justify-content:center;min-height:80vh;}
+.auth-box{background:var(--card);border:1.5px solid var(--border);border-radius:20px;padding:36px 32px;width:100%;max-width:360px;text-align:center;}
+.auth-box h2{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;margin-bottom:6px;}
+.auth-box p{font-size:13px;color:var(--dim);margin-bottom:24px;}
+.inp{width:100%;padding:12px 14px;background:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:600;color:var(--white);outline:none;margin-bottom:10px;transition:border-color .2s;}
+.inp:focus{border-color:var(--brand);}
+.inp::placeholder{color:var(--dim);}
+.btn-primary{width:100%;padding:13px;border:none;border-radius:11px;background:#fff;color:#0b0b14;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;cursor:pointer;transition:opacity .2s;}
+.btn-primary:hover{opacity:.88;}
+#authError{font-size:12px;color:var(--red);margin-top:8px;min-height:16px;}
 
-/* ── TABS ── */
-.tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:20px;}
-.tab{flex:1;padding:9px;border-radius:9px;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1.5px;text-align:center;cursor:pointer;color:var(--dim);transition:background .2s,color .2s;}
-.tab.active{background:var(--muted);color:var(--white);}
+/* ── MAIN PANEL ── */
+#mainPanel{display:none;}
 
 /* ── STATS ROW ── */
-.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:14px 16px;}
-.stat-val{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:2px;}
-.stat-lbl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:28px 0 24px;}
+@media(max-width:700px){.stats-row{grid-template-columns:repeat(2,1fr);}}
+.stat-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px 16px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.gold::before{background:var(--gold);}
+.stat-card.green::before{background:var(--green);}
+.stat-card.red::before{background:var(--red);}
+.stat-card.blue::before{background:var(--blue);}
+.stat-lbl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px;line-height:1;}
+.stat-val.gold{color:var(--gold);}
+.stat-val.green{color:var(--green);}
+.stat-val.red{color:var(--red);}
+.stat-val.blue{color:var(--blue);}
+.stat-sub{font-size:10px;color:var(--dim);margin-top:4px;}
 
-/* ── REQUEST CARDS ── */
-.requests-list{display:flex;flex-direction:column;gap:12px;}
-.req-card{
-  background:var(--card);border:1px solid var(--border);border-radius:16px;
-  overflow:hidden;transition:border-color .2s;
-}
-.req-card.granted{border-color:rgba(74,222,128,.2);}
-.req-header{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);}
-.req-avatar{width:40px;height:40px;border-radius:50%;background:var(--muted);border:1px solid var(--border);display:grid;place-items:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--dim);flex-shrink:0;}
-.req-meta{flex:1;min-width:0;}
-.req-name{font-size:14px;font-weight:700;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.req-username{font-size:11px;color:var(--dim);margin-top:1px;}
-.req-status-badge{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:100px;flex-shrink:0;}
-.status-pending{background:rgba(251,191,36,.1);color:var(--amber);border:1px solid rgba(251,191,36,.2);}
-.status-granted{background:rgba(74,222,128,.1);color:var(--green);border:1px solid rgba(74,222,128,.2);}
-.req-body{padding:14px 16px;}
-.req-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-.req-row:last-child{margin-bottom:0;}
-.req-key{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);}
-.req-val{font-size:13px;font-weight:600;color:var(--white);text-align:right;word-break:break-all;max-width:55%;}
-.req-payout{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--green);}
-.req-footer{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:10px;}
-.approve-btn{
-  flex:1;padding:12px;border:none;border-radius:10px;
-  background:var(--grad);color:#0b0b14;
-  font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
-  transition:opacity .2s;
-}
-.approve-btn:hover{opacity:.85;}
-.approve-btn:disabled{opacity:.35;cursor:not-allowed;}
-.granted-label{
-  flex:1;padding:12px;border-radius:10px;
-  background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);
-  color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-}
+/* ── SECTION HEADER ── */
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--white);display:flex;align-items:center;gap:8px;}
+.section-title svg{opacity:.6;}
+.filter-row{display:flex;gap:8px;}
+.filter-btn{padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--dim);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;}
+.filter-btn.active{border-color:var(--brand);color:var(--white);background:rgba(255,255,255,.06);}
+.search-inp{padding:7px 12px;background:var(--muted);border:1.5px solid var(--border);border-radius:9px;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;color:var(--white);outline:none;transition:border-color .2s;width:200px;}
+.search-inp:focus{border-color:var(--brand);}
+.search-inp::placeholder{color:var(--dim);}
+@media(max-width:600px){.search-inp{width:120px;}.filter-row{flex-wrap:wrap;}}
 
-/* ── EMPTY / LOADING ── */
-.empty-state{text-align:center;padding:60px 20px;color:var(--dim);}
-.empty-icon{font-size:40px;margin-bottom:12px;opacity:.4;}
-.empty-txt{font-size:13px;}
-.loading-dots{display:flex;gap:8px;justify-content:center;padding:40px 0;}
-.loading-dots span{width:8px;height:8px;border-radius:50%;background:var(--dim);animation:ldot 1.2s ease-in-out infinite;}
-.loading-dots span:nth-child(2){animation-delay:.2s;}
-.loading-dots span:nth-child(3){animation-delay:.4s;}
-@keyframes ldot{0%,100%{transform:scale(.6);opacity:.2}50%{transform:scale(1.3);opacity:1}}
+/* ── TABLE ── */
+.table-wrap{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:32px;}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:rgba(255,255,255,.03);border-bottom:1px solid var(--border);}
+th{padding:12px 14px;text-align:left;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;white-space:nowrap;}
+tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:rgba(255,255,255,.02);}
+td{padding:13px 14px;font-size:13px;font-weight:600;vertical-align:middle;}
+.td-num{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.5px;}
+.td-amt{color:var(--gold);}
+.td-name{color:var(--white);}
+.td-meta{color:var(--dim);font-size:11px;font-weight:500;}
+.td-method{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:6px;font-size:10px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border);}
+
+/* ── STATUS BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:7px;font-size:10px;letter-spacing:1px;text-transform:uppercase;font-weight:700;}
+.badge-pending{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);color:var(--gold);}
+.badge-paid{background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);color:var(--green);}
+.badge-rejected{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:var(--red);}
+
+/* ── ACTION BUTTONS ── */
+.act-btn{padding:6px 12px;border-radius:7px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .18s;border:1.5px solid;display:inline-flex;align-items:center;gap:5px;}
+.act-approve{background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.3);color:var(--green);}
+.act-approve:hover{background:rgba(74,222,128,.2);border-color:var(--green);}
+.act-reject{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.3);color:var(--red);}
+.act-reject:hover{background:rgba(248,113,113,.2);border-color:var(--red);}
+.act-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ── NOTE INPUT ── */
+.note-inp{padding:5px 9px;background:var(--muted);border:1.5px solid var(--border);border-radius:7px;font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:600;color:var(--white);outline:none;width:120px;transition:border-color .2s;}
+.note-inp:focus{border-color:var(--brand);}
+.note-inp::placeholder{color:var(--dim);}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:48px 20px;}
+.empty-state svg{opacity:.2;margin-bottom:12px;}
+.empty-state p{font-size:13px;color:var(--dim);}
 
 /* ── TOAST ── */
-.adm-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(15,15,26,.97);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:11px 20px;font-size:13px;font-weight:600;z-index:9999;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;white-space:nowrap;color:#f0f0ff;backdrop-filter:blur(12px);}
-.adm-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .25s;z-index:9999;white-space:nowrap;}
+#toast.show{opacity:1;}
 
-/* ── CONFIRM OVERLAY ── */
-#confirmOverlay{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px;}
-#confirmOverlay.open{display:flex;}
-.confirm-box{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px 24px;width:100%;max-width:340px;text-align:center;}
-.confirm-icon{width:56px;height:56px;border-radius:50%;background:rgba(74,222,128,.1);border:1.5px solid rgba(74,222,128,.2);display:grid;place-items:center;margin:0 auto 16px;}
-.confirm-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;margin-bottom:8px;}
-.confirm-body{font-size:13px;color:var(--dim);line-height:1.6;margin-bottom:22px;}
-.confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.btn-cancel{padding:12px;background:var(--muted);border:1px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:var(--white);}
-.btn-confirm-green{padding:12px;background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.3);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:var(--green);}
+/* ── DETAIL DRAWER ── */
+#detailDrawer{position:fixed;right:0;top:0;bottom:0;width:360px;background:var(--card);border-left:1.5px solid var(--border);z-index:500;transform:translateX(100%);transition:transform .3s cubic-bezier(.16,1,.3,1);overflow-y:auto;padding:28px 22px;}
+#detailDrawer.open{transform:translateX(0);}
+.drawer-close{position:absolute;top:18px;right:18px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.06);border:none;cursor:pointer;display:grid;place-items:center;color:var(--white);}
+.drawer-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);}
+.drawer-row:last-child{border-bottom:none;}
+.drawer-lbl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);}
+.drawer-val{font-size:13px;font-weight:700;color:var(--white);text-align:right;max-width:200px;word-break:break-all;}
+
+/* ── LOADING ── */
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--white);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loadingRow{text-align:center;padding:32px;color:var(--dim);}
+
+/* ── RESPONSIVE TABLE ── */
+@media(max-width:768px){
+  th:nth-child(4),td:nth-child(4),th:nth-child(6),td:nth-child(6){display:none;}
+  #detailDrawer{width:100%;}
+}
 </style>
 </head>
 <body>
 
-<!-- ── AUTH SCREEN ── -->
-<div id="authScreen">
-  <div class="auth-logo">NMEDEA</div>
-  <div class="auth-sub">Developer Admin · Withdrawals</div>
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    SHOOTWARS
+    <span class="admin-badge">Admin Panel</span>
+  </div>
+  <div class="topbar-right">
+    <span id="adminUser"></span>
+    <button class="btn-signout" onclick="doSignOut()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </button>
+  </div>
+</div>
+
+<!-- AUTH GATE -->
+<div id="authGate" class="admin-wrap" style="padding-top:0;">
   <div class="auth-box">
-    <div class="auth-label">Email</div>
-    <input class="auth-inp" id="adminEmail" type="email" placeholder="admin@nmedea.com" autocomplete="username">
-    <div class="auth-label">Password</div>
-    <input class="auth-inp" id="adminPass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAdminLogin()">
-    <button class="auth-btn" onclick="doAdminLogin()">SIGN IN</button>
-    <div class="auth-err" id="authErr"></div>
+    <div style="width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.06);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--white)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+    </div>
+    <h2>Admin Access</h2>
+    <p>Sign in with your admin account to manage withdrawals and payments.</p>
+    <input class="inp" type="email" id="loginEmail" placeholder="Admin email">
+    <input class="inp" type="password" id="loginPw" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-primary" onclick="doLogin()" id="loginBtn">SIGN IN</button>
+    <div id="authError"></div>
   </div>
 </div>
 
-<!-- ── MAIN SCREEN ── -->
-<div id="mainScreen">
-  <div class="topbar">
-    <div class="topbar-logo">NMEDEA ADMIN</div>
-    <div class="topbar-right">
-      <div class="topbar-badge">WITHDRAWALS</div>
-      <button class="signout-btn" onclick="doAdminLogout()">Sign Out</button>
+<!-- MAIN PANEL -->
+<div id="mainPanel" class="admin-wrap">
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card gold">
+      <div class="stat-lbl">Pending Withdrawals</div>
+      <div class="stat-val gold" id="statPending">0</div>
+      <div class="stat-sub" id="statPendingAmt">R0.00 total</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-lbl">Paid Out (All Time)</div>
+      <div class="stat-val green" id="statPaid">0</div>
+      <div class="stat-sub" id="statPaidAmt">R0.00 total</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-lbl">Rejected</div>
+      <div class="stat-val red" id="statRejected">0</div>
+      <div class="stat-sub" id="statRejectedAmt">R0.00 refunded</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-lbl">Total Users</div>
+      <div class="stat-val blue" id="statUsers">—</div>
+      <div class="stat-sub" id="statUsersActive">Loading…</div>
     </div>
   </div>
 
-  <div class="page-content">
-
-    <!-- Stats -->
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-val" id="statPending" style="color:var(--amber)">—</div>
-        <div class="stat-lbl">Pending</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="statGranted" style="color:var(--green)">—</div>
-        <div class="stat-lbl">Granted</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="statTotal" style="color:var(--white)">—</div>
-        <div class="stat-lbl">Total Paid (R)</div>
+  <!-- Withdrawals section -->
+  <div class="section-hdr">
+    <div class="section-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><polyline points="5 12 12 5 19 12"/><line x1="5" y1="19" x2="19" y2="19"/></svg>
+      Withdrawal Requests
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <input class="search-inp" id="searchInp" placeholder="Search name / email…" oninput="renderTable()">
+      <div class="filter-row">
+        <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+        <button class="filter-btn" onclick="setFilter('pending',this)">Pending</button>
+        <button class="filter-btn" onclick="setFilter('paid',this)">Paid</button>
+        <button class="filter-btn" onclick="setFilter('rejected',this)">Rejected</button>
       </div>
     </div>
-
-    <!-- Tabs -->
-    <div class="tabs">
-      <div class="tab active" id="tabPending" onclick="switchTab('pending')">PENDING</div>
-      <div class="tab" id="tabGranted" onclick="switchTab('granted')">GRANTED</div>
-      <div class="tab" id="tabAll" onclick="switchTab('all')">ALL</div>
-    </div>
-
-    <!-- List -->
-    <div class="requests-list" id="requestsList">
-      <div class="loading-dots"><span></span><span></span><span></span></div>
-    </div>
-
   </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th>Amount</th>
+          <th>Method</th>
+          <th>Requested</th>
+          <th>Status</th>
+          <th>Note</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="wdTableBody">
+        <tr id="loadingRow"><td colspan="8"><div style="text-align:center;padding:32px;color:var(--dim);"><div class="spinner" style="margin:0 auto 10px;"></div><div>Loading requests…</div></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Users section -->
+  <div class="section-hdr" style="margin-top:8px;">
+    <div class="section-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Players
+    </div>
+    <input class="search-inp" id="userSearchInp" placeholder="Search player…" oninput="renderUsers()">
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Display Name</th>
+          <th>Email</th>
+          <th>Balance</th>
+          <th>Joined</th>
+        </tr>
+      </thead>
+      <tbody id="usersTableBody">
+        <tr><td colspan="5"><div style="text-align:center;padding:32px;color:var(--dim);"><div class="spinner" style="margin:0 auto 10px;"></div><div>Loading players…</div></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
 </div>
 
-<!-- ── CONFIRM OVERLAY ── -->
-<div id="confirmOverlay">
-  <div class="confirm-box">
-    <div class="confirm-icon">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-    </div>
-    <div class="confirm-title">GRANT WITHDRAWAL?</div>
-    <div class="confirm-body" id="confirmBody">This will mark the request as granted and deduct the withdrawal amount from the user's balance.</div>
-    <div class="confirm-actions">
-      <button class="btn-cancel" onclick="closeConfirm()">Cancel</button>
-      <button class="btn-confirm-green" id="confirmDoBtn" onclick="executeGrant()">Grant & Deduct</button>
-    </div>
-  </div>
+<!-- DETAIL DRAWER -->
+<div id="detailDrawer">
+  <button class="drawer-close" onclick="closeDrawer()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:20px;padding-right:36px;">Request Detail</div>
+  <div id="drawerContent"></div>
 </div>
 
-<!-- ── TOAST ── -->
-<div class="adm-toast" id="admToast"></div>
+<!-- TOAST -->
+<div id="toast"></div>
 
 <!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script type="module">
+import { initializeApp }          from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, getDocs, onSnapshot, doc, updateDoc, orderBy, query, serverTimestamp, increment }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
-<script>
-// ── Firebase init ──
-const FB={
-  apiKey:'AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ',
-  authDomain:'globalchat-2d669.firebaseapp.com',
-  projectId:'globalchat-2d669',
-  storageBucket:'globalchat-2d669.firebasestorage.app',
-  messagingSenderId:'178714711978',
-  appId:'1:178714711978:web:fb831188be23e62a4bbdd3'
+// ─── Firebase config (same as game) ───
+const FB = {
+  apiKey:            'AIzaSyDnPz8BWCaXJOazlFVO4Eap8VxdSR2oDFQ',
+  authDomain:        'globalchat-2d669.firebaseapp.com',
+  databaseURL:       'https://globalchat-2d669-default-rtdb.firebaseio.com',
+  projectId:         'globalchat-2d669',
+  storageBucket:     'globalchat-2d669.firebasestorage.app',
+  messagingSenderId: '178714711978',
+  appId:             '1:178714711978:web:fb831188be23e62a4bbdd3'
 };
-firebase.initializeApp(FB);
-const auth=firebase.auth();
-const db=firebase.firestore();
 
-let _currentTab='pending';
-let _unsubRequests=null;
-let _pendingGrantDoc=null; // {docId, uid, amount, displayName, netAmount}
-let _toastTimer=null;
+const app  = initializeApp(FB);
+const auth = getAuth(app);
+const db   = getFirestore(app);
 
-// ── TOAST ──
-function admToast(msg,type='green'){
-  const el=document.getElementById('admToast');
-  el.textContent=msg;
-  el.style.borderColor=type==='red'?'rgba(248,113,113,.3)':'rgba(74,222,128,.3)';
-  el.classList.add('show');
-  clearTimeout(_toastTimer);
-  _toastTimer=setTimeout(()=>el.classList.remove('show'),3000);
-}
+// ─── State ───
+let allWithdrawals = [];
+let allUsers       = [];
+let currentFilter  = 'all';
+let openDrawerId   = null;
 
-// ── AUTH ──
-firebase.auth().onAuthStateChanged(user=>{
+// ─── Auth ───
+window.doLogin = async function(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw    = document.getElementById('loginPw').value;
+  const btn   = document.getElementById('loginBtn');
+  const errEl = document.getElementById('authError');
+  if(!email || !pw){ errEl.textContent = 'Enter email and password.'; return; }
+  btn.textContent = 'SIGNING IN…'; btn.disabled = true;
+  try{
+    await signInWithEmailAndPassword(auth, email, pw);
+  } catch(e){
+    errEl.textContent = e.code === 'auth/invalid-credential' ? 'Wrong email or password.' : e.message;
+    btn.textContent = 'SIGN IN'; btn.disabled = false;
+  }
+};
+
+window.doSignOut = async function(){
+  await signOut(auth);
+};
+
+onAuthStateChanged(auth, user => {
   if(user){
-    document.getElementById('authScreen').classList.add('hidden');
-    document.getElementById('mainScreen').classList.add('visible');
-    loadRequests();
-  }else{
-    document.getElementById('authScreen').classList.remove('hidden');
-    document.getElementById('mainScreen').classList.remove('visible');
-    if(_unsubRequests){_unsubRequests();_unsubRequests=null;}
+    document.getElementById('authGate').style.display  = 'none';
+    document.getElementById('mainPanel').style.display = 'block';
+    document.getElementById('adminUser').textContent   = user.email;
+    startListeners();
+  } else {
+    document.getElementById('authGate').style.display  = 'flex';
+    document.getElementById('mainPanel').style.display = 'none';
+    document.getElementById('loginBtn').textContent    = 'SIGN IN';
+    document.getElementById('loginBtn').disabled       = false;
+    document.getElementById('authError').textContent   = '';
+    allWithdrawals = []; allUsers = [];
   }
 });
 
-window.doAdminLogin=async function(){
-  const email=document.getElementById('adminEmail').value.trim();
-  const pass=document.getElementById('adminPass').value;
-  const errEl=document.getElementById('authErr');
-  errEl.textContent='';
-  if(!email||!pass){errEl.textContent='Enter email and password.';return;}
-  try{
-    await auth.signInWithEmailAndPassword(email,pass);
-  }catch(e){
-    errEl.textContent=e.code==='auth/wrong-password'||e.code==='auth/user-not-found'?'Invalid credentials.':'Error: '+e.message;
-  }
-};
-
-window.doAdminLogout=function(){
-  auth.signOut();
-};
-
-// ── TABS ──
-window.switchTab=function(tab){
-  _currentTab=tab;
-  ['pending','granted','all'].forEach(t=>{
-    document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active',t===tab);
-  });
-  loadRequests();
-};
-
-// ── LOAD REQUESTS ──
-function loadRequests(){
-  const listEl=document.getElementById('requestsList');
-  listEl.innerHTML='<div class="loading-dots"><span></span><span></span><span></span></div>';
-  if(_unsubRequests){_unsubRequests();_unsubRequests=null;}
-
-  let query=db.collection('withdrawalRequests').orderBy('requestedAt','desc');
-  if(_currentTab==='pending')query=query.where('status','==','pending');
-  if(_currentTab==='granted')query=query.where('status','==','granted');
-
-  _unsubRequests=query.onSnapshot(snap=>{
-    // Update stats from all docs (only if on pending or loading all)
+// ─── Live listeners ───
+function startListeners(){
+  // Withdrawals (all, ordered by requestedAt desc)
+  const wdQ = query(collection(db,'sw_withdrawals'), orderBy('requestedAt','desc'));
+  onSnapshot(wdQ, snap => {
+    allWithdrawals = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     updateStats();
+    renderTable();
+  });
 
-    if(snap.empty){
-      listEl.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-txt">No ${_currentTab==='all'?'':_currentTab} requests yet.</div></div>`;
-      return;
-    }
-    listEl.innerHTML='';
-    snap.forEach(doc=>{
-      listEl.appendChild(buildCard(doc.id,doc.data()));
-    });
-  },err=>{
-    listEl.innerHTML='<div class="empty-state"><div class="empty-txt" style="color:var(--red)">Failed to load: '+err.message+'</div></div>';
+  // Users
+  getDocs(collection(db,'sw_users')).then(snap => {
+    allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    document.getElementById('statUsers').textContent = allUsers.length;
+    const withBal = allUsers.filter(u => (u.balance||0) > 0).length;
+    document.getElementById('statUsersActive').textContent = withBal + ' with balance';
+    renderUsers();
   });
 }
 
+// ─── Stats ───
 function updateStats(){
-  // Pending count
-  db.collection('withdrawalRequests').where('status','==','pending').get().then(s=>{
-    document.getElementById('statPending').textContent=s.size;
-  });
-  // Granted count + total paid
-  db.collection('withdrawalRequests').where('status','==','granted').get().then(s=>{
-    document.getElementById('statGranted').textContent=s.size;
-    let total=0;s.forEach(d=>total+=d.data().netAmount||0);
-    document.getElementById('statTotal').textContent='R'+total.toFixed(2);
-  });
+  const pending  = allWithdrawals.filter(w => w.status === 'pending');
+  const paid     = allWithdrawals.filter(w => w.status === 'paid');
+  const rejected = allWithdrawals.filter(w => w.status === 'rejected');
+  const sum = arr => arr.reduce((t,w) => t + (w.amount||0), 0);
+
+  document.getElementById('statPending').textContent     = pending.length;
+  document.getElementById('statPendingAmt').textContent  = 'R' + sum(pending).toFixed(2) + ' total';
+  document.getElementById('statPaid').textContent        = paid.length;
+  document.getElementById('statPaidAmt').textContent     = 'R' + sum(paid).toFixed(2) + ' paid';
+  document.getElementById('statRejected').textContent    = rejected.length;
+  document.getElementById('statRejectedAmt').textContent = 'R' + sum(rejected).toFixed(2) + ' refunded';
 }
 
-function buildCard(docId,d){
-  const wrapper=document.createElement('div');
-  wrapper.className='req-card'+(d.status==='granted'?' granted':'');
-  wrapper.id='card-'+docId;
-
-  const ts=d.requestedAt?new Date(d.requestedAt.seconds*1000).toLocaleString('en-ZA',{
-    day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'
-  }):'—';
-  const grantedTs=d.grantedAt?new Date(d.grantedAt.seconds*1000).toLocaleString('en-ZA',{
-    day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'
-  }):null;
-
-  const initials=(d.displayName||d.username||'?').charAt(0).toUpperCase();
-
-  wrapper.innerHTML=`
-    <div class="req-header">
-      <div class="req-avatar">${initials}</div>
-      <div class="req-meta">
-        <div class="req-name">${d.displayName||'—'}</div>
-        <div class="req-username">@${d.username||'unknown'} &nbsp;·&nbsp; ${d.email||''}</div>
-      </div>
-      <div class="req-status-badge ${d.status==='granted'?'status-granted':'status-pending'}">
-        ${d.status==='granted'?'Granted':'Pending'}
-      </div>
-    </div>
-    <div class="req-body">
-      <div class="req-row">
-        <span class="req-key">Amount Requested</span>
-        <span class="req-val">R${(d.requestedAmount||0).toFixed(2)}</span>
-      </div>
-      <div class="req-row">
-        <span class="req-key">Payout to User</span>
-        <span class="req-val req-payout">R${(d.netAmount||0).toFixed(2)}</span>
-      </div>
-      <div class="req-row">
-        <span class="req-key">Account Holder</span>
-        <span class="req-val">${d.accountHolder||'—'}</span>
-      </div>
-      <div class="req-row">
-        <span class="req-key">Account Number</span>
-        <span class="req-val" style="font-family:monospace;font-size:14px">${d.accountNumber||'—'}</span>
-      </div>
-      <div class="req-row">
-        <span class="req-key">Balance at Request</span>
-        <span class="req-val">R${(d.balanceAtRequest||0).toFixed(2)}</span>
-      </div>
-      <div class="req-row">
-        <span class="req-key">Requested</span>
-        <span class="req-val" style="font-size:11px">${ts}</span>
-      </div>
-      ${grantedTs?`<div class="req-row"><span class="req-key">Granted At</span><span class="req-val" style="font-size:11px;color:var(--green)">${grantedTs}</span></div>`:''}
-    </div>
-    <div class="req-footer">
-      ${d.status==='granted'
-        ?`<div class="granted-label"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>WITHDRAWAL GRANTED</div>`
-        :`<button class="approve-btn" onclick="confirmGrant('${docId}','${d.uid}',${d.requestedAmount||0},'${(d.displayName||d.username||'User').replace(/'/g,"\\'")}',${d.netAmount||0})">
-           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-           MARK AS GRANTED
-         </button>`
-      }
-    </div>
-  `;
-  return wrapper;
-}
-
-// ── GRANT FLOW ──
-window.confirmGrant=function(docId,uid,amount,name,netAmount){
-  _pendingGrantDoc={docId,uid,amount,name,netAmount};
-  document.getElementById('confirmBody').innerHTML=
-    `Marking <strong>${name}</strong>'s request as granted.<br>
-     Their balance will be reduced by <strong>R${amount.toFixed(2)}</strong> and the request will be closed.`;
-  document.getElementById('confirmOverlay').classList.add('open');
+// ─── Withdrawals table ───
+window.setFilter = function(f, btn){
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
 };
 
-window.closeConfirm=function(){
-  document.getElementById('confirmOverlay').classList.remove('open');
-  _pendingGrantDoc=null;
-};
+window.renderTable = function(){
+  const q = (document.getElementById('searchInp').value || '').toLowerCase();
+  let rows = allWithdrawals;
+  if(currentFilter !== 'all') rows = rows.filter(w => w.status === currentFilter);
+  if(q) rows = rows.filter(w =>
+    (w.name||'').toLowerCase().includes(q) ||
+    (w.email||'').toLowerCase().includes(q) ||
+    (w.uid||'').includes(q)
+  );
 
-window.executeGrant=async function(){
-  if(!_pendingGrantDoc)return;
-  const {docId,uid,amount,name,netAmount}=_pendingGrantDoc;
-  const btn=document.getElementById('confirmDoBtn');
-  btn.disabled=true;btn.textContent='Processing…';
-
-  try{
-    // Use Firestore batch: update request doc + decrement user balance atomically
-    const batch=db.batch();
-
-    // 1. Mark request as granted
-    const reqRef=db.collection('withdrawalRequests').doc(docId);
-    batch.update(reqRef,{
-      status:'granted',
-      grantedAt:firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    // 2. Deduct balance from user's doc (users collection — same as ShootWars)
-    const userRef=db.collection('users').doc(uid);
-    batch.update(userRef,{
-      balance:firebase.firestore.FieldValue.increment(-amount)
-    });
-
-    await batch.commit();
-
-    closeConfirm();
-    admToast('Granted! R'+amount.toFixed(2)+' deducted from '+name+'\'s balance.');
-  }catch(e){
-    admToast('Error: '+e.message,'red');
-    btn.disabled=false;btn.textContent='Grant & Deduct';
+  const tbody = document.getElementById('wdTableBody');
+  if(!rows.length){
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <p>No requests found.</p></div></td></tr>`;
+    return;
   }
+
+  tbody.innerHTML = rows.map((w, i) => {
+    const ts = w.requestedAt?.toDate ? w.requestedAt.toDate() : (w.requestedAt ? new Date(w.requestedAt) : null);
+    const dateStr = ts ? ts.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}) + ' ' + ts.toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'}) : '—';
+    const badge  = w.status === 'pending'  ? `<span class="badge badge-pending"><svg width="7" height="7" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>Pending</span>`
+                 : w.status === 'paid'     ? `<span class="badge badge-paid"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Paid</span>`
+                 : `<span class="badge badge-rejected"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Rejected</span>`;
+    const methodIcon = w.method === 'bank'
+      ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>`
+      : w.method === 'ewallet'
+      ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>`
+      : `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`;
+    const actions = w.status === 'pending' ? `
+      <input class="note-inp" id="note_${w.id}" placeholder="Note (optional)">
+      <div style="display:flex;gap:6px;margin-top:6px;">
+        <button class="act-btn act-approve" onclick="approveWd('${w.id}','${(w.uid||'')}',${w.amount||0})">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Approve
+        </button>
+        <button class="act-btn act-reject" onclick="rejectWd('${w.id}','${(w.uid||'')}',${w.amount||0})">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Reject
+        </button>
+      </div>` : `<span style="font-size:11px;color:var(--dim);">${w.note||'—'}</span>`;
+
+    return `<tr onclick="openDrawer('${w.id}')" style="cursor:pointer;">
+      <td class="td-num td-meta">${i+1}</td>
+      <td>
+        <div class="td-name">${escHtml(w.name||'Unknown')}</div>
+        <div class="td-meta">${escHtml(w.email||w.uid||'')}</div>
+      </td>
+      <td class="td-num td-amt">R${(w.amount||0).toFixed(2)}</td>
+      <td><span class="td-method">${methodIcon} ${(w.method||'bank').toUpperCase()}</span></td>
+      <td class="td-meta" style="font-size:11px;">${dateStr}</td>
+      <td>${badge}</td>
+      <td onclick="event.stopPropagation();">${actions}</td>
+      <td onclick="event.stopPropagation();">
+        <button class="act-btn" onclick="openDrawer('${w.id}')" style="border-color:var(--border);color:var(--dim);">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          View
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+};
+
+// ─── Users table ───
+window.renderUsers = function(){
+  const q = (document.getElementById('userSearchInp').value || '').toLowerCase();
+  let users = allUsers;
+  if(q) users = users.filter(u =>
+    (u.displayName||'').toLowerCase().includes(q) ||
+    (u.email||'').toLowerCase().includes(q)
+  );
+  const tbody = document.getElementById('usersTableBody');
+  if(!users.length){
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><p>No players found.</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = users.map((u, i) => {
+    const joined = u.createdAt?.toDate ? u.createdAt.toDate().toLocaleDateString('en-ZA') : '—';
+    return `<tr>
+      <td class="td-num td-meta">${i+1}</td>
+      <td class="td-name">${escHtml(u.displayName||'—')}</td>
+      <td class="td-meta">${escHtml(u.email||'—')}</td>
+      <td class="td-num" style="color:var(--gold);">R${(u.balance||0).toFixed(2)}</td>
+      <td class="td-meta" style="font-size:11px;">${joined}</td>
+    </tr>`;
+  }).join('');
+};
+
+// ─── Approve / Reject ───
+window.approveWd = async function(id, uid, amount){
+  const note = (document.getElementById('note_'+id)?.value||'').trim();
+  if(!confirm(`Approve R${amount.toFixed(2)} withdrawal for user?\n\nMake sure you have already sent the payment before approving.`)) return;
+  try{
+    await updateDoc(doc(db,'sw_withdrawals',id),{
+      status:'paid', processedAt: serverTimestamp(), note: note || 'Approved by admin'
+    });
+    // Also update user subcollection
+    try{ await updateDoc(doc(db,'sw_users',uid,'withdrawals',id),{status:'paid',processedAt:serverTimestamp()}); }catch(e2){}
+    showToast('✓ Withdrawal marked as PAID');
+  }catch(e){ showToast('Error: ' + e.message, true); }
+};
+
+window.rejectWd = async function(id, uid, amount){
+  const note = (document.getElementById('note_'+id)?.value||'').trim();
+  if(!confirm(`Reject this withdrawal of R${amount.toFixed(2)}?\n\nThe amount will be automatically refunded to the player's balance.`)) return;
+  try{
+    // Refund balance
+    await updateDoc(doc(db,'sw_users',uid),{ balance: increment(amount) });
+    // Mark rejected
+    await updateDoc(doc(db,'sw_withdrawals',id),{
+      status:'rejected', processedAt: serverTimestamp(), note: note || 'Rejected by admin'
+    });
+    try{ await updateDoc(doc(db,'sw_users',uid,'withdrawals',id),{status:'rejected',processedAt:serverTimestamp()}); }catch(e2){}
+    showToast('Withdrawal rejected — R' + amount.toFixed(2) + ' refunded to player');
+  }catch(e){ showToast('Error: ' + e.message, true); }
+};
+
+// ─── Detail drawer ───
+window.openDrawer = function(id){
+  const w = allWithdrawals.find(x => x.id === id);
+  if(!w) return;
+  openDrawerId = id;
+  const ts = w.requestedAt?.toDate ? w.requestedAt.toDate() : null;
+  const pt = w.processedAt?.toDate  ? w.processedAt.toDate()  : null;
+  const payout = w.payout || {};
+
+  let payoutHtml = '';
+  if(w.method === 'bank'){
+    payoutHtml = `
+      <div class="drawer-row"><span class="drawer-lbl">Bank</span><span class="drawer-val">${escHtml(payout.bankName||'—')}</span></div>
+      <div class="drawer-row"><span class="drawer-lbl">Account No.</span><span class="drawer-val">${escHtml(payout.accNum||'—')}</span></div>
+      <div class="drawer-row"><span class="drawer-lbl">Account Holder</span><span class="drawer-val">${escHtml(payout.accHolder||'—')}</span></div>`;
+  } else {
+    payoutHtml = `<div class="drawer-row"><span class="drawer-lbl">Cell Number</span><span class="drawer-val">${escHtml(payout.phone||'—')}</span></div>`;
+  }
+
+  document.getElementById('drawerContent').innerHTML = `
+    <div class="drawer-row"><span class="drawer-lbl">Player</span><span class="drawer-val">${escHtml(w.name||'—')}</span></div>
+    <div class="drawer-row"><span class="drawer-lbl">Email</span><span class="drawer-val">${escHtml(w.email||'—')}</span></div>
+    <div class="drawer-row"><span class="drawer-lbl">UID</span><span class="drawer-val" style="font-size:10px;">${escHtml(w.uid||'—')}</span></div>
+    <div class="drawer-row"><span class="drawer-lbl">Amount</span><span class="drawer-val" style="color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:18px;">R${(w.amount||0).toFixed(2)}</span></div>
+    <div class="drawer-row"><span class="drawer-lbl">Balance Before</span><span class="drawer-val">R${(w.balanceBefore||0).toFixed(2)}</span></div>
+    <div class="drawer-row"><span class="drawer-lbl">Balance After</span><span class="drawer-val">R${(w.balanceAfter||0).toFixed(2)}</span></div>
+    <div class="drawer-row"><span class="drawer-lbl">Method</span><span class="drawer-val">${(w.method||'bank').toUpperCase()}</span></div>
+    ${payoutHtml}
+    <div class="drawer-row"><span class="drawer-lbl">Status</span><span class="drawer-val">${w.status||'—'}</span></div>
+    <div class="drawer-row"><span class="drawer-lbl">Requested</span><span class="drawer-val">${ts ? ts.toLocaleString('en-ZA') : '—'}</span></div>
+    <div class="drawer-row"><span class="drawer-lbl">Processed</span><span class="drawer-val">${pt ? pt.toLocaleString('en-ZA') : '—'}</span></div>
+    <div class="drawer-row"><span class="drawer-lbl">Note</span><span class="drawer-val">${escHtml(w.note||'—')}</span></div>
+    <div class="drawer-row"><span class="drawer-lbl">Request ID</span><span class="drawer-val" style="font-size:10px;">${escHtml(w.id)}</span></div>
+    ${w.status === 'pending' ? `
+    <div style="margin-top:16px;">
+      <input class="note-inp" style="width:100%;margin-bottom:8px;" id="drawerNote_${w.id}" placeholder="Note (optional)">
+      <div style="display:flex;gap:8px;">
+        <button class="act-btn act-approve" style="flex:1;justify-content:center;" onclick="approveWd('${w.id}','${w.uid||''}',${w.amount||0})">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Approve
+        </button>
+        <button class="act-btn act-reject" style="flex:1;justify-content:center;" onclick="rejectWd('${w.id}','${w.uid||''}',${w.amount||0})">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Reject
+        </button>
+      </div>
+    </div>` : ''}
+  `;
+  document.getElementById('detailDrawer').classList.add('open');
+};
+
+window.closeDrawer = function(){
+  document.getElementById('detailDrawer').classList.remove('open');
+  openDrawerId = null;
+};
+
+// ─── Helpers ───
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+window.showToast = function(msg, isErr=false){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.color = isErr ? 'var(--red)' : 'var(--green)';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3500);
 };
 </script>
 </body>
