@@ -4774,9 +4774,9 @@ window.onFundsCustomChange=function(val){
 window.startYocoPayment=async function(){
   if(!_selAmt||!CU)return;
   const btn=document.getElementById('fundsPayBtn');
-  const status=document.getElementById('fundsStatus');
+  const statusEl=document.getElementById('fundsStatus');
   btn.disabled=true;btn.style.opacity='.6';
-  status.textContent='Creating payment…';
+  statusEl.textContent='Creating payment…';
   const amt=_selAmt;
   try{
     const res=await fetch(VAL_URL,{
@@ -4787,16 +4787,21 @@ window.startYocoPayment=async function(){
     const data=await res.json();
     if(data.success&&data.redirectUrl){
       window.closeAddFunds();
-      // Store prev balance + amount in localStorage — survives page navigation
-      localStorage.setItem('sw_pending_pay',JSON.stringify({uid:CU.uid,prevBal:UD.balance||0,amount:amt,ts:Date.now()}));
-      // Send user to Yoco payment page
+      // Store checkoutId (id from Yoco response) + prevBal + amount — survives page navigation
+      localStorage.setItem('sw_pending_pay',JSON.stringify({
+        uid:       CU.uid,
+        prevBal:   UD.balance||0,
+        amount:    amt,
+        checkoutId: data.checkoutId || data.id || '',
+        ts:        Date.now()
+      }));
       window.location.href=data.redirectUrl;
     }else{
-      status.textContent=data.error||'Could not start payment. Try again.';
+      statusEl.textContent=data.error||'Could not start payment. Try again.';
       btn.disabled=false;btn.style.opacity='1';
     }
   }catch(e){
-    status.textContent='Network error. Try again.';
+    statusEl.textContent='Network error. Try again.';
     btn.disabled=false;btn.style.opacity='1';
   }
 };
@@ -4808,83 +4813,98 @@ async function processPendingPayment(){
   let pending;
   try{ pending = JSON.parse(raw); } catch(e){ localStorage.removeItem('sw_pending_pay'); return; }
 
-  // Only process for same user within 30 mins
   if(!CU || pending.uid !== CU.uid || Date.now() - pending.ts > 1800000){
     localStorage.removeItem('sw_pending_pay'); return;
   }
   localStorage.removeItem('sw_pending_pay');
 
-  const prevBal = pending.prevBal || 0;
-  const paidAmt = pending.amount  || 0;
+  const prevBal    = pending.prevBal    || 0;
+  const paidAmt    = pending.amount     || 0;
+  const checkoutId = pending.checkoutId || '';
 
-  // Read Yoco status from URL if present
-  const urlParams  = new URLSearchParams(window.location.search);
-  const yocoStatus = urlParams.get('status') || urlParams.get('payment_status') || '';
-  if(yocoStatus) window.history.replaceState({}, '', window.location.pathname);
+  // Show spinner banner immediately so user sees feedback right away
+  _showPaymentBanner('Verifying Payment…','Checking your transaction — just a moment.','','pending');
 
-  // Yoco explicitly cancelled
-  if(yocoStatus === 'cancelled' || yocoStatus === 'failed' || yocoStatus === 'cancel'){
-    showPaymentResult('declined', paidAmt, prevBal); return;
+  // ── STEP 1: If we have a checkoutId, ask our server to verify it directly ──
+  // This gives an instant authoritative answer without waiting for webhooks
+  if(checkoutId){
+    try{
+      const res  = await fetch(VAL_URL,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({action:'verify', checkoutId, uid:CU.uid})
+      });
+      const data = await res.json();
+
+      // Server told us definitively
+      if(data.status === 'paid' || data.paid === true){
+        // Also sync balance from Firestore to be accurate
+        try{
+          const snap = await getDoc(doc(db,'sw_users',CU.uid));
+          const b = snap.exists() ? (snap.data().balance||0) : prevBal + paidAmt;
+          UD.balance = b; refreshLobbyUI();
+          showPaymentResult('success', b - prevBal, b);
+        }catch(e){ showPaymentResult('success', paidAmt, prevBal + paidAmt); }
+        return;
+      }
+      if(data.status === 'cancelled' || data.status === 'failed' || data.paid === false){
+        showPaymentResult('declined', paidAmt, prevBal);
+        return;
+      }
+      // data.status === 'pending' or unknown — fall through to balance poll
+    }catch(e){
+      // Server verify failed — fall through to balance poll
+      console.warn('Verify call failed, falling back to balance poll:', e);
+    }
   }
 
-  // Always show a "checking" banner first so user knows something is happening
-  _showPaymentBanner(
-    'Checking Payment…',
-    'Verifying your transaction with Yoco.',
-    'This usually takes just a few seconds.',
-    'pending'
-  );
-
-  // Immediately check Firestore balance
+  // ── STEP 2: Fallback — read balance from Firestore immediately ──
   try{
-    const snap = await getDoc(doc(db, 'sw_users', CU.uid));
+    const snap = await getDoc(doc(db,'sw_users',CU.uid));
     if(!snap.exists()){ showPaymentResult('declined', paidAmt, prevBal); return; }
     const nowBal = snap.data().balance || 0;
 
     if(nowBal > prevBal){
-      // Webhook already fired — confirmed
-      UD.balance = nowBal;
-      refreshLobbyUI();
+      // Webhook already fired — we're done
+      UD.balance = nowBal; refreshLobbyUI();
       showPaymentResult('success', nowBal - prevBal, nowBal);
       return;
     }
-  } catch(e){ console.error('processPendingPayment initial check:', e); }
+  }catch(e){ console.error('Balance check failed:', e); }
 
-  // Balance not updated yet — listen live with a hard 90-second timeout
+  // ── STEP 3: Balance not updated yet — live listener with hard 30s timeout ──
+  // 30 seconds is enough; if webhook hasn't fired by then it's not coming
   let resolved = false;
   let timeoutId = null;
-  let unsub = null;
+  let unsub     = null;
 
-  function resolvePayment(status, added, bal){
+  async function resolve(didPay){
     if(resolved) return;
     resolved = true;
-    if(unsub)  try{ unsub(); }catch(e){}
+    if(unsub)    try{ unsub(); }catch(e){}
     if(timeoutId) clearTimeout(timeoutId);
-    UD.balance = bal;
-    refreshLobbyUI();
-    showPaymentResult(status, added, bal);
+    try{
+      const snap = await getDoc(doc(db,'sw_users',CU.uid));
+      const b = snap.exists() ? (snap.data().balance||0) : prevBal;
+      UD.balance = b; refreshLobbyUI();
+      if(didPay || b > prevBal) showPaymentResult('success', b - prevBal, b);
+      else                       showPaymentResult('declined', paidAmt, prevBal);
+    }catch(e){
+      if(didPay) showPaymentResult('success', paidAmt, prevBal + paidAmt);
+      else        showPaymentResult('declined', paidAmt, prevBal);
+    }
   }
 
   try{
-    unsub = onSnapshot(doc(db, 'sw_users', CU.uid), snap2 => {
+    unsub = onSnapshot(doc(db,'sw_users',CU.uid), snap2 => {
       if(resolved || !snap2.exists()) return;
       const b = snap2.data().balance || 0;
-      if(b > prevBal){
-        resolvePayment('success', b - prevBal, b);
-      }
+      if(b > prevBal) resolve(true);
     });
-  } catch(e){ console.error('processPendingPayment listener:', e); }
+  }catch(e){ console.error('Snapshot listener failed:', e); }
 
-  // Hard timeout — if no update in 90 seconds, mark as declined
-  timeoutId = setTimeout(() => {
-    if(!resolved){
-      try{ const lastSnap = getDoc(doc(db,'sw_users',CU.uid)).then(s=>{
-        const b = s.exists() ? (s.data().balance||0) : prevBal;
-        resolvePayment(b > prevBal ? 'success' : 'declined', b - prevBal, b);
-      }).catch(()=>resolvePayment('declined', 0, prevBal)); }
-      catch(e){ resolvePayment('declined', 0, prevBal); }
-    }
-  }, 90000);
+  // Hard 30-second timeout — no more "updating shortly" limbo
+  timeoutId = setTimeout(() => resolve(false), 30000);
 }
 
 // Display a clear, professional result notification for the payment
@@ -4892,15 +4912,15 @@ function showPaymentResult(status, addedAmt, newBal){
   if(status === 'success'){
     _showPaymentBanner(
       'Payment Successful',
-      'R' + (addedAmt||0).toFixed(2) + ' added to your battle balance.',
+      'R' + (addedAmt > 0 ? addedAmt.toFixed(2) : '—') + ' added to your balance.',
       'New balance: R' + (newBal||0).toFixed(2),
       'success'
     );
-  } else if(status === 'declined'){
+  } else {
     _showPaymentBanner(
-      'Payment Not Completed',
-      'Your payment was declined or cancelled.',
-      'No money was taken. Please try again.',
+      'Payment Declined',
+      'Your card was not charged.',
+      'Please try again or use a different payment method.',
       'declined'
     );
   }
