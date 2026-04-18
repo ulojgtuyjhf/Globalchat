@@ -4808,37 +4808,63 @@ window.startYocoPayment=async function(){
 
 // Called after auth is confirmed — check if returning from Yoco payment
 async function processPendingPayment(){
+  const params = new URLSearchParams(window.location.search);
+
+  // ── FAST PATH: Yoco cancelled/failed → URL has ?cancelled=1 ──
+  if(params.get('cancelled') === '1'){
+    window.history.replaceState({}, '', window.location.pathname);
+    localStorage.removeItem('sw_pending_pay');
+    _showPaymentBanner(
+      'Payment Cancelled',
+      'Your card was not charged.',
+      'Tap Add Funds to try again.',
+      'declined'
+    );
+    return;
+  }
+
+  // Check if we have a pending payment stored
   const raw = localStorage.getItem('sw_pending_pay');
-  if(!raw) return;
+  if(!raw){
+    // No pending payment — clean URL params silently if any stray ones exist
+    if(params.has('uid') || params.has('amount')) window.history.replaceState({}, '', window.location.pathname);
+    return;
+  }
   let pending;
   try{ pending = JSON.parse(raw); } catch(e){ localStorage.removeItem('sw_pending_pay'); return; }
-
   if(!CU || pending.uid !== CU.uid || Date.now() - pending.ts > 1800000){
     localStorage.removeItem('sw_pending_pay'); return;
   }
   localStorage.removeItem('sw_pending_pay');
 
+  // Clean URL params from address bar
+  if(params.has('uid') || params.has('amount') || params.has('cancelled')){
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
   const prevBal    = pending.prevBal    || 0;
   const paidAmt    = pending.amount     || 0;
   const checkoutId = pending.checkoutId || '';
 
-  // Show spinner banner immediately so user sees feedback right away
-  _showPaymentBanner('Verifying Payment…','Checking your transaction — just a moment.','','pending');
+  // Show spinner immediately
+  _showPaymentBanner('Verifying Payment…', 'Checking with Yoco — just a second.', '', 'pending');
 
-  // ── STEP 1: If we have a checkoutId, ask our server to verify it directly ──
-  // This gives an instant authoritative answer without waiting for webhooks
+  // ── VERIFY via server — authoritative answer in ~1 second ──
   if(checkoutId){
     try{
-      const res  = await fetch(VAL_URL,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({action:'verify', checkoutId, uid:CU.uid})
+      const res  = await fetch(VAL_URL, {
+        method:  'POST',
+        headers: {'Content-Type':'application/json'},
+        body:    JSON.stringify({action:'verify', checkoutId, uid:CU.uid})
       });
       const data = await res.json();
 
-      // Server told us definitively
-      if(data.status === 'paid' || data.paid === true){
-        // Also sync balance from Firestore to be accurate
+      // Your Val Town server returns: { paid: true/false, status: 'complete'|'succeeded'|'cancelled'|'failed'|... }
+      const isPaid      = data.paid === true || data.status === 'complete' || data.status === 'succeeded';
+      const isCancelled = data.status === 'cancelled' || data.status === 'failed' || data.paid === false;
+
+      if(isPaid){
+        // Sync real balance from Firestore
         try{
           const snap = await getDoc(doc(db,'sw_users',CU.uid));
           const b = snap.exists() ? (snap.data().balance||0) : prevBal + paidAmt;
@@ -4847,64 +4873,60 @@ async function processPendingPayment(){
         }catch(e){ showPaymentResult('success', paidAmt, prevBal + paidAmt); }
         return;
       }
-      if(data.status === 'cancelled' || data.status === 'failed' || data.paid === false){
+
+      if(isCancelled){
         showPaymentResult('declined', paidAmt, prevBal);
         return;
       }
-      // data.status === 'pending' or unknown — fall through to balance poll
+
+      // Status is still 'pending' / 'created' — webhook hasn't fired yet, poll below
+
     }catch(e){
-      // Server verify failed — fall through to balance poll
-      console.warn('Verify call failed, falling back to balance poll:', e);
+      console.warn('Verify failed, falling back to balance poll:', e);
     }
   }
 
-  // ── STEP 2: Fallback — read balance from Firestore immediately ──
+  // ── FALLBACK: read Firestore balance right now ──
   try{
     const snap = await getDoc(doc(db,'sw_users',CU.uid));
-    if(!snap.exists()){ showPaymentResult('declined', paidAmt, prevBal); return; }
-    const nowBal = snap.data().balance || 0;
-
-    if(nowBal > prevBal){
-      // Webhook already fired — we're done
-      UD.balance = nowBal; refreshLobbyUI();
-      showPaymentResult('success', nowBal - prevBal, nowBal);
-      return;
+    if(snap.exists()){
+      const nowBal = snap.data().balance || 0;
+      if(nowBal > prevBal){
+        UD.balance = nowBal; refreshLobbyUI();
+        showPaymentResult('success', nowBal - prevBal, nowBal);
+        return;
+      }
     }
-  }catch(e){ console.error('Balance check failed:', e); }
+  }catch(e){ console.error('Balance check error:', e); }
 
-  // ── STEP 3: Balance not updated yet — live listener with hard 30s timeout ──
-  // 30 seconds is enough; if webhook hasn't fired by then it's not coming
-  let resolved = false;
-  let timeoutId = null;
-  let unsub     = null;
+  // ── LAST RESORT: live listener, 30-second hard timeout ──
+  let done = false;
+  let timer = null;
+  let unsub = null;
 
-  async function resolve(didPay){
-    if(resolved) return;
-    resolved = true;
-    if(unsub)    try{ unsub(); }catch(e){}
-    if(timeoutId) clearTimeout(timeoutId);
+  async function finish(paid){
+    if(done) return;
+    done = true;
+    try{ unsub && unsub(); }catch(e){}
+    clearTimeout(timer);
     try{
       const snap = await getDoc(doc(db,'sw_users',CU.uid));
       const b = snap.exists() ? (snap.data().balance||0) : prevBal;
       UD.balance = b; refreshLobbyUI();
-      if(didPay || b > prevBal) showPaymentResult('success', b - prevBal, b);
-      else                       showPaymentResult('declined', paidAmt, prevBal);
+      showPaymentResult(paid || b > prevBal ? 'success' : 'declined', b - prevBal, b);
     }catch(e){
-      if(didPay) showPaymentResult('success', paidAmt, prevBal + paidAmt);
-      else        showPaymentResult('declined', paidAmt, prevBal);
+      showPaymentResult(paid ? 'success' : 'declined', paidAmt, paid ? prevBal + paidAmt : prevBal);
     }
   }
 
   try{
-    unsub = onSnapshot(doc(db,'sw_users',CU.uid), snap2 => {
-      if(resolved || !snap2.exists()) return;
-      const b = snap2.data().balance || 0;
-      if(b > prevBal) resolve(true);
+    unsub = onSnapshot(doc(db,'sw_users',CU.uid), s => {
+      if(done || !s.exists()) return;
+      if((s.data().balance||0) > prevBal) finish(true);
     });
-  }catch(e){ console.error('Snapshot listener failed:', e); }
+  }catch(e){}
 
-  // Hard 30-second timeout — no more "updating shortly" limbo
-  timeoutId = setTimeout(() => resolve(false), 30000);
+  timer = setTimeout(() => finish(false), 30000);
 }
 
 // Display a clear, professional result notification for the payment
