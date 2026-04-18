@@ -4859,9 +4859,9 @@ async function processPendingPayment(){
       });
       const data = await res.json();
 
-      // Your Val Town server returns: { paid: true/false, status: 'complete'|'succeeded'|'cancelled'|'failed'|... }
-      const isPaid      = data.paid === true || data.status === 'complete' || data.status === 'succeeded';
-      const isCancelled = data.status === 'cancelled' || data.status === 'failed' || data.paid === false;
+      // Yoco checkout: paid = paymentId is non-null, OR status is 'complete'/'succeeded'
+      const isPaid      = data.paid === true || data.status === 'complete' || data.status === 'succeeded' || data.status === 'paid';
+      const isCancelled = !isPaid && (data.paid === false || data.status === 'cancelled' || data.status === 'failed' || data.status === 'expired');
 
       if(isPaid){
         // Sync real balance from Firestore
@@ -4932,57 +4932,59 @@ async function processPendingPayment(){
 // Display a clear, professional result notification for the payment
 function showPaymentResult(status, addedAmt, newBal){
   if(status === 'success'){
-    _showPaymentBanner(
-      'Payment Successful',
-      'R' + (addedAmt > 0 ? addedAmt.toFixed(2) : '—') + ' added to your balance.',
-      'New balance: R' + (newBal||0).toFixed(2),
-      'success'
-    );
+    _showPaymentBanner('Payment Successful','R'+(addedAmt>0?addedAmt.toFixed(2):'—')+' added to your balance.','New balance: R'+(newBal||0).toFixed(2),'success');
   } else {
-    _showPaymentBanner(
-      'Payment Declined',
-      'Your card was not charged.',
-      'Please try again or use a different payment method.',
-      'declined'
-    );
+    _showPaymentBanner('Payment Declined','Your card was not charged.','Please try again or use a different card.','declined');
   }
 }
 
-function _showPaymentBanner(title, body, sub, type){
-  const existing = document.getElementById('paymentResultBanner');
-  if(existing) existing.remove();
+function _dismissBanner(){
+  const b=document.getElementById('paymentResultBanner');
+  if(!b)return;
+  b.style.opacity='0';
+  b.style.transform='translateX(-50%) translateY(-12px)';
+  setTimeout(()=>{const b2=document.getElementById('paymentResultBanner');if(b2)b2.remove();},380);
+}
 
-  const isSuccess = type === 'success';
-  const isPending = type === 'pending';
-  const borderColor = isSuccess ? 'rgba(74,222,128,.35)' : isPending ? 'rgba(251,191,36,.35)' : 'rgba(248,113,113,.35)';
-  const iconColor   = isSuccess ? '#4ade80' : isPending ? '#fbbf24' : '#f87171';
-  const iconSvg = isSuccess
-    ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
+function _showPaymentBanner(title,body,sub,type){
+  const existing=document.getElementById('paymentResultBanner');
+  if(existing)existing.remove();
+
+  const isSuccess=type==='success', isPending=type==='pending';
+  const col  = isSuccess?'#4ade80':isPending?'#fbbf24':'#f87171';
+  const bord = isSuccess?'rgba(74,222,128,.4)':isPending?'rgba(251,191,36,.4)':'rgba(248,113,113,.4)';
+  // success shows 6s, declined shows 8s — long enough to read, short enough to feel snappy
+  const ms   = isPending?0:isSuccess?6000:8000;
+
+  const icon = isSuccess
+    ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${col}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
     : isPending
-    ? `<div style="width:18px;height:18px;border:2.5px solid rgba(251,191,36,.3);border-top-color:#fbbf24;border-radius:50%;animation:spin .8s linear infinite;"></div>`
-    : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+    ? `<div style="width:20px;height:20px;border:2.5px solid rgba(251,191,36,.2);border-top-color:#fbbf24;border-radius:50%;animation:_bspin .7s linear infinite"></div>`
+    : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${col}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
 
-  const banner = document.createElement('div');
-  banner.id = 'paymentResultBanner';
-  banner.style.cssText = `position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:99999;background:var(--card);border:1.5px solid ${borderColor};border-radius:16px;padding:18px 20px;width:92%;max-width:360px;box-shadow:0 16px 48px rgba(0,0,0,.6);animation:bannerIn .35s cubic-bezier(.16,1,.3,1);`;
-  banner.innerHTML = `
-    <style>
-      @keyframes bannerIn{from{opacity:0;transform:translateX(-50%) translateY(-14px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-      @keyframes spin{to{transform:rotate(360deg)}}
-    </style>
+  const b=document.createElement('div');
+  b.id='paymentResultBanner';
+  b.style.cssText=`position:fixed;top:72px;left:50%;transform:translateX(-50%) translateY(0);z-index:99999;background:var(--card);border:1.5px solid ${bord};border-radius:16px;padding:16px 18px 14px;width:92%;max-width:370px;box-shadow:0 20px 56px rgba(0,0,0,.7);opacity:1;transition:opacity .38s ease,transform .38s ease;animation:_bIn .3s cubic-bezier(.16,1,.3,1);`;
+  b.innerHTML=`
+    <style>@keyframes _bIn{from{opacity:0;transform:translateX(-50%) translateY(-16px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}@keyframes _bspin{to{transform:rotate(360deg)}}</style>
     <div style="display:flex;align-items:flex-start;gap:12px;">
-      <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.05);border:1.5px solid ${borderColor};display:flex;align-items:center;justify-content:center;flex-shrink:0;">${iconSvg}</div>
+      <div style="width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.04);border:1.5px solid ${bord};display:flex;align-items:center;justify-content:center;flex-shrink:0;">${icon}</div>
       <div style="flex:1;min-width:0;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1.5px;color:${iconColor};margin-bottom:4px;">${title}</div>
-        <div style="font-size:13px;color:var(--white);font-weight:600;margin-bottom:3px;">${body}</div>
-        <div style="font-size:11px;color:var(--dim);">${sub}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:${col};margin-bottom:3px;">${title}</div>
+        <div style="font-size:13px;color:var(--white);font-weight:600;line-height:1.4;margin-bottom:${sub?'2':'0'}px;">${body}</div>
+        ${sub?`<div style="font-size:11px;color:var(--dim);line-height:1.4;">${sub}</div>`:''}
       </div>
-      ${!isPending ? `<button onclick="document.getElementById('paymentResultBanner').remove()" style="background:none;border:none;cursor:pointer;color:var(--dim);padding:2px;flex-shrink:0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>` : ''}
+      ${!isPending?`<button onclick="_dismissBanner()" style="background:none;border:none;cursor:pointer;color:var(--dim);padding:2px;flex-shrink:0;margin-top:1px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`:''}
     </div>
+    ${!isPending?`<div style="height:2px;background:rgba(255,255,255,.07);border-radius:2px;margin-top:12px;overflow:hidden;"><div id="_bp" style="height:100%;width:100%;background:${col};border-radius:2px;transition:width ${ms}ms linear;opacity:.45;"></div></div>`:''}
   `;
-  document.body.appendChild(banner);
+  document.body.appendChild(b);
+
   if(!isPending){
-    setTimeout(() => { if(banner.parentNode) banner.remove(); }, isSuccess ? 10000 : 14000);
+    // Kick off progress bar drain
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{const p=document.getElementById('_bp');if(p)p.style.width='0%';}));
+    // Auto-dismiss with smooth fade
+    setTimeout(()=>_dismissBanner(), ms);
   }
 }
 
