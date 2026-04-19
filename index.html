@@ -2939,7 +2939,7 @@ function gameFrame(ts){
   drawTreads();
   drawBullets(dt);
   drawRemoteBullets(dt);
-  drawPlayers();    // tanks drawn here — UNDER trees
+  drawPlayers(dt);    // tanks drawn here — UNDER trees
   drawTrees();      // trees drawn last — cover tanks underneath them
   ctx.restore();
   updateParticles();
@@ -3174,9 +3174,10 @@ function drawTreads(){
   }
 }
 
-function drawPlayers(){
+function drawPlayers(dt){
   if(!gameState?.players)return;
-  const lerpFactor=0.18;
+  // dt-based lerp: smooth on all frame rates (fast phone = same visual as slow phone)
+  const lerpFactor=1-Math.pow(0.04,dt*0.06); // ~80ms half-life regardless of FPS
   Object.entries(_remotePlayerTargets).forEach(([uid,target])=>{
     if(!_smoothPlayers[uid])_smoothPlayers[uid]={...target};
     const sp=_smoothPlayers[uid];
@@ -3965,9 +3966,9 @@ function handleMovement(me,dt){
     if(_treads.length>500)_treads.shift();
   }
 
-  // Push position to Firebase (throttled)
+  // Push position to Firebase (throttled — every 2nd frame ≈ 30 times/sec at 60fps)
   _posUpdateThrottle++;
-  if(_posUpdateThrottle%3===0){
+  if(_posUpdateThrottle%2===0){
     update(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+myUid),{x:me.x,y:me.y,angle:me.angle,lastActive:Date.now()});
   }
 }
@@ -4152,7 +4153,15 @@ function listenRoom(id){
           }
           return;
         }
-        _remotePlayerTargets[uid]={x:p.x,y:p.y,angle:p.angle||0,hp:p.hp,alive:p.alive,name:p.name,handle:p.handle,photo:p.photo,colorIdx:p.colorIdx,uid:p.uid};
+        // Store as interpolation target — smooth movement handled in gameFrame
+        if(!_remotePlayerTargets[uid]){
+          // First time seeing this player: init at their actual position (no lerp jump)
+          _remotePlayerTargets[uid]={x:p.x,y:p.y,angle:p.angle||0,hp:p.hp,alive:p.alive,name:p.name,handle:p.handle,photo:p.photo,colorIdx:p.colorIdx,uid:p.uid,
+            renderX:p.x,renderY:p.y,renderAngle:p.angle||0};
+        } else {
+          // Update target — renderer interpolates toward this each frame
+          Object.assign(_remotePlayerTargets[uid],{x:p.x,y:p.y,angle:p.angle||0,hp:p.hp,alive:p.alive,name:p.name,handle:p.handle,photo:p.photo,colorIdx:p.colorIdx,uid:p.uid});
+        }
       });
     }
     if(gameState&&gameState.players&&gameState.players[myUid]&&d.players&&d.players[myUid]){
@@ -4175,17 +4184,21 @@ async function handleMyDeath(){
   if(_soundEnabled) playSound('die');
   if(bulletRegenTimer){ clearInterval(bulletRegenTimer); bulletRegenTimer = null; }
 
+  // ── Show death screen IMMEDIATELY — don't make the player wait ──
+  const banner = document.getElementById('deathBanner');
+  if(banner) banner.style.display = 'flex';
+  refreshLobbyUI();
+
+  // ── Handle fee in background (player already sees the death screen) ──
   const entryFee = currentRoomData?.entryFee || ENTRY_FEE;
   const roomName = 'Room #' + currentRoomId.slice(-4).toUpperCase();
 
-  // ── Wait up to 8 seconds for the Cloud Function to set feeDeducted ──
-  // The killer's Cloud Function will deduct and set this flag.
-  // Only if it never arrives do we fall back.
+  // Wait up to 5 seconds for Cloud Function to set feeDeducted, then fall back
   let feeHandledByServer = false;
   try{
     const playerRef = ref(rtdb, 'sw_rooms/' + currentRoomId + '/players/' + CU.uid);
     feeHandledByServer = await new Promise(resolve => {
-      const timeout = setTimeout(() => { off(playerRef); resolve(false); }, 8000);
+      const timeout = setTimeout(() => { off(playerRef); resolve(false); }, 5000);
       onValue(playerRef, snap => {
         if(snap.val()?.feeDeducted === true){
           clearTimeout(timeout);
@@ -4197,7 +4210,7 @@ async function handleMyDeath(){
   }catch(e){}
 
   if(!feeHandledByServer){
-    // Killer disconnected before Cloud Function ran — we deduct ourselves as fallback
+    // Killer disconnected before Cloud Function ran — deduct ourselves as fallback
     try{
       await updateDoc(doc(db, 'sw_users', CU.uid), {
         balance:     increment(-entryFee),
@@ -4211,7 +4224,7 @@ async function handleMyDeath(){
     }catch(e){ console.error('Fallback death deduction failed:', e); }
   }
 
-  // ── Always sync real balance from Firestore so UI is correct ──
+  // Sync real balance from Firestore in background and refresh UI quietly
   try{
     const snap = await getDoc(doc(db, 'sw_users', CU.uid));
     if(snap.exists()){
@@ -4221,10 +4234,7 @@ async function handleMyDeath(){
       UD.gamesPlayed = d.gamesPlayed || 0;
     }
   }catch(e){}
-
   refreshLobbyUI();
-  const banner = document.getElementById('deathBanner');
-  if(banner) banner.style.display = 'flex';
 }
 
 async function handleWin(){
