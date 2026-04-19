@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
-<title>ShootWars — Nmedea</title>
+<title>BirdWars — Nmedea</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 
@@ -718,9 +718,8 @@ body.dark-theme .ph-ico.loss{background:rgba(255,255,255,0.08);}
 @keyframes hpPulse{0%,100%{opacity:1}50%{opacity:.5}}
 .self-hp-val{font-family:'Bebas Neue',sans-serif;font-size:12px;min-width:24px;text-align:right;color:#fff;}
 .self-bullets{display:flex;align-items:center;gap:4px;font-size:10px;color:rgba(255,255,255,.35);}
-.bullet-icons{display:flex;gap:2px;flex-wrap:wrap;max-width:80px;}
-.bullet-icon{width:5px;height:9px;background:rgba(255,255,255,.7);border-radius:1px;transition:opacity .2s;}
-.bullet-icon.spent{opacity:.1;}
+.attack-cooldown{width:54px;height:54px;border-radius:50%;position:relative;}
+.attack-ready{box-shadow:0 0 14px rgba(255,180,40,0.6);}
 .self-balance{display:none;}
 
 /* ── TOUCH CONTROLS: FIXED – larger base, proper positioning ── */
@@ -764,6 +763,33 @@ body.dark-theme .ph-ico.loss{background:rgba(255,255,255,0.08);}
 .fire-btn.firing{background:rgba(255,255,255,0.08);}
 .fire-btn svg{width:30px;height:30px;color:var(--brand);}
 .bullets-left{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:1px;color:var(--dim);white-space:nowrap;}
+.hearing-btn{
+  position:fixed;bottom:42px;right:168px;
+  width:44px;height:44px;border-radius:50%;
+  background:rgba(80,180,255,0.12);
+  border:2px solid rgba(100,200,255,0.35);
+  display:grid;place-items:center;
+  cursor:pointer;pointer-events:auto;
+  transition:all .25s;
+  touch-action:none;
+  z-index:60;
+}
+.hearing-btn.active{
+  background:rgba(80,180,255,0.28);
+  border-color:rgba(100,220,255,0.8);
+  box-shadow:0 0 18px rgba(80,200,255,0.5);
+  animation:hearingPulse .8s ease-in-out infinite;
+}
+.hearing-btn.cooldown{opacity:0.38;border-color:rgba(100,200,255,0.15);}
+@keyframes hearingPulse{
+  0%,100%{box-shadow:0 0 10px rgba(80,200,255,0.4);}
+  50%{box-shadow:0 0 28px rgba(80,200,255,0.9);}
+}
+.hearing-cooldown-ring{
+  position:absolute;inset:-4px;border-radius:50%;
+  background:conic-gradient(rgba(100,200,255,0.7) 0%, transparent 0%);
+  transition:none;pointer-events:none;
+}
 
 .result-overlay{position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.93);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;}
 .result-overlay.show{display:flex;}
@@ -1099,58 +1125,44 @@ body.dark-theme .ph-ico.loss{background:rgba(255,255,255,0.08);}
                   Back
                 </button>
                 <div>
-                  <div class="pg-title" style="margin-bottom:0;font-size:22px">YOUR TANK</div>
-                  <div class="pg-sub" style="margin-bottom:0">Choose your war machine</div>
+                  <div class="pg-title" style="margin-bottom:0;font-size:22px">YOUR BIRD</div>
+                  <div class="pg-sub" style="margin-bottom:0">Choose your feathered fighter</div>
                 </div>
               </div>
 
               <!-- TANK SELECTOR -->
-              <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-                <!-- Left arrow -->
-                <button onclick="switchTank(-1)" style="width:38px;height:38px;flex-shrink:0;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--white);display:grid;place-items:center;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="this.style.borderColor='var(--border)'">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-                </button>
-
-                <!-- Tank Card -->
-                <div id="tankCard" style="flex:1;background:linear-gradient(160deg,rgba(128,128,128,0.06) 0%,var(--card) 55%);border:2px solid var(--border);border-radius:20px;overflow:hidden;position:relative;transition:all .3s">
+              <div style="display:flex;justify-content:center;margin-bottom:16px">
+                <!-- Bird Card -->
+                <div id="tankCard" style="width:100%;max-width:320px;background:linear-gradient(160deg,rgba(128,128,128,0.06) 0%,var(--card) 55%);border:2px solid var(--border);border-radius:20px;overflow:hidden;position:relative;transition:all .3s">
                   <!-- Badges -->
                   <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px 0">
                     <div id="tankActiveBadge" style="background:var(--muted);border:1px solid var(--border);border-radius:100px;padding:3px 10px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--white);font-weight:700">● ACTIVE</div>
-                    <div id="tankVariantBadge" style="background:var(--muted);border:1px solid var(--border);border-radius:100px;padding:3px 10px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);font-weight:700">MK-IV</div>
+                    <div id="tankVariantBadge" style="background:var(--muted);border:1px solid var(--border);border-radius:100px;padding:3px 10px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);font-weight:700">NIGHT PREDATOR</div>
                   </div>
                   <!-- Tank image -->
                   <div style="display:flex;flex-direction:column;align-items:center;padding:16px 20px 14px">
-                    <img id="tankChooserImg" src="https://i.ibb.co/twzDZKfp/images-4-removebg-preview.png" style="width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 12px 32px rgba(0,0,0,0.15));animation:tankRock 3s ease-in-out infinite;margin-bottom:10px;transition:all .3s" alt="Tank">
-                    <div id="tankChooserName" style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;color:var(--white)">HEAVY ARMOR</div>
-                    <div id="tankChooserSub" style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);opacity:.5;margin-top:2px">62 TONNES · CREW: 4</div>
+                    <img id="tankChooserImg" src="https://i.ibb.co/spmSq4NG/gosha-simonov-owlrigged007-removebg-preview.png" style="max-width:160px;max-height:140px;width:auto;height:auto;object-fit:contain;filter:drop-shadow(0 12px 32px rgba(0,0,0,0.15));animation:tankRock 3s ease-in-out infinite;margin-bottom:10px;transition:all .3s" alt="Owl">
+                    <div id="tankChooserName" style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;color:var(--white)">GREAT HORNED OWL</div>
+                    <div id="tankChooserSub" style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);opacity:.5;margin-top:2px">1.4 KG · WINGSPAN: 142 CM</div>
                   </div>
                   <!-- Divider -->
                   <div style="height:1px;background:var(--border)"></div>
                   <!-- Stats -->
                   <div style="padding:14px 20px 16px">
-                    <div class="tank-stat-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg><span class="tank-stat-lbl">HP</span><div class="tank-stat-bar-wrap"><div id="statBarHP" class="tank-stat-bar" style="width:24.9%;background:#e74c3c"></div></div><span id="statValHP" class="tank-stat-val">498</span></div>
-                    <div class="tank-stat-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e67e22" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="tank-stat-lbl">DMG</span><div class="tank-stat-bar-wrap"><div id="statBarDMG" class="tank-stat-bar" style="width:43%;background:#e67e22"></div></div><span id="statValDMG" class="tank-stat-val">86</span></div>
-                    <div class="tank-stat-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tank-stat-lbl">SPD</span><div class="tank-stat-bar-wrap"><div id="statBarSPD" class="tank-stat-bar" style="width:72%;background:#3498db"></div></div><span id="statValSPD" class="tank-stat-val">72</span></div>
-                    <div class="tank-stat-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><span class="tank-stat-lbl">ARM</span><div class="tank-stat-bar-wrap"><div id="statBarARM" class="tank-stat-bar" style="width:90%;background:#27ae60"></div></div><span id="statValARM" class="tank-stat-val">90%</span></div>
+                    <div class="tank-stat-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg><span class="tank-stat-lbl">VIT</span><div class="tank-stat-bar-wrap"><div id="statBarHP" class="tank-stat-bar" style="width:26%;background:#e74c3c"></div></div><span id="statValHP" class="tank-stat-val">498</span></div>
+                    <div class="tank-stat-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e67e22" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="tank-stat-lbl">STR</span><div class="tank-stat-bar-wrap"><div id="statBarDMG" class="tank-stat-bar" style="width:43%;background:#e67e22"></div></div><span id="statValDMG" class="tank-stat-val">86</span></div>
+                    <div class="tank-stat-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tank-stat-lbl">AGI</span><div class="tank-stat-bar-wrap"><div id="statBarSPD" class="tank-stat-bar" style="width:72%;background:#3498db"></div></div><span id="statValSPD" class="tank-stat-val">72</span></div>
+                    <div class="tank-stat-row"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><span class="tank-stat-lbl">PLM</span><div class="tank-stat-bar-wrap"><div id="statBarARM" class="tank-stat-bar" style="width:68%;background:#27ae60"></div></div><span id="statValARM" class="tank-stat-val">90%</span></div>
                   </div>
                 </div>
 
-                <!-- Right arrow -->
-                <button onclick="switchTank(1)" style="width:38px;height:38px;flex-shrink:0;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--white);display:grid;place-items:center;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="this.style.borderColor='var(--border)'">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-                </button>
               </div>
 
-              <!-- Tank dots indicator -->
-              <div style="display:flex;justify-content:center;gap:6px;margin-bottom:16px">
-                <div id="tankDot0" style="width:8px;height:8px;border-radius:50%;background:var(--brand);transition:all .2s"></div>
-                <div id="tankDot1" style="width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .2s"></div>
-                <div id="tankDot2" style="width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .2s"></div>
-              </div>
+              
 
               <!-- SPAWN Button -->
               <button id="spawnBtn" onclick="showPlayServers()" style="width:100%;padding:19px;background:var(--grad);border:none;border-radius:14px;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;cursor:pointer;transition:opacity .2s;box-shadow:0 6px 28px rgba(0,0,0,0.15)" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
-                ⚔ &nbsp; SPAWN INTO BATTLE
+                🦅 &nbsp; TAKE FLIGHT
               </button>
             </div>
 
@@ -1432,7 +1444,7 @@ body.dark-theme .ph-ico.loss{background:rgba(255,255,255,0.08);}
         <div class="hp-bar-bg"><div class="hp-bar-fill high" id="selfHpBar" style="width:100%"></div></div>
         <div class="self-hp-val"><span id="selfHpVal">498</span><span id="selfHpMax" style="font-size:9px;opacity:.5">/498</span></div>
       </div>
-      <div class="self-bullets"><span style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--dim)">Ammo</span><div class="bullet-icons" id="bulletIcons"></div></div>
+      <div id="attackStatus" style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,200,60,0.85);font-weight:700;text-align:center">⚡ READY</div>
     </div>
     <div class="ingame-chat">
       <div class="ic-msgs" id="ingameChatMsgs"></div>
@@ -1448,12 +1460,16 @@ body.dark-theme .ph-ico.loss{background:rgba(255,255,255,0.08);}
         <div class="joystick-knob" id="joystickKnob"></div>
       </div>
       <div class="fire-area">
-        <div class="fire-btn" id="fireBtn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        </div>
-        <div class="bullets-left" id="bulletsLeftLabel">10 rounds</div>
-        <!-- LAND icon button — only for F-22, positioned above joystick area -->
-        <div id="landBtn" onclick="tryLandJet()" style="display:none;position:fixed;bottom:170px;right:175px;width:44px;height:44px;border-radius:50%;background:rgba(20,60,180,0.88);border:1.5px solid rgba(120,170,255,0.6);color:#fff;font-size:18px;display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px rgba(0,60,255,0.35);z-index:200;user-select:none;" title="Land">✈</div>
+        <div class="fire-btn" id="fireBtn"></div>
+        <div class="bullets-left" id="bulletsLeftLabel" style="display:none"></div>
+      </div>
+      <!-- HEARING ability — fixed position, right of attack btn -->
+      <div class="hearing-btn" id="hearingBtn" onclick="activateHearing()">
+        <div class="hearing-cooldown-ring" id="hearingRing"></div>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="rgba(100,210,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 18v-6a9 9 0 0118 0v6"/>
+          <path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/>
+        </svg>
       </div>
     </div>
   </div>
@@ -1590,7 +1606,7 @@ exports.processKill = functions.database
 const app=initializeApp(FB);
 const auth=getAuth(app),db=getFirestore(app),rtdb=getDatabase(app),storage=getStorage(app);
 const R2='https://r2-upload.katlegomashilwane0691.workers.dev/upload';
-const ENTRY_FEE=2,KILL_REWARD=2,PLATFORM_CUT=0,STARTING_BAL=0,MAX_BULLETS=10,BULLET_REGEN_MS=4000,TURN_DELAY_MS=15000;
+const ENTRY_FEE=2,KILL_REWARD=2,PLATFORM_CUT=0,STARTING_BAL=0,TURN_DELAY_MS=15000,ATTACK_RANGE=36,ATTACK_COOLDOWN_MS=700;
 const TANK_DAMAGE=86,TANK_MAX_HP=498; // defaults — overridden per player by selected tank
 
 let CU=null,UD=null,_authDone=false;
@@ -1613,50 +1629,19 @@ function _makeNoise(ac,dur){
 // ── Continuous engine sound nodes ──
 let _jetEngineNode=null,_jetEngineGain=null;
 let _tankEngineNode=null,_tankEngineGain=null;
-let _atlaEngineNode=null,_atlasEngineGain=null;
 
 function startEngineSound(tankId){
   if(!_soundEnabled)return;
   try{
     const ac=getAudioCtx();
     stopEngineSound();
-    if(tankId==='f22'){
-      // F-16 — deep turbofan roar: sub-bass thump + mid exhaust rush + high turbine scream
-      // NO oscillators alone — pure noise layers shaped to sound like a real jet
-      // Layer 1: deep sub-bass exhaust THUMP — the chest-hitting low end
+    // OWL — soft wing-whoosh ambient: gentle high-pass noise layer
       const n1=_makeNoise(ac,99);
-      const lp1=ac.createBiquadFilter();lp1.type='lowpass';lp1.frequency.value=120;lp1.Q.value=0.8;
+      const hp1=ac.createBiquadFilter();hp1.type='bandpass';hp1.frequency.value=900;hp1.Q.value=0.6;
       const g1=ac.createGain();g1.gain.value=0.0;
-      g1.gain.linearRampToValueAtTime(0.55,ac.currentTime+1.4);
-      n1.connect(lp1);lp1.connect(g1);g1.connect(ac.destination);n1.start();
-      // Layer 2: mid exhaust body — the continuous roar rush
-      const n2=_makeNoise(ac,99);
-      const bp2=ac.createBiquadFilter();bp2.type='bandpass';bp2.frequency.value=380;bp2.Q.value=0.6;
-      const g2=ac.createGain();g2.gain.value=0.0;
-      g2.gain.linearRampToValueAtTime(0.35,ac.currentTime+1.0);
-      n2.connect(bp2);bp2.connect(g2);g2.connect(ac.destination);n2.start();
-      // Layer 3: high turbine whine — the jet scream on top
-      const n3=_makeNoise(ac,99);
-      const hp3=ac.createBiquadFilter();hp3.type='bandpass';hp3.frequency.value=1800;hp3.Q.value=1.2;
-      const g3=ac.createGain();g3.gain.value=0.0;
-      g3.gain.linearRampToValueAtTime(0.12,ac.currentTime+1.8);
-      n3.connect(hp3);hp3.connect(g3);g3.connect(ac.destination);n3.start();
-      _jetEngineNode=[n1,n2,n3];_jetEngineGain=[g1,g2,g3,lp1,bp2];
-    } else if(tankId==='atlas'){
-      const osc=ac.createOscillator();osc.type='sawtooth';osc.frequency.value=42;
-      const filt=ac.createBiquadFilter();filt.type='lowpass';filt.frequency.value=180;filt.Q.value=2;
-      const g=ac.createGain();g.gain.value=0.0;
-      g.gain.linearRampToValueAtTime(0.22,ac.currentTime+0.8);
-      osc.connect(filt);filt.connect(g);g.connect(ac.destination);osc.start();
-      _atlaEngineNode=osc;_atlasEngineGain=g;
-    } else {
-      const osc=ac.createOscillator();osc.type='sawtooth';osc.frequency.value=68;
-      const filt=ac.createBiquadFilter();filt.type='lowpass';filt.frequency.value=280;filt.Q.value=1.5;
-      const g=ac.createGain();g.gain.value=0.0;
-      g.gain.linearRampToValueAtTime(0.15,ac.currentTime+0.6);
-      osc.connect(filt);filt.connect(g);g.connect(ac.destination);osc.start();
-      _tankEngineNode=osc;_tankEngineGain=g;
-    }
+      g1.gain.linearRampToValueAtTime(0.07,ac.currentTime+0.8);
+      n1.connect(hp1);hp1.connect(g1);g1.connect(ac.destination);n1.start();
+      _tankEngineNode=n1;_tankEngineGain=g1;
   }catch(e){}
 }
 
@@ -1665,121 +1650,35 @@ function updateEngineSound(speed,maxSpeed,tankId){
   try{
     const ac=getAudioCtx();
     const ratio=Math.min(speed/maxSpeed,1);
-    if(tankId==='f22'){
-      if(_jetEngineNode&&_jetEngineGain){
-        const abEngaged=ratio>0.55;
-        // In a turn the pilot bleeds energy — engine pitch drops slightly, roar gets heavier/muffled
-        const turnLoad=Math.abs(_bankAngle||0); // 0 = straight, ~0.5 = hard turn
-        const turnPitchDrop=turnLoad*0.35; // how much to suppress the high whine
-        const turnRoarBoost=turnLoad*0.12; // mid roar gets fuller in the turn
-        // Sub-bass thump: gets heavier with throttle, fuller in turns
-        _jetEngineGain[0].gain.setTargetAtTime(0.35+ratio*0.45+turnRoarBoost,ac.currentTime,abEngaged?0.06:0.25);
-        _jetEngineGain[3].frequency.setTargetAtTime(abEngaged?80+ratio*120:60+ratio*40,ac.currentTime,0.2);
-        // Mid roar body: surges with throttle, boosted in turns (grunt of the engine working harder)
-        _jetEngineGain[1].gain.setTargetAtTime(abEngaged?0.25+ratio*0.35+turnRoarBoost:0.08+ratio*0.12+turnRoarBoost*0.5,ac.currentTime,abEngaged?0.07:0.3);
-        _jetEngineGain[4].frequency.setTargetAtTime(abEngaged?500+ratio*400:280+ratio*100,ac.currentTime,0.2);
-        // High turbine whine: drops in turns (pilot pulls back throttle in coordinated turn)
-        _jetEngineGain[2].gain.setTargetAtTime(Math.max(0.01,(abEngaged?0.10+ratio*0.22:0.02+ratio*0.04)-turnPitchDrop),ac.currentTime,abEngaged?0.06:0.35);
-      }
-    } else if(tankId==='atlas'){
-      if(_atlaEngineNode&&_atlasEngineGain){
-        _atlaEngineNode.frequency.setTargetAtTime(38+ratio*22,ac.currentTime,0.4);
-        _atlasEngineGain.gain.setTargetAtTime(0.10+ratio*0.18,ac.currentTime,0.4);
-      }
-    } else {
+    // OWL — wing swoosh scales with movement speed
       if(_tankEngineNode&&_tankEngineGain){
-        _tankEngineNode.frequency.setTargetAtTime(55+ratio*40,ac.currentTime,0.35);
-        _tankEngineGain.gain.setTargetAtTime(0.06+ratio*0.14,ac.currentTime,0.35);
+        _tankEngineGain.gain.setTargetAtTime(0.02+ratio*0.09,ac.currentTime,0.35);
       }
-    }
   }catch(e){}
 }
 
 function stopEngineSound(){
   try{
-    if(_jetEngineNode){_jetEngineNode.forEach(n=>{try{n.stop();}catch(e){}});_jetEngineNode=null;_jetEngineGain=null;}
     if(_tankEngineNode){try{_tankEngineNode.stop();}catch(e){}; _tankEngineNode=null;_tankEngineGain=null;}
-    if(_atlaEngineNode){try{_atlaEngineNode.stop();}catch(e){}; _atlaEngineNode=null;_atlasEngineGain=null;}
   }catch(e){}
 }
 
-// Sound barrier boom — triggered once when jet hits full speed
-let _sonicBoomDone=false;
-function playSonicBoom(){
-  if(!_soundEnabled||_sonicBoomDone)return;
-  _sonicBoomDone=true;
-  try{
-    const ac=getAudioCtx();const now=ac.currentTime;
-    // Low concussive THOOM
-    const noise=_makeNoise(ac,0.5);
-    const filt=ac.createBiquadFilter();filt.type='lowpass';filt.frequency.setValueAtTime(600,now);filt.frequency.exponentialRampToValueAtTime(40,now+0.45);
-    const g=ac.createGain();g.gain.setValueAtTime(2.5,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.5);
-    noise.connect(filt);filt.connect(g);g.connect(ac.destination);noise.start();noise.stop(now+0.5);
-    // High crack
-    const noise2=_makeNoise(ac,0.1);
-    const filt2=ac.createBiquadFilter();filt2.type='highpass';filt2.frequency.value=3000;
-    const g2=ac.createGain();g2.gain.setValueAtTime(1.8,now);g2.gain.exponentialRampToValueAtTime(0.001,now+0.12);
-    noise2.connect(filt2);filt2.connect(g2);g2.connect(ac.destination);noise2.start();noise2.stop(now+0.12);
-  }catch(e){}
-}
+// Sonic boom removed — birds only
 
 function playSound(type,tankId){
   if(!_soundEnabled)return;
-  const isAtlas=(tankId||_selectedTank?.id)==='atlas';
-  const isF22=(tankId||_selectedTank?.id)==='f22';
+  // Owl: single bird unit
   try{
     const ac=getAudioCtx();
     const now=ac.currentTime;
 
     if(type==='shoot'){
-      if(isF22){
-        // AIM-120 AMRAAM missile launch — deep ejection thump + solid rocket motor ignition + sustainer whoosh
-        // 1. Ejection THUMP — the pneumatic kick launching the missile off the rail
-        const ejNoise=_makeNoise(ac,0.4);
-        const ejFilt=ac.createBiquadFilter();ejFilt.type='lowpass';ejFilt.frequency.setValueAtTime(320,now);ejFilt.frequency.exponentialRampToValueAtTime(40,now+0.18);
-        const ejG=ac.createGain();ejG.gain.setValueAtTime(2.2,now);ejG.gain.exponentialRampToValueAtTime(0.001,now+0.20);
-        ejNoise.connect(ejFilt);ejFilt.connect(ejG);ejG.connect(ac.destination);ejNoise.start();ejNoise.stop(now+0.22);
-        // Sub-bass body thud
-        const subOsc=ac.createOscillator(),subG=ac.createGain();
-        subOsc.type='sine';subOsc.frequency.setValueAtTime(55,now);subOsc.frequency.exponentialRampToValueAtTime(22,now+0.16);
-        subG.gain.setValueAtTime(1.4,now);subG.gain.exponentialRampToValueAtTime(0.001,now+0.18);
-        subOsc.connect(subG);subG.connect(ac.destination);subOsc.start();subOsc.stop(now+0.20);
-        // 2. Solid rocket motor ignition — harsh burst of broadband fire
-        const ignNoise=_makeNoise(ac,0.35);
-        const ignFilt=ac.createBiquadFilter();ignFilt.type='bandpass';ignFilt.frequency.setValueAtTime(1800,now+0.08);ignFilt.Q.value=0.4;
-        ignFilt.frequency.exponentialRampToValueAtTime(400,now+0.40);
-        const ignG=ac.createGain();ignG.gain.setValueAtTime(0.0,now);ignG.gain.linearRampToValueAtTime(1.6,now+0.10);ignG.gain.exponentialRampToValueAtTime(0.001,now+0.42);
-        ignNoise.connect(ignFilt);ignFilt.connect(ignG);ignG.connect(ac.destination);ignNoise.start();ignNoise.stop(now+0.45);
-        // 3. Sustainer whoosh — the missile accelerating away, doppler-style fade
-        const whooshNoise=_makeNoise(ac,0.45);
-        const whooshFilt=ac.createBiquadFilter();whooshFilt.type='bandpass';whooshFilt.frequency.setValueAtTime(600,now+0.12);whooshFilt.Q.value=0.55;
-        whooshFilt.frequency.exponentialRampToValueAtTime(220,now+0.85);
-        const whooshG=ac.createGain();whooshG.gain.setValueAtTime(0.0,now);whooshG.gain.linearRampToValueAtTime(0.9,now+0.15);whooshG.gain.exponentialRampToValueAtTime(0.001,now+0.9);
-        whooshNoise.connect(whooshFilt);whooshFilt.connect(whooshG);whooshG.connect(ac.destination);whooshNoise.start();whooshNoise.stop(now+0.95);
-        // 4. High-frequency rocket scream fading into distance
-        const screamOsc=ac.createOscillator(),screamG=ac.createGain();
-        screamOsc.type='sawtooth';screamOsc.frequency.setValueAtTime(1600,now+0.10);screamOsc.frequency.exponentialRampToValueAtTime(280,now+0.85);
-        screamG.gain.setValueAtTime(0.0,now);screamG.gain.setValueAtTime(0.22,now+0.12);screamG.gain.exponentialRampToValueAtTime(0.001,now+0.88);
-        screamOsc.connect(screamG);screamG.connect(ac.destination);screamOsc.start();screamOsc.stop(now+0.90);
-      } else if(isAtlas){
-        const noise=_makeNoise(ac,0.5);
-        const filt=ac.createBiquadFilter();filt.type='lowpass';filt.frequency.setValueAtTime(300,now);filt.frequency.exponentialRampToValueAtTime(60,now+0.4);
-        const g=ac.createGain();g.gain.setValueAtTime(1.8,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.5);
-        noise.connect(filt);filt.connect(g);g.connect(ac.destination);noise.start();noise.stop(now+0.5);
-        const osc=ac.createOscillator(),og=ac.createGain();
-        osc.type='sine';osc.frequency.setValueAtTime(80,now);osc.frequency.exponentialRampToValueAtTime(25,now+0.3);
-        og.gain.setValueAtTime(1.2,now);og.gain.exponentialRampToValueAtTime(0.001,now+0.3);
-        osc.connect(og);og.connect(ac.destination);osc.start();osc.stop(now+0.3);
-      } else {
-        const noise=_makeNoise(ac,0.25);
-        const filt=ac.createBiquadFilter();filt.type='bandpass';filt.frequency.setValueAtTime(1200,now);filt.Q.value=0.8;
-        const g=ac.createGain();g.gain.setValueAtTime(1.2,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.25);
-        noise.connect(filt);filt.connect(g);g.connect(ac.destination);noise.start();noise.stop(now+0.25);
-        const osc=ac.createOscillator(),og=ac.createGain();
-        osc.type='sawtooth';osc.frequency.setValueAtTime(220,now);osc.frequency.exponentialRampToValueAtTime(40,now+0.15);
-        og.gain.setValueAtTime(0.8,now);og.gain.exponentialRampToValueAtTime(0.001,now+0.15);
-        osc.connect(og);og.connect(ac.destination);osc.start();osc.stop(now+0.15);
-      }
+      // OWL talon strike — sharp wing-beat swoosh
+      const noise=_makeNoise(ac,0.2);
+      const filt=ac.createBiquadFilter();filt.type='bandpass';filt.frequency.setValueAtTime(1400,now);filt.Q.value=1.0;
+      filt.frequency.exponentialRampToValueAtTime(500,now+0.18);
+      const g=ac.createGain();g.gain.setValueAtTime(0.9,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.20);
+      noise.connect(filt);filt.connect(g);g.connect(ac.destination);noise.start();noise.stop(now+0.22);
     }
     else if(type==='hit'){
       const noise=_makeNoise(ac,0.18);
@@ -1803,6 +1702,34 @@ function playSound(type,tankId){
       const g=ac.createGain();g.gain.setValueAtTime(1.4,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.8);
       noise.connect(filt);filt.connect(g);g.connect(ac.destination);noise.start();noise.stop(now+0.8);
     }
+  }catch(e){}
+}
+
+function playOwlScreech(){
+  if(!_soundEnabled)return;
+  try{
+    const ac=getAudioCtx();const now=ac.currentTime;
+    // Owl screech: sharp rising tone + raspy noise burst
+    const osc=ac.createOscillator();
+    osc.type='sawtooth';
+    osc.frequency.setValueAtTime(320,now);
+    osc.frequency.exponentialRampToValueAtTime(1100,now+0.08);
+    osc.frequency.exponentialRampToValueAtTime(480,now+0.22);
+    const g=ac.createGain();
+    g.gain.setValueAtTime(0.0,now);
+    g.gain.linearRampToValueAtTime(0.55,now+0.04);
+    g.gain.exponentialRampToValueAtTime(0.001,now+0.28);
+    const filt=ac.createBiquadFilter();filt.type='bandpass';filt.frequency.value=900;filt.Q.value=1.4;
+    osc.connect(filt);filt.connect(g);g.connect(ac.destination);
+    osc.start(now);osc.stop(now+0.30);
+    // Raspy noise burst underneath
+    const noise=_makeNoise(ac,0.18);
+    const nf=ac.createBiquadFilter();nf.type='bandpass';nf.frequency.value=1600;nf.Q.value=0.8;
+    const ng=ac.createGain();
+    ng.gain.setValueAtTime(0.35,now);
+    ng.gain.exponentialRampToValueAtTime(0.001,now+0.18);
+    noise.connect(nf);nf.connect(ng);ng.connect(ac.destination);
+    noise.start(now);noise.stop(now+0.20);
   }catch(e){}
 }
 
@@ -2141,7 +2068,7 @@ window.showPlayTank=function(){
   document.getElementById('play-servers').style.display='none';
   const nav=document.getElementById('mobNav');if(nav)nav.classList.add('hidden');
   // Load saved tank preference
-  const savedId=UD?.tankSkin||'heavy';
+  const savedId=UD?.tankSkin||'owl';
   const idx=TANKS.findIndex(t=>t.id===savedId);
   _selectedTankIdx=idx>=0?idx:0;
   _selectedTank=TANKS[_selectedTankIdx];
@@ -2397,7 +2324,7 @@ window.confirmJoin=async function(){
     if((UD.balance||0)<entryFee){toast('Insufficient balance — you need at least R'+entryFee+' to play','red');window.closeJoinModal();return;}
     const players=Object.values(d.players||{});if(players.length>=(d.maxPlayers||8)){toast('Room just became full','red');window.closeJoinModal();return;}
     const colorIdx=players.length%TANK_COLORS.length;
-    await update(ref(rtdb,'sw_rooms/'+pendingRoomId+'/players/'+CU.uid),{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',colorIdx,hp:_selectedTank.hp,tankId:_selectedTank.id,damage:_selectedTank.damage,bullets:MAX_BULLETS,...safeSpawnPos(),angle:0,score:0,alive:true,lastActive:Date.now()});
+    await update(ref(rtdb,'sw_rooms/'+pendingRoomId+'/players/'+CU.uid),{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',colorIdx,hp:_selectedTank.hp,tankId:_selectedTank.id,damage:_selectedTank.damage,...safeSpawnPos(),angle:0,score:0,alive:true,lastActive:Date.now()});
     // gamesPlayed only increments when they actually die (have played), not on entry
     const roomId=pendingRoomId;
     window.closeJoinModal();
@@ -2420,7 +2347,7 @@ window.createRoom=async function(){
     const id='TW'+Math.random().toString(36).slice(2,6).toUpperCase();
     const colorIdx=0;
     const spawnPos=safeSpawnPos();
-    await set(ref(rtdb,'sw_rooms/'+id),{id,status:'waiting',entryFee,killReward:KILL_REWARD,maxPlayers:8,hostUid:CU.uid,players:{[CU.uid]:{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',colorIdx,hp:_selectedTank.hp,tankId:_selectedTank.id,damage:_selectedTank.damage,bullets:MAX_BULLETS,...spawnPos,angle:0,score:0,alive:true,lastActive:Date.now()}},createdAt:serverTimestamp()});
+    await set(ref(rtdb,'sw_rooms/'+id),{id,status:'waiting',entryFee,killReward:KILL_REWARD,maxPlayers:8,hostUid:CU.uid,players:{[CU.uid]:{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',colorIdx,hp:_selectedTank.hp,tankId:_selectedTank.id,damage:_selectedTank.damage,...spawnPos,angle:0,score:0,alive:true,lastActive:Date.now()}},createdAt:serverTimestamp()});
     toast('Room created!');
     hideProc();
     onDisconnect(ref(rtdb,'sw_rooms/'+id+'/players/'+CU.uid)).remove();
@@ -2475,62 +2402,29 @@ window.switchSidebar=function(name){
   });
 };
 
-// ── TANK DEFINITIONS ──
+// ── BIRD DEFINITIONS ──
 const TANKS=[
   {
-    id:'heavy',
-    name:'SWITTI',
-    variant:'MK-IV',
-    sub:'62 TONNES · CREW: 4',
-    img:'https://i.ibb.co/twzDZKfp/images-4-removebg-preview.png',
-    hp:498,
-    damage:86,
-    speed:3.8,       // faster than before
-    accel:0.18,
-    friction:0.78,
-    turnRate:0.09,
-    size:76,         // canvas draw size
-    arm:90,
-    // stat bar widths (out of 100)
-    bars:{hp:24.9,dmg:43,spd:72,arm:90}
-  },
-  {
-    id:'atlas',
-    name:'ATLAS RT',
-    variant:'RT-1',
-    sub:'98 TONNES · CREW: 6',
-    img:'https://i.ibb.co/W4Syqh3s/file-000000006c5871fda9d095b4eaccfb4d-removebg-preview.png',
-    hp:1965,
-    damage:108,
-    speed:1.4,
-    accel:0.09,
-    friction:0.85,
-    turnRate:0.055,
-    size:76,
-    arm:98,
-    bars:{hp:98.25,dmg:54,spd:28,arm:98}
-  },
-  {
-    id:'f22',
-    name:'F-16 FIGHTING FALCON',
-    variant:'4TH GEN MULTIROLE',
-    sub:'8.6 TONNES · CREW: 1',
-    img:'https://i.ibb.co/RkBrpDYM/F-16-Battlefield-Gray-4-removebg-preview.png',
+    id:'owl',
+    name:'GREAT HORNED OWL',
+    variant:'NIGHT PREDATOR',
+    sub:'1.4 KG · WINGSPAN: 142 CM',
+    img:'https://i.ibb.co/spmSq4NG/gosha-simonov-owlrigged007-removebg-preview.png',
     hp:520,
-    damage:95,          // missile strike — good damage
-    speed:9.2,          // fast — 5th gen fighter
-    accel:0.36,
-    friction:0.94,
-    turnRate:0.052,
-    size:84,
-    arm:42,
-    isJet:true,
-    bars:{hp:26,dmg:47,spd:97,arm:42}
+    damage:86,
+    speed:4.2,
+    accel:0.18,
+    friction:0.80,
+    turnRate:0.085,
+    size:76,
+    arm:68,
+    // stat bar widths (out of 100) — VIT/STR/AGI/PLM
+    bars:{hp:26,dmg:43,spd:76,arm:68}
   }
 ];
 const TANK_SKINS=TANKS.map(t=>({id:t.id,label:t.name}));
 
-let _selectedTankIdx=0; // 0=heavy, 1=atlas
+let _selectedTankIdx=0; // 0=owl
 let _selectedTank=TANKS[0];
 
 // Pre-load both tank images
@@ -2548,16 +2442,17 @@ const _treePngImg = new Image();
 _treePngImg.src = 'https://i.ibb.co/XfQFtRqP/c-HJpdm-F0-ZS9sci9pb-WFn-ZXMvd2-Vic2l0-ZS8y-MDI0-LTEx-L3-Jhd3-Bpe-GVsb2-Zma-WNl-M190b3-Bfdmlld19wa-G90b19v-Z.png';
 _treePngImg.crossOrigin='anonymous';
 // backwards compat
-const _tankImg=_tankImgs.heavy;
+const _tankImg=_tankImgs.owl;
 let _tankImgLoaded=false;
 _tankImg.onload=()=>{_tankImgLoaded=true;};
-const SOLDIER_IMG=_tankImgs.heavy;
+const SOLDIER_IMG=_tankImgs.owl;
 let _soldierLoaded=false;
 SOLDIER_IMG.onload=()=>{_soldierLoaded=true;};
 
 window.switchTank=function(dir){
-  if(dir!==0)_selectedTankIdx=(_selectedTankIdx+dir+TANKS.length)%TANKS.length;
-  _selectedTank=TANKS[_selectedTankIdx];
+  // Single bird — no switching
+  _selectedTankIdx=0;
+  _selectedTank=TANKS[0];
   const t=_selectedTank;
   const img=document.getElementById('tankChooserImg');
   if(img)img.src=t.img;
@@ -2572,10 +2467,6 @@ window.switchTank=function(dir){
   const vSPD=document.getElementById('statValSPD');if(vSPD)vSPD.textContent=Math.round(t.speed*18)+' km/h';
   const bARM=document.getElementById('statBarARM');if(bARM)bARM.style.width=t.bars.arm+'%';
   const vARM=document.getElementById('statValARM');if(vARM)vARM.textContent=t.arm+'%';
-  TANKS.forEach((_,i)=>{
-    const dot=document.getElementById('tankDot'+i);
-    if(dot)dot.style.background=i===_selectedTankIdx?'var(--brand)':'var(--border)';
-  });
   if(UD&&CU){UD.tankSkin=t.id;setDoc(doc(db,'sw_users',CU.uid),{tankSkin:t.id},{merge:true}).catch(()=>{});}
 };
 
@@ -2730,15 +2621,19 @@ let canvas,ctx,miniCanvas,miniCtx;
 let gameLoop=null,gameState=null,myUid=null;
 let camX=0,camY=0;
 let keys={w:false,a:false,s:false,d:false};
-let mouseAngle=0,firing=false;
+let mouseAngle=0,attacking=false;
 let joystickActive=false,joystickDX=0,joystickDY=0;
 let fireTouchActive=false;
-let bullets=[];
+
 let _remotePlayerTargets={};
 let _smoothPlayers={};
-let lastBulletTime=0,bulletRegenTimer=null;
-let lastFireTime=0;
-let myBullets=MAX_BULLETS;
+let lastAttackTime=0;
+let _attackCooldownPct=1; // start ready to attack
+let _hearingActive=false;
+let _hearingEnd=0;
+let _hearingCooldownEnd=0;
+const HEARING_DURATION=5000;  // 5 seconds active
+const HEARING_COOLDOWN=18000; // 18 second recharge
 let _savedResult=false;
 let _sessionKills=0;
 let _killedSet=new Set();
@@ -2755,7 +2650,7 @@ const MOVE_MAX_SPEED=2.3; // base — overridden by tank
 const MOVE_ACCEL=0.11;
 const MOVE_FRICTION=0.82;
 const MOVE_TURN_RATE=0.075;
-let _bankAngle=0; // jet banking tilt — visual only
+let _bankAngle=0;
 let _lastBodyAngle=0;
 
 const MAP_FEATURES=[
@@ -2823,23 +2718,17 @@ function initGame(roomId,roomData){
   miniCtx=miniCanvas.getContext('2d');
   myUid=CU.uid;gameState=roomData;currentRoomId=roomId;
   _savedResult=false;_sessionKills=0;_killedSet=new Set();
-  bullets=[];myBullets=MAX_BULLETS;
-  _speed=0;_bodyAngleRad=0;_treadDist=0;_treads=[];_jetLanded=false;_landingAnim=0;_landingAnimT=0;
-  _sonicBoomDone=false;_bankAngle=0;_lastBodyAngle=0;
-  initBulletIcons();
-  document.getElementById('selfHudName').textContent=UD?.displayName||'Commander';
+  _speed=0;_bodyAngleRad=0;_treadDist=0;_treads=[];_bankAngle=0;_lastBodyAngle=0;attacking=false;lastAttackTime=0;_attackCooldownPct=1;
+  document.getElementById('selfHudName').textContent=UD?.displayName||'Scout';
   document.getElementById('hudRoomName').textContent='ROOM #'+roomId.slice(-4).toUpperCase();
   setupKeyboard();setupMouse();setupTouch();
   if(gameLoop)cancelAnimationFrame(gameLoop);
   gameLoop=requestAnimationFrame(gameFrame);
-  if(bulletRegenTimer)clearInterval(bulletRegenTimer);
-  bulletRegenTimer=setInterval(()=>{
-    if(myBullets<MAX_BULLETS){myBullets++;updateBulletIcons();}
-  },BULLET_REGEN_MS);
+
   // Start engine sound after brief delay (allow AudioContext unlock)
-  setTimeout(()=>startEngineSound(_selectedTank?.id||'heavy'),600);
+  setTimeout(()=>startEngineSound(_selectedTank?.id||'owl'),600);
   // Style the attack button uniquely per tank
-  updateFireBtn(_selectedTank?.id||'heavy');
+  updateFireBtn(_selectedTank?.id||'owl');
 }
 
 // ── Unique ATTACK button per tank model ──
@@ -2847,77 +2736,110 @@ function updateFireBtn(tankId){
   const fb=document.getElementById('fireBtn');
   const lbl=document.getElementById('bulletsLeftLabel');
   if(!fb)return;
-  if(tankId==='f22'){
-    // F-16: missile launch button — blue/electric, missile icon
-    fb.style.background='rgba(20,80,200,0.18)';
-    fb.style.border='2px solid rgba(80,160,255,0.55)';
-    fb.style.boxShadow='0 0 18px rgba(60,140,255,0.25)';
-    fb.innerHTML=`<svg viewBox="0 0 48 24" width="44" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- Missile body -->
-      <rect x="6" y="10" width="28" height="4" rx="2" fill="rgba(180,220,255,0.9)"/>
-      <!-- Nose cone -->
-      <polygon points="34,12 42,12 34,10" fill="rgba(220,240,255,0.95)"/>
-      <polygon points="34,12 42,12 34,14" fill="rgba(200,230,255,0.8)"/>
-      <!-- Tail fins -->
-      <polygon points="6,12 2,8 6,10" fill="rgba(150,200,255,0.7)"/>
-      <polygon points="6,12 2,16 6,14" fill="rgba(150,200,255,0.7)"/>
-      <!-- Rocket flame -->
-      <ellipse cx="4" cy="12" rx="4" ry="2" fill="rgba(255,180,30,0.85)"/>
-      <ellipse cx="3" cy="12" rx="2" ry="1" fill="rgba(255,240,180,0.95)"/>
-      <!-- Wing strakes -->
-      <polygon points="18,10 22,6 24,10" fill="rgba(160,210,255,0.6)"/>
-      <polygon points="18,14 22,18 24,14" fill="rgba(160,210,255,0.6)"/>
-    </svg>`;
-    if(lbl){lbl.style.color='rgba(100,180,255,0.8)';lbl.textContent='missiles';}
-  } else if(tankId==='atlas'){
-    // Atlas RT: heavy cannon shell — red/orange, thick shell icon
-    fb.style.background='rgba(180,40,0,0.15)';
-    fb.style.border='2px solid rgba(255,100,40,0.5)';
-    fb.style.boxShadow='0 0 18px rgba(255,80,0,0.2)';
-    fb.innerHTML=`<svg viewBox="0 0 48 48" width="38" height="38" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- Cannon barrel -->
-      <rect x="10" y="20" width="26" height="8" rx="4" fill="rgba(200,160,80,0.9)"/>
-      <!-- Shell tip -->
-      <ellipse cx="38" cy="24" rx="4" ry="4" fill="rgba(255,120,40,0.95)"/>
-      <!-- Casing ring -->
-      <rect x="10" y="21" width="4" height="6" rx="2" fill="rgba(180,120,40,0.8)"/>
-      <!-- Impact stars -->
-      <circle cx="6" cy="24" r="3" fill="rgba(255,160,40,0.6)"/>
-      <line x1="3" y1="24" x2="9" y2="24" stroke="rgba(255,200,80,0.7)" stroke-width="1.5"/>
-      <line x1="6" y1="21" x2="6" y2="27" stroke="rgba(255,200,80,0.7)" stroke-width="1.5"/>
-      <line x1="4" y1="22" x2="8" y2="26" stroke="rgba(255,200,80,0.5)" stroke-width="1"/>
-      <line x1="8" y1="22" x2="4" y2="26" stroke="rgba(255,200,80,0.5)" stroke-width="1"/>
-    </svg>`;
-    if(lbl){lbl.style.color='rgba(255,130,50,0.8)';lbl.textContent='shells';}
-  } else {
-    // SWITTI (heavy): standard tank shell — white/clean, target/crosshair icon
-    fb.style.background='rgba(255,255,255,0.08)';
-    fb.style.border='2px solid rgba(255,255,255,0.18)';
-    fb.style.boxShadow='none';
-    fb.innerHTML=`<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="9"/>
-      <circle cx="12" cy="12" r="4"/>
-      <line x1="12" y1="2" x2="12" y2="6"/>
-      <line x1="12" y1="18" x2="12" y2="22"/>
-      <line x1="2" y1="12" x2="6" y2="12"/>
-      <line x1="18" y1="12" x2="22" y2="12"/>
-      <circle cx="12" cy="12" r="1.5" fill="rgba(255,255,255,0.85)" stroke="none"/>
-    </svg>`;
-    if(lbl){lbl.style.color='rgba(180,180,180,0.7)';lbl.textContent='rounds';}
-  }
+  fb.style.background='rgba(180,100,0,0.18)';
+  fb.style.border='2px solid rgba(255,180,60,0.55)';
+  fb.style.boxShadow='0 0 18px rgba(255,150,30,0.25)';
+  fb.innerHTML=`<svg viewBox="0 0 48 48" width="38" height="38" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M24 8 C20 14 14 18 12 28" stroke="rgba(255,200,80,0.95)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M24 8 C24 16 22 22 24 32" stroke="rgba(255,200,80,0.95)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M24 8 C28 14 34 18 36 28" stroke="rgba(255,200,80,0.95)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M12 28 C10 32 11 36 14 38" stroke="rgba(255,180,60,0.9)" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M24 32 C23 36 24 40 24 42" stroke="rgba(255,180,60,0.9)" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M36 28 C38 32 37 36 34 38" stroke="rgba(255,180,60,0.9)" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="24" cy="7" r="3" fill="rgba(255,220,100,0.8)"/>
+  </svg>`;
+  // no label
 }
 
-function initBulletIcons(){
-  const el=document.getElementById('bulletIcons');
-  el.innerHTML=Array.from({length:MAX_BULLETS},()=>'<div class="bullet-icon"></div>').join('');
-  updateBulletIcons();
-}
+function initBulletIcons(){ /* no ammo icons — melee attack */ }
 function updateBulletIcons(){
-  const icons=document.querySelectorAll('.bullet-icon');
-  icons.forEach((ic,i)=>ic.classList.toggle('spent',i>=myBullets));
-  const tankId=_selectedTank?.id||'heavy';
-  const suffix=tankId==='f22'?'missiles':tankId==='atlas'?'shells':'rounds';
-  document.getElementById('bulletsLeftLabel').textContent=myBullets+' '+suffix;
+  const lbl=document.getElementById('bulletsLeftLabel');
+  const status=document.getElementById('attackStatus');
+  const ready=_attackCooldownPct>=1;
+  // no label — clean button
+  if(status)status.textContent=ready?'⚡ READY':'⏳ RECOVERING';
+  const fb=document.getElementById('fireBtn');
+  if(fb)fb.style.opacity=ready?'1':'0.45';
+}
+
+// ── HEARING ABILITY ──
+window.activateHearing=function(){
+  const now=Date.now();
+  if(_hearingActive)return;
+  if(now<_hearingCooldownEnd){
+    // show cooldown remaining as toast
+    const sec=Math.ceil((_hearingCooldownEnd-now)/1000);
+    toast('Hearing recharges in '+sec+'s','gold');
+    return;
+  }
+  _hearingActive=true;
+  _hearingEnd=now+HEARING_DURATION;
+  _hearingCooldownEnd=now+HEARING_DURATION+HEARING_COOLDOWN;
+  const btn=document.getElementById('hearingBtn');
+  if(btn)btn.classList.add('active');
+  // Play low owl hoot on activate
+  try{
+    const ac=getAudioCtx();const t=ac.currentTime;
+    const o=ac.createOscillator();o.type='sine';
+    o.frequency.setValueAtTime(220,t);o.frequency.exponentialRampToValueAtTime(160,t+0.3);
+    const g=ac.createGain();g.gain.setValueAtTime(0.4,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.5);
+    o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.5);
+  }catch(e){}
+  setTimeout(()=>{
+    _hearingActive=false;
+    const btn=document.getElementById('hearingBtn');
+    if(btn){btn.classList.remove('active');btn.classList.add('cooldown');}
+    startHearingCooldownAnim();
+  },HEARING_DURATION);
+};
+
+let _hearingCooldownRAF=null;
+function startHearingCooldownAnim(){
+  const start=Date.now();
+  const btn=document.getElementById('hearingBtn');
+  const ring=document.getElementById('hearingRing');
+  function tick(){
+    const elapsed=Date.now()-start;
+    const pct=Math.min(1,elapsed/HEARING_COOLDOWN);
+    const deg=Math.round(pct*360);
+    if(ring)ring.style.background=`conic-gradient(rgba(100,200,255,0.55) ${deg}deg, transparent ${deg}deg)`;
+    if(pct<1){
+      _hearingCooldownRAF=requestAnimationFrame(tick);
+    } else {
+      if(btn)btn.classList.remove('cooldown');
+      if(ring)ring.style.background='conic-gradient(rgba(100,200,255,0.7) 0%, transparent 0%)';
+    }
+  }
+  _hearingCooldownRAF=requestAnimationFrame(tick);
+}
+
+// Draw hearing ripples on canvas for detected enemies
+let _hearingRipples=[];
+function drawHearingEffect(){
+  if(!_hearingActive||!gameState?.players)return;
+  const me=gameState.players[myUid];if(!me)return;
+  const now=Date.now();
+  // Spawn new ripples at enemy positions
+  Object.values(gameState.players).forEach(p=>{
+    if(!p||!p.alive||p.uid===myUid)return;
+    // Random chance each frame to spawn a ripple at this enemy
+    if(Math.random()<0.04){
+      _hearingRipples.push({x:p.x,y:p.y,r:0,alpha:0.7,maxR:90});
+    }
+  });
+  // Draw and age ripples
+  _hearingRipples=_hearingRipples.filter(rip=>{
+    rip.r+=2.2;
+    rip.alpha=Math.max(0,rip.alpha-0.022);
+    if(rip.alpha<=0)return false;
+    ctx.save();
+    ctx.globalAlpha=rip.alpha*0.8;
+    ctx.strokeStyle='rgba(100,210,255,0.9)';
+    ctx.lineWidth=1.8;
+    ctx.beginPath();ctx.arc(rip.x,rip.y,rip.r,0,Math.PI*2);ctx.stroke();
+    ctx.restore();
+    return rip.r<rip.maxR;
+  });
 }
 
 let _lastFrameTime=0;
@@ -2929,23 +2851,20 @@ function gameFrame(ts){
   const me=gameState?.players?.[myUid];
   if(me&&me.alive!==false){
     handleMovement(me,dt);
-    handleFiring(me);
+    handleMeleeAttack(me);
   }
   if(me){camX=me.x-canvas.width/2;camY=me.y-canvas.height/2;}
   camX=Math.max(0,Math.min(MAP_W-canvas.width,camX));
   camY=Math.max(0,Math.min(MAP_H-canvas.height,camY));
   ctx.save();ctx.translate(-camX,-camY);
   drawMap();        // ground, water, rocks, ocean, roads, walls, tree shadows
-  drawTreads();
-  drawBullets(dt);
-  drawRemoteBullets(dt);
   drawPlayers(dt);    // tanks drawn here — UNDER trees
   drawTrees();      // trees drawn last — cover tanks underneath them
+  drawHearingEffect(); // ripples on top of everything
   ctx.restore();
   updateParticles();
   drawMinimap();
-  if(me){updateSelfHUD(me);updateLandBtn(me);}
-  tickLandingAnim(dt);
+  if(me){updateSelfHUD(me);}
 }
 
 const WATER_HOLES=[
@@ -3105,8 +3024,7 @@ function drawMapBase(){
   }
 }
 
-// ── Pass 2: trees drawn AFTER ground tanks so they hide underneath ──
-// Jets (F-16) fly ABOVE trees — they get redrawn on top after the canopy pass
+// ── Pass 2: trees drawn AFTER ground birds so they hide underneath ──
 function drawTrees(){
   // Step 1: draw all tree foliage
   for(const f of MAP_FEATURES){
@@ -3129,47 +3047,20 @@ function drawTrees(){
       ctx.beginPath();ctx.arc(tx+sway,ty-tr*0.3,tr*0.7,0,Math.PI*2);ctx.fill();
     }
   }
-  // Step 2: redraw jet players above the tree canopy — jets fly over trees
-  if(gameState?.players){
-    Object.values(gameState.players).forEach(p=>{
-      if(!p||!p.alive)return;
-      const tid=p.uid===myUid?(_selectedTank?.id||'heavy'):(p.tankId||'heavy');
-      const tank=TANKS.find(t=>t.id===tid)||TANKS[0];
-      if(!tank.isJet)return;
-      const isMe=p.uid===myUid;
-      const color=TANK_COLORS[p.colorIdx%TANK_COLORS.length];
-      drawTank(p.x,p.y,p.angle||0,color,p.name,p.hp||0,isMe,p.uid,isMe?false:p.hideHP,tank.id);
-    });
-  }
+  // No jet override — all birds draw at ground level
 }
 
 function drawTreads(){
   for(let i=_treads.length-1;i>=0;i--){
     const t=_treads[i];
-    t.life--;t.alpha=Math.max(0,t.alpha-(t.isJet?0.0022:0.00035));
+    t.life--;t.alpha=Math.max(0,t.alpha-0.00035);
     if(t.life<=0||t.alpha<=0){_treads.splice(i,1);continue;}
     ctx.save();
-    if(t.isJet){
-      // Contrail puff at stored nozzle world pos - frozen, never pivots
-      ctx.translate(t.nx,t.ny);
-      ctx.rotate(t.rot); // angle frozen at spawn
-      ctx.globalAlpha=t.alpha;
-      const age=1-(t.life/t.maxLife);
-      const puffR=2.5+age*3.5;
-      // Teardrop: round body, sharp pointed tip in flight direction
-      ctx.fillStyle='rgba(190,215,255,0.9)';
-      ctx.beginPath();
-      ctx.moveTo(puffR*1.3,0);
-      ctx.bezierCurveTo(puffR*0.5,puffR*0.85,-puffR*0.9,puffR*0.65,-puffR*1.5,0);
-      ctx.bezierCurveTo(-puffR*0.9,-puffR*0.65,puffR*0.5,-puffR*0.85,puffR*1.3,0);
-      ctx.closePath();ctx.fill();
-    } else {
-      ctx.translate(t.x,t.y);ctx.rotate(t.rot);
-      ctx.globalAlpha=t.alpha;
-      ctx.fillStyle='rgba(20,14,6,0.85)';
-      ctx.fillRect(-22,-15,44,6);
-      ctx.fillRect(-22,9,44,6);
-    }
+    // Bird wing-beat trace — soft oval mark
+    ctx.translate(t.x,t.y);ctx.rotate(t.rot);
+    ctx.globalAlpha=t.alpha*0.5;
+    ctx.fillStyle='rgba(255,210,80,0.35)';
+    ctx.beginPath();ctx.ellipse(0,0,8,3,0,0,Math.PI*2);ctx.fill();
     ctx.restore();
   }
 }
@@ -3196,7 +3087,7 @@ function drawPlayers(dt){
     if(!p||!p.alive)return;
     const isMe=p.uid===myUid;
     const color=TANK_COLORS[p.colorIdx%TANK_COLORS.length];
-    drawTank(p.x,p.y,p.angle||0,color,p.name,p.hp||0,isMe,p.uid,isMe?false:p.hideHP,isMe?_selectedTank.id:(p.tankId||'heavy'));
+    drawTank(p.x,p.y,p.angle||0,color,p.name,p.hp||0,isMe,p.uid,isMe?false:p.hideHP,isMe?_selectedTank.id:(p.tankId||'owl'));
   });
 }
 
@@ -3229,106 +3120,34 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP,tankId){
   const maxHp=tank.hp;
   ctx.save();ctx.translate(x,y);
 
-  // Ground shadow — jets float, no shadow
-  if(!tank.isJet){
-    ctx.fillStyle='rgba(0,0,0,0.25)';
-    ctx.beginPath();ctx.ellipse(2,10,32,10,0,0,Math.PI*2);ctx.fill();
-  }
+  // No ground shadow — bird is airborne
 
   ctx.save();ctx.rotate(bodyAngle);
 
-  const sz=tank.isJet?82:76;
+  // Draw bird at natural aspect ratio — never squash the image
+  const sz=88;
   if(img&&img.complete&&img.naturalWidth>0){
     const nw=img.naturalWidth,nh=img.naturalHeight;
-    const scale=Math.min(sz/nw,sz/nh);
+    const scale=Math.min(sz/nw,sz/nh); // uniform scale — preserves ratio
     const dw=nw*scale,dh=nh*scale;
-    if(tank.id==='heavy'){ctx.scale(-1,1);ctx.drawImage(img,-dw/2,-dh/2,dw,dh);ctx.scale(-1,1);}
-    else if(tank.id==='f22'){
-      // Subtle pivot tilt — small lean into turns, no scale distortion, PNG stays clean
-      const bankTilt=isMe?_bankAngle:0;
-      ctx.rotate(-Math.PI/2);
-      if(Math.abs(bankTilt)>0.01){ctx.rotate(bankTilt*0.28);} // gentle lean only
-      ctx.scale(1,-1);
-      ctx.drawImage(img,-dw/2,-dh/2,dw,dh);
-      ctx.scale(1,-1);
-      if(Math.abs(bankTilt)>0.01){ctx.rotate(-bankTilt*0.28);}
-      ctx.rotate(Math.PI/2);
-    }
-    else{ctx.drawImage(img,-dw/2,-dh/2,dw,dh);}
+    // Owl PNG faces left — flip it so it faces right (forward direction at angle=0)
+    ctx.scale(-1,1);
+    ctx.drawImage(img,-dw/2,-dh/2,dw,dh);
+    ctx.scale(-1,1);
   } else {
-    ctx.fillStyle=color;ctx.fillRect(-22,-16,44,32);
+    // Fallback: simple bird silhouette
+    ctx.fillStyle=color||'#c8a020';
+    ctx.beginPath();ctx.ellipse(0,0,18,10,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(26,-8);ctx.lineTo(20,0);ctx.closePath();ctx.fill();
   }
 
   ctx.restore();
 
-  // F-16 afterburner flame — drawn after body restore, in bodyAngle space only (no banking tilt)
-  // Tip deflects into the turn so flame visually shows which way the jet is heading
-  if(tank.isJet&&_animEnabled&&_speed>0.1){
-    const speedRatio=Math.min(_speed/tank.speed,1);
-    const flameT=Date.now()*0.022;
-    const nozzleX=-36;
-    if(speedRatio>0.50){
-      const abRatio=(speedRatio-0.50)/0.50;
-      // Tip drifts in turn direction (bank left = tip drifts left)
-      const tipDeflect=isMe?(_bankAngle*16):0;
-      ctx.save();
-      ctx.translate(x,y);
-      ctx.rotate(bodyAngle); // bodyAngle only — no banking transform
 
-      const flameLen=8+abRatio*14+Math.sin(flameT)*1.2;
-      const flameW=2.2+abRatio*2.0+Math.sin(flameT*1.9)*0.4;
-      const tipX=nozzleX-flameLen;
-      const tipY=tipDeflect;
 
-      // Core flame — sharp teardrop, tip curves into the turn
-      ctx.globalAlpha=0.95;
-      const coreG=ctx.createLinearGradient(nozzleX,0,tipX,tipY);
-      coreG.addColorStop(0,'rgba(255,255,255,1)');
-      coreG.addColorStop(0.18,'rgba(255,240,160,1)');
-      coreG.addColorStop(0.55,'rgba(255,120,10,0.75)');
-      coreG.addColorStop(1,'rgba(180,40,0,0)');
-      ctx.fillStyle=coreG;
-      ctx.beginPath();
-      ctx.moveTo(nozzleX,0);
-      ctx.bezierCurveTo(nozzleX-flameLen*0.3,flameW,tipX+flameLen*0.28,tipY+flameW*0.3,tipX,tipY);
-      ctx.bezierCurveTo(tipX+flameLen*0.28,tipY-flameW*0.3,nozzleX-flameLen*0.3,-flameW,nozzleX,0);
-      ctx.fill();
+  // No visual ring — silent melee strike
 
-      // Outer warm halo
-      ctx.globalAlpha=0.25+abRatio*0.15;
-      const haloG=ctx.createLinearGradient(nozzleX,0,tipX,tipY);
-      haloG.addColorStop(0,'rgba(255,160,0,0.8)');
-      haloG.addColorStop(0.6,'rgba(255,60,0,0.3)');
-      haloG.addColorStop(1,'rgba(200,20,0,0)');
-      ctx.fillStyle=haloG;
-      ctx.beginPath();
-      ctx.moveTo(nozzleX,0);
-      ctx.bezierCurveTo(nozzleX-flameLen*0.3,flameW*1.7,tipX+flameLen*0.3,tipY+flameW*0.55,tipX,tipY);
-      ctx.bezierCurveTo(tipX+flameLen*0.3,tipY-flameW*0.55,nozzleX-flameLen*0.3,-flameW*1.7,nozzleX,0);
-      ctx.fill();
 
-      ctx.restore();
-    }
-  }
-
-  // Muzzle flash — tanks only, jets fire missiles differently
-  if(!tank.isJet&&isMe&&firing&&_animEnabled){
-    ctx.save();ctx.rotate(bodyAngle);
-    const flashR=rand(6,10);
-    ctx.shadowBlur=24;ctx.shadowColor='rgba(255,180,30,.95)';
-    ctx.fillStyle='rgba(255,220,80,0.9)';
-    ctx.beginPath();ctx.arc(38,0,flashR,0,Math.PI*2);ctx.fill();
-    ctx.restore();
-  }
-
-  // Jet missile launch flash — from nose
-  if(tank.isJet&&isMe&&firing&&_animEnabled){
-    ctx.save();ctx.rotate(bodyAngle);
-    ctx.shadowBlur=20;ctx.shadowColor='rgba(180,220,255,.9)';
-    ctx.fillStyle='rgba(200,230,255,0.85)';
-    ctx.beginPath();ctx.arc(44,0,rand(4,7),0,Math.PI*2);ctx.fill();
-    ctx.restore();
-  }
 
   if(isMe){
     ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=2;
@@ -3336,12 +3155,12 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP,tankId){
     ctx.beginPath();ctx.arc(0,0,40,0,Math.PI*2);ctx.stroke();
     ctx.setLineDash([]);
   }
-  const barW=52,barH=4,bx=-barW/2,by=tank.isJet?-50:-44;
+  const barW=52,barH=4,bx=-barW/2,by=-48;
   ctx.fillStyle='rgba(0,0,0,0.65)';
   roundRect2(ctx,bx-3,by-13,barW+6,14,3);ctx.fill();
   ctx.font='bold 9px \'Rajdhani\',sans-serif';ctx.textAlign='center';
   ctx.fillStyle=isMe?'#ffffff':'rgba(255,255,255,.8)';
-  ctx.fillText((name||'Tank').slice(0,14),0,by-2);
+  ctx.fillText((name||'Bird').slice(0,14),0,by-2);
   if(isMe||!hideHP){
     ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(bx,by+2,barW,barH);
     const hpPct=Math.max(0,(hp||0)/maxHp);
@@ -3353,232 +3172,16 @@ function drawTank(x,y,bodyAngle,color,name,hp,isMe,uid,hideHP,tankId){
 
 function roundRect2(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();}
 
-function drawBullets(dt){
-  bullets=bullets.filter(b=>{
-    const spd=b.speed||8;
-    b.x+=Math.cos(b.angle)*spd*dt;
-    b.y+=Math.sin(b.angle)*spd*dt;
-    b.life=(b.life||0)+1;
-    const maxLife=b.tankId==='atlas'?120:b.tankId==='f22'?150:80;
-    if(b.life>maxLife||b.x<0||b.x>MAP_W||b.y<0||b.y>MAP_H)return false;
-    if(collidesWithMap(b.x,b.y,4,false))return false; // bullets pass through trees
-    if(gameState?.players){
-      for(const[uid,p] of Object.entries(gameState.players)){
-        if(!p||!p.alive||uid===b.shooterUid)continue;
-        const dx=p.x-b.x,dy=p.y-b.y;
-        const hitR=b.tankId==='atlas'?28:b.tankId==='f22'?22:20;
-        if(dx*dx+dy*dy<(hitR*hitR)){handleBulletHit(b,uid,p);return false;}
-      }
-    }
-    ctx.save();
-    ctx.translate(b.x,b.y);
-    ctx.rotate(b.angle);
-    if(b.tankId==='atlas'){
-      // Atlas: compact steel shell (scaled down ~30%)
-      ctx.globalAlpha=0.15;ctx.fillStyle='#aaa';
-      ctx.beginPath();ctx.ellipse(-12,0,9,3,0,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=1;
-      const sg=ctx.createLinearGradient(0,-4,0,4);
-      sg.addColorStop(0,'#9a9a9a');sg.addColorStop(0.4,'#d0d0d0');sg.addColorStop(1,'#5a5a5a');
-      ctx.fillStyle=sg;
-      ctx.beginPath();
-      ctx.moveTo(8,0);
-      ctx.bezierCurveTo(8,-4.5,2.5,-5,-7,-4.5);
-      ctx.lineTo(-7,4.5);
-      ctx.bezierCurveTo(2.5,5,8,4.5,8,0);
-      ctx.fill();
-      ctx.fillStyle='#333';
-      ctx.beginPath();ctx.moveTo(8,0);ctx.bezierCurveTo(10,-1.5,11,0,10,0);ctx.bezierCurveTo(11,0,10,1.5,8,0);ctx.fill();
-      ctx.strokeStyle='#666';ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(-2,-5);ctx.lineTo(-2,5);ctx.stroke();
-      const bg=ctx.createLinearGradient(-9,-4,-9,4);
-      bg.addColorStop(0,'#b87333');bg.addColorStop(0.5,'#e8a040');bg.addColorStop(1,'#8a5010');
-      ctx.fillStyle=bg;
-      ctx.fillRect(-9,-3.5,3.5,7);
-    } else if(b.tankId==='f22'){
-      // F-16: AIM-120 AMRAAM missile with rocket flame
-      const t=Date.now()*0.02;
-      // ── Rocket exhaust flame at rear ──
-      ctx.save();
-      // Outer flame glow
-      ctx.globalAlpha=0.55;
-      const flameG=ctx.createRadialGradient(-14,0,0,-14,0,12);
-      flameG.addColorStop(0,'rgba(255,255,200,1)');
-      flameG.addColorStop(0.2,'rgba(255,160,20,0.9)');
-      flameG.addColorStop(0.55,'rgba(255,60,0,0.65)');
-      flameG.addColorStop(1,'rgba(200,40,0,0)');
-      ctx.fillStyle=flameG;
-      const fFlicker=8+Math.sin(t)*3+Math.sin(t*2.3)*2;
-      ctx.beginPath();ctx.ellipse(-14-fFlicker*0.5,0,fFlicker,3.5+Math.sin(t*1.8),0,0,Math.PI*2);ctx.fill();
-      // Hot white core
-      ctx.globalAlpha=0.9;
-      ctx.fillStyle='rgba(255,255,255,0.95)';
-      ctx.beginPath();ctx.ellipse(-11,0,4,2,0,0,Math.PI*2);ctx.fill();
-      // Smoke trail behind flame
-      ctx.globalAlpha=0.22;
-      ctx.fillStyle='rgba(80,80,80,0.7)';
-      ctx.beginPath();ctx.ellipse(-22-fFlicker*0.6,0,fFlicker*0.7,3,0,0,Math.PI*2);ctx.fill();
-      ctx.restore();
-      // ── Missile body ──
-      ctx.globalAlpha=1;
-      const mg=ctx.createLinearGradient(0,-3,0,3);
-      mg.addColorStop(0,'#c8c8c8');mg.addColorStop(0.4,'#f0f0f0');mg.addColorStop(1,'#888');
-      ctx.fillStyle=mg;
-      ctx.beginPath();
-      ctx.moveTo(14,0);ctx.bezierCurveTo(14,-2.5,6,-3,-10,-2.5);
-      ctx.lineTo(-10,2.5);ctx.bezierCurveTo(6,3,14,2.5,14,0);
-      ctx.fill();
-      // Nose cone
-      ctx.fillStyle='#444';
-      ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(20,0);ctx.lineTo(14,1.5);ctx.closePath();ctx.fill();
-      ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(20,0);ctx.lineTo(14,-1.5);ctx.closePath();ctx.fill();
-      // Forward fins
-      ctx.fillStyle='#aaa';
-      ctx.beginPath();ctx.moveTo(8,-3);ctx.lineTo(12,-7);ctx.lineTo(12,-3);ctx.closePath();ctx.fill();
-      ctx.beginPath();ctx.moveTo(8,3);ctx.lineTo(12,7);ctx.lineTo(12,3);ctx.closePath();ctx.fill();
-      // Rear fins
-      ctx.fillStyle='#999';
-      ctx.beginPath();ctx.moveTo(-6,-2.5);ctx.lineTo(-12,-8);ctx.lineTo(-10,-2.5);ctx.closePath();ctx.fill();
-      ctx.beginPath();ctx.moveTo(-6,2.5);ctx.lineTo(-12,8);ctx.lineTo(-10,2.5);ctx.closePath();ctx.fill();
-    } else {
-      // SWITTI: tiny brass bullet — crisp and fast
-      ctx.globalAlpha=0.12;ctx.fillStyle='#c88020';
-      ctx.beginPath();ctx.ellipse(-7,0,6,1.5,0,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=1;
-      const bg2=ctx.createLinearGradient(0,-2.5,0,2.5);
-      bg2.addColorStop(0,'#c88020');bg2.addColorStop(0.4,'#f0c060');bg2.addColorStop(1,'#8a5010');
-      ctx.fillStyle=bg2;
-      ctx.beginPath();
-      ctx.moveTo(5,0);
-      ctx.bezierCurveTo(5,-2.5,1,-3,-4,-2.5);
-      ctx.lineTo(-4,2.5);
-      ctx.bezierCurveTo(1,3,5,2.5,5,0);
-      ctx.fill();
-      ctx.fillStyle='#7a3a08';
-      ctx.beginPath();ctx.moveTo(5,0);ctx.bezierCurveTo(6.5,-1,7,0,6.5,0);ctx.bezierCurveTo(7,0,6.5,1,5,0);ctx.fill();
-      const bbase=ctx.createLinearGradient(-5,-2,-5,2);
-      bbase.addColorStop(0,'#a06010');bbase.addColorStop(0.5,'#d08030');bbase.addColorStop(1,'#6a3808');
-      ctx.fillStyle=bbase;ctx.fillRect(-5,-2,2.5,4);
-    }
-    ctx.restore();
-    return true;
-  });
-}
+// No bullet drawing — melee attack only
 
-// Listen for remote bullets from RTDB and draw them locally
-let _remoteBullets={};
-function listenRemoteBullets(roomId){
-  onValue(ref(rtdb,'sw_rooms/'+roomId+'/bullets'),snap=>{
-    const data=snap.val()||{};
-    // Add new remote bullets (not from me)
-    Object.entries(data).forEach(([key,b])=>{
-      if(!b||b.shooterUid===myUid||_remoteBullets[key])return;
-      _remoteBullets[key]={...b,key,life:0};
-    });
-    // Remove bullets no longer in RTDB
-    Object.keys(_remoteBullets).forEach(k=>{if(!data[k])delete _remoteBullets[k];});
-  });
-}
+// No remote bullet drawing — melee attack only
 
-function drawRemoteBullets(dt){
-  Object.values(_remoteBullets).forEach(b=>{
-    const spd=b.speed||8;
-    b.x+=Math.cos(b.angle)*spd*dt;
-    b.y+=Math.sin(b.angle)*spd*dt;
-    b.life=(b.life||0)+1;
-    ctx.save();
-    ctx.translate(b.x,b.y);
-    ctx.rotate(b.angle);
-    if(b.tankId==='atlas'){
-      ctx.globalAlpha=0.15;ctx.fillStyle='#aaa';
-      ctx.beginPath();ctx.ellipse(-12,0,9,3,0,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=1;
-      const sg=ctx.createLinearGradient(0,-4,0,4);
-      sg.addColorStop(0,'#9a9a9a');sg.addColorStop(0.4,'#d0d0d0');sg.addColorStop(1,'#5a5a5a');
-      ctx.fillStyle=sg;
-      ctx.beginPath();
-      ctx.moveTo(8,0);
-      ctx.bezierCurveTo(8,-4.5,2.5,-5,-7,-4.5);
-      ctx.lineTo(-7,4.5);
-      ctx.bezierCurveTo(2.5,5,8,4.5,8,0);
-      ctx.fill();
-      ctx.fillStyle='#333';
-      ctx.beginPath();ctx.moveTo(8,0);ctx.bezierCurveTo(10,-1.5,11,0,10,0);ctx.bezierCurveTo(11,0,10,1.5,8,0);ctx.fill();
-      ctx.strokeStyle='#666';ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(-2,-5);ctx.lineTo(-2,5);ctx.stroke();
-      const bg=ctx.createLinearGradient(-9,-4,-9,4);
-      bg.addColorStop(0,'#b87333');bg.addColorStop(0.5,'#e8a040');bg.addColorStop(1,'#8a5010');
-      ctx.fillStyle=bg;ctx.fillRect(-9,-3.5,3.5,7);
-    } else if(b.tankId==='f22'){
-      // F-16: AIM-120 AMRAAM missile with rocket flame (remote)
-      const t=Date.now()*0.02;
-      ctx.save();
-      ctx.globalAlpha=0.55;
-      const flameG2=ctx.createRadialGradient(-14,0,0,-14,0,12);
-      flameG2.addColorStop(0,'rgba(255,255,200,1)');
-      flameG2.addColorStop(0.2,'rgba(255,160,20,0.9)');
-      flameG2.addColorStop(0.55,'rgba(255,60,0,0.65)');
-      flameG2.addColorStop(1,'rgba(200,40,0,0)');
-      ctx.fillStyle=flameG2;
-      const fFlicker2=8+Math.sin(t+1)*3+Math.sin(t*2.3+0.5)*2;
-      ctx.beginPath();ctx.ellipse(-14-fFlicker2*0.5,0,fFlicker2,3.5+Math.sin(t*1.8+0.3),0,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=0.9;ctx.fillStyle='rgba(255,255,255,0.95)';
-      ctx.beginPath();ctx.ellipse(-11,0,4,2,0,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=0.22;ctx.fillStyle='rgba(80,80,80,0.7)';
-      ctx.beginPath();ctx.ellipse(-22-fFlicker2*0.6,0,fFlicker2*0.7,3,0,0,Math.PI*2);ctx.fill();
-      ctx.restore();
-      ctx.globalAlpha=1;
-      const mg2=ctx.createLinearGradient(0,-3,0,3);
-      mg2.addColorStop(0,'#c8c8c8');mg2.addColorStop(0.4,'#f0f0f0');mg2.addColorStop(1,'#888');
-      ctx.fillStyle=mg2;
-      ctx.beginPath();
-      ctx.moveTo(14,0);ctx.bezierCurveTo(14,-2.5,6,-3,-10,-2.5);
-      ctx.lineTo(-10,2.5);ctx.bezierCurveTo(6,3,14,2.5,14,0);
-      ctx.fill();
-      ctx.fillStyle='#444';
-      ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(20,0);ctx.lineTo(14,1.5);ctx.closePath();ctx.fill();
-      ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(20,0);ctx.lineTo(14,-1.5);ctx.closePath();ctx.fill();
-      ctx.fillStyle='#aaa';
-      ctx.beginPath();ctx.moveTo(8,-3);ctx.lineTo(12,-7);ctx.lineTo(12,-3);ctx.closePath();ctx.fill();
-      ctx.beginPath();ctx.moveTo(8,3);ctx.lineTo(12,7);ctx.lineTo(12,3);ctx.closePath();ctx.fill();
-      ctx.fillStyle='#999';
-      ctx.beginPath();ctx.moveTo(-6,-2.5);ctx.lineTo(-12,-8);ctx.lineTo(-10,-2.5);ctx.closePath();ctx.fill();
-      ctx.beginPath();ctx.moveTo(-6,2.5);ctx.lineTo(-12,8);ctx.lineTo(-10,2.5);ctx.closePath();ctx.fill();
-    } else {
-      ctx.globalAlpha=0.12;ctx.fillStyle='#c88020';
-      ctx.beginPath();ctx.ellipse(-7,0,6,1.5,0,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=1;
-      const bg2=ctx.createLinearGradient(0,-2.5,0,2.5);
-      bg2.addColorStop(0,'#c88020');bg2.addColorStop(0.4,'#f0c060');bg2.addColorStop(1,'#8a5010');
-      ctx.fillStyle=bg2;
-      ctx.beginPath();
-      ctx.moveTo(5,0);
-      ctx.bezierCurveTo(5,-2.5,1,-3,-4,-2.5);
-      ctx.lineTo(-4,2.5);
-      ctx.bezierCurveTo(1,3,5,2.5,5,0);
-      ctx.fill();
-      ctx.fillStyle='#7a3a08';
-      ctx.beginPath();ctx.moveTo(5,0);ctx.bezierCurveTo(6.5,-1,7,0,6.5,0);ctx.bezierCurveTo(7,0,6.5,1,5,0);ctx.fill();
-      const bbase=ctx.createLinearGradient(-5,-2,-5,2);
-      bbase.addColorStop(0,'#a06010');bbase.addColorStop(0.5,'#d08030');bbase.addColorStop(1,'#6a3808');
-      ctx.fillStyle=bbase;ctx.fillRect(-5,-2,2.5,4);
-    }
-    ctx.restore();
-  });
-}
-
-async function handleBulletHit(bullet,targetUid,target){
+async function handleMeleeHit(targetUid,target){
   playSound('hit');
-  if(bullet.shooterUid!==myUid)return;
-  // Distance-based damage — full damage up close, 40% at max range
-  const dx=bullet.x-(bullet.spawnX||bullet.x);
-  const dy=bullet.y-(bullet.spawnY||bullet.y);
-  const distTravelled=Math.sqrt(dx*dx+dy*dy);
-  const maxRange=800;
-  const distFactor=Math.max(0.4,1-(distTravelled/maxRange)*0.6);
-  const baseDmg=_selectedTank?.damage||TANK_DAMAGE;
-  const dmg=Math.round(baseDmg*distFactor);
-  spawnDamageText(target.x-camX,target.y-camY-20,'-'+dmg,'#fff');
+  const baseDmg=_selectedTank?.damage||86;
+  // Melee: full damage at contact, slight falloff possible in future
+  const dmg=baseDmg;
+  spawnDamageText(target.x-camX,target.y-camY-20,'-'+dmg,'#ffe060');
   const newHp=Math.max(0,(target.hp||0)-dmg);
   await update(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+targetUid),{hp:newHp});
   if(newHp<=0&&!_killedSet.has(targetUid)){
@@ -3862,27 +3465,14 @@ function handleMovement(me,dt){
     while(diff>Math.PI)diff-=Math.PI*2;
     while(diff<-Math.PI)diff+=Math.PI*2;
     const baseTurnRate=_selectedTank?.turnRate||MOVE_TURN_RATE;
-    const isJetTurn=_selectedTank?.isJet;
-    let effectiveTurnRate;
-    if(isJetTurn){
-      // F-16 aircraft turning: turn rate is limited and smooth, not instant like a tank
-      // Real aircraft: gradual bank-and-turn, can't spin on the spot
-      // Turn rate is a fixed gentle rate — pilot smoothly rolls into a turn
-      const jetMaxTurn=0.028; // ~1.6 deg/frame max — realistic coordinated turn
-      const stepSize=Math.min(Math.abs(diff),jetMaxTurn*dt)*Math.sign(diff);
-      _bodyAngleRad+=stepSize;
-    } else {
-      effectiveTurnRate=baseTurnRate;
-      _bodyAngleRad+=diff*effectiveTurnRate*dt;
-    }
+    // Bird turn rate — agile but not instant
+    const effectiveTurnRate=baseTurnRate;
+    _bodyAngleRad+=diff*effectiveTurnRate*dt;
     const alignment=Math.abs(diff);
     const accel=_selectedTank?.accel||MOVE_ACCEL;
     const maxSpd=_selectedTank?.speed||MOVE_MAX_SPEED;
     const fric=_selectedTank?.friction||MOVE_FRICTION;
-    if(isJetTurn){
-      // Jets always accelerate forward — they don't brake to turn like tanks
-      _speed=Math.min(_speed+accel*dt,maxSpd);
-    } else if(alignment<Math.PI*0.35){
+    if(alignment<Math.PI*0.35){
       _speed=Math.min(_speed+accel*dt,maxSpd);
     } else {
       _speed*=Math.pow(fric,dt);
@@ -3893,78 +3483,26 @@ function handleMovement(me,dt){
     if(Math.abs(_speed)<0.01)_speed=0;
   }
 
-  // Jet physics: always moving forward at minimum speed (can't stop like a tank)
-  const isJet=_selectedTank?.isJet;
-  if(isJet&&!_jetLanded){
-    const minJetSpeed=_selectedTank.speed*0.3;
-    // Speed cap: limit top speed (future faster jets will raise this)
-    const maxCap=_selectedTank.speed; // capped at base speed — no uncapped spin
-    _speed=Math.min(_speed,maxCap);
-    if(_speed<minJetSpeed)_speed=minJetSpeed;
-    // Sonic boom when hitting 95% of top speed
-    if(_speed>=_selectedTank.speed*0.95)playSonicBoom();
-    else _sonicBoomDone=false; // reset so it can fire again after slowing
-  }
-  if(isJet&&_jetLanded){_speed=0;}
-
   // Update engine sound pitch/volume with speed
-  updateEngineSound(Math.abs(_speed),_selectedTank?.speed||MOVE_MAX_SPEED,_selectedTank?.id||'heavy');
+  updateEngineSound(Math.abs(_speed),_selectedTank?.speed||MOVE_MAX_SPEED,_selectedTank?.id||'owl');
 
-  // Water/ocean penalty — jets fly over freely, tanks slow down
-  const oceanBorder=200;
-  const inOceanBorder=!isJet&&(me.x<oceanBorder||me.x>MAP_W-oceanBorder||me.y<oceanBorder||me.y>MAP_H-oceanBorder);
-  const inWater=!isJet&&ptInWater(me.x,me.y);
-  const speedMult=(inWater||inOceanBorder)?0.30:1.0; // ocean border is even slower — deep water
-  const moveX=Math.cos(_bodyAngleRad)*_speed*speedMult;
-  const moveY=Math.sin(_bodyAngleRad)*_speed*speedMult;
+  // Birds fly freely over everything
+  const speedMult=1.0;
+  const moveX=Math.cos(_bodyAngleRad)*_speed;
+  const moveY=Math.sin(_bodyAngleRad)*_speed;
 
   let nx=me.x+moveX;
   let ny=me.y+moveY;
   nx=Math.max(40,Math.min(MAP_W-40,nx));
   ny=Math.max(40,Math.min(MAP_H-40,ny));
 
-  // Jets fly over map obstacles (walls/trees) — tanks collide
-  if(isJet){
-    me.x=nx;me.y=ny;
-  } else if(!collidesWithMap(nx,ny,22)){me.x=nx;me.y=ny;}
-  else if(!collidesWithMap(nx,me.y,22)){me.x=nx;}
-  else if(!collidesWithMap(me.x,ny,22)){me.y=ny;}
-  else{_speed*=0.3;}
+  // Birds fly freely — no wall/tree collision
+  me.x=nx;me.y=ny;
 
-  // Store angle in radians for canvas rendering
   me.angle=_bodyAngleRad;
-
-  // Compute banking tilt — how fast the jet is turning
-  if(_selectedTank?.isJet){
-    let angleDelta=_bodyAngleRad-_lastBodyAngle;
-    while(angleDelta>Math.PI)angleDelta-=Math.PI*2;
-    while(angleDelta<-Math.PI)angleDelta+=Math.PI*2;
-    // Bank toward turn direction — more aggressive tilt, smoother decay
-    const targetBank=angleDelta*55; // stronger tilt response
-    _bankAngle+=(targetBank-_bankAngle)*0.22*dt;
-    _bankAngle=Math.max(-0.52,Math.min(0.52,_bankAngle)); // ~30 degree max bank
-  } else {
-    _bankAngle*=0.80;
-  }
   _lastBodyAngle=_bodyAngleRad;
 
-  // Tread marks
-  _treadDist+=Math.abs(_speed)*speedMult;
-  const treadInterval=isJet?8:18; // jets leave more frequent contrails
-  if(_treadDist>treadInterval){
-    if(isJet){
-      // Store actual nozzle world position — offset behind jet by nozzle distance
-      const nozzleOffset=36;
-      const nx=me.x+Math.cos(_bodyAngleRad+Math.PI)*nozzleOffset;
-      const ny=me.y+Math.sin(_bodyAngleRad+Math.PI)*nozzleOffset;
-      const maxLife=220;
-      _treads.push({nx,ny,x:me.x,y:me.y,rot:_bodyAngleRad,alpha:0.42,life:maxLife,maxLife,isJet:true});
-    } else {
-      _treads.push({x:me.x,y:me.y,rot:_bodyAngleRad,alpha:0.22,life:600,maxLife:600,isJet:false});
-    }
-    _treadDist=0;
-    if(_treads.length>500)_treads.shift();
-  }
+  // No ground trail — birds fly
 
   // Push position to Firebase (throttled — every 2nd frame ≈ 30 times/sec at 60fps)
   _posUpdateThrottle++;
@@ -3973,39 +3511,32 @@ function handleMovement(me,dt){
   }
 }
 
-function handleFiring(me){
-  if(!firing)return;
+function handleMeleeAttack(me){
+  // Update cooldown display
   const now=Date.now();
-  const fireRate=_selectedTank?.id==='atlas'?700:_selectedTank?.id==='f22'?450:380; // atlas slow, F-35 missile medium, switti fast
-  if(now-lastFireTime<fireRate)return;
-  if(myBullets<=0){toast('No ammo! Reloading…','gold');return;}
-  lastFireTime=now;myBullets--;updateBulletIcons();
-  playSound('shoot',_selectedTank?.id);
-  const barrelAngle=_bodyAngleRad;
-  const isAtlas=_selectedTank?.id==='atlas';
-  const isF22=_selectedTank?.id==='f22';
-  const barrelReach=isF22?52:40;
-  const bx=me.x+Math.cos(barrelAngle)*barrelReach;
-  const by=me.y+Math.sin(barrelAngle)*barrelReach;
-  const bullet={
-    x:bx,y:by,
-    angle:barrelAngle,
-    shooterUid:myUid,
-    tankId:_selectedTank?.id||'heavy',
-    spawnX:bx,spawnY:by,
-    speed:isAtlas?5:isF22?18:9,
-    life:0
-  };
-  bullets.push(bullet);
-  // Push bullet to RTDB so other players can see it
-  const bulletRef=push(ref(rtdb,'sw_rooms/'+currentRoomId+'/bullets'),{
-    x:bx,y:by,angle:barrelAngle,
-    shooterUid:myUid,tankId:bullet.tankId,
-    spawnX:bx,spawnY:by,speed:bullet.speed,
-    ts:now
+  const elapsed=now-lastAttackTime;
+  _attackCooldownPct=Math.min(1,elapsed/ATTACK_COOLDOWN_MS);
+  updateBulletIcons();
+
+  if(!attacking)return;
+  if(_attackCooldownPct<1)return; // still cooling down
+  lastAttackTime=now;
+  _attackCooldownPct=0;
+  updateBulletIcons();
+
+  // Owl screech on strike
+  playOwlScreech();
+
+  // Check for nearby enemy birds within ATTACK_RANGE
+  if(!gameState?.players)return;
+  Object.entries(gameState.players).forEach(([uid,p])=>{
+    if(!p||!p.alive||uid===myUid)return;
+    const dx=p.x-me.x, dy=p.y-me.y;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist<=ATTACK_RANGE){
+      handleMeleeHit(uid,p);
+    }
   });
-  // Auto-remove from RTDB after bullet expires
-  setTimeout(()=>remove(bulletRef).catch(()=>{}),3000);
 }
 
 function setupKeyboard(){
@@ -4014,7 +3545,6 @@ function setupKeyboard(){
     if(e.key==='s'||e.key==='S'||e.key==='ArrowDown')keys.s=true;
     if(e.key==='a'||e.key==='A'||e.key==='ArrowLeft')keys.a=true;
     if(e.key==='d'||e.key==='D'||e.key==='ArrowRight')keys.d=true;
-    if((e.key==='l'||e.key==='L')&&_selectedTank?.isJet)tryLandJet();
   };
   window.onkeyup=e=>{
     if(e.key==='w'||e.key==='W'||e.key==='ArrowUp')keys.w=false;
@@ -4029,8 +3559,8 @@ function setupMouse(){
     const me=gameState?.players?.[myUid];if(!me)return;
     mouseAngle=Math.atan2((e.clientY+camY)-me.y,(e.clientX+camX)-me.x);
   };
-  canvas.onmousedown=()=>{firing=true;};
-  canvas.onmouseup=()=>{firing=false;};
+  canvas.onmousedown=()=>{attacking=true;};
+  canvas.onmouseup=()=>{attacking=false;};
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -4106,15 +3636,15 @@ function setupTouch(){
   // Fire button
   fb.addEventListener('pointerdown',e=>{
     e.preventDefault();
-    firing=true;
+    attacking=true;
     fb.classList.add('firing');
   });
   fb.addEventListener('pointerup',e=>{
-    firing=false;
+    attacking=false;
     fb.classList.remove('firing');
   });
   fb.addEventListener('pointercancel',e=>{
-    firing=false;
+    attacking=false;
     fb.classList.remove('firing');
   });
 }
@@ -4129,8 +3659,6 @@ function enterGame(roomId,roomData){
     initGame(roomId,roomData);
     listenRoom(roomId);
     listenIngameChat(roomId);
-    _remoteBullets={};
-    listenRemoteBullets(roomId);
   });
 }
 
@@ -4182,7 +3710,6 @@ function listenRoom(id){
 
 async function handleMyDeath(){
   if(_soundEnabled) playSound('die');
-  if(bulletRegenTimer){ clearInterval(bulletRegenTimer); bulletRegenTimer = null; }
 
   // ── Show death screen IMMEDIATELY — don't make the player wait ──
   const banner = document.getElementById('deathBanner');
@@ -4242,7 +3769,7 @@ async function handleWin(){
   const prize=_sessionKills*KILL_REWARD;
   await push(ref(rtdb,'sw_history/'+CU.uid),{result:'win',roomName:'Room #'+currentRoomId.slice(-4).toUpperCase(),kills:_sessionKills,earned:prize,ts:Date.now()});
   refreshLobbyUI();
-  toast(prize>0?'+R'+prize.toFixed(2)+' earned!':'Last tank standing!','gold');
+  toast(prize>0?'+R'+prize.toFixed(2)+' earned!':'Last bird soaring!','gold');
 }
 
 // Spawn again — re-enter same room with fresh HP. FREE — no charge on respawn.
@@ -4252,11 +3779,9 @@ window.respawnPlayer=async function(){
   if(banner)banner.style.display='none';
   // Respawning is FREE — balance is only affected when killed by another player
   const spawnPos=safeSpawnPos();
-  await update(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+CU.uid),{hp:_selectedTank.hp,tankId:_selectedTank.id,damage:_selectedTank.damage,bullets:MAX_BULLETS,...spawnPos,angle:0,alive:true,lastActive:Date.now()});
+  await update(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+CU.uid),{hp:_selectedTank.hp,tankId:_selectedTank.id,damage:_selectedTank.damage,...spawnPos,angle:0,alive:true,lastActive:Date.now()});
   _savedResult=false;_sessionKills=0;_killedSet=new Set();
-  myBullets=MAX_BULLETS;updateBulletIcons();
-  if(bulletRegenTimer)clearInterval(bulletRegenTimer);
-  bulletRegenTimer=setInterval(()=>{if(myBullets<MAX_BULLETS){myBullets++;updateBulletIcons();}},BULLET_REGEN_MS);
+
   toast('Back in battle!','gold');
   refreshLobbyUI();
 };
@@ -4390,49 +3915,8 @@ window.cancelLeave=function(){
 };
 
 // ── JET LANDING SYSTEM ──
-let _jetLanded=false;
-let _landingAnim=0; // 0=none 1=landing 2=takeoff
-let _landingAnimT=0;
-
-function updateLandBtn(){
-  const btn=document.getElementById('landBtn');
-  if(btn)btn.style.display='none';
-}
-
-function tickLandingAnim(dt){
-  if(_landingAnim===0)return;
-  _landingAnimT+=dt*0.04;
-  const cvs=document.getElementById('gameCanvas');
-  if(_landingAnim===1){
-    // Landing: screen dims + shake + flash
-    const p=Math.min(_landingAnimT,1);
-    const shake=p<0.5?(Math.random()-0.5)*8*(1-p*2):0;
-    if(cvs){cvs.style.filter=`brightness(${1-p*0.35}) contrast(${1+p*0.2})`;cvs.style.transform=`translate(${shake}px,${shake*0.5}px)`;}
-    if(_landingAnimT>=1){
-      _landingAnim=0;_landingAnimT=0;
-      if(cvs){cvs.style.filter='';cvs.style.transform='';}
-      document.getElementById('landingModal').style.display='flex';
-    }
-  } else if(_landingAnim===2){
-    // Takeoff: screen brightens + zoom
-    const p=Math.min(_landingAnimT,1);
-    if(cvs){cvs.style.filter=`brightness(${1+p*0.4})`;cvs.style.transform=`scale(${1+p*0.03})`;}
-    if(_landingAnimT>=1){
-      _landingAnim=0;_landingAnimT=0;
-      if(cvs){cvs.style.filter='';cvs.style.transform='';}
-      toast('🚀 Taking off!','gold');
-    }
-  }
-}
-
-window.tryLandJet=function(){
-  // Runway removed — no landing
-  toast('No runway available!','gold');
-};
-
 window.jetTakeoff=function(){
   document.getElementById('landingModal').style.display='none';
-  _jetLanded=false;
   _landingAnim=2;_landingAnimT=0;
   _speed=(_selectedTank?.speed||9)*0.5;
 };
@@ -4463,14 +3947,13 @@ window.leaveGame = async function(){
 function cleanupGame(){
   stopEngineSound();
   if(gameLoop){cancelAnimationFrame(gameLoop);gameLoop=null;}
-  if(bulletRegenTimer){clearInterval(bulletRegenTimer);bulletRegenTimer=null;}
   if(roomOff){roomOff();roomOff=null;}
   if(chatOff){chatOff();chatOff=null;}
   // Remove self from room — triggers empty room cleanup
   if(currentRoomId&&CU){
     remove(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+CU.uid)).catch(()=>{});
   }
-  bullets=[];_treads=[];_remoteBullets={};keys={w:false,a:false,s:false,d:false};firing=false;joystickActive=false;
+  _treads=[];keys={w:false,a:false,s:false,d:false};attacking=false;joystickActive=false;
   _speed=0;_bodyAngleRad=0;_treadDist=0;
   currentRoomId=null;currentRoomData=null;gameState=null;_savedResult=false;
   window.onkeydown=null;window.onkeyup=null;
@@ -5034,7 +4517,7 @@ function _showPaymentBanner(title,body,sub,type){
   </div>
   <div style="display:flex;flex-direction:column;align-items:center;padding:32px 24px 20px;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(255,255,255,0.08),transparent 70%)">
     <img src="https://i.ibb.co/twzDZKfp/images-4-removebg-preview.png" style="width:220px;height:220px;object-fit:contain;filter:drop-shadow(0 12px 30px rgba(255,255,255,0.08));animation:tankRock 3s ease-in-out infinite" alt="Heavy Armor Tank">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:4px;color:#fff;margin-top:16px">HEAVY ARMOR</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:4px;color:#fff;margin-top:16px">GREAT HORNED OWL</div>
     <div style="font-size:12px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.08);margin-top:4px">MK-IV BATTLE TANK</div>
     <p style="font-size:13px;color:rgba(255,255,255,.5);text-align:center;margin-top:12px;max-width:320px;line-height:1.6">The Heavy Armor MK-IV is a slow-moving but devastating ground force.</p>
   </div>
@@ -5358,7 +4841,7 @@ function applyTranslations(){
   const chatInp=document.getElementById('globalChatInput');if(chatInp)chatInp.placeholder=t('say_something');
 
   // Your tank section
-  const tankTitle=document.querySelector('#play-tank-chooser .pg-title');if(tankTitle)tankTitle.textContent=t('your_tank');
+  const tankTitle=document.querySelector('#play-tank-chooser .pg-title');if(tankTitle)tankTitle.textContent='YOUR BIRD';
 
   // Battle servers section
   const serversTitle=document.querySelector('#play-servers .pg-title');if(serversTitle)serversTitle.textContent=t('battle_servers');
