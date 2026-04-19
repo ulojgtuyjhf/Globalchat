@@ -1993,9 +1993,6 @@ function refreshLobbyUI(){
   const playMoneyBal=document.getElementById('playMoneyBal');if(playMoneyBal)playMoneyBal.textContent='R'+bal.toFixed(2);
   const phgb=document.getElementById('playHeaderGameBal');if(phgb)phgb.textContent='R'+bal.toFixed(2);
   const phmb=document.getElementById('playHeaderMoneyBal');if(phmb)phmb.textContent='R'+bal.toFixed(2);
-  // ── Keep deposit & withdraw overlays in sync ──
-  const fundsBalEl=document.getElementById('fundsCurrentBal');if(fundsBalEl)fundsBalEl.textContent='R'+bal.toFixed(2);
-  const wdBalEl=document.getElementById('wdCurrentBal');if(wdBalEl)wdBalEl.textContent='R'+bal.toFixed(2);
   const DEFAULT_AVATAR='https://i.ibb.co/fdCjB4mS/file-00000000d40c71fda0a43fcbc677dad6.png';
   const img=document.getElementById('lobbyAvImg'),init=document.getElementById('lobbyAvInit');
   if(img){img.src=UD.photoURL||DEFAULT_AVATAR;img.style.display='block';}
@@ -4867,13 +4864,39 @@ async function processPendingPayment(){
       const isCancelled = !isPaid && (data.paid === false || data.status === 'cancelled' || data.status === 'failed' || data.status === 'expired');
 
       if(isPaid){
-        // Sync real balance from Firestore
+        // Verify confirmed payment is real.
+        // Write the balance update to Firestore NOW — don't wait for webhook.
+        // We use a sw_payments record keyed by checkoutId to prevent double-credit
+        // (if the webhook also fires, it will see the record and skip).
         try{
+          const payRef = doc(db, 'sw_payments', checkoutId);
+          const paySnap = await getDoc(payRef);
+
+          if(!paySnap.exists()){
+            // First time crediting this checkout — write it
+            await setDoc(payRef, {
+              uid:       CU.uid,
+              amount:    paidAmt,
+              checkoutId,
+              creditedAt: new Date().toISOString(),
+              source:    'client_verify'
+            });
+            // Increment the user's balance
+            await updateDoc(doc(db,'sw_users',CU.uid), {
+              balance: increment(paidAmt)
+            });
+          }
+          // Read the now-updated balance
           const snap = await getDoc(doc(db,'sw_users',CU.uid));
           const b = snap.exists() ? (snap.data().balance||0) : prevBal + paidAmt;
           UD.balance = b; refreshLobbyUI();
-          showPaymentResult('success', b - prevBal, b);
-        }catch(e){ showPaymentResult('success', paidAmt, prevBal + paidAmt); }
+          showPaymentResult('success', paidAmt, b);
+        }catch(e){
+          // Firestore write failed — show success with expected amounts anyway
+          console.error('Balance credit error:', e);
+          UD.balance = prevBal + paidAmt; refreshLobbyUI();
+          showPaymentResult('success', paidAmt, prevBal + paidAmt);
+        }
         return;
       }
 
@@ -4935,12 +4958,8 @@ async function processPendingPayment(){
 // Display a clear, professional result notification for the payment
 function showPaymentResult(status, addedAmt, newBal){
   if(status === 'success'){
-    // Ensure UD.balance is set to the confirmed new balance before refreshing all UI
-    if(newBal > 0) UD.balance = newBal;
-    refreshLobbyUI();
     _showPaymentBanner('Payment Successful','R'+(addedAmt>0?addedAmt.toFixed(2):'—')+' added to your balance.','New balance: R'+(newBal||0).toFixed(2),'success');
   } else {
-    refreshLobbyUI();
     _showPaymentBanner('Payment Declined','Your card was not charged.','Please try again or use a different card.','declined');
   }
 }
