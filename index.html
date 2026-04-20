@@ -4798,13 +4798,24 @@ window.startYocoPayment=async function(){
     if(data.success&&data.redirectUrl){
       window.closeAddFunds();
       // Store checkoutId (id from Yoco response) + prevBal + amount — survives page navigation
-      localStorage.setItem('sw_pending_pay',JSON.stringify({
-        uid:       CU.uid,
-        prevBal:   UD.balance||0,
-        amount:    amt,
+      // redirected:false initially; set to true only after the page actually navigates away.
+      // If the user swipes back WITHOUT completing payment, redirected stays false and we decline.
+      const pendingPayload = {
+        uid:        CU.uid,
+        prevBal:    UD.balance||0,
+        amount:     amt,
         checkoutId: data.checkoutId || data.id || '',
-        ts:        Date.now()
-      }));
+        ts:         Date.now(),
+        redirected: false
+      };
+      localStorage.setItem('sw_pending_pay', JSON.stringify(pendingPayload));
+      // Mark as redirected just before navigating — this fires before pagehide/back
+      window.addEventListener('pagehide', function(){
+        try{
+          const p = JSON.parse(localStorage.getItem('sw_pending_pay')||'{}');
+          if(p.checkoutId === pendingPayload.checkoutId){ p.redirected=true; localStorage.setItem('sw_pending_pay',JSON.stringify(p)); }
+        }catch(e){}
+      }, {once:true});
       window.location.href=data.redirectUrl;
     }else{
       statusEl.textContent=data.error||'Could not start payment. Try again.';
@@ -4845,6 +4856,14 @@ async function processPendingPayment(){
   if(!CU || pending.uid !== CU.uid || Date.now() - pending.ts > 1800000){
     localStorage.removeItem('sw_pending_pay'); return;
   }
+
+  // ── BACK-GESTURE GUARD ──
+  // If redirected is false the user swiped back before Yoco loaded — no payment attempted.
+  if(pending.redirected === false){
+    localStorage.removeItem('sw_pending_pay');
+    return; // Silently reset, nothing happened
+  }
+
   localStorage.removeItem('sw_pending_pay');
 
   // Clean URL params from address bar
