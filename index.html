@@ -4859,6 +4859,12 @@ async function processPendingPayment(){
   // Show spinner immediately
   _showPaymentBanner('Verifying Payment…', 'Checking with Yoco — just a second.', '', 'pending');
 
+  // ── If no checkoutId stored, payment was never created — decline immediately ──
+  if(!checkoutId){
+    showPaymentResult('declined', 0, prevBal);
+    return;
+  }
+
   // ── VERIFY via server — authoritative answer in ~1 second ──
   if(checkoutId){
     try{
@@ -4922,47 +4928,18 @@ async function processPendingPayment(){
     }
   }
 
-  // ── FALLBACK: read Firestore balance right now ──
+  // ── NO FALLBACK CREDIT: if server verify didn't confirm payment, treat as declined ──
+  // We never credit based on balance comparison alone — only a confirmed isPaid from Yoco counts.
+  // This prevents phantom "Payment Successful" when user cancels or abandons the Yoco page.
   try{
     const snap = await getDoc(doc(db,'sw_users',CU.uid));
     if(snap.exists()){
-      const nowBal = snap.data().balance || 0;
-      if(nowBal > prevBal){
-        UD.balance = nowBal; refreshLobbyUI();
-        showPaymentResult('success', nowBal - prevBal, nowBal);
-        return;
-      }
+      UD.balance = snap.data().balance || 0;
+      refreshLobbyUI();
     }
-  }catch(e){ console.error('Balance check error:', e); }
-
-  // ── LAST RESORT: live listener, 30-second hard timeout ──
-  let done = false;
-  let timer = null;
-  let unsub = null;
-
-  async function finish(paid){
-    if(done) return;
-    done = true;
-    try{ unsub && unsub(); }catch(e){}
-    clearTimeout(timer);
-    try{
-      const snap = await getDoc(doc(db,'sw_users',CU.uid));
-      const b = snap.exists() ? (snap.data().balance||0) : prevBal;
-      UD.balance = b; refreshLobbyUI();
-      showPaymentResult(paid || b > prevBal ? 'success' : 'declined', b - prevBal, b);
-    }catch(e){
-      showPaymentResult(paid ? 'success' : 'declined', paidAmt, paid ? prevBal + paidAmt : prevBal);
-    }
-  }
-
-  try{
-    unsub = onSnapshot(doc(db,'sw_users',CU.uid), s => {
-      if(done || !s.exists()) return;
-      if((s.data().balance||0) > prevBal) finish(true);
-    });
   }catch(e){}
 
-  timer = setTimeout(() => finish(false), 30000);
+  showPaymentResult('declined', 0, UD.balance || prevBal);
 }
 
 // Display a clear, professional result notification for the payment
