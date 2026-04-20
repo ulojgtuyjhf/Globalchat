@@ -8,10 +8,7 @@
   document.body.classList.add(theme);
 })();
 
-// Wrong device guard — send back to half.html which will load desktop
-if (window === window.top && !window.matchMedia('(max-width: 899px)').matches) {
-    window.location.replace('half.html');
-}
+// Desktop layout is handled inline — no redirect needed
 
 // ════════════════════════════════════════════
 
