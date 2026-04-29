@@ -2757,41 +2757,170 @@ window.uploadCoverPhoto=async function(input){
   }catch(e){toast('Upload failed','red');}finally{hideProc();}
 };
 
+// ── Transaction history helpers ──
+function _txDateGroup(ts){
+  if(!ts)return'Earlier';
+  const d=new Date(ts),now=new Date();
+  if(d.toDateString()===now.toDateString())return'Today';
+  if(new Date(now-86400000).toDateString()===d.toDateString())return'Yesterday';
+  return d.toLocaleDateString([],{weekday:'long',day:'numeric',month:'long'});
+}
+function _txCfg(h){
+  const r=h.result;
+  if(r==='deposit'||r==='payment')return{
+    icon:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
+    label:'Funds Added',sub:'Yoco payment',
+    sign:'+',col:'#4ade80',bg:'rgba(74,222,128,0.10)',bord:'rgba(74,222,128,0.20)',icol:'#4ade80',
+    amt:h.amount||h.earned||0,status:'completed'
+  };
+  if(r==='withdraw')return{
+    icon:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><polyline points="5 12 12 5 19 12"/><line x1="5" y1="19" x2="19" y2="19"/></svg>`,
+    label:'Withdrawal',
+    sub:h.wdMethod==='ewallet'?'eWallet payout':h.wdMethod==='capitec'?'Capitec payout':'Bank transfer',
+    sign:'−',col:'#f87171',bg:'rgba(248,113,113,0.08)',bord:'rgba(248,113,113,0.15)',icol:'#f87171',
+    amt:h.lost||h.amount||0,status:h.wdStatus||'pending'
+  };
+  if(r==='win')return{
+    icon:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg>`,
+    label:'Battle Win',sub:(h.roomName||'Battle')+(h.kills?' · '+h.kills+' kill'+(h.kills!==1?'s':''):''),
+    sign:'+',col:'#4ade80',bg:'rgba(74,222,128,0.08)',bord:'rgba(74,222,128,0.15)',icol:'#4ade80',
+    amt:h.earned||0,status:'completed'
+  };
+  if(r==='kill')return{
+    icon:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+    label:'Kill Reward',sub:h.roomName||'Battle',
+    sign:'+',col:'#D0A85C',bg:'rgba(208,168,92,0.10)',bord:'rgba(208,168,92,0.20)',icol:'#D0A85C',
+    amt:h.earned||0,status:'completed'
+  };
+  return{
+    icon:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+    label:'Entry Fee',sub:h.roomName||'Battle',
+    sign:'−',col:'var(--dim)',bg:'rgba(128,128,128,0.06)',bord:'rgba(128,128,128,0.12)',icol:'var(--dim)',
+    amt:h.lost||0,status:'completed'
+  };
+}
+function _txStatusPill(status){
+  if(status==='pending')return`<span style="font-size:9px;letter-spacing:1px;text-transform:uppercase;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.28);">Pending</span>`;
+  if(status==='paid')return`<span style="font-size:9px;letter-spacing:1px;text-transform:uppercase;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(74,222,128,0.10);color:#4ade80;border:1px solid rgba(74,222,128,0.25);">Paid</span>`;
+  if(status==='rejected')return`<span style="font-size:9px;letter-spacing:1px;text-transform:uppercase;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(248,113,113,0.10);color:#f87171;border:1px solid rgba(248,113,113,0.25);">Rejected</span>`;
+  return'';
+}
+
 function loadProfileHistory(){
   const el=document.getElementById('pt-content-history');
-  if(!el)return;
-  el.innerHTML='<div style="text-align:center;padding:20px;color:var(--dim);font-size:12px">Loading…</div>';
-  onValue(ref(rtdb,'sw_history/'+CU?.uid),snap=>{
-    const all=Object.values(snap.val()||{}).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,40);
-    if(!all.length){
-      el.innerHTML='<div style="text-align:center;padding:32px 20px;color:var(--dim);font-size:12px">No transactions yet</div>';
-      return;
-    }
-    el.innerHTML=all.map(h=>{
-      const isWin=h.result==='win'||h.result==='kill';
-      const isDeposit=h.result==='deposit';
-      const amt=isDeposit?(h.amount||0):isWin?(h.earned||0):(h.lost||0);
-      const sign=isWin||isDeposit?'+':'-';
-      const color=isWin||isDeposit?'var(--green)':'var(--red)';
-      const icon=isDeposit
-        ?`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`
-        :isWin
-        ?`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`
-        :`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
-      const label=isDeposit?'Funds Added':isWin?'Kill Reward':'Entry Fee';
-      const detail=h.roomName||'';
-      return`<div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div style="width:36px;height:36px;border-radius:10px;background:${isWin||isDeposit?'rgba(22,101,52,.1)':'rgba(153,27,27,.1)'};display:grid;place-items:center;flex-shrink:0">${icon}</div>
-          <div>
-            <div style="font-size:13px;font-weight:700;color:var(--white)">${label}</div>
-            <div style="font-size:11px;color:var(--dim);margin-top:1px">${detail?detail+' · ':''}${fmtTime(h.ts)}</div>
-          </div>
-        </div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.5px;color:${color}">${sign}R${amt.toFixed(2)}</div>
-      </div>`;
-    }).join('');
+  if(!el||!CU)return;
+  el.innerHTML=`<div style="text-align:center;padding:40px 20px;color:var(--dim);font-size:12px;display:flex;flex-direction:column;align-items:center;gap:10px"><div style="width:26px;height:26px;border:2.5px solid rgba(208,168,92,0.25);border-top-color:#D0A85C;border-radius:50%;animation:spin2 .7s linear infinite"></div>Loading transactions…</div>`;
+
+  onValue(ref(rtdb,'sw_history/'+CU.uid),snap=>{
+    const raw=Object.values(snap.val()||{}).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,80);
+
+    // Pull withdrawal statuses from Firestore subcollection for live pending/paid status
+    getDocs(collection(db,'sw_users',CU.uid,'withdrawals')).then(wdSnap=>{
+      const wdDocs={};
+      wdSnap.forEach(d=>wdDocs[d.id]=d.data());
+
+      const all=raw.map(h=>{
+        if(h.result!=='withdraw')return h;
+        const match=Object.values(wdDocs).find(w=>{
+          const wts=w.requestedAt?.toMillis?w.requestedAt.toMillis():0;
+          return Math.abs(wts-(h.ts||0))<300000&&(w.amount===(h.lost||h.amount));
+        });
+        return match?{...h,wdStatus:match.status,wdMethod:match.method}:h;
+      });
+
+      renderTxHistory(el,all);
+    }).catch(()=>renderTxHistory(el,raw));
   },{onlyOnce:true});
+}
+
+function renderTxHistory(el,all){
+  if(!all.length){
+    el.innerHTML=`<div style="text-align:center;padding:60px 20px;display:flex;flex-direction:column;align-items:center;gap:12px">
+      <div style="width:52px;height:52px;border-radius:16px;background:var(--muted);border:1px solid var(--border);display:grid;place-items:center">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dim)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--white)">No Transactions Yet</div>
+      <div style="font-size:12px;color:var(--dim);max-width:210px;line-height:1.6;text-align:center">Add funds or play a battle to see your history here.</div>
+    </div>`;
+    return;
+  }
+
+  // Summary totals
+  const deposited=all.filter(h=>h.result==='deposit'||h.result==='payment').reduce((s,h)=>s+(h.amount||h.earned||0),0);
+  const earned=all.filter(h=>h.result==='win'||h.result==='kill').reduce((s,h)=>s+(h.earned||0),0);
+  const withdrawn=all.filter(h=>h.result==='withdraw').reduce((s,h)=>s+(h.lost||h.amount||0),0);
+  const pendingWds=all.filter(h=>h.result==='withdraw'&&(!h.wdStatus||h.wdStatus==='pending'));
+
+  // Group by date
+  const groups={};
+  all.forEach(h=>{
+    const k=_txDateGroup(h.ts);
+    if(!groups[k])groups[k]=[];
+    groups[k].push(h);
+  });
+
+  let html=`<style>@keyframes _txIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}</style>`;
+
+  // Summary strip
+  html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px;border:1px solid var(--border)">
+    <div style="background:var(--card);padding:13px 8px;text-align:center">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.5px;color:#4ade80">+R${deposited.toFixed(2)}</div>
+      <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-top:2px">Deposited</div>
+    </div>
+    <div style="background:var(--card);padding:13px 8px;text-align:center;border-left:1px solid var(--border);border-right:1px solid var(--border)">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.5px;color:#D0A85C">+R${earned.toFixed(2)}</div>
+      <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-top:2px">Earned</div>
+    </div>
+    <div style="background:var(--card);padding:13px 8px;text-align:center">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.5px;color:var(--dim)">−R${withdrawn.toFixed(2)}</div>
+      <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-top:2px">Withdrawn</div>
+    </div>
+  </div>`;
+
+  // Pending withdrawals banner
+  if(pendingWds.length){
+    html+=`<div style="display:flex;align-items:center;gap:10px;padding:11px 13px;background:rgba(251,191,36,0.07);border:1px solid rgba(251,191,36,0.22);border-radius:12px;margin-bottom:14px">
+      <div style="width:28px;height:28px;border-radius:8px;background:rgba(251,191,36,0.12);display:grid;place-items:center;flex-shrink:0">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#fbbf24">${pendingWds.length} withdrawal${pendingWds.length>1?'s':''} pending</div>
+        <div style="font-size:11px;color:rgba(251,191,36,0.55);margin-top:1px">Usually paid within 24 hours</div>
+      </div>
+    </div>`;
+  }
+
+  // Grouped transaction rows
+  let rowIdx=0;
+  Object.entries(groups).forEach(([dateLabel,txs],gi)=>{
+    html+=`<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin:${gi===0?'0':'18px'} 0 8px;font-weight:700">${dateLabel}</div>`;
+    html+=`<div style="background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden">`;
+    txs.forEach((h,i)=>{
+      const c=_txCfg(h);
+      const timeStr=h.ts?new Date(h.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
+      const isWd=h.result==='withdraw';
+      const showPill=isWd&&c.status&&c.status!=='completed';
+      const divider=i<txs.length-1?'border-bottom:1px solid var(--border);':'';
+      html+=`<div style="display:flex;align-items:center;gap:12px;padding:14px 16px;${divider}animation:_txIn .3s cubic-bezier(.16,1,.3,1) ${rowIdx*0.03}s both">
+        <div style="width:40px;height:40px;border-radius:12px;background:${c.bg};border:1px solid ${c.bord};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${c.icol}">${c.icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+            <span style="font-size:13px;font-weight:700;color:var(--white)">${c.label}</span>
+            ${showPill?_txStatusPill(c.status):''}
+          </div>
+          <div style="font-size:11px;color:var(--dim)">${esc(c.sub)}${timeStr?' · '+timeStr:''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:.5px;color:${c.col};line-height:1.1">${c.sign}R${(c.amt||0).toFixed(2)}</div>
+          ${h.kills?`<div style="font-size:10px;color:var(--dim);margin-top:1px">${h.kills} kill${h.kills!==1?'s':''}</div>`:''}
+        </div>
+      </div>`;
+      rowIdx++;
+    });
+    html+=`</div>`;
+  });
+
+  el.innerHTML=html;
 }
 
 function loadRecentOpponents(){
@@ -4720,7 +4849,7 @@ function _validateWd(){
   const btn  = document.getElementById('wdSubmitBtn');
 
   if(amt <= 0){ errEl.textContent = ''; btn.disabled = true; btn.style.opacity = '.45'; return; }
-  if(amt < 2){ errEl.textContent = 'Minimum withdrawal is R2.'; btn.disabled = true; btn.style.opacity = '.45'; return; }
+  if(amt < 50){ errEl.textContent = 'Minimum withdrawal is R50.'; btn.disabled = true; btn.style.opacity = '.45'; return; }
   if(amt > bal){ errEl.textContent = 'Amount exceeds your balance (R' + bal.toFixed(2) + ').'; btn.disabled = true; btn.style.opacity = '.45'; return; }
   errEl.textContent = '';
   btn.disabled = false; btn.style.opacity = '1';
@@ -4730,7 +4859,7 @@ window.submitWithdraw = async function(){
   if(!CU || !UD) return;
   const amt  = parseFloat(document.getElementById('wdAmtInput').value) || 0;
   const bal  = UD.balance || 0;
-  if(amt < 2 || amt > bal){ toast('Invalid amount','red'); return; }
+  if(amt < 50 || amt > bal){ toast('Invalid amount — minimum withdrawal is R50','red'); return; }
 
   // Collect payout details
   let payoutDetails = {};
@@ -4958,6 +5087,14 @@ async function processPendingPayment(){
       batch.set(payRef,{uid:CU.uid,amount:paidAmt,checkoutId,creditedAt:new Date().toISOString(),source:'client_verify'});
       batch.update(doc(db,'sw_users',CU.uid),{balance:increment(paidAmt)});
       await batch.commit();
+      // ── Write deposit to RTDB history so it shows in Transactions tab ──
+      await push(ref(rtdb,'sw_history/'+CU.uid),{
+        result:'deposit',
+        amount:paidAmt,
+        roomName:'Yoco Payment',
+        checkoutId,
+        ts:Date.now()
+      });
     }
     const snap=await getDoc(doc(db,'sw_users',CU.uid));
     const newBal=snap.exists()?(snap.data().balance||0):0;
@@ -5795,7 +5932,7 @@ function renderAnalytics(container,raw){
       </div>
       <div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:3px;color:var(--white);line-height:1;">WITHDRAW FUNDS</div>
-        <div style="font-size:11px;color:var(--dim);letter-spacing:.5px;">Processed within 24 hours · Min R2</div>
+        <div style="font-size:11px;color:var(--dim);letter-spacing:.5px;">Processed within 24 hours · Min R50</div>
       </div>
     </div>
 
@@ -5820,7 +5957,7 @@ function renderAnalytics(container,raw){
     <div style="margin-bottom:6px;">
       <div style="position:relative;">
         <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--dim);">R</span>
-        <input id="wdAmtInput" type="number" min="2" step="1" placeholder="0" style="width:100%;padding:12px 12px 12px 28px;background:var(--muted);border:1.5px solid var(--border);border-radius:11px;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--white);outline:none;transition:border-color .2s;" oninput="onWdAmtChange(this.value)" onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border)'">
+        <input id="wdAmtInput" type="number" min="50" step="1" placeholder="0" style="width:100%;padding:12px 12px 12px 28px;background:var(--muted);border:1.5px solid var(--border);border-radius:11px;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--white);outline:none;transition:border-color .2s;" oninput="onWdAmtChange(this.value)" onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border)'">
       </div>
       <div id="wdAmtError" style="font-size:11px;color:#f87171;margin-top:5px;min-height:14px;"></div>
     </div>
