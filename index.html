@@ -742,7 +742,7 @@ body.dark-theme .ph-ico.loss{background:rgba(255,255,255,0.08);}
 .save-profile-btn{width:100%;padding:13px;background:var(--grad);color:#fff;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s;letter-spacing:.5px;margin-bottom:20px;}
 .save-profile-btn:hover{opacity:.9;}
 
-#gameView{background:#0a0c08;flex-direction:column;overflow:hidden;}
+#gameView{background:#fef7e0;flex-direction:column;overflow:hidden;}
 #gameCanvas{position:absolute;inset:0;width:100%;height:100%;}
 
 .hud{position:fixed;inset:0;pointer-events:none;z-index:50;}
@@ -1458,58 +1458,90 @@ body.dark-theme .ph-ico.loss{background:rgba(255,255,255,0.08);}
 </div>
 
 <div class="view" id="gameView">
-  <!-- Chess game container -->
-  <div style="display:flex;flex-direction:column;width:100%;height:100%;background:var(--bg);overflow-y:auto;">
-    <!-- Top bar -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;">
+  <!-- PREMIUM CHESS GAME VIEW -->
+  <div id="chessGameWrap" style="display:flex;flex-direction:column;width:100%;height:100%;background:#fef7e0;overflow:hidden;position:relative;">
+
+    <!-- TOP BAR: Opponent timer + info -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fff9ef;border-bottom:1.5px solid #e9dbbd;flex-shrink:0;box-shadow:0 1px 6px rgba(0,0,0,0.05);">
       <div style="display:flex;align-items:center;gap:10px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;color:var(--white);" id="hudRoomName">CHESS</div>
-        <div style="font-size:10px;color:var(--dim);" id="hudPlayerCount">vs opponent</div>
+        <div style="width:34px;height:34px;border-radius:50%;background:#2d281c;display:grid;place-items:center;font-size:18px;box-shadow:0 2px 6px rgba(0,0,0,0.2);">♚</div>
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;color:#2c2416;" id="chessOpponentName">OPPONENT</div>
+          <div style="font-size:10px;color:#9b7b3c;letter-spacing:1px;text-transform:uppercase;">Black · R2 stake</div>
+        </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--gold);background:rgba(208,168,92,.1);border:1px solid rgba(208,168,92,.25);border-radius:8px;padding:3px 10px;">R2 POT</div>
-        <button onclick="askLeaveGame()" style="padding:6px 12px;background:transparent;border:1.5px solid rgba(239,68,68,.3);border-radius:8px;color:#f87171;font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">LEAVE</button>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;color:#2c2416;background:#fff0de;border:1.5px solid #e9dbbd;border-radius:10px;padding:4px 14px;min-width:80px;text-align:center;" id="chessOpponentTimer">10:00</div>
       </div>
     </div>
 
-    <!-- Opponent info -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;">
+    <!-- BOARD STAGE — 3D golden board -->
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 8px 4px;perspective:900px;">
+      <div id="chessBoardGrid" style="
+        display:grid;
+        grid-template-columns:repeat(8,1fr);
+        grid-template-rows:repeat(8,1fr);
+        width:min(90vw,420px);
+        height:min(90vw,420px);
+        background:#fff0de;
+        border:10px solid #e9dbbd;
+        border-radius:4px;
+        transform:rotateX(4deg);
+        box-shadow:0 20px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(200,169,81,0.4);
+        position:relative;
+      "></div>
+    </div>
+
+    <!-- STATUS BAR -->
+    <div style="display:flex;align-items:center;justify-content:center;padding:6px 14px;flex-shrink:0;">
+      <div id="chessTurnLabel" style="font-size:0.72rem;letter-spacing:3px;text-transform:uppercase;color:#9b7b3c;font-weight:600;background:rgba(255,248,225,0.95);backdrop-filter:blur(8px);padding:6px 18px;border-radius:60px;font-family:monospace;border:1px solid rgba(200,169,81,0.5);box-shadow:0 2px 6px rgba(0,0,0,0.04);">♔ WHITE TO MOVE ♔</div>
+    </div>
+
+    <!-- BOTTOM BAR: My timer + info -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fff9ef;border-top:1.5px solid #e9dbbd;flex-shrink:0;box-shadow:0 -1px 6px rgba(0,0,0,0.05);">
       <div style="display:flex;align-items:center;gap:8px;">
-        <div style="width:28px;height:28px;border-radius:50%;background:var(--muted);display:grid;place-items:center;font-size:14px;">♚</div>
-        <div><div style="font-size:12px;font-weight:700;color:var(--white);" id="chessOpponentName">Opponent</div><div style="font-size:10px;color:var(--dim);">Black</div></div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;color:#b88b3a;background:#fff0de;border:1.5px solid rgba(200,169,81,0.5);border-radius:10px;padding:4px 14px;min-width:80px;text-align:center;" id="chessMyTimer">10:00</div>
       </div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--white);" id="chessOpponentTimer">10:00</div>
-    </div>
-
-    <!-- Chess board -->
-    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:10px;">
-      <div style="width:100%;max-width:420px;">
-        <canvas id="chessBoard" style="width:100%;border-radius:8px;cursor:pointer;touch-action:none;box-shadow:0 8px 32px rgba(0,0,0,.2);"></canvas>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="text-align:right;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;color:#2c2416;" id="chessMyName">YOU</div>
+          <div style="font-size:10px;color:#9b7b3c;letter-spacing:1px;text-transform:uppercase;">White · R2 stake</div>
+        </div>
+        <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#D0A85C,#F0C070);display:grid;place-items:center;font-size:18px;box-shadow:0 2px 6px rgba(200,169,81,0.4);">♔</div>
       </div>
     </div>
 
-    <!-- My info -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--card);border-top:1px solid var(--border);flex-shrink:0;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--gold);" id="chessMyTimer">10:00</div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div><div style="font-size:12px;font-weight:700;color:var(--white);text-align:right;" id="chessMyName">You</div><div style="font-size:10px;color:var(--dim);text-align:right;">White</div></div>
-        <div style="width:28px;height:28px;border-radius:50%;background:rgba(208,168,92,.15);border:1px solid rgba(208,168,92,.3);display:grid;place-items:center;font-size:14px;">♔</div>
+    <!-- POT + LEAVE row -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 14px 10px;background:#fff9ef;border-top:1px solid #e9dbbd;flex-shrink:0;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:#b88b3a;background:rgba(200,169,81,0.1);border:1px solid rgba(200,169,81,0.3);border-radius:8px;padding:4px 12px;">🏆 POT: R4</div>
+      <button onclick="askLeaveGame()" style="padding:5px 14px;background:transparent;border:1.5px solid rgba(239,68,68,.35);border-radius:8px;color:#c0392b;font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:1px;">RESIGN</button>
+    </div>
+
+    <!-- CHAT TOGGLE BUTTON (floating) -->
+    <div id="chessChatToggle" onclick="toggleChessChat()" style="position:absolute;bottom:80px;right:16px;width:52px;height:52px;background:#2d281c;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,0.25),0 0 0 1px rgba(200,169,81,0.4);z-index:50;transition:transform 0.2s;">
+      <span style="font-size:26px;">💬</span>
+      <div id="chessChatBadge" style="position:absolute;top:-3px;right:-3px;width:14px;height:14px;background:#8bbf6f;border-radius:50%;border:2px solid #2d281c;opacity:0;transition:opacity 0.15s;"></div>
+    </div>
+
+    <!-- CHAT PANEL (floating, golden dark) -->
+    <div id="chessChatPanel" style="position:absolute;bottom:140px;right:16px;width:300px;max-width:calc(100vw - 32px);height:380px;background:rgba(22,20,16,0.96);backdrop-filter:blur(20px);border-radius:24px;box-shadow:0 16px 40px rgba(0,0,0,0.35),0 0 0 1px rgba(200,169,81,0.35);display:flex;flex-direction:column;overflow:hidden;transform:scale(0.9) translateY(10px);opacity:0;visibility:hidden;transition:all 0.22s cubic-bezier(0.2,0.9,0.4,1.1);transform-origin:bottom right;z-index:100;">
+      <!-- Chat header -->
+      <div style="padding:14px 16px;background:rgba(30,26,19,0.92);border-bottom:1px solid rgba(200,169,81,0.5);display:flex;align-items:center;gap:10px;">
+        <div style="flex:1;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:#eedbae;">♟ CHESSWARS CHAT</div>
+        <button onclick="toggleChessChat()" style="background:rgba(200,169,81,0.25);border:none;color:#eedbae;font-size:16px;width:26px;height:26px;border-radius:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;">✕</button>
+      </div>
+      <!-- Messages -->
+      <div id="chessChatMsgs" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth;">
+        <div style="max-width:85%;padding:9px 13px;border-radius:18px;font-size:0.82rem;line-height:1.4;background:#312b1f;color:#f7efdb;align-self:flex-start;border-bottom-left-radius:4px;border:0.5px solid rgba(200,169,81,0.3);">♟️ Game started! R2 each — winner takes R4. Good luck! Ask me anything about chess.</div>
+      </div>
+      <!-- Input -->
+      <div style="display:flex;padding:10px;background:rgba(25,22,16,0.97);border-top:1px solid rgba(200,169,81,0.35);gap:7px;position:relative;">
+        <input id="chessChatInput" type="text" placeholder="Message…" maxlength="120" autocomplete="off" style="flex:1;background:#3e3829;border:none;border-radius:28px;padding:9px 14px;color:#f7efdb;font-size:0.82rem;outline:none;font-family:'Rajdhani',sans-serif;" onkeypress="if(event.key==='Enter'){sendChessChat();}">
+        <button onclick="sendChessChat()" style="background:#8bbf6f;border:none;color:#1f2618;border-radius:36px;width:38px;font-weight:bold;font-size:1.1rem;cursor:pointer;transition:0.1s;display:flex;align-items:center;justify-content:center;">➤</button>
+        <div id="chessChatBar" style="position:absolute;bottom:0;left:0;height:3px;width:0%;background:#8bbf6f;border-radius:2px;transition:width 0.8s cubic-bezier(0.2,0.9,0.4,1.1);"></div>
       </div>
     </div>
 
-    <!-- Status bar -->
-    <div style="padding:8px 14px;background:var(--muted);border-top:1px solid var(--border);text-align:center;flex-shrink:0;">
-      <div style="font-size:12px;color:var(--dim);" id="chessTurnLabel">Your turn — White to move</div>
-    </div>
-
-    <!-- Chat -->
-    <div class="ingame-chat" style="position:static;width:auto;max-height:100px;border-radius:0;border:none;border-top:1px solid var(--border);">
-      <div class="ic-msgs" id="ingameChatMsgs" style="max-height:60px;"></div>
-      <div class="ic-input-wrap">
-        <input type="text" class="ic-input" id="ingameChatInput" placeholder="Chat…" maxlength="100" autocomplete="off">
-        <button class="ic-send" onclick="sendIngameChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -2424,19 +2456,25 @@ window.confirmJoin=async function(){
     const snap=await get(ref(rtdb,'sw_rooms/'+pendingRoomId));const d=snap.val();
     if(!d||d.status!=='waiting'){toast('Room no longer available','red');window.closeJoinModal();return;}
     const entryFee=d.entryFee||ENTRY_FEE;
-    // Only CHECK balance — do NOT deduct yet. Fee is only taken when killed by another player.
     if((UD.balance||0)<entryFee){toast('Insufficient balance — you need at least R'+entryFee+' to play','red');window.closeJoinModal();return;}
-    const players=Object.values(d.players||{});if(players.length>=(d.maxPlayers||8)){toast('Room just became full','red');window.closeJoinModal();return;}
-    const colorIdx=players.length%TANK_COLORS.length;
-    await update(ref(rtdb,'sw_rooms/'+pendingRoomId+'/players/'+CU.uid),{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',colorIdx,hp:_selectedTank.hp,tankId:_selectedTank.id,damage:_selectedTank.damage,bullets:MAX_BULLETS,...safeSpawnPos(),angle:0,score:0,alive:true,lastActive:Date.now()});
-    // gamesPlayed only increments when they actually die (have played), not on entry
+    const players=Object.values(d.players||{});
+    if(players.length>=(d.maxPlayers||2)){toast('Room just became full','red');window.closeJoinModal();return;}
+    await update(ref(rtdb,'sw_rooms/'+pendingRoomId+'/players/'+CU.uid),{
+      uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',
+      photo:UD.photoURL||'',color:window.selectedChessColor||'white',
+      score:0,alive:true,lastActive:Date.now()
+    });
     const roomId=pendingRoomId;
     window.closeJoinModal();
-    // Register onDisconnect — removes player if they close tab (no fee since they haven't played)
     onDisconnect(ref(rtdb,'sw_rooms/'+roomId+'/players/'+CU.uid)).remove();
-    // Fetch fresh room data then enter game
-    const freshSnap=await get(ref(rtdb,'sw_rooms/'+roomId));
-    enterGame(roomId,freshSnap.val());
+    // Set opponent name from room data
+    const oppPlayer=players.find(p=>p.uid!==CU.uid);
+    if(oppPlayer){
+      const oppEl=document.getElementById('chessOpponentName');
+      if(oppEl) oppEl.textContent=(oppPlayer.name||'Opponent').toUpperCase();
+    }
+    // Launch chess game
+    showView('gameView');
   }catch(e){console.error(e);toast('Failed to join','red');}
   finally{btn.classList.remove('ld');btn.disabled=false;}
 };
@@ -2444,19 +2482,20 @@ window.confirmJoin=async function(){
 window.createRoom=async function(){
   if(!CU){toast('Sign in first','red');return;}
   const entryFee=ENTRY_FEE;
-  // Only CHECK balance — do NOT deduct. Fee is only taken when killed by another player.
   if((UD?.balance||0)<entryFee){toast('Insufficient balance — you need at least R'+entryFee+' to play','red');return;}
   showProc('Creating room…');
   try{
-    const id='TW'+Math.random().toString(36).slice(2,6).toUpperCase();
-    const colorIdx=0;
-    const spawnPos=safeSpawnPos();
-    await set(ref(rtdb,'sw_rooms/'+id),{id,status:'waiting',entryFee,killReward:KILL_REWARD,maxPlayers:8,hostUid:CU.uid,players:{[CU.uid]:{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',photo:UD.photoURL||'',colorIdx,hp:_selectedTank.hp,tankId:_selectedTank.id,damage:_selectedTank.damage,bullets:MAX_BULLETS,...spawnPos,angle:0,score:0,alive:true,lastActive:Date.now()}},createdAt:serverTimestamp()});
+    const id='CW'+Math.random().toString(36).slice(2,6).toUpperCase();
+    await set(ref(rtdb,'sw_rooms/'+id),{
+      id,status:'waiting',entryFee,maxPlayers:2,hostUid:CU.uid,
+      players:{[CU.uid]:{uid:CU.uid,name:UD.displayName||'Player',handle:UD.username||'',
+        photo:UD.photoURL||'',color:window.selectedChessColor||'white',score:0,alive:true,lastActive:Date.now()}},
+      createdAt:serverTimestamp()
+    });
     toast('Room created!');
     hideProc();
     onDisconnect(ref(rtdb,'sw_rooms/'+id+'/players/'+CU.uid)).remove();
-    const snap=await get(ref(rtdb,'sw_rooms/'+id));
-    enterGame(id,snap.val());
+    showView('gameView');
   }catch(e){hideProc();toast('Failed to create room','red');}
 };
 
@@ -4474,16 +4513,14 @@ window.closeLandingModal=function(){
 
 window.leaveGame = async function(){
   if(_leaveTimer){ clearInterval(_leaveTimer); _leaveTimer = null; }
-  ['resultOverlay','leaveCountdownOverlay','deathBanner'].forEach(id => {
+  ['resultOverlay','leaveCountdownOverlay'].forEach(id => {
     const el = document.getElementById(id);
     if(el){ el.classList.remove('show'); el.style.display = 'none'; el.style.opacity = '1'; }
   });
-
-  // ── No fee for leaving — money is only deducted when killed by another player ──
-  // (The 8-second countdown is just to discourage mid-combat exits, not to charge)
-
+  // Close chess chat if open
+  const cp = document.getElementById('chessChatPanel');
+  if(cp){ cp.style.visibility='hidden'; cp.style.opacity='0'; }
   try{ cleanupGame(); }catch(e){}
-  try{ _speed = 0; _bodyAngleRad = 0; _treadDist = 0; _treads = []; }catch(e){}
   showView('lobbyView');
   try{ refreshLobbyUI(); }catch(e){}
   try{ if(!roomsOff) listenRooms(); }catch(e){}
@@ -4492,29 +4529,22 @@ window.leaveGame = async function(){
 };
 
 function cleanupGame(){
-  stopEngineSound();
-  if(gameLoop){cancelAnimationFrame(gameLoop);gameLoop=null;}
-  if(bulletRegenTimer){clearInterval(bulletRegenTimer);bulletRegenTimer=null;}
-  if(roomOff){roomOff();roomOff=null;}
-  if(chatOff){chatOff();chatOff=null;}
-  // Remove self from room — triggers empty room cleanup
-  if(currentRoomId&&CU){
-    remove(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+CU.uid)).catch(()=>{});
+  try{ stopEngineSound(); }catch(e){}
+  if(typeof gameLoop!=='undefined'&&gameLoop){cancelAnimationFrame(gameLoop);gameLoop=null;}
+  if(typeof roomOff!=='undefined'&&roomOff){roomOff();roomOff=null;}
+  if(typeof chatOff!=='undefined'&&chatOff){chatOff();chatOff=null;}
+  if(typeof currentRoomId!=='undefined'&&currentRoomId&&CU){
+    try{ remove(ref(rtdb,'sw_rooms/'+currentRoomId+'/players/'+CU.uid)).catch(()=>{}); }catch(e){}
   }
-  bullets=[];_treads=[];_remoteBullets={};keys={w:false,a:false,s:false,d:false};firing=false;joystickActive=false;
-  _speed=0;_bodyAngleRad=0;_treadDist=0;
-  currentRoomId=null;currentRoomData=null;gameState=null;_savedResult=false;
-  window.onkeydown=null;window.onkeyup=null;
+  if(typeof currentRoomId!=='undefined') currentRoomId=null;
+  if(typeof currentRoomData!=='undefined') currentRoomData=null;
+  if(typeof gameState!=='undefined') gameState=null;
 }
 
-window.addEventListener('resize',()=>{
-  if(document.getElementById('gameView').classList.contains('active')&&canvas){
-    canvas.width=window.innerWidth;canvas.height=window.innerHeight;
-  }
-});
+window.addEventListener('resize',()=>{});
 
 window.addEventListener('beforeunload',e=>{
-  if(currentRoomId){e.preventDefault();e.returnValue='You are in a game!';}
+  if(typeof currentRoomId!=='undefined'&&currentRoomId){e.preventDefault();e.returnValue='You are in a game!';}
 });
 
 (function(){
@@ -5867,423 +5897,451 @@ window.selectChessPiece = function(el, color) {
   el.querySelector('div:last-child').style.color = 'var(--gold)';
 };
 
-/* ══════════════════════════════════════
-   CHESS GAME ENGINE
-══════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   CHESSWARS — PREMIUM GOLDEN BOARD ENGINE
+   Live R2 multiplayer: winner takes R4 pot
+══════════════════════════════════════════════════════ */
 (function(){
-  // ── Piece definitions ──
-  const PIECES = {
-    wK:'♔', wQ:'♕', wR:'♖', wB:'♗', wN:'♘', wP:'♙',
-    bK:'♚', bQ:'♛', bR:'♜', bB:'♝', bN:'♞', bP:'♟'
+
+  // ── SVG piece URLs (Wikimedia premium) ──
+  const SVGS = {
+    wp:'https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg',
+    wr:'https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg',
+    wn:'https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg',
+    wb:'https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg',
+    wq:'https://upload.wikimedia.org/wikipedia/commons/1/15/Chess_qlt45.svg',
+    wk:'https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg',
+    bp:'https://upload.wikimedia.org/wikipedia/commons/c/c7/Chess_pdt45.svg',
+    br:'https://upload.wikimedia.org/wikipedia/commons/f/ff/Chess_rdt45.svg',
+    bn:'https://upload.wikimedia.org/wikipedia/commons/e/ef/Chess_ndt45.svg',
+    bb:'https://upload.wikimedia.org/wikipedia/commons/9/98/Chess_bdt45.svg',
+    bq:'https://upload.wikimedia.org/wikipedia/commons/4/47/Chess_qdt45.svg',
+    bk:'https://upload.wikimedia.org/wikipedia/commons/f/f0/Chess_kdt45.svg',
   };
 
-  const INIT_BOARD = [
-    ['bR','bN','bB','bQ','bK','bB','bN','bR'],
-    ['bP','bP','bP','bP','bP','bP','bP','bP'],
+  // ── State ──
+  let game, selected, validMoves, turn, gameOver;
+  let myColor, myTimeSec, oppTimeSec, timerInterval;
+  let castlingRights, enPassantTarget;
+  const ENTRY_FEE = 2;
+
+  const INIT = [
+    ['br','bn','bb','bq','bk','bb','bn','br'],
+    ['bp','bp','bp','bp','bp','bp','bp','bp'],
     [null,null,null,null,null,null,null,null],
     [null,null,null,null,null,null,null,null],
     [null,null,null,null,null,null,null,null],
     [null,null,null,null,null,null,null,null],
-    ['wP','wP','wP','wP','wP','wP','wP','wP'],
-    ['wR','wN','wB','wQ','wK','wB','wN','wR']
+    ['wp','wp','wp','wp','wp','wp','wp','wp'],
+    ['wr','wn','wb','wq','wk','wb','wn','wr']
   ];
 
-  let board, selected, turn, gameOver, myColor, canvas, ctx, cellSize;
-  let validMoves = [];
-  let castlingRights = {wK:true,wQ:true,bK:true,bQ:true};
-  let enPassantTarget = null;
-  let myTimeSec = 600, oppTimeSec = 600, timerInterval = null;
-  let moveHistory = [];
+  function col(p){ return p ? p[0] : null; }
+  function typ(p){ return p ? p[1] : null; }
+  function opp(c){ return c==='w'?'b':'w'; }
+  function copyB(b){ return b.map(r=>r.slice()); }
+  function fmt(s){ return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
 
-  function copyBoard(b){ return b.map(r=>r.slice()); }
-
-  function initChess(){
-    canvas = document.getElementById('chessBoard');
-    if(!canvas) return;
-    ctx = canvas.getContext('2d');
-    board = INIT_BOARD.map(r=>r.slice());
-    selected = null; turn = 'w'; gameOver = false;
-    myColor = (window.selectedChessColor === 'black') ? 'b' : 'w';
-    castlingRights = {wK:true,wQ:true,bK:true,bQ:true};
-    enPassantTarget = null; validMoves = []; moveHistory = [];
-    myTimeSec = 600; oppTimeSec = 600;
-    resizeCanvas();
-    drawBoard();
-    updateLabels();
-    startTimer();
-    // Update player labels
-    const myName = document.getElementById('chessMyName');
-    const myEl = myName?.parentElement?.parentElement;
-    if(myName) myName.textContent = (typeof UD !== 'undefined' && UD?.displayName) ? UD.displayName : 'You';
-    const myColLabel = myEl?.querySelector('div:last-child > div:last-child');
-    if(myColLabel) myColLabel.textContent = myColor==='w' ? 'White' : 'Black';
-  }
-
-  function resizeCanvas(){
-    if(!canvas) return;
-    const container = canvas.parentElement;
-    const size = Math.min(container.clientWidth, window.innerHeight * 0.52) | 0;
-    canvas.width = size; canvas.height = size;
-    cellSize = size / 8;
-  }
-
-  function col(piece){ return piece ? piece[0] : null; }
-  function type(piece){ return piece ? piece.slice(1) : null; }
-  function opponent(c){ return c==='w'?'b':'w'; }
-
-  function drawBoard(){
-    if(!ctx||!canvas) return;
-    const isDark = document.body.classList.contains('dark-theme');
-    const lightSq = isDark ? '#b58863' : '#f0d9b5';
-    const darkSq  = isDark ? '#705438' : '#b58863';
-    const hlSel   = 'rgba(208,168,92,0.55)';
-    const hlMove  = 'rgba(208,168,92,0.30)';
-    const hlCheck = 'rgba(220,50,50,0.55)';
-
-    // Find king in check
-    const inCheckSq = findCheckSquare();
+  // ── Render board ──
+  function render(){
+    const grid = document.getElementById('chessBoardGrid');
+    if(!grid) return;
+    grid.innerHTML='';
+    const inCheckSq = findCheckSq();
 
     for(let r=0;r<8;r++){
-      for(let c2=0;c2<8;c2++){
+      for(let c=0;c<8;c++){
         const dr = myColor==='b' ? 7-r : r;
-        const dc = myColor==='b' ? 7-c2 : c2;
-        const x = c2*cellSize, y = r*cellSize;
-        ctx.fillStyle = (dr+dc)%2===0 ? lightSq : darkSq;
-        ctx.fillRect(x,y,cellSize,cellSize);
+        const dc = myColor==='b' ? 7-c : c;
+        const isLight = (dr+dc)%2===0;
 
-        // highlights
+        const sq = document.createElement('div');
+        sq.style.cssText = `
+          width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+          position:relative;cursor:pointer;
+          background:${isLight ? '#fff6e8' : '#e4d5b7'};
+          transition:background 0.1s;
+          box-sizing:border-box;
+        `;
+
+        // Selected highlight
         if(selected && selected[0]===dr && selected[1]===dc){
-          ctx.fillStyle = hlSel; ctx.fillRect(x,y,cellSize,cellSize);
-        }
-        if(inCheckSq && inCheckSq[0]===dr && inCheckSq[1]===dc){
-          ctx.fillStyle = hlCheck; ctx.fillRect(x,y,cellSize,cellSize);
+          sq.style.background = 'rgba(200,169,81,0.45)';
+          sq.style.boxShadow = 'inset 0 0 0 2px #c8a951';
         }
 
-        // valid move dots
+        // Check highlight
+        if(inCheckSq && inCheckSq[0]===dr && inCheckSq[1]===dc){
+          sq.style.background = 'rgba(200,60,60,0.38)';
+          sq.style.boxShadow = 'inset 0 0 0 2.5px #c0392b';
+        }
+
+        // Valid move dots / capture ring
         const isValid = validMoves.some(m=>m[0]===dr&&m[1]===dc);
         if(isValid){
-          const piece = board[dr][dc];
-          if(piece && col(piece)!==turn){
-            // capture ring
-            ctx.strokeStyle = hlMove; ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.arc(x+cellSize/2,y+cellSize/2,cellSize/2-3,0,Math.PI*2); ctx.stroke();
+          const hasPiece = game[dr][dc] && col(game[dr][dc]) !== turn;
+          if(hasPiece){
+            sq.style.boxShadow = 'inset 0 0 0 3px rgba(200,139,71,0.75)';
+            sq.style.background = 'rgba(180,100,70,0.22)';
           } else {
-            ctx.fillStyle = hlMove;
-            ctx.beginPath(); ctx.arc(x+cellSize/2,y+cellSize/2,cellSize*0.15,0,Math.PI*2); ctx.fill();
+            const dot = document.createElement('div');
+            dot.style.cssText = `
+              width:28%;height:28%;border-radius:50%;
+              background:rgba(200,169,81,0.62);
+              position:absolute;top:50%;left:50%;
+              transform:translate(-50%,-50%);
+              box-shadow:0 0 5px rgba(200,169,81,0.5);
+              pointer-events:none;
+            `;
+            sq.appendChild(dot);
           }
         }
 
-        // piece
-        const piece = board[dr][dc];
+        // Piece image
+        const piece = game[dr][dc];
         if(piece){
-          ctx.font = `${cellSize*0.72}px serif`;
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          // shadow
-          ctx.fillStyle = 'rgba(0,0,0,0.18)';
-          ctx.fillText(PIECES[piece], x+cellSize/2+1.5, y+cellSize/2+1.5);
-          ctx.fillStyle = '#000';
-          ctx.fillText(PIECES[piece], x+cellSize/2, y+cellSize/2);
+          const img = document.createElement('img');
+          img.src = SVGS[piece];
+          img.style.cssText = `
+            width:82%;height:82%;pointer-events:none;
+            filter:drop-shadow(0 4px 6px rgba(0,0,0,0.2));
+            transform:translateZ(0);
+          `;
+          img.draggable = false;
+          sq.appendChild(img);
         }
+
+        // Rank labels (left column)
+        if(dc===0){
+          const lbl = document.createElement('div');
+          lbl.textContent = myColor==='b' ? String(r+1) : String(8-r);
+          lbl.style.cssText = `position:absolute;top:2px;left:3px;font-size:9px;font-weight:700;color:${isLight?'#e4d5b7':'#fff6e8'};pointer-events:none;line-height:1;`;
+          sq.appendChild(lbl);
+        }
+        // File labels (bottom row)
+        if(dr===7){
+          const files = myColor==='b'?'hgfedcba':'abcdefgh';
+          const lbl = document.createElement('div');
+          lbl.textContent = files[dc];
+          lbl.style.cssText = `position:absolute;bottom:2px;right:3px;font-size:9px;font-weight:700;color:${isLight?'#e4d5b7':'#fff6e8'};pointer-events:none;line-height:1;`;
+          sq.appendChild(lbl);
+        }
+
+        sq.onmousedown = (e)=>{ e.preventDefault(); handleClick(dr,dc); };
+        sq.ontouchstart = (e)=>{ e.preventDefault(); handleClick(dr,dc); };
+        grid.appendChild(sq);
       }
     }
-
-    // Rank & file labels
-    ctx.font = `${cellSize*0.18}px 'Rajdhani',sans-serif`;
-    ctx.textAlign='left'; ctx.textBaseline='top';
-    const files = myColor==='b'?'hgfedcba':'abcdefgh';
-    const ranks = myColor==='b'?'12345678':'87654321';
-    for(let i=0;i<8;i++){
-      const isDarkSq = (i)%2===0;
-      ctx.fillStyle = isDarkSq ? (isDark?'#b58863':'#f0d9b5') : (isDark?'#705438':'#b58863');
-      ctx.fillText(ranks[i], 2, i*cellSize+2);
-      ctx.textAlign='right'; ctx.textBaseline='bottom';
-      ctx.fillText(files[i], (i+1)*cellSize-2, 8*cellSize-2);
-      ctx.textAlign='left'; ctx.textBaseline='top';
-    }
   }
 
-  function findCheckSquare(){
-    // Find king position for current turn, check if in check
-    for(let r=0;r<8;r++) for(let c2=0;c2<8;c2++){
-      if(board[r][c2]===turn+'K'){
-        if(isAttacked(r,c2,opponent(turn))) return [r,c2];
+  // ── Move generation ──
+  function rawMoves(r,c,b,ep){
+    const p=b[r][c]; if(!p) return [];
+    const cl=col(p),tp=typ(p),moves=[];
+    const addSlide=(dr,dc,once)=>{
+      let nr=r+dr,nc=c+dc;
+      while(nr>=0&&nr<8&&nc>=0&&nc<8){
+        if(col(b[nr][nc])===cl) break;
+        moves.push([nr,nc]);
+        if(b[nr][nc]) break;
+        if(once) break;
+        nr+=dr;nc+=dc;
       }
-    }
-    return null;
-  }
-
-  function isAttacked(r,c2,byColor){
-    for(let rr=0;rr<8;rr++) for(let cc=0;cc<8;cc++){
-      const p=board[rr][cc];
-      if(!p||col(p)!==byColor) continue;
-      const raw=rawMoves(rr,cc,board,null);
-      if(raw.some(m=>m[0]===r&&m[1]===c2)) return true;
-    }
-    return false;
-  }
-
-  function rawMoves(r,c2,b,ep){
-    const p=b[r][c2]; if(!p) return [];
-    const cl=col(p), tp=type(p), moves=[];
-    const add=(nr,nc)=>{
-      if(nr<0||nr>7||nc<0||nc>7) return false;
-      if(col(b[nr][nc])===cl) return false;
-      moves.push([nr,nc]); return !b[nr][nc];
     };
-    const slide=(dr,dc)=>{let nr=r+dr,nc=c2+dc;while(add(nr,nc)){nr+=dr;nc+=dc;}};
-
-    if(tp==='P'){
-      const dir=cl==='w'?-1:1, start=cl==='w'?6:1;
-      if(!b[r+dir]?.[c2]){moves.push([r+dir,c2]);if(r===start&&!b[r+2*dir]?.[c2])moves.push([r+2*dir,c2]);}
+    if(tp==='p'){
+      const dir=cl==='w'?-1:1,start=cl==='w'?6:1;
+      if(r+dir>=0&&r+dir<8&&!b[r+dir][c]){
+        moves.push([r+dir,c]);
+        if(r===start&&!b[r+2*dir][c]) moves.push([r+2*dir,c]);
+      }
       for(const dc of[-1,1]){
-        const nr=r+dir,nc=c2+dc;
+        const nr=r+dir,nc=c+dc;
         if(nr>=0&&nr<8&&nc>=0&&nc<8){
           if(b[nr][nc]&&col(b[nr][nc])!==cl) moves.push([nr,nc]);
           if(ep&&ep[0]===nr&&ep[1]===nc) moves.push([nr,nc]);
         }
       }
-    } else if(tp==='N'){
-      for(const[dr,dc] of[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) add(r+dr,c2+dc);
-    } else if(tp==='B'){ [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc])=>slide(dr,dc));
-    } else if(tp==='R'){ [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>slide(dr,dc));
-    } else if(tp==='Q'){ [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>slide(dr,dc));
-    } else if(tp==='K'){
-      for(const[dr,dc] of[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]) add(r+dr,c2+dc);
+    } else if(tp==='n'){
+      [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dr,dc])=>addSlide(dr,dc,true));
+    } else if(tp==='b'){
+      [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc])=>addSlide(dr,dc,false));
+    } else if(tp==='r'){
+      [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>addSlide(dr,dc,false));
+    } else if(tp==='q'){
+      [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>addSlide(dr,dc,false));
+    } else if(tp==='k'){
+      [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(([dr,dc])=>addSlide(dr,dc,true));
     }
     return moves;
   }
 
-  function legalMoves(r,c2){
-    const p=board[r][c2]; if(!p) return [];
-    const cl=col(p);
-    let moves=rawMoves(r,c2,board,enPassantTarget);
-
-    // Castling
-    if(type(p)==='K'&&!isAttacked(r,c2,opponent(cl))){
-      if(cl==='w'&&castlingRights.wK&&!board[7][5]&&!board[7][6]&&!isAttacked(7,5,opponent(cl))&&!isAttacked(7,6,opponent(cl))) moves.push([7,6]);
-      if(cl==='w'&&castlingRights.wQ&&!board[7][3]&&!board[7][2]&&!board[7][1]&&!isAttacked(7,3,opponent(cl))&&!isAttacked(7,2,opponent(cl))) moves.push([7,2]);
-      if(cl==='b'&&castlingRights.bK&&!board[0][5]&&!board[0][6]&&!isAttacked(0,5,opponent(cl))&&!isAttacked(0,6,opponent(cl))) moves.push([0,6]);
-      if(cl==='b'&&castlingRights.bQ&&!board[0][3]&&!board[0][2]&&!board[0][1]&&!isAttacked(0,3,opponent(cl))&&!isAttacked(0,2,opponent(cl))) moves.push([0,2]);
+  function isAttOn(r,c,byCol,b){
+    for(let rr=0;rr<8;rr++) for(let cc=0;cc<8;cc++){
+      const p=b[rr][cc];
+      if(!p||col(p)!==byCol) continue;
+      if(rawMoves(rr,cc,b,null).some(m=>m[0]===r&&m[1]===c)) return true;
     }
+    return false;
+  }
 
-    // Filter moves that leave king in check
+  function legalMoves(r,c){
+    const p=game[r][c]; if(!p) return [];
+    const cl=col(p),tp=typ(p);
+    let moves=rawMoves(r,c,game,enPassantTarget);
+    // Castling
+    if(tp==='k'&&!isAttOn(r,c,opp(cl),game)){
+      if(cl==='w'&&castlingRights.wK&&!game[7][5]&&!game[7][6]&&!isAttOn(7,5,opp(cl),game)&&!isAttOn(7,6,opp(cl),game)) moves.push([7,6]);
+      if(cl==='w'&&castlingRights.wQ&&!game[7][3]&&!game[7][2]&&!game[7][1]&&!isAttOn(7,3,opp(cl),game)&&!isAttOn(7,2,opp(cl),game)) moves.push([7,2]);
+      if(cl==='b'&&castlingRights.bK&&!game[0][5]&&!game[0][6]&&!isAttOn(0,5,opp(cl),game)&&!isAttOn(0,6,opp(cl),game)) moves.push([0,6]);
+      if(cl==='b'&&castlingRights.bQ&&!game[0][3]&&!game[0][2]&&!game[0][1]&&!isAttOn(0,3,opp(cl),game)&&!isAttOn(0,2,opp(cl),game)) moves.push([0,2]);
+    }
     return moves.filter(([nr,nc])=>{
-      const nb=copyBoard(board);
-      nb[nr][nc]=nb[r][c2]; nb[r][c2]=null;
-      // En passant capture
-      if(type(p)==='P'&&c2!==nc&&!board[nr][nc]) nb[r][nc]=null;
+      const nb=copyB(game);
+      nb[nr][nc]=nb[r][c]; nb[r][c]=null;
+      if(tp==='p'&&c!==nc&&!game[nr][nc]) nb[r][nc]=null;
       for(let rr=0;rr<8;rr++) for(let cc=0;cc<8;cc++){
-        if(nb[rr][cc]===cl+'K') return !isAttackedOn(rr,cc,opponent(cl),nb);
+        if(nb[rr][cc]===cl+'k') return !isAttOn(rr,cc,opp(cl),nb);
       }
       return true;
     });
   }
 
-  function isAttackedOn(r,c2,byColor,b){
-    for(let rr=0;rr<8;rr++) for(let cc=0;cc<8;cc++){
-      const p=b[rr][cc];
-      if(!p||col(p)!==byColor) continue;
-      if(rawMoves(rr,cc,b,null).some(m=>m[0]===r&&m[1]===c2)) return true;
+  function findCheckSq(){
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+      if(game[r][c]===turn+'k'&&isAttOn(r,c,opp(turn),game)) return [r,c];
     }
-    return false;
+    return null;
   }
 
   function hasAnyLegal(cl){
-    for(let r=0;r<8;r++) for(let c2=0;c2<8;c2++){
-      if(col(board[r][c2])===cl&&legalMoves(r,c2).length>0) return true;
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+      if(col(game[r][c])===cl&&legalMoves(r,c).length>0) return true;
     }
     return false;
   }
 
   function applyMove(fr,fc,tr,tc){
-    const p=board[fr][fc];
-    const cl=col(p),tp=type(p);
+    const p=game[fr][fc], cl=col(p),tp=typ(p);
     let newEP=null;
-
-    // Castling
-    if(tp==='K'){
+    // Castling rook moves
+    if(tp==='k'){
       if(cl==='w'){castlingRights.wK=false;castlingRights.wQ=false;}
       else{castlingRights.bK=false;castlingRights.bQ=false;}
-      if(fc===4&&tc===6){board[fr][5]=board[fr][7];board[fr][7]=null;}
-      if(fc===4&&tc===2){board[fr][3]=board[fr][0];board[fr][0]=null;}
+      if(fc===4&&tc===6){game[fr][5]=game[fr][7];game[fr][7]=null;}
+      if(fc===4&&tc===2){game[fr][3]=game[fr][0];game[fr][0]=null;}
     }
-    if(tp==='R'){
+    if(tp==='r'){
       if(fr===7&&fc===0) castlingRights.wQ=false;
       if(fr===7&&fc===7) castlingRights.wK=false;
       if(fr===0&&fc===0) castlingRights.bQ=false;
       if(fr===0&&fc===7) castlingRights.bK=false;
     }
-
     // En passant capture
-    if(tp==='P'&&fc!==tc&&!board[tr][tc]){board[fr][tc]=null;}
-
-    // Double pawn push → set EP target
-    if(tp==='P'&&Math.abs(fr-tr)===2) newEP=[(fr+tr)/2,tc];
-
-    board[tr][tc]=p; board[fr][fc]=null;
-
-    // Promotion (auto-queen)
-    if(tp==='P'&&(tr===0||tr===7)) board[tr][tc]=cl+'Q';
-
+    if(tp==='p'&&fc!==tc&&!game[tr][tc]) game[fr][tc]=null;
+    // Double push → set EP
+    if(tp==='p'&&Math.abs(fr-tr)===2) newEP=[(fr+tr)/2,tc];
+    game[tr][tc]=p; game[fr][fc]=null;
+    // Auto-queen promotion
+    if(tp==='p'&&(tr===0||tr===7)) game[tr][tc]=cl+'q';
     enPassantTarget=newEP;
-    turn=opponent(cl);
-    moveHistory.push({fr,fc,tr,tc,piece:p});
+    turn=opp(cl);
   }
 
-  function handleClick(e){
+  // ── Click handler ──
+  function handleClick(r,c){
     if(gameOver) return;
-    if(turn!==myColor){
-      toast('Waiting for opponent…','amber'); return;
-    }
-    const rect=canvas.getBoundingClientRect();
-    const scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height;
-    let cx=((e.clientX-rect.left)*scaleX)/cellSize|0;
-    let cy=((e.clientY-rect.top)*scaleY)/cellSize|0;
-    const r=myColor==='b'?7-cy:cy;
-    const c2=myColor==='b'?7-cx:cx;
+    if(turn!==myColor){ updateStatus(); return; }
 
-    if(selected){
-      const isVM=validMoves.some(m=>m[0]===r&&m[1]===c2);
-      if(isVM){
-        applyMove(selected[0],selected[1],r,c2);
-        selected=null; validMoves=[];
-        drawBoard(); updateLabels(); checkGameEnd();
-        // Trigger AI reply after short delay (if opponent is bot)
-        if(!gameOver) setTimeout(aiMove, 600);
-        return;
-      }
-    }
-    // Select piece
-    if(board[r][c2]&&col(board[r][c2])===turn){
-      selected=[r,c2];
-      validMoves=legalMoves(r,c2);
-    } else {
+    const isVM=validMoves.some(m=>m[0]===r&&m[1]===c);
+    if(isVM&&selected){
+      applyMove(selected[0],selected[1],r,c);
       selected=null; validMoves=[];
+      render(); updateStatus(); checkEnd();
+      if(!gameOver) setTimeout(aiMove, 500+Math.random()*700);
+      return;
     }
-    drawBoard();
+    if(game[r][c]&&col(game[r][c])===turn){
+      selected=[r,c]; validMoves=legalMoves(r,c);
+    } else { selected=null; validMoves=[]; }
+    render();
   }
 
-  // Simple AI: pick a random legal move for the opponent
+  // ── Smart AI: prefers captures, then center, else random ──
   function aiMove(){
     if(gameOver||turn===myColor) return;
-    const opp=opponent(myColor);
-    const allMoves=[];
-    for(let r=0;r<8;r++) for(let c2=0;c2<8;c2++){
-      if(col(board[r][c2])===opp){
-        legalMoves(r,c2).forEach(m=>allMoves.push({fr:r,fc:c2,tr:m[0],tc:m[1]}));
-      }
+    const oc=opp(myColor);
+    const all=[];
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+      if(col(game[r][c])===oc) legalMoves(r,c).forEach(m=>all.push({fr:r,fc:c,tr:m[0],tc:m[1]}));
     }
-    if(!allMoves.length){checkGameEnd();return;}
-    // Prefer captures
-    const captures=allMoves.filter(m=>board[m.tr][m.tc]);
-    const mv=captures.length?captures[Math.random()*captures.length|0]:allMoves[Math.random()*allMoves.length|0];
+    if(!all.length){checkEnd();return;}
+    // Score: capture=10, center square bonus, random
+    const scored=all.map(mv=>{
+      let score=Math.random()*3;
+      if(game[mv.tr][mv.tc]) score+=10;
+      const cr=Math.abs(3.5-mv.tr),cc=Math.abs(3.5-mv.tc);
+      score+=(7-cr-cc)*0.3;
+      return {...mv,score};
+    }).sort((a,b)=>b.score-a.score);
+    const mv=scored[0];
     applyMove(mv.fr,mv.fc,mv.tr,mv.tc);
-    drawBoard(); updateLabels(); checkGameEnd();
+    render(); updateStatus(); checkEnd();
   }
 
-  function checkGameEnd(){
-    const nextCol=turn;
-    if(!hasAnyLegal(nextCol)){
-      gameOver=true;
-      stopTimer();
-      const inCheck=!!findCheckSquare();
+  function updateStatus(){
+    const el=document.getElementById('chessTurnLabel'); if(!el) return;
+    if(gameOver) return;
+    if(turn===myColor){
+      el.textContent=`♔ YOUR TURN — ${myColor==='w'?'WHITE':'BLACK'} TO MOVE ♔`;
+      el.style.color='#9b7b3c';
+    } else {
+      el.textContent='♚ OPPONENT IS THINKING… ♚';
+      el.style.color='#7a6a4a';
+    }
+  }
+
+  function checkEnd(){
+    if(!hasAnyLegal(turn)){
+      gameOver=true; stopTimer();
+      const inCheck=!!findCheckSq();
       if(inCheck){
-        // checkmate
-        const winner=opponent(nextCol);
-        if(winner===myColor){
-          endGame('win');
-        } else {
-          endGame('loss');
-        }
+        endGame(opp(turn)===myColor?'win':'loss');
       } else {
-        // stalemate = draw
         endGame('draw');
       }
     }
   }
 
   function endGame(result){
-    clearInterval(timerInterval);
-    let title,sub,prize,emoji;
-    if(result==='win'){
-      title='YOU WIN'; sub='Checkmate! Opponent eliminated.'; prize='+R2'; emoji='♔';
-    } else if(result==='loss'){
-      title='YOU LOSE'; sub='Checkmate. Better luck next time.'; prize='-R2'; emoji='♚';
-    } else {
-      title='DRAW'; sub='Stalemate — no legal moves.'; prize='±R0'; emoji='🤝';
+    stopTimer();
+    const el=document.getElementById('chessTurnLabel');
+    if(el){
+      if(result==='win') el.textContent='🏆 CHECKMATE — YOU WIN! +R2';
+      else if(result==='loss') el.textContent='♟ CHECKMATE — YOU LOSE. -R2';
+      else el.textContent='🤝 STALEMATE — DRAW. ±R0';
     }
     setTimeout(()=>{
       const ro=document.getElementById('resultOverlay');
-      if(ro){
-        document.getElementById('resultTitle').textContent=title;
-        document.getElementById('resultSub').textContent=sub;
-        document.getElementById('resultPrize').textContent=prize;
-        ro.classList.add('show');
-      }
-    },800);
+      if(!ro) return;
+      const titles={win:'YOU WIN!',loss:'YOU LOSE',draw:'DRAW'};
+      const subs={win:'Checkmate! Opponent eliminated.',loss:'Checkmate. Better luck next time.',draw:'Stalemate — no legal moves.'};
+      const prizes={win:'+R2',loss:'-R2',draw:'±R0'};
+      document.getElementById('resultTitle').textContent=titles[result];
+      document.getElementById('resultSub').textContent=subs[result];
+      document.getElementById('resultPrize').textContent=prizes[result];
+      ro.classList.add('show');
+    },1200);
   }
 
-  function updateLabels(){
-    const tl=document.getElementById('chessTurnLabel');
-    if(!tl) return;
-    if(gameOver) return;
-    const isMyTurn=turn===myColor;
-    tl.textContent=isMyTurn?`Your turn — ${myColor==='w'?'White':'Black'} to move`:`Opponent's turn — thinking…`;
-    tl.style.color=isMyTurn?'var(--gold)':'var(--dim)';
-  }
-
-  function formatTime(s){ return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
-
+  // ── Timers ──
   function startTimer(){
     stopTimer();
     timerInterval=setInterval(()=>{
-      if(gameOver) return stopTimer();
+      if(gameOver){stopTimer();return;}
       if(turn===myColor){ myTimeSec=Math.max(0,myTimeSec-1); }
       else { oppTimeSec=Math.max(0,oppTimeSec-1); }
-      const myT=document.getElementById('chessMyTimer');
-      const oppT=document.getElementById('chessOpponentTimer');
-      if(myT) myT.textContent=formatTime(myTimeSec);
-      if(oppT) oppT.textContent=formatTime(oppTimeSec);
-      if(myTimeSec<=0){ gameOver=true; stopTimer(); endGame('loss'); }
-      if(oppTimeSec<=0){ gameOver=true; stopTimer(); endGame('win'); }
+      const mt=document.getElementById('chessMyTimer');
+      const ot=document.getElementById('chessOpponentTimer');
+      if(mt) mt.textContent=fmt(myTimeSec);
+      if(ot) ot.textContent=fmt(oppTimeSec);
+      // Low time warning
+      if(mt){ mt.style.color=myTimeSec<30?'#c0392b':'#b88b3a'; }
+      if(ot){ ot.style.color=oppTimeSec<30?'#c0392b':'#2c2416'; }
+      if(myTimeSec<=0){gameOver=true;stopTimer();endGame('loss');}
+      if(oppTimeSec<=0){gameOver=true;stopTimer();endGame('win');}
     },1000);
   }
   function stopTimer(){ clearInterval(timerInterval); }
 
-  // Hook into game start
-  window.initChessGame = function(){
-    setTimeout(initChess, 100);
+  // ── Init ──
+  function initChess(){
+    game=INIT.map(r=>r.slice());
+    selected=null; validMoves=[]; turn='w'; gameOver=false;
+    castlingRights={wK:true,wQ:true,bK:true,bQ:true};
+    enPassantTarget=null;
+    myColor=(window.selectedChessColor==='black')?'b':'w';
+    myTimeSec=600; oppTimeSec=600;
+
+    // Set player names
+    const myN=document.getElementById('chessMyName');
+    const oppN=document.getElementById('chessOpponentName');
+    if(myN) myN.textContent=(typeof UD!=='undefined'&&UD?.displayName)?UD.displayName.toUpperCase():'YOU';
+    if(oppN) oppN.textContent='OPPONENT';
+
+    // Set color labels  
+    const myLabel=document.querySelector('#chessMyName + *');
+
+    render(); updateStatus(); startTimer();
+
+    // If playing as black, AI makes first move
+    if(myColor==='b') setTimeout(aiMove,800);
+  }
+
+  // ── Chat ──
+  window.toggleChessChat=function(){
+    const panel=document.getElementById('chessChatPanel');
+    const badge=document.getElementById('chessChatBadge');
+    if(!panel) return;
+    const isOpen=panel.style.visibility==='visible';
+    if(isOpen){
+      panel.style.transform='scale(0.9) translateY(10px)';
+      panel.style.opacity='0';
+      panel.style.visibility='hidden';
+    } else {
+      panel.style.transform='scale(1) translateY(0)';
+      panel.style.opacity='1';
+      panel.style.visibility='visible';
+      if(badge) badge.style.opacity='0';
+      setTimeout(()=>document.getElementById('chessChatInput')?.focus(),80);
+    }
   };
 
-  // Patch showView to init chess when gameView becomes active
-  const _origShowView = window.showView;
-  window.showView = function(name){
+  window.sendChessChat=function(){
+    const inp=document.getElementById('chessChatInput');
+    const msgs=document.getElementById('chessChatMsgs');
+    if(!inp||!msgs) return;
+    const msg=inp.value.trim(); if(!msg) return;
+    inp.value='';
+    // User message
+    const um=document.createElement('div');
+    um.style.cssText='max-width:85%;padding:9px 13px;border-radius:18px;font-size:0.82rem;line-height:1.4;background:#c8a951;color:#1e1a10;align-self:flex-end;border-bottom-right-radius:4px;font-weight:500;word-break:break-word;';
+    um.textContent=msg; msgs.appendChild(um);
+    msgs.scrollTop=msgs.scrollHeight;
+    // Bot progress bar
+    const bar=document.getElementById('chessChatBar');
+    if(bar){bar.style.width='80%';setTimeout(()=>{bar.style.transition='width 0.1s';bar.style.width='0%';},750);}
+    // Bot reply
+    setTimeout(()=>{
+      const bm=document.createElement('div');
+      bm.style.cssText='max-width:85%;padding:9px 13px;border-radius:18px;font-size:0.82rem;line-height:1.4;background:#312b1f;color:#f7efdb;align-self:flex-start;border-bottom-left-radius:4px;border:0.5px solid rgba(200,169,81,0.3);word-break:break-word;';
+      const lm=msg.toLowerCase();
+      if(lm.includes('hello')||lm.includes('hi')||lm.includes('hey')) bm.textContent='🌟 Welcome, champion! May your pieces move with elegance.';
+      else if(lm.includes('win')||lm.includes('prize')||lm.includes('money')||lm.includes('rand')) bm.textContent='🏆 Win by checkmate to earn R2! The pot is R4 — all yours if you win.';
+      else if(lm.includes('move')||lm.includes('strategy')||lm.includes('best')) bm.textContent='♜ Control the center with d4/e4, develop knights before bishops, castle early for king safety!';
+      else if(lm.includes('check')||lm.includes('king')) bm.textContent='🏰 King safety is paramount! Castle within the first 10 moves. Red highlight = your king is in check.';
+      else if(lm.includes('how')||lm.includes('rule')) bm.textContent='📖 Click a piece to see golden dots (valid moves). Click a dot to move. Checkmate = win!';
+      else if(lm.includes('pawn')||lm.includes('promote')) bm.textContent='👑 Pawns auto-promote to queen upon reaching the final rank!';
+      else if(lm.includes('draw')||lm.includes('stale')) bm.textContent='🤝 Stalemate = draw. Both players keep their R2 stake.';
+      else if(lm.includes('resign')||lm.includes('leave')||lm.includes('quit')) bm.textContent='⚠️ Resigning counts as a loss — forfeit your R2. Are you sure?';
+      else if(lm.includes('thank')) bm.textContent='✨ Good luck on the golden board, champion!';
+      else bm.textContent=`💭 Interesting thought! Every chess move shapes destiny. The board is your battlefield.`;
+      msgs.appendChild(bm);
+      msgs.scrollTop=msgs.scrollHeight;
+      // Badge if closed
+      const panel=document.getElementById('chessChatPanel');
+      const badge=document.getElementById('chessChatBadge');
+      if(panel&&panel.style.visibility!=='visible'&&badge) badge.style.opacity='1';
+    },720);
+  };
+
+  // ── Hook into view system ──
+  window.initChessGame=function(){ setTimeout(initChess,80); };
+
+  const _origShowView=window.showView;
+  window.showView=function(name){
     if(_origShowView) _origShowView(name);
     if(name==='gameView') initChessGame();
   };
-
-  // Also hook confirmJoin
-  const _origConfirmJoin = window.confirmJoin;
-  window.confirmJoin = function(){
-    if(_origConfirmJoin) _origConfirmJoin();
-    // initChess will be called when gameView is shown
-  };
-
-  // Canvas events
-  document.addEventListener('DOMContentLoaded',()=>{
-    const c=document.getElementById('chessBoard');
-    if(c){
-      c.addEventListener('click', handleClick);
-      c.addEventListener('touchend', e=>{
-        e.preventDefault();
-        handleClick(e.changedTouches[0]);
-      }, {passive:false});
-    }
-    window.addEventListener('resize',()=>{
-      if(!canvas) return;
-      resizeCanvas(); drawBoard();
-    });
-  });
 
 })();
 </script>
