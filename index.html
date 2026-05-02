@@ -2110,6 +2110,8 @@ function showLobby(){loadSettings();
   applyTheme();
   // Process any pending Yoco payment return
   processPendingPayment();
+  // Re-attach listeners for any withdrawals still pending from previous sessions
+  _reattachPendingWithdrawListeners();
 }
 
 function refreshLobbyUI(){
@@ -5002,25 +5004,56 @@ window.submitWithdraw = async function(){
   }
 };
 
-// Listen for admin to mark withdrawal as paid or rejected
+// Listen for admin to mark withdrawal as paid or rejected.
+// Listens on BOTH the admin collection AND the user subcollection so status
+// updates are caught no matter which path the admin panel writes to.
 function _listenWithdrawStatus(requestId, amt){
-  const wdDocRef = doc(db, 'sw_withdrawals', requestId);
-  const unsub = onSnapshot(wdDocRef, snap => {
-    if(!snap.exists()) return;
-    const d = snap.data();
+  let resolved = false;
+  let unsubAdmin = ()=>{}, unsubUser = ()=>{};
+
+  function handleStatusUpdate(d){
+    if(resolved || !d) return;
     if(d.status === 'paid'){
-      toast('✓ Withdrawal of R' + amt.toFixed(2) + ' has been paid!', 'gold');
-      unsub();
+      resolved = true;
+      unsubAdmin(); unsubUser();
+      toast('Withdrawal of R' + amt.toFixed(2) + ' has been paid!', 'gold');
+      setDoc(doc(db,'sw_users',CU.uid,'withdrawals',requestId),{status:'paid'},{merge:true}).catch(()=>{});
     } else if(d.status === 'rejected'){
-      // Refund the amount back to balance
+      resolved = true;
+      unsubAdmin(); unsubUser();
       updateDoc(doc(db,'sw_users',CU.uid),{balance:increment(amt)}).then(()=>{
         UD.balance = (UD.balance||0) + amt;
         refreshLobbyUI();
         toast('Withdrawal rejected — R' + amt.toFixed(2) + ' refunded to balance.', 'gold');
       });
-      unsub();
+      setDoc(doc(db,'sw_users',CU.uid,'withdrawals',requestId),{status:'rejected'},{merge:true}).catch(()=>{});
     }
+  }
+
+  // Listen on admin collection (sw_withdrawals — where admin marks paid/rejected)
+  unsubAdmin = onSnapshot(doc(db,'sw_withdrawals',requestId), snap=>{
+    if(snap.exists()) handleStatusUpdate(snap.data());
   });
+
+  // Also listen on user subcollection as a backup path
+  unsubUser = onSnapshot(doc(db,'sw_users',CU.uid,'withdrawals',requestId), snap=>{
+    if(snap.exists()) handleStatusUpdate(snap.data());
+  });
+}
+
+// Called on login — re-attaches status listeners for any withdrawals still 'pending'.
+// This means toast notifications fire even if the user closed the app after requesting.
+async function _reattachPendingWithdrawListeners(){
+  if(!CU) return;
+  try{
+    const snap = await getDocs(collection(db,'sw_users',CU.uid,'withdrawals'));
+    snap.forEach(d=>{
+      const wd = d.data();
+      if(wd.status === 'pending' && wd.amount){
+        _listenWithdrawStatus(d.id, wd.amount);
+      }
+    });
+  }catch(e){ /* non-critical */ }
 }
 
 window.selectFundsAmt=function(el,amount){
@@ -5880,23 +5913,21 @@ window.toggleInlineHistory = function(type){
 };
 
 function _buildInlineDeposits(items, totalEl){
-  const deps = (_txAllData||[]).filter(h=>h.result==='deposit'||h.result==='payment');
-
-  if(!deps.length && _txAllData && _txAllData.length){
-    _renderInlineDepositRows(items, totalEl, []);
-    return;
-  }
-  if(deps.length){
-    _renderInlineDepositRows(items, totalEl, deps);
-    return;
-  }
-
-  // No cached data — fetch
+  // Always fetch fresh from RTDB — never rely solely on _txAllData cache
+  // because deposit entries are only added after a successful Yoco payment.
   if(!CU){ items.innerHTML=''; return; }
+
+  // Fast path: if cache has deposit entries, show them immediately then refresh
+  const cached = (_txAllData||[]).filter(h=>h.result==='deposit'||h.result==='payment');
+  if(cached.length){
+    _renderInlineDepositRows(items, totalEl, cached);
+    // Still do a fresh fetch in background to pick up any newer deposits
+  }
+
   onValue(ref(rtdb,'sw_history/'+CU.uid), snap=>{
-    const all  = Object.values(snap.val()||{}).sort((a,b)=>(b.ts||0)-(a.ts||0));
-    const deps2 = all.filter(h=>h.result==='deposit'||h.result==='payment');
-    _renderInlineDepositRows(items, totalEl, deps2);
+    const all = Object.values(snap.val()||{}).sort((a,b)=>(b.ts||0)-(a.ts||0));
+    const deps = all.filter(h=>h.result==='deposit'||h.result==='payment');
+    _renderInlineDepositRows(items, totalEl, deps);
   },{onlyOnce:true});
 }
 
@@ -6347,27 +6378,54 @@ window.closeWalletHistoryOverlay = function(){
 };
 
 function _loadDepositHistory(listEl, summEl){
-  // Use cached _txAllData if available, else fetch
-  const deposits = (_txAllData||[]).filter(h=>h.result==='deposit'||h.result==='payment');
-
-  if(deposits.length){
-    _renderDepositHistory(listEl, summEl, deposits);
+  // Use cached _txAllData if available, else fetch directly from RTDB
+  const cached = (_txAllData||[]).filter(h=>h.result==='deposit'||h.result==='payment');
+  if(cached.length){
+    _renderDepositHistory(listEl, summEl, cached);
     return;
   }
 
-  // Fetch fresh
-  import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js').then(()=>{
+  if(!CU){
+    listEl.innerHTML=`<div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">Sign in to view deposits.</div>`;
+    return;
+  }
+
+  // Also fetch from Firestore sw_payments collection as a fallback source
+  // so deposits are always shown even if RTDB history entry was skipped
+  const rtdbPromise = new Promise(resolve=>{
     onValue(ref(rtdb,'sw_history/'+CU.uid), snap=>{
       const all = Object.values(snap.val()||{}).sort((a,b)=>(b.ts||0)-(a.ts||0));
-      const deps = all.filter(h=>h.result==='deposit'||h.result==='payment');
-      _renderDepositHistory(listEl, summEl, deps);
+      resolve(all.filter(h=>h.result==='deposit'||h.result==='payment'));
     },{onlyOnce:true});
+  });
+
+  const fsPromise = getDocs(
+    collection(db,'sw_payments')
+  ).then(snap=>{
+    const deps=[];
+    snap.forEach(d=>{
+      const dd=d.data();
+      if(dd.uid===CU.uid) deps.push({
+        result:'deposit',
+        amount:dd.amount||0,
+        ts: dd.creditedAt ? new Date(dd.creditedAt).getTime() : 0,
+        checkoutId:dd.checkoutId
+      });
+    });
+    return deps;
+  }).catch(()=>[]);
+
+  Promise.all([rtdbPromise, fsPromise]).then(([rtdbDeps, fsDeps])=>{
+    // Merge: prefer RTDB entries, fill in any Firestore ones not already present
+    const seenCheckouts=new Set(rtdbDeps.map(d=>d.checkoutId).filter(Boolean));
+    const merged=[...rtdbDeps];
+    fsDeps.forEach(d=>{
+      if(d.checkoutId&&!seenCheckouts.has(d.checkoutId)) merged.push(d);
+    });
+    merged.sort((a,b)=>(b.ts||0)-(a.ts||0));
+    _renderDepositHistory(listEl, summEl, merged);
   }).catch(()=>{
-    onValue(ref(rtdb,'sw_history/'+CU.uid), snap=>{
-      const all = Object.values(snap.val()||{}).sort((a,b)=>(b.ts||0)-(a.ts||0));
-      const deps = all.filter(h=>h.result==='deposit'||h.result==='payment');
-      _renderDepositHistory(listEl, summEl, deps);
-    },{onlyOnce:true});
+    listEl.innerHTML=`<div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">Failed to load. Please try again.</div>`;
   });
 }
 
@@ -6493,24 +6551,4 @@ function _renderWithdrawHistory(listEl, summEl, wds){
       <div style="display:flex;align-items:center;gap:12px;">
         <div style="width:40px;height:40px;border-radius:12px;background:${statusBg};border:1px solid ${statusBord};display:flex;align-items:center;justify-content:center;flex-shrink:0;">${iconSvg}</div>
         <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
-            <span style="font-size:13px;font-weight:700;color:var(--white);">${method}</span>
-            <span style="font-size:9px;letter-spacing:.8px;text-transform:uppercase;font-weight:700;padding:2px 7px;border-radius:6px;background:${statusBg};color:${statusColor};border:1px solid ${statusBord};">${statusLabel}</span>
-          </div>
-          <div style="font-size:11px;color:var(--dim);">${timeStr}${payoutInfo?' · '+payoutInfo:''}</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.5px;color:${w.status==='rejected'?'var(--dim)':'var(--white)'};">R${amt.toFixed(2)}</div>
-          ${w.status==='rejected'?`<div style="font-size:10px;color:#f87171;margin-top:1px;">Refunded</div>`:''}
-        </div>
-      </div>
-      ${w.status==='pending'?`<div style="margin-top:8px;padding:7px 10px;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.15);border-radius:8px;font-size:10px;color:rgba(251,191,36,.7);letter-spacing:.3px;">⏳ Usually processed within 24 hours</div>`:''}
-    </div>`;
-  });
-  html += `</div>`;
-  listEl.innerHTML = html;
-}
-</script>
-
-</body>
-</html>
+          <div style="display:flex;align-items:center;ga
