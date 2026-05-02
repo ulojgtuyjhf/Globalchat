@@ -277,6 +277,28 @@ html::-webkit-scrollbar { display: none; }
     -webkit-tap-highlight-color: transparent;
     outline: none; user-select: none;
 }
+/* Suppress ALL native browser video UI — loading spinner, controls, etc. */
+video::-webkit-media-controls,
+video::-webkit-media-controls-enclosure,
+video::-webkit-media-controls-panel,
+video::-webkit-media-controls-overlay-play-button,
+video::-webkit-media-controls-play-button,
+video::-webkit-media-controls-timeline,
+video::-webkit-media-controls-current-time-display,
+video::-webkit-media-controls-time-remaining-display,
+video::-webkit-media-controls-volume-slider,
+video::-webkit-media-controls-mute-button,
+video::-webkit-media-controls-fullscreen-button,
+video::-webkit-media-controls-overflow-button,
+video::-webkit-media-controls-toggle-closed-captions-button,
+video::-internal-media-controls-download-button,
+video::-webkit-media-controls-loading-panel,
+video::-webkit-media-controls-timeline-container,
+video::-webkit-media-controls-status-display {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
 /* Cinematic gradient — strong bottom fade */
 .gallery-item::after {
     content: '';
@@ -5574,6 +5596,10 @@ function createMediaElement(mediaItem) {
         video.alt = 'Video content';
         video.muted = true; // start muted to allow autoplay, unmuted by observer
         video.controls = false;
+        video.disablePictureInPicture = true;
+        video.disableRemotePlayback = true;
+        video.setAttribute('controlsList', 'nodownload nofullscreen noremoteplayback');
+        video.setAttribute('x-webkit-airplay', 'deny');
         video.playsInline = true;
         video.loop = true;
         video.autoplay = false; // observer handles play after src is set
@@ -6154,14 +6180,11 @@ function loadComments(postId) {
             const c = d.data(); c.id = d.id;
             if (c.parentId) return; // replies handled below
             if (_renderedIds.has(c.id)) return;
-            // Swap out optimistic temp element if present — match by text + userId + gif
-            const opts = commentsList.querySelectorAll('[data-comment-id^="temp_"]');
-            opts.forEach(function(opt) {
-                var sameText = (opt.dataset.optimisticText || '') === (c.text || '');
-                var sameGif  = (opt.dataset.optimisticGif  || '') === (c.gifUrl || '');
-                var sameUid  = (opt.dataset.optimisticUid  || '') === (c.userId || '');
-                if (sameUid && sameText && sameGif) opt.remove();
-            });
+            // Guard against duplicate DOM nodes (e.g. onSnapshot cache+server double-fire)
+            if (commentsList.querySelector('[data-comment-id="' + c.id + '"]')) {
+                _renderedIds.add(c.id);
+                return;
+            }
             _renderedIds.add(c.id);
             const el = createCommentElement(c, repliesMap[c.id] || []);
             if (!isFirstLoad) el.classList.add('new-live');
@@ -6176,6 +6199,10 @@ function loadComments(postId) {
             const c = d.data(); c.id = d.id;
             if (!c.parentId) return;
             if (_renderedIds.has(c.id)) return;
+            if (commentsList.querySelector('[data-comment-id="' + c.id + '"]')) {
+                _renderedIds.add(c.id);
+                return;
+            }
             _renderedIds.add(c.id);
             const rEl = createCommentElement(c, []);
             if (!isFirstLoad) rEl.classList.add('new-live');
