@@ -248,8 +248,7 @@ html::-webkit-scrollbar { display: none; }
     background: #000;
     -webkit-tap-highlight-color: transparent;
     transform-origin: top center;
-    /* Push content up so bottom nav doesn't cover the video */
-    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    /* NO padding-bottom — video fills full screen like TikTok; bottom nav floats over */
     box-sizing: border-box;
     /* Perf: isolate paint to this card */
     contain: layout style;
@@ -460,7 +459,7 @@ video::-webkit-media-controls-status-display {
 .options { display: none !important; }
 .video-caption {
     position: absolute;
-    bottom: 74px; left: 16px; right: 66px;
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px)); left: 16px; right: 66px;
     z-index: 6;
     pointer-events: none;
 }
@@ -823,7 +822,7 @@ video::-webkit-media-controls-status-display {
 /* ─── VIDEO PROGRESS BAR ─── */
 .vid-progress-wrap {
     position: absolute;
-    bottom: 70px; left: 0; right: 0;
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px)); left: 0; right: 0;
     height: 3px;
     background: transparent;
     z-index: 20;
@@ -934,7 +933,7 @@ video::-webkit-media-controls-status-display {
 
 /* ─── RIGHT SIDE ACTION BUTTONS ─── */
 .slide-actions {
-    position: absolute; right: 8px; bottom: 92px;
+    position: absolute; right: 8px; bottom: calc(92px + env(safe-area-inset-bottom, 0px));
     z-index: 10; display: flex; flex-direction: column;
     align-items: center; gap: 14px;
     pointer-events: auto;
@@ -1404,6 +1403,9 @@ body.paused-view #mob-feed-tabs { opacity: 0; pointer-events: none; }
 }
 .lazy-load { opacity: 0; transition: opacity 0.3s ease-in; }
 .lazy-load.loaded { opacity: 1; }
+/* Videos inside gallery always show — their poster image covers loading state */
+.gallery-item video.lazy-load { opacity: 1; }
+.gallery-item video.lazy-load.loaded { opacity: 1; }
 
 /* ═══════════════════════════════════════
    TIKTOK-STYLE LIVE COMMENT SHEET
@@ -4346,6 +4348,41 @@ function loadMediaElement(el) {
         el.loop = true;
         el.muted = true;
         el.load();
+
+        // ── TikTok-style: auto-generate poster from first frame if none stored ──
+        // This eliminates the black HTML-looking placeholder while video loads
+        if (el.dataset.needsPoster) {
+            delete el.dataset.needsPoster;
+            var _genPosterVid = el; // reference
+            function _captureFirstFrame() {
+                try {
+                    var canvas = document.createElement('canvas');
+                    canvas.width  = _genPosterVid.videoWidth  || 360;
+                    canvas.height = _genPosterVid.videoHeight || 640;
+                    var ctx = canvas.getContext('2d');
+                    ctx.drawImage(_genPosterVid, 0, 0, canvas.width, canvas.height);
+                    var dataURL = canvas.toDataURL('image/jpeg', 0.85);
+                    // Only set if video hasn't started playing yet (avoid flicker)
+                    if (_genPosterVid.paused || _genPosterVid.currentTime < 0.1) {
+                        _genPosterVid.poster = dataURL;
+                    }
+                } catch(e) { /* cross-origin or canvas tainted — silently skip */ }
+            }
+            // Seek to 0.01s to capture a real frame (not a blank frame)
+            var _onMeta = function() {
+                _genPosterVid.currentTime = 0.01;
+            };
+            var _onSeeked = function() {
+                _captureFirstFrame();
+                _genPosterVid.removeEventListener('seeked', _onSeeked);
+            };
+            if (_genPosterVid.readyState >= 1) {
+                _onMeta();
+            } else {
+                _genPosterVid.addEventListener('loadedmetadata', _onMeta, { once: true });
+            }
+            _genPosterVid.addEventListener('seeked', _onSeeked);
+        }
     }
 }
 
@@ -4694,7 +4731,15 @@ function createPinElement(postData, postId) {
     if (!window._buildingForViewer) {
         const vidLoader = document.createElement('div');
         vidLoader.className = 'vid-loader-overlay';
-        vidLoader.style.cssText = 'position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:8;transition:opacity 0.3s;pointer-events:none;';
+        // Use thumbnail as background so there's never a raw black HTML-looking placeholder
+        var _loaderBg = '#000';
+        var _posterUrl2 = mediaItem.thumbnailURL || mediaItem.thumbnail || mediaItem.posterURL || null;
+        if (_posterUrl2) {
+            _loaderBg = '#000';
+            vidLoader.style.cssText = 'position:absolute;inset:0;background:#000 url(' + JSON.stringify(_posterUrl2) + ') center/cover no-repeat;display:flex;align-items:center;justify-content:center;z-index:8;transition:opacity 0.3s;pointer-events:none;';
+        } else {
+            vidLoader.style.cssText = 'position:absolute;inset:0;background:#111;display:flex;align-items:center;justify-content:center;z-index:8;transition:opacity 0.3s;pointer-events:none;';
+        }
         vidLoader.innerHTML = '<div class="spinner"></div>';
         pinContainer.appendChild(vidLoader);
         if (mediaElement && mediaElement.tagName === 'VIDEO') {
@@ -5603,6 +5648,17 @@ function createMediaElement(mediaItem) {
         video.playsInline = true;
         video.loop = true;
         video.autoplay = false; // observer handles play after src is set
+
+        // ── TikTok-style: set poster so there's never a black placeholder ──
+        // Priority: stored thumbnailURL → thumbnail → generate from first frame
+        var _posterUrl = mediaItem.thumbnailURL || mediaItem.thumbnail || mediaItem.posterURL || null;
+        if (_posterUrl) {
+            video.poster = _posterUrl;
+        } else {
+            // Generate a poster from the first frame as soon as the video src is loaded
+            // We do this lazily (only when src is assigned by the IntersectionObserver)
+            video.dataset.needsPoster = '1';
+        }
 
         // Apply saved video position (object-position) — supports multiple field names
         var _vidPos = mediaItem.objectPosition
