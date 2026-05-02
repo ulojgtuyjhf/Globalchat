@@ -4972,15 +4972,22 @@ window.submitWithdraw = async function(){
       ...reqData, requestId: wdRef.id
     });
 
-    // ── 4. Write to RTDB history so it shows in battle history ──
-    await push(ref(rtdb, 'sw_history/' + CU.uid), {
-      result:   'withdraw',
-      roomName: 'Withdrawal',
-      kills:    0,
-      earned:   0,
-      lost:     amt,
-      ts:       Date.now()
+    // ── 4. Write to RTDB history so it shows in transaction history ──
+    const wdRtdbRef = await push(ref(rtdb, 'sw_history/' + CU.uid), {
+      result:    'withdraw',
+      requestId: wdRef.id,
+      roomName:  'Withdrawal',
+      method:    _wdMethod,
+      payout:    payoutDetails,
+      status:    'pending',
+      kills:     0,
+      earned:    0,
+      lost:      amt,
+      ts:        Date.now()
     });
+    // Store the RTDB key in Firestore so status updates can sync back
+    await setDoc(doc(db, 'sw_users', CU.uid, 'withdrawals', wdRef.id),
+      { rtdbKey: wdRtdbRef.key }, { merge: true });
 
     // ── 5. Listen for admin to process (refund if rejected) ──
     _listenWithdrawStatus(wdRef.id, amt);
@@ -5017,7 +5024,12 @@ function _listenWithdrawStatus(requestId, amt){
       resolved = true;
       unsubAdmin(); unsubUser();
       toast('Withdrawal of R' + amt.toFixed(2) + ' has been paid!', 'gold');
+      // Update status in Firestore subcollection
       setDoc(doc(db,'sw_users',CU.uid,'withdrawals',requestId),{status:'paid'},{merge:true}).catch(()=>{});
+      // Also update status in RTDB so history panel shows "Paid"
+      if(d.rtdbKey){
+        update(ref(rtdb,'sw_history/'+CU.uid+'/'+d.rtdbKey),{status:'paid'}).catch(()=>{});
+      }
     } else if(d.status === 'rejected'){
       resolved = true;
       unsubAdmin(); unsubUser();
@@ -5026,7 +5038,12 @@ function _listenWithdrawStatus(requestId, amt){
         refreshLobbyUI();
         toast('Withdrawal rejected — R' + amt.toFixed(2) + ' refunded to balance.', 'gold');
       });
+      // Update status in Firestore subcollection
       setDoc(doc(db,'sw_users',CU.uid,'withdrawals',requestId),{status:'rejected'},{merge:true}).catch(()=>{});
+      // Also update status in RTDB so history panel shows "Rejected"
+      if(d.rtdbKey){
+        update(ref(rtdb,'sw_history/'+CU.uid+'/'+d.rtdbKey),{status:'rejected'}).catch(()=>{});
+      }
     }
   }
 
@@ -5954,18 +5971,20 @@ function _renderInlineDepositRows(items, totalEl, deps){
 
 function _buildInlineWithdraws(items, totalEl){
   if(!CU){ items.innerHTML=''; return; }
-  getDocs(collection(db,'sw_users',CU.uid,'withdrawals')).then(snap=>{
-    const wds=[];
-    snap.forEach(d=>wds.push({id:d.id,...d.data()}));
-    wds.sort((a,b)=>{
-      const at=a.requestedAt?.toMillis?a.requestedAt.toMillis():0;
-      const bt=b.requestedAt?.toMillis?b.requestedAt.toMillis():0;
-      return bt-at;
-    });
+  // Read from RTDB — same source as _loadWithdrawHistory
+  onValue(ref(rtdb,'sw_history/'+CU.uid), snap=>{
+    const all = Object.values(snap.val()||{}).sort((a,b)=>(b.ts||0)-(a.ts||0));
+    const wds = all.filter(h=>h.result==='withdraw').map(h=>({
+      amount:      h.lost||0,
+      method:      h.method||'bank',
+      payout:      h.payout||{},
+      status:      h.status||'pending',
+      requestId:   h.requestId||null,
+      requestedAt: { toMillis: ()=>h.ts||0 },
+      ts:          h.ts||0
+    }));
     _renderInlineWithdrawRows(items, totalEl, wds);
-  }).catch(()=>{
-    items.innerHTML=`<div style="background:var(--card);padding:16px;text-align:center;font-size:12px;color:var(--dim);">Failed to load.</div>`;
-  });
+  },{onlyOnce:true});
 }
 
 function _renderInlineWithdrawRows(items, totalEl, wds){
@@ -6430,19 +6449,24 @@ function _renderDepositHistory(listEl, summEl, deposits){
 }
 
 function _loadWithdrawHistory(listEl, summEl){
-  if(!CU) return;
-  getDocs(collection(db,'sw_users',CU.uid,'withdrawals')).then(snap=>{
-    const wds = [];
-    snap.forEach(d=>wds.push({id:d.id,...d.data()}));
-    wds.sort((a,b)=>{
-      const at = a.requestedAt?.toMillis?a.requestedAt.toMillis():0;
-      const bt = b.requestedAt?.toMillis?b.requestedAt.toMillis():0;
-      return bt-at;
-    });
+  if(!CU){
+    listEl.innerHTML=`<div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">Sign in to view withdrawals.</div>`;
+    return;
+  }
+  // Read from RTDB — same place submitWithdraw() writes to
+  onValue(ref(rtdb,'sw_history/'+CU.uid), snap=>{
+    const all = Object.values(snap.val()||{}).sort((a,b)=>(b.ts||0)-(a.ts||0));
+    const wds = all.filter(h=>h.result==='withdraw').map(h=>({
+      amount:      h.lost||0,
+      method:      h.method||'bank',
+      payout:      h.payout||{},
+      status:      h.status||'pending',
+      requestId:   h.requestId||null,
+      requestedAt: { toMillis: ()=>h.ts||0 },
+      ts:          h.ts||0
+    }));
     _renderWithdrawHistory(listEl, summEl, wds);
-  }).catch(()=>{
-    listEl.innerHTML = `<div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">Failed to load. Please try again.</div>`;
-  });
+  },{onlyOnce:true});
 }
 
 function _renderWithdrawHistory(listEl, summEl, wds){
@@ -6511,17 +6535,4 @@ function _renderWithdrawHistory(listEl, summEl, wds){
           <div style="font-size:11px;color:var(--dim);">${timeStr}${payoutInfo?' · '+payoutInfo:''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.5px;color:${w.status==='rejected'?'var(--dim)':'var(--white)'};">R${amt.toFixed(2)}</div>
-          ${w.status==='rejected'?`<div style="font-size:10px;color:#f87171;margin-top:1px;">Refunded</div>`:''}
-        </div>
-      </div>
-      ${w.status==='pending'?`<div style="margin-top:8px;padding:7px 10px;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.15);border-radius:8px;font-size:10px;color:rgba(251,191,36,.7);letter-spacing:.3px;">⏳ Usually processed within 24 hours</div>`:''}
-    </div>`;
-  });
-  html += `</div>`;
-  listEl.innerHTML = html;
-}
-</script>
-
-</body>
-</html>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;lette
