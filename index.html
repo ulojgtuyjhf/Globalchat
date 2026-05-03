@@ -981,10 +981,10 @@ video::-webkit-media-controls-status-display {
 }
 .slide-action-icon svg {
     width: 22px; height: 22px;
-    fill: none; stroke: rgba(255,255,255,0.95);
+    fill: none; stroke: #ffffff;
     stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
     transition: all 0.2s;
-    filter: drop-shadow(0 1px 4px rgba(0,0,0,0.7));
+    filter: drop-shadow(0 1px 6px rgba(0,0,0,0.85));
 }
 /* Send/share icon uses fill */
 .slide-action-icon svg.send-icon,
@@ -995,7 +995,7 @@ video::-webkit-media-controls-status-display {
 }
 .slide-action-label {
     font-size: 11px; font-weight: 800;
-    color: rgba(255,255,255,0.92);
+    color: #ffffff;
     text-shadow: 0 1px 6px rgba(0,0,0,0.9);
 }
 
@@ -1024,13 +1024,13 @@ video::-webkit-media-controls-status-display {
 .follow-badge svg line { stroke: #fff; stroke-width: 2.5px; }
 .slide-action-btn:active .follow-badge { transform: translateX(-50%) scale(0.84); }
 
-/* LIKE active — heart fills with brand color */
+/* LIKE active — heart fills red TikTok style */
 .slide-action-btn.on .slide-action-icon {
     background: none;
     border: none;
 }
 .slide-action-btn.on .slide-action-icon .heart-icon {
-    fill: url(#brandHeartGrad) !important; stroke: #626262 !important;
+    fill: #fe2c55 !important; stroke: #fe2c55 !important;
 }
 
 /* Like pop + float heart */
@@ -1104,7 +1104,13 @@ video::-webkit-media-controls-status-display {
     justify-content: space-around; padding: 0 10px;
     padding-bottom: env(safe-area-inset-bottom, 0px);
     z-index: 300;
-    transition: transform 0.32s cubic-bezier(0.22,1,0.36,1), opacity 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.32s cubic-bezier(0.22,1,0.36,1), opacity 0.4s ease;
+}
+#bottom-nav.nav-ready {
+    opacity: 1;
+    pointer-events: auto;
 }
 #bottom-nav.hidden-nav { transform: translateY(100%); }
 body.paused-view #bottom-nav { opacity: 0; pointer-events: none; }
@@ -4619,6 +4625,11 @@ async function fetchPosts(loadMore) {
         if (!loadMore) {
             loadingContainer.classList.add('hidden');
             setTimeout(() => { loadingContainer.style.display = 'none'; }, 300);
+            // Reveal nav now that content is ready — clean TikTok-style entrance
+            setTimeout(() => {
+                const nav = document.getElementById('bottom-nav');
+                if (nav) nav.classList.add('nav-ready');
+            }, 350);
         }
 
         if (querySnapshot.empty) {
@@ -4692,6 +4703,8 @@ async function fetchPosts(loadMore) {
         console.error('Error fetching posts:', error);
         loadingContainer.classList.add('hidden');
         setTimeout(() => { loadingContainer.style.display = 'none'; }, 300);
+        const nav = document.getElementById('bottom-nav');
+        if (nav) nav.classList.add('nav-ready');
         if (!loadMore) gallery.innerHTML = '<div style="text-align:center;padding:20px;">Error loading content. Please try again later.</div>';
     } finally {
         _fetchPostsRunning = false;
@@ -4973,7 +4986,9 @@ function createPinElement(postData, postId) {
         _inlineFollow.classList.toggle('following', nowFollowing);
         await toggleFollow(postData.userId, postData.name || 'User');
     });
-    if (currentUser && postData.userId === currentUser.uid) _inlineFollow.style.display = 'none';
+    // Follow button removed from caption — follow badge is on the right rail avatar
+    // _inlineFollow kept in DOM for JS compat but hidden
+    _inlineFollow.style.display = 'none';
     _nameLine.appendChild(_inlineFollow);
 
     // Second line: @handle · time — only show handle if different from display name
@@ -5046,7 +5061,16 @@ function createPinElement(postData, postId) {
         if (postData.userId) viewProfile(postData.userId);
     });
 
-    captionEl.appendChild(creatorRow);
+    // Creator name stays in caption — avatar/follow badge live on right rail
+    const _nameOnlyRow = document.createElement('div');
+    _nameOnlyRow.style.cssText = 'display:flex;align-items:center;gap:5px;margin-bottom:3px;pointer-events:auto;';
+    const _captionName = document.createElement('span');
+    _captionName.className = 'video-creator-name';
+    _captionName.textContent = postData.name || 'Creator';
+    _captionName.style.cursor = 'pointer';
+    _captionName.addEventListener('click', function(e){ e.stopPropagation(); if (postData.userId) viewProfile(postData.userId); });
+    _nameOnlyRow.appendChild(_captionName);
+    captionEl.appendChild(_nameOnlyRow);
     if (postData.text && postData.text.trim()) {
         const captionText = document.createElement('div');
         captionText.className = 'video-caption-text';
@@ -5424,7 +5448,7 @@ function createPinElement(postData, postId) {
     thumbBtn.setAttribute('aria-label', 'Like');
     thumbBtn.innerHTML =
         '<div class="slide-action-icon">' +
-            '<svg class="heart-icon" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
+            '<svg class="heart-icon" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 2px 6px rgba(0,0,0,0.9))"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
         '</div>' +
         '<span class="slide-action-label thumb-lbl">0</span>';
     // Set initial like state from postData
@@ -5564,14 +5588,12 @@ function createPinElement(postData, postId) {
     dislikeBtn.setAttribute('aria-label', 'Super Like');
     dislikeBtn.innerHTML =
         '<div class="slide-action-icon">' +
-            '<svg viewBox="0 0 28 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="46" height="40">' +
-                // Two hearts overlapping — super like
-                '<path d="M7 3.5a3.5 3.5 0 0 0-3.5 3.5c0 4 3.5 7 7 9.5C14 14 17.5 11 17.5 7a3.5 3.5 0 0 0-7 0 3.5 3.5 0 0 0-3.5-3.5z" opacity="0.5"/>' +
+            '<svg viewBox="0 0 28 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="46" height="40" style="filter:drop-shadow(0 2px 6px rgba(0,0,0,0.9))">' +
+                '<path d="M7 3.5a3.5 3.5 0 0 0-3.5 3.5c0 4 3.5 7 7 9.5C14 14 17.5 11 17.5 7a3.5 3.5 0 0 0-7 0 3.5 3.5 0 0 0-3.5-3.5z" opacity="0.45"/>' +
                 '<path d="M13 5.5a3.5 3.5 0 0 0-3.5 3.5c0 4 3.5 7 7 9.5C20 16 23.5 13 23.5 9a3.5 3.5 0 0 0-7 0 3.5 3.5 0 0 0-3.5-3.5z"/>' +
-                // Sparkle dots
-                '<circle cx="25" cy="3" r="1" fill="rgba(255,255,255,0.8)" stroke="none"/>' +
-                '<circle cx="27" cy="7" r="0.7" fill="rgba(255,255,255,0.6)" stroke="none"/>' +
-                '<circle cx="23" cy="1" r="0.7" fill="rgba(255,255,255,0.6)" stroke="none"/>' +
+                '<circle cx="25" cy="3" r="1" fill="#fff" stroke="none"/>' +
+                '<circle cx="27" cy="7" r="0.7" fill="rgba(255,255,255,0.7)" stroke="none"/>' +
+                '<circle cx="23" cy="1" r="0.7" fill="rgba(255,255,255,0.7)" stroke="none"/>' +
             '</svg>' +
         '</div>' +
         '<span class="slide-action-label superlike-lbl"></span>';
@@ -5649,6 +5671,65 @@ function createPinElement(postData, postId) {
         } catch(err) { console.error('Superlike error:', err); }
     });
 
+    // ── Creator avatar + follow badge — TOP of right rail (Snapchat style) ──
+    var _avWrap = document.createElement('div');
+    _avWrap.className = 'creator-profile-av-wrap';
+    _avWrap.style.cssText = 'position:relative;width:46px;height:46px;flex-shrink:0;cursor:pointer;margin-bottom:2px;';
+
+    var _avEl = document.createElement('div');
+    _avEl.className = 'creator-profile-av';
+    _avEl.style.cssText = 'width:46px;height:46px;border-radius:50%;border:2.5px solid #fff;background:#555;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.5);';
+    var _avLetter2 = ((postData.name || 'U')[0]).toUpperCase();
+    var _avHue2 = (_avLetter2.charCodeAt(0) * 37) % 360;
+    if (postData.photoURL && !postData.photoURL.includes('default_profile')) {
+        var _avImg2 = document.createElement('img');
+        _avImg2.src = postData.photoURL;
+        _avImg2.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
+        _avImg2.onerror = function(){ this.style.display='none'; _avEl.textContent = _avLetter2; _avEl.style.background = 'hsl('+_avHue2+',50%,42%)'; };
+        _avEl.appendChild(_avImg2);
+    } else {
+        _avEl.textContent = _avLetter2;
+        _avEl.style.background = 'hsl('+_avHue2+',50%,42%)';
+    }
+    _avWrap.appendChild(_avEl);
+    _avWrap.addEventListener('click', function(e){ e.stopPropagation(); if (postData.userId) viewProfile(postData.userId); });
+
+    // Follow badge — only shown if not own post
+    var _isOwnAv = window._currentUser && (postData.userId === window._currentUser.uid || postData.uid === window._currentUser.uid);
+    if (!_isOwnAv) {
+        var _followBadge = document.createElement('div');
+        var _alreadyFollowing = currentUser && followedUsers.has(postData.userId);
+
+        function _renderBadge(following) {
+            _followBadge.style.cssText = 'position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;background:' + (following ? '#22c55e' : '#fff') + ';border:2.5px solid rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;z-index:5;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.4);transition:background 0.2s,transform 0.2s cubic-bezier(0.34,1.56,0.64,1);';
+            _followBadge.innerHTML = following
+                ? '<svg width="10" height="10" viewBox="0 0 12 12" fill="none"><polyline points="1,6 4.5,10 11,2" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+                : '<svg width="10" height="10" viewBox="0 0 12 12" fill="none"><line x1="6" y1="1" x2="6" y2="11" stroke="#111" stroke-width="2.5" stroke-linecap="round"/><line x1="1" y1="6" x2="11" y2="6" stroke="#111" stroke-width="2.5" stroke-linecap="round"/></svg>';
+        }
+        _renderBadge(_alreadyFollowing);
+
+        _followBadge.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            if (!currentUser) { window._showAuthPrompt(); return; }
+            if (postData.userId === currentUser.uid) return;
+            if (navigator.vibrate) navigator.vibrate(20);
+            var nowF = !followedUsers.has(postData.userId);
+            _renderBadge(nowF);
+            // Bounce animation
+            _followBadge.style.transform = 'translateX(-50%) scale(1.35)';
+            setTimeout(function(){ _followBadge.style.transform = 'translateX(-50%) scale(1)'; }, 180);
+            await toggleFollow(postData.userId, postData.name || 'User');
+        });
+        _avWrap.appendChild(_followBadge);
+    }
+
+    // Wrap in a slide-action-btn container so spacing matches other buttons
+    var _avBtn = document.createElement('div');
+    _avBtn.className = 'slide-action-btn';
+    _avBtn.style.cssText = 'pointer-events:auto;margin-bottom:4px;';
+    _avBtn.appendChild(_avWrap);
+    slideActions.appendChild(_avBtn);
+
     slideActions.appendChild(dislikeBtn);
 
     slideActions.appendChild(thumbBtn);
@@ -5659,7 +5740,7 @@ function createPinElement(postData, postId) {
     cmtBtn.setAttribute('aria-label', 'Comments');
     cmtBtn.innerHTML =
         '<div class="slide-action-icon" style="position:relative;">' +
-            '<svg viewBox="0 0 122.97 122.88" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M61.44,0a61.46,61.46,0,0,1,54.91,89l6.44,25.74a5.83,5.83,0,0,1-7.25,7L91.62,115A61.43,61.43,0,1,1,61.44,0ZM96.63,26.25a49.78,49.78,0,1,0-9,77.52A5.83,5.83,0,0,1,92.4,103L109,107.77l-4.5-18a5.86,5.86,0,0,1,.51-4.34,49.06,49.06,0,0,0,4.62-11.58,50,50,0,0,0-13-47.62Z" fill="#ffffff" stroke="rgba(255,255,255,0.3)" stroke-width="1"/></svg>' +
+            '<svg viewBox="0 0 122.97 122.88" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M61.44,0a61.46,61.46,0,0,1,54.91,89l6.44,25.74a5.83,5.83,0,0,1-7.25,7L91.62,115A61.43,61.43,0,1,1,61.44,0ZM96.63,26.25a49.78,49.78,0,1,0-9,77.52A5.83,5.83,0,0,1,92.4,103L109,107.77l-4.5-18a5.86,5.86,0,0,1,.51-4.34,49.06,49.06,0,0,0,4.62-11.58,50,50,0,0,0-13-47.62Z" fill="#ffffff" stroke="rgba(255,255,255,0.2)" stroke-width="1" style="filter:drop-shadow(0 1px 6px rgba(0,0,0,0.85))"/></svg>' +
         '<span class="cmt-live-dot" style="background:#22c55e;box-shadow:0 0 7px rgba(34,197,94,0.95);"></span>' +
         '</div>' +
         '<span class="slide-action-label cmt-count" style="display:none;"></span>';
@@ -5676,7 +5757,7 @@ function createPinElement(postData, postId) {
     shareBtn.setAttribute('aria-label', 'Share');
     shareBtn.innerHTML =
         '<div class="slide-action-icon">' +
-            '<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" style="filter:drop-shadow(0 2px 6px rgba(0,0,0,0.9))"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>' +
         '</div>' +
         '<span class="slide-action-label">Share</span>';
     shareBtn.addEventListener('click', (e) => {
